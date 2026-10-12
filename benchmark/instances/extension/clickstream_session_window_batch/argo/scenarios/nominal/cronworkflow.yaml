@@ -1,0 +1,237 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: clickstream-session-window-batch-nominal
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 8 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: execution-time
+        value: '2026-07-20T09:00:00Z'
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: clickstream-session-window-batch-nominal-scripts
+    - name: fixtures
+      configMap:
+        name: clickstream-session-window-batch-nominal-fixtures
+        items:
+        - key: fixture-0000
+          path: checkpoint_manifest.json
+        - key: fixture-0001
+          path: clickstream_events.jsonl
+        - key: fixture-0002
+          path: fixture.json
+        - key: fixture-0003
+          path: user_consent.csv
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: ingest-bounded-events
+          template: run-ingest-bounded-events
+        - name: validate-checkpoint-inputs
+          template: run-validate-checkpoint-inputs
+          depends: ingest-bounded-events.Succeeded
+        - name: sort-and-deduplicate-records
+          template: run-sort-and-deduplicate-records
+          depends: validate-checkpoint-inputs.Succeeded
+        - name: build-analysis-windows
+          template: run-build-analysis-windows
+          depends: sort-and-deduplicate-records.Succeeded
+        - name: compute-window-metrics
+          template: run-compute-window-metrics
+          depends: build-analysis-windows.Succeeded
+        - name: publish-outputs
+          template: run-publish-outputs
+          depends: compute-window-metrics.Succeeded
+    - name: run-ingest-bounded-events
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: ingest_bounded_events
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_ingest_bounded_events.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        - --execution-time
+        - '{{workflow.parameters.execution-time}}'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-validate-checkpoint-inputs
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: validate_checkpoint_inputs
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_validate_checkpoint_inputs.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-sort-and-deduplicate-records
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: sort_and_deduplicate_records
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_sort_and_deduplicate_records.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-build-analysis-windows
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: build_analysis_windows
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_build_analysis_windows.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-compute-window-metrics
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: compute_window_metrics
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/05_compute_window_metrics.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-publish-outputs
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: publish_outputs
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/06_publish_outputs.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        - --execution-time
+        - '{{workflow.parameters.execution-time}}'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

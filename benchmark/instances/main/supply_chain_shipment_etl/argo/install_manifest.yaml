@@ -1,0 +1,148 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supply-chain-shipment-etl-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_vendor_a.py: "#!/usr/bin/env python3\n\"\"\"Ingest vendor shipment CSV with schema validation.\"\
+    \"\"\n\nfrom __future__ import annotations\n\nimport argparse, csv, json, shutil\nfrom pathlib import\
+    \ Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--vendor\", type=str, required=True)\n    args = parser.parse_args()\n\n\
+    \    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True, exist_ok=True)\n\
+    \    dest = artifacts / f\"{args.vendor}_shipments.csv\"\n    shutil.copyfile(args.fixture, dest)\n\
+    \n    with dest.open(encoding=\"utf-8\", newline=\"\") as f:\n        reader = csv.DictReader(f)\n\
+    \        rows = list(reader)\n        columns = reader.fieldnames or []\n\n    dataset = {\"columns\"\
+    : columns, \"rows\": rows}\n    (artifacts / f\"{args.vendor}_dataset.json\").write_text(json.dumps(dataset,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n    data_obj = {\"source_uri\": str(dest), \"record_count\"\
+    : len(rows), \"columns\": columns, \"vendor\": args.vendor}\n    (artifacts / f\"{args.vendor}_data_object.json\"\
+    ).write_text(json.dumps(data_obj, indent=2) + \"\\n\", encoding=\"utf-8\")\n    status = {\"success\"\
+    : True, \"rows_read\": len(rows), \"errors\": []}\n    (artifacts / f\"{args.vendor}_validation_status.json\"\
+    ).write_text(json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\"\
+    :\n    main()\n"
+  02_ingest_vendor_b.py: "#!/usr/bin/env python3\n\"\"\"Ingest vendor shipment CSV with schema validation.\"\
+    \"\"\n\nfrom __future__ import annotations\n\nimport argparse, csv, json, shutil\nfrom pathlib import\
+    \ Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--vendor\", type=str, required=True)\n    args = parser.parse_args()\n\n\
+    \    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True, exist_ok=True)\n\
+    \    dest = artifacts / f\"{args.vendor}_shipments.csv\"\n    shutil.copyfile(args.fixture, dest)\n\
+    \n    with dest.open(encoding=\"utf-8\", newline=\"\") as f:\n        reader = csv.DictReader(f)\n\
+    \        rows = list(reader)\n        columns = reader.fieldnames or []\n\n    dataset = {\"columns\"\
+    : columns, \"rows\": rows}\n    (artifacts / f\"{args.vendor}_dataset.json\").write_text(json.dumps(dataset,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n    data_obj = {\"source_uri\": str(dest), \"record_count\"\
+    : len(rows), \"columns\": columns, \"vendor\": args.vendor}\n    (artifacts / f\"{args.vendor}_data_object.json\"\
+    ).write_text(json.dumps(data_obj, indent=2) + \"\\n\", encoding=\"utf-8\")\n    status = {\"success\"\
+    : True, \"rows_read\": len(rows), \"errors\": []}\n    (artifacts / f\"{args.vendor}_validation_status.json\"\
+    ).write_text(json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\"\
+    :\n    main()\n"
+  03_ingest_vendor_c.py: "#!/usr/bin/env python3\n\"\"\"Ingest vendor shipment CSV with schema validation.\"\
+    \"\"\n\nfrom __future__ import annotations\n\nimport argparse, csv, json, shutil\nfrom pathlib import\
+    \ Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--vendor\", type=str, required=True)\n    args = parser.parse_args()\n\n\
+    \    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True, exist_ok=True)\n\
+    \    dest = artifacts / f\"{args.vendor}_shipments.csv\"\n    shutil.copyfile(args.fixture, dest)\n\
+    \n    with dest.open(encoding=\"utf-8\", newline=\"\") as f:\n        reader = csv.DictReader(f)\n\
+    \        rows = list(reader)\n        columns = reader.fieldnames or []\n\n    dataset = {\"columns\"\
+    : columns, \"rows\": rows}\n    (artifacts / f\"{args.vendor}_dataset.json\").write_text(json.dumps(dataset,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n    data_obj = {\"source_uri\": str(dest), \"record_count\"\
+    : len(rows), \"columns\": columns, \"vendor\": args.vendor}\n    (artifacts / f\"{args.vendor}_data_object.json\"\
+    ).write_text(json.dumps(data_obj, indent=2) + \"\\n\", encoding=\"utf-8\")\n    status = {\"success\"\
+    : True, \"rows_read\": len(rows), \"errors\": []}\n    (artifacts / f\"{args.vendor}_validation_status.json\"\
+    ).write_text(json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\"\
+    :\n    main()\n"
+  04_cleanse_data.py: "#!/usr/bin/env python3\n\"\"\"Cleanse and standardize vendor shipment data: normalize\
+    \ SKUs, validate dates, enrich location.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\n\
+    import json\nfrom datetime import datetime\nfrom pathlib import Path\n\nLOCATION_HUBS = {\"East Warehouse\"\
+    : \"EWH\", \"North Center\": \"NCT\", \"West Hub\": \"WHB\", \"South Depot\": \"SDP\"}\n\n\ndef normalize_sku(sku:\
+    \ str) -> str:\n    return sku.strip().upper().replace(\"-\", \"_\")\n\n\ndef main() -> None:\n  \
+    \  parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\", type=Path, required=True)\n\
+    \    args = parser.parse_args()\n\n    artifacts = args.workspace / \"artifacts\"\n    all_rows =\
+    \ []\n    for vendor in [\"vendor_a\", \"vendor_b\", \"vendor_c\"]:\n        ds = json.loads((artifacts\
+    \ / f\"{vendor}_dataset.json\").read_text(encoding=\"utf-8\"))\n        for row in ds[\"rows\"]:\n\
+    \            all_rows.append(dict(row))\n            all_rows[-1][\"vendor\"] = vendor\n\n    cleansed\
+    \ = []\n    for row in all_rows:\n        try:\n            row[\"sku\"] = normalize_sku(row[\"sku\"\
+    ])\n            dt = datetime.strptime(row[\"ship_date\"], \"%Y-%m-%d\")\n            row[\"location_code\"\
+    ] = LOCATION_HUBS.get(row[\"destination\"], \"UNK\")\n            row[\"ship_date_validated\"] = dt.strftime(\"\
+    %Y-%m-%d\")\n            cleansed.append(row)\n        except (ValueError, KeyError):\n          \
+    \  continue\n\n    columns = [\"shipment_id\", \"sku\", \"quantity\", \"ship_date_validated\", \"\
+    destination\", \"location_code\", \"vendor\"]\n    output = {\"columns\": columns, \"rows\": cleansed}\n\
+    \    (artifacts / \"cleansed_shipment_dataset.json\").write_text(json.dumps(output, indent=2) + \"\
+    \\n\", encoding=\"utf-8\")\n    data_obj = {\"source_uri\": str(artifacts / \"cleansed_shipment_dataset.json\"\
+    ), \"record_count\": len(cleansed), \"columns\": columns}\n    (artifacts / \"cleansed_data_object.json\"\
+    ).write_text(json.dumps(data_obj, indent=2) + \"\\n\", encoding=\"utf-8\")\n    status = {\"success\"\
+    : True, \"rows_processed\": len(cleansed), \"errors\": []}\n    (artifacts / \"transform_status.json\"\
+    ).write_text(json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\"\
+    :\n    main()\n"
+  05_load_to_db.py: "#!/usr/bin/env python3\n\"\"\"Mock load cleansed shipment data to inventory database.\"\
+    \"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib import Path\n\
+    \n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace / \"\
+    artifacts\"\n    ds = json.loads((artifacts / \"cleansed_shipment_dataset.json\").read_text(encoding=\"\
+    utf-8\"))\n\n    db = args.workspace / \"mock_inventory_db\"\n    db.mkdir(parents=True, exist_ok=True)\n\
+    \    (db / \"inventory_shipments.json\").write_text(json.dumps(ds[\"rows\"], indent=2) + \"\\n\",\
+    \ encoding=\"utf-8\")\n\n    status = {\"success\": True, \"rows_written\": len(ds[\"rows\"]), \"\
+    errors\": []}\n    (artifacts / \"db_load_status.json\").write_text(json.dumps(status, indent=2) +\
+    \ \"\\n\", encoding=\"utf-8\")\n\n    ctx = {\"rows_loaded\": len(ds[\"rows\"]), \"load_success\"\
+    : True}\n    (artifacts / \"etl_summary_context.json\").write_text(json.dumps(ctx, indent=2) + \"\\\
+    n\", encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  06_send_summary_email.py: "#!/usr/bin/env python3\n\"\"\"Send mock summary email with ETL processing\
+    \ results.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib\
+    \ import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace\
+    \ / \"artifacts\"\n    ctx = json.loads((artifacts / \"etl_summary_context.json\").read_text(encoding=\"\
+    utf-8\"))\n\n    summary = {\n        \"summary_text\": f\"Supply Chain Shipment ETL completed. Rows\
+    \ loaded: {ctx['rows_loaded']}.\",\n        \"context_fields\": {\"rows_loaded\": ctx[\"rows_loaded\"\
+    ], \"load_success\": ctx[\"load_success\"]},\n    }\n    (artifacts / \"rendered_summary.json\").write_text(json.dumps(summary,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n\n    status = {\n        \"sent\": True,\n        \"\
+    recipients\": [\"supply-chain-team@company.com\"],\n        \"subject\": \"Daily Supply Chain Shipment\
+    \ ETL Summary\",\n        \"errors\": [],\n    }\n    (artifacts / \"notification_status.json\").write_text(json.dumps(status,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supply-chain-shipment-etl-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock","target":"artifacts/notification_status.json"}'
+  fixture-0001: "{\n  \"pipeline_id\": \"supply_chain_shipment_etl\",\n  \"inputs\": {\n    \"email_service\"\
+    : \"email_service.json\",\n    \"vendor_b_shipments\": \"vendor_b_shipments.csv\",\n    \"vendor_a_shipments\"\
+    : \"vendor_a_shipments.csv\",\n    \"inventory_db_resource\": \"inventory_db_resource.json\",\n  \
+    \  \"vendor_c_shipments\": \"vendor_c_shipments.csv\"\n  },\n  \"input_modalities\": [\n    \"json\"\
+    ,\n    \"table\"\n  ],\n  \"systems\": [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"
+  fixture-0002: '{"driver":"filesystem-mock","engine":"postgresql","target":"workspace/mock_inventory_db"}'
+  fixture-0003: 'shipment_id,sku,quantity,ship_date,destination
+
+    SH-A001,SKU-ALPHA,100,2024-01-15,East Warehouse
+
+    SH-A002,SKU-BETA,50,2024-01-15,North Center
+
+    SH-A003,sku-gamma,75,2024-01-15,West Hub
+
+    '
+  fixture-0004: 'shipment_id,sku,quantity,ship_date,destination
+
+    SH-B001,SKU_DELTA,200,2024-01-15,South Depot
+
+    SH-B002,SKU_EPSILON,30,2024-01-15,East Warehouse
+
+    SH-B003,sku-zeta,150,2024-01-15,North Center
+
+    '
+  fixture-0005: 'shipment_id,sku,quantity,ship_date,destination
+
+    SH-C001,SKU_ETA,120,2024-01-15,West Hub
+
+    SH-C002,sku-theta,90,2024-01-15,South Depot
+
+    SH-C003,SKU-IOTA,60,2024-01-15,East Warehouse
+
+    '

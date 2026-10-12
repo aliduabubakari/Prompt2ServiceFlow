@@ -1,0 +1,144 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: airvisual-pipeline-lat-long-v1-nominal-observation-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: airvisual-pipeline-lat-long-v1-nominal-observation
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: nominal-observation
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: fixture-file
+      value: airvisual_response.json
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: airvisual-pipeline-lat-long-v1-nominal-observation-scripts
+  - name: fixtures
+    configMap:
+      name: airvisual-pipeline-lat-long-v1-nominal-observation-fixtures
+      items:
+      - key: fixture-0000
+        path: airvisual_response.json
+      - key: fixture-0001
+        path: fixture.json
+      - key: fixture-0002
+        path: pollution_mapping.json
+      - key: fixture-0003
+        path: postgres_resource.json
+      - key: fixture-0004
+        path: weather_mapping.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: fetch-airvisual-data
+        template: run-fetch-airvisual-data
+      - name: validate-airvisual-response
+        template: run-validate-airvisual-response
+        depends: fetch-airvisual-data.Succeeded
+      - name: load-airvisual-dimensional-model
+        template: run-load-airvisual-dimensional-model
+        depends: validate-airvisual-response.Succeeded
+  - name: run-fetch-airvisual-data
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: fetch_airvisual_data
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_fetch_airvisual_data.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-validate-airvisual-response
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: validate_airvisual_response
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_validate_airvisual_response.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-load-airvisual-dimensional-model
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: load_airvisual_dimensional_model
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_load_airvisual_dimensional_model.py
+      - --workspace
+      - /workspace
+      - --pollution-mapping
+      - /opt/p2sf/fixtures/pollution_mapping.json
+      - --weather-mapping
+      - /opt/p2sf/fixtures/weather_mapping.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

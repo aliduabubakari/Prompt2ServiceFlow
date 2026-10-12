@@ -1,0 +1,544 @@
+ir_version: 0.1.0
+composition_id: fraud_detection_triage
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:fraud_detection_triage
+  split: main
+  pipeline_id: fraud_detection_triage
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/31_fraud_detection_triage.txt
+  description_sha256: de65db68f3197e808cbb84f4bc69fe59d50d6008c362d42eac07c1ff38cec14a
+  internal_spec_path: source/internal_specs/main_40/31_fraud_detection_triage.json
+  internal_spec_sha256: 181dd0b14fbddabc0635908b4c3502e5c169ce4168d1f5816ecd737f3ed9b40e
+requirement:
+  name: Fraud Detection Triage
+  purpose: Process daily transaction batches for fraud detection by analyzing transaction data, applying
+    risk scoring, and routing transactions based on risk thresholds before merging for final notification.
+  domain: fraud_detection
+  execution_model: batch
+  topology: branch_merge
+  information_sufficiency: high
+  notes:
+  - The notification step merges both manual review and auto-approval branches.
+  - Risk model implementation details are supplied through service parameters.
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: source_filesystem
+  type: filesystem
+  name: Source filesystem
+  identifier: /data/transactions
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: email_service
+  type: email
+  name: Email service
+  identifier: fraud-detection-notification
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: in_memory
+service_intents:
+- intent_id: analyze_transactions
+  name: Analyze transactions
+  category: ScoringService
+  capability: Parse the daily transaction CSV, apply fraud risk scoring rules, and emit an aggregate risk
+    score, scored transaction metadata, and scoring status.
+  source_step_refs:
+  - analyze_transactions
+  evidence:
+  - source: description
+    text: Analyze transaction CSV file and calculate risk score.
+  inputs:
+  - transaction_csv
+  outputs:
+  - risk_score
+  - scored_transactions
+  - scoring_status
+  external_system_refs:
+  - source_filesystem
+  preconditions:
+  - A readable daily transaction CSV with required columns is available.
+  effects:
+  - A bounded risk score, scored transaction dataset, and scoring status are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - financial
+    - internal
+  decomposition_rationale: The source step is an independently invokable fraud risk scoring capability
+    that emits the routing decision input.
+  confidence: explicit
+  ambiguity:
+    status: resolved
+    notes:
+    - Risk model profile and scoring rules are supplied through parameters.
+- intent_id: route_transaction
+  name: Route transaction
+  category: ScoringService
+  capability: Compare the aggregated fraud risk score against a configured threshold and emit a deterministic
+    routing decision.
+  source_step_refs:
+  - route_transaction
+  evidence:
+  - source: description
+    text: Apply risk model and determine routing based on risk score.
+  inputs:
+  - risk_score
+  outputs:
+  - routing_decision
+  external_system_refs: []
+  preconditions:
+  - A numeric risk score in [0,1] is available.
+  effects:
+  - A routing decision with route label and manual-review/auto-approve booleans is emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly separates the routing decision from the risk scoring
+    step.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: route_to_manual_review
+  name: Route to manual review
+  category: Transformer
+  capability: Record manual-review branch processing status for high-risk transactions, including counts
+    and bounded transaction references.
+  source_step_refs:
+  - route_to_manual_review
+  evidence:
+  - source: description
+    text: Process high-risk transactions through manual review.
+  inputs:
+  - routing_decision
+  - scored_transactions
+  outputs:
+  - manual_review_status
+  external_system_refs: []
+  preconditions:
+  - The routing decision selects the manual review route.
+  effects:
+  - A manual review status artifact is emitted with processing outcome.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - financial
+    - internal
+  decomposition_rationale: The source specifies an explicit manual review processing step that captures
+    branch outcome.
+  confidence: explicit
+  ambiguity:
+    status: resolved
+    notes:
+    - External case-management integration is not modeled in this mock.
+- intent_id: route_to_auto_approve
+  name: Route to auto approve
+  category: Transformer
+  capability: Record auto-approval branch processing status for low-risk transactions, including counts
+    and bounded transaction references.
+  source_step_refs:
+  - route_to_auto_approve
+  evidence:
+  - source: description
+    text: Auto-approve low-risk transactions for payment processing.
+  inputs:
+  - routing_decision
+  - scored_transactions
+  outputs:
+  - auto_approval_status
+  external_system_refs: []
+  preconditions:
+  - The routing decision selects the auto-approval route.
+  effects:
+  - An auto-approval status artifact is emitted with processing outcome.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - financial
+    - internal
+  decomposition_rationale: The source specifies an explicit auto-approval processing step that captures
+    branch outcome.
+  confidence: explicit
+  ambiguity:
+    status: resolved
+    notes:
+    - External payment-processing submission is not modeled in this mock.
+- intent_id: send_notification
+  name: Send processing-complete notification
+  category: Notifier
+  capability: Send a completion email notification to the fraud detection team after either branch completes,
+    emitting a delivery receipt.
+  source_step_refs:
+  - send_notification
+  evidence:
+  - source: description
+    text: Send notification after transaction processing completes.
+  inputs:
+  - email_service_resource
+  outputs:
+  - notification_status
+  external_system_refs:
+  - email_service
+  preconditions:
+  - At least one branch (manual review or auto approval) has completed.
+  effects:
+  - A notification delivery receipt is emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: The source explicitly separates notification as a merge-point step after both
+    branches. Mock uses filesystem-backed email delivery.
+  confidence: explicit
+  ambiguity:
+    status: resolved
+    notes:
+    - Mock records a delivery receipt; no real email is sent.
+control_flow:
+  edges:
+  - from: analyze_transactions
+    to: route_transaction
+  - from: route_transaction
+    to: route_to_manual_review
+    condition: routing_decision.route == manual_review
+  - from: route_transaction
+    to: route_to_auto_approve
+    condition: routing_decision.route == auto_approve
+  - from: route_to_manual_review
+    to: send_notification
+  - from: route_to_auto_approve
+    to: send_notification
+  parallel_groups: []
+  branches:
+  - branch_id: risk_route
+    decision_intent: route_transaction
+    decision_artifact: routing_decision
+    cases:
+    - case_id: manual_review
+      condition: routing_decision.route == manual_review
+      next_intents:
+      - route_to_manual_review
+    - case_id: auto_approve
+      condition: routing_decision.route == auto_approve
+      next_intents:
+      - route_to_auto_approve
+    merge_intent: send_notification
+  gates: []
+artifacts:
+- artifact_id: transaction_csv
+  name: Daily transaction CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - analyze_transactions
+  sensitivity: financial
+  persistence: external
+  fixture_ref: fixtures/inputs/transactions_high_risk.csv
+  external_system_ref: source_filesystem
+- artifact_id: risk_score
+  name: Fraud risk score
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  schema_ref: contracts/artifacts/risk_score.schema.json
+  role: intermediate
+  producer: analyze_transactions
+  consumers:
+  - route_transaction
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: scored_transactions
+  name: Scored transaction dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/scored_transactions.schema.json
+  role: intermediate
+  producer: analyze_transactions
+  consumers:
+  - route_to_manual_review
+  - route_to_auto_approve
+  sensitivity: financial
+  persistence: workflow
+- artifact_id: scoring_status
+  name: Fraud risk scoring status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/scoring_status.schema.json
+  role: status
+  producer: analyze_transactions
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: routing_decision
+  name: Fraud routing decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  schema_ref: contracts/artifacts/routing_decision.schema.json
+  role: decision
+  producer: route_transaction
+  consumers:
+  - route_to_manual_review
+  - route_to_auto_approve
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: manual_review_status
+  name: Manual review status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/manual_review_status.schema.json
+  role: status
+  producer: route_to_manual_review
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: auto_approval_status
+  name: Auto approval status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/auto_approval_status.schema.json
+  role: status
+  producer: route_to_auto_approve
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: email_service_resource
+  name: Email service resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - send_notification
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/email_service.json
+  external_system_ref: email_service
+- artifact_id: notification_status
+  name: Processing-complete notification status
+  kind: artifact
+  data_type: notification
+  media_type: application/json
+  schema_ref: contracts/artifacts/notification_status.schema.json
+  role: output
+  producer: send_notification
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: analyze_transactions
+  service_id: transaction_csv_fraud_risk_analyzer
+  service_version: 1.0.0
+  input_bindings:
+  - port: transaction_csv
+    artifact_id: transaction_csv
+  output_bindings:
+  - port: risk_score
+    artifact_id: risk_score
+  - port: scored_transactions
+    artifact_id: scored_transactions
+  - port: scoring_status
+    artifact_id: scoring_status
+  parameter_bindings:
+    risk_model_profile: deterministic_rule_based_v1
+    required_columns:
+    - transaction_id
+    - amount
+    - merchant_category
+    - customer_id
+    - timestamp
+    aggregate_score_method: max
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: This is the only catalogue service that computes fraud risk scores from transaction CSV batches.
+  confidence: explicit
+- intent_id: route_transaction
+  service_id: fraud_risk_threshold_route_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: risk_score
+    artifact_id: risk_score
+  output_bindings:
+  - port: routing_decision
+    artifact_id: routing_decision
+  parameter_bindings:
+    risk_threshold: 0.8
+    manual_review_route_label: manual_review
+    auto_approval_route_label: auto_approve
+  secret_bindings: []
+  rationale: The descriptor routes based on a risk threshold and emits the branch decision required by
+    downstream manual-review and auto-approval steps.
+  confidence: explicit
+- intent_id: route_to_manual_review
+  service_id: fraud_manual_review_status_recorder
+  service_version: 1.0.0
+  input_bindings:
+  - port: routing_decision
+    artifact_id: routing_decision
+  - port: scored_transactions
+    artifact_id: scored_transactions
+  output_bindings:
+  - port: manual_review_status
+    artifact_id: manual_review_status
+  parameter_bindings:
+    validate_route_selected: true
+    transaction_id_field: transaction_id
+    max_reference_count: 100
+  secret_bindings: []
+  rationale: The descriptor records the manual-review branch outcome.
+  confidence: explicit
+- intent_id: route_to_auto_approve
+  service_id: fraud_auto_approval_status_recorder
+  service_version: 1.0.0
+  input_bindings:
+  - port: routing_decision
+    artifact_id: routing_decision
+  - port: scored_transactions
+    artifact_id: scored_transactions
+  output_bindings:
+  - port: auto_approval_status
+    artifact_id: auto_approval_status
+  parameter_bindings:
+    validate_route_selected: true
+    transaction_id_field: transaction_id
+    max_reference_count: 100
+  secret_bindings: []
+  rationale: The descriptor records the auto-approval branch outcome.
+  confidence: explicit
+- intent_id: send_notification
+  service_id: email_notification_sender
+  service_version: 1.0.0
+  input_bindings:
+  - port: email_service
+    artifact_id: email_service_resource
+  output_bindings:
+  - port: notification_status
+    artifact_id: notification_status
+  parameter_bindings:
+    to: fraud-team@company.com
+    subject: Fraud Detection Triage Complete
+    body: Fraud detection triage complete. Transactions processed.
+  secret_bindings: []
+  rationale: The descriptor delivers a simple operational email notification at the merge point without
+    attachments.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides:
+  - intent_id: analyze_transactions
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 300
+    network_access: forbidden
+    idempotency_strategy: Same CSV and scoring profile produce the same risk score.
+  - intent_id: send_notification
+    retries: 0
+    timeout_seconds: 60
+    network_access: required
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    - financial
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock execution uses a filesystem-backed email receipt; no real email is sent.
+    - Sensitive financial data is limited to bounded transaction references.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and provenance checks validate.
+- gate: G1
+  expected_status: pass
+  checks:
+  - All five source steps have explicit service accounting.
+- gate: G2
+  expected_status: pass
+  checks:
+  - Five reviewed fraud and notification bindings resolve.
+- gate: G3
+  expected_status: pass
+  checks:
+  - Risk, branch-status, notification, and policy contracts close.
+- gate: G4
+  expected_status: pass
+  checks:
+  - The risk branch/merge Argo DAG and CronWorkflow compile.
+- gate: G5
+  expected_status: pass
+  checks:
+  - High-risk and low-risk scenarios execute one route each.
+- gate: G6
+  expected_status: pass
+  checks:
+  - Risk threshold, selected route, route exclusivity, and notification assertions hold.
+source_step_accounting:
+- source_step_ref: analyze_transactions
+  disposition: service
+  intent_ids:
+  - analyze_transactions
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: route_transaction
+  disposition: service
+  intent_ids:
+  - route_transaction
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: route_to_manual_review
+  disposition: service
+  intent_ids:
+  - route_to_manual_review
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: route_to_auto_approve
+  disposition: service
+  intent_ids:
+  - route_to_auto_approve
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: send_notification
+  disposition: service
+  intent_ids:
+  - send_notification
+  rationale: The source step invokes the reviewed service intent or intents listed.

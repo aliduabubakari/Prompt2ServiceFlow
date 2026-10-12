@@ -1,0 +1,165 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: val-weekly-report-packager
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters: []
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: val-weekly-report-packager-scripts
+    - name: fixtures
+      configMap:
+        name: val-weekly-report-packager-fixtures
+        items:
+        - key: fixture-0000
+          path: data.csv
+        - key: fixture-0001
+          path: fixture.json
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: collect-kpi-extracts
+          template: run-collect-kpi-extracts
+        - name: render-pdf-report
+          template: run-render-pdf-report
+          depends: collect-kpi-extracts.Succeeded
+        - name: compress-report-bundle
+          template: run-compress-report-bundle
+          depends: render-pdf-report.Succeeded
+        - name: publish-bundle
+          template: run-publish-bundle
+          depends: compress-report-bundle.Succeeded
+    - name: run-collect-kpi-extracts
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: collect_kpi_extracts
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_collect_kpi_extracts.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-render-pdf-report
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: render_pdf_report
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_render_pdf_report.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-compress-report-bundle
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: compress_report_bundle
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_compress_report_bundle.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-publish-bundle
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: publish_bundle
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_publish_bundle.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

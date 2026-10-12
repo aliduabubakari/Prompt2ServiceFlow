@@ -1,0 +1,105 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__payment_ledger_reconciliation.py
+- Name: Payment Ledger Reconciliation
+- Purpose: Reconcile payment provider events against ledger postings and branch unresolved mismatches.
+- Execution model: bounded batch
+- Extension track: api_json_table_fusion
+- Topology pattern: branch_gate
+- Complexity band: complex
+- Business domain: Finance/Risk
+- Input modalities: json, table
+- Output modalities: table, exception_report, audit_log
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- payment provider JSON export
+- general ledger CSV
+- merchant registry table
+
+External Systems:
+- payment API fixture (fixture-backed; no production system is contacted)
+- finance exception queue (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_source_batch -> validate_source_contract
+  - validate_source_contract -> flatten_nested_payloads
+  - flatten_nested_payloads -> join_tabular_reference_data
+  - join_tabular_reference_data -> reconcile_conflicting_values
+  - reconcile_conflicting_values -> evaluate_policy_or_risk
+  - evaluate_policy_or_risk -> route_approved_records
+  - evaluate_policy_or_risk -> route_exception_records
+  - route_approved_records -> merge_route_outcomes
+  - route_exception_records -> merge_route_outcomes
+  - merge_route_outcomes -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_source_batch - Ingest Source Batch
+  - Objective: Ingest the bounded input batch for payment API and ledger reconciliation.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_source_contract - Validate Source Contract
+  - Objective: Validate required fields, identities, and policy inputs for payment API and ledger reconciliation.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. flatten_nested_payloads - Flatten Nested Payloads
+  - Objective: Flatten nested API payloads for payment API and ledger reconciliation.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. join_tabular_reference_data - Join Tabular Reference Data
+  - Objective: Join flattened payloads with tabular reference data for payment API and ledger reconciliation.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. reconcile_conflicting_values - Reconcile Conflicting Values
+  - Objective: Reconcile conflicting API and table values for payment API and ledger reconciliation.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. evaluate_policy_or_risk - Evaluate Policy Or Risk
+  - Objective: Evaluate quality, policy, risk, or confidence rules for payment API and ledger reconciliation.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. route_approved_records - Route Approved Records
+  - Objective: Route approved or low-risk payment API and ledger reconciliation records.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+8. route_exception_records - Route Exception Records
+  - Objective: Route exception, high-risk, or low-confidence payment API and ledger reconciliation records.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+9. merge_route_outcomes - Merge Route Outcomes
+  - Objective: Merge routed outcomes into a complete payment API and ledger reconciliation disposition artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+10. publish_outputs - Publish Outputs
+  - Objective: Publish payment API and ledger reconciliation outputs, review status, and completion metadata.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

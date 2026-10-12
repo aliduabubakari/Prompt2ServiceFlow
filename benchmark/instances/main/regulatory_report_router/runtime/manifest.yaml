@@ -1,0 +1,71 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: regulatory_report_router
+image: python:3.12-slim
+workflow_parameters:
+- name: fixture-file
+  default: transactions_international.csv
+tasks:
+- intent_id: read_csv
+  script: scripts/01_read_csv.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{fixture-file}'
+  retries: 2
+- intent_id: account_check
+  script: scripts/02_account_check.py
+  dependencies:
+  - read_csv
+  arguments:
+  - --workspace
+  - '{workspace}'
+  output_parameters:
+  - name: route
+    path: /workspace/artifacts/route.txt
+  retries: 2
+- intent_id: route_to_fatca
+  script: scripts/03_route_to_fatca.py
+  dependencies:
+  - account_check
+  when: '{{tasks.account_check.outputs.parameters.route}} == fatca'
+  local_condition:
+    path: artifacts/routing_decision.json
+    json_path: route
+    equals: fatca
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: route_to_irs
+  script: scripts/04_route_to_irs.py
+  dependencies:
+  - account_check
+  when: '{{tasks.account_check.outputs.parameters.route}} == irs'
+  local_condition:
+    path: artifacts/routing_decision.json
+    json_path: route
+    equals: irs
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: archive_reports
+  script: scripts/05_archive_reports.py
+  depends: (route_to_fatca.Succeeded || route_to_irs.Succeeded)
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+scenarios:
+- name: international_fatca
+  parameters:
+    fixture-file: transactions_international.csv
+  fixture_root: fixtures/inputs
+- name: domestic_irs
+  parameters:
+    fixture-file: transactions_domestic.csv
+  fixture_root: fixtures/inputs
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

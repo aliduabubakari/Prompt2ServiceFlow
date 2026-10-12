@@ -1,0 +1,1785 @@
+ir_version: 0.1.0
+composition_id: global_dag
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:global_dag
+  split: main
+  pipeline_id: global_dag
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/15_global_dag.txt
+  description_sha256: 8df831fe7af14ade8f19c3b25f41e7a91ff96828677e5aa9f2985220219c6c58
+  internal_spec_path: source/internal_specs/main_40/15_global_dag.json
+  internal_spec_sha256: 4e73e0d677d5f8a9e17812d86f73e077e4de3977270e47363eefc9edb3283ad0
+requirement:
+  name: Global DAG
+  purpose: Staged ETL with ingestion and staging phases.
+  domain: government_data
+  execution_model: batch
+  topology: staged_etl
+  information_sufficiency: high
+  notes:
+  - "24-step staged ETL \u2014 the final pipeline."
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: data_gouv_api
+  type: http_api
+  name: data.gouv.fr API
+  identifier: https://www.data.gouv.fr
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: postgres_database
+  type: database
+  name: PostgreSQL staging database
+  identifier: postgres_default
+  access_mode: read_write
+  authentication: secret
+  mock_strategy: fixture
+- system_id: redis_database
+  type: database
+  name: Redis staging database
+  identifier: redis:6379
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: workflow_filesystem
+  type: filesystem
+  name: Workflow filesystem
+  identifier: /workspace
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_get_city_code_geo
+  name: Ingest Get City Code Geo
+  category: Extractor
+  capability: Download the city-geography response artifact from data.gouv.fr.
+  source_step_refs:
+  - ingestion_pipeline.get_city_code_geo
+  evidence:
+  - source: description
+    text: Process ingestion_pipeline.get_city_code_geo step.
+  inputs:
+  - http_api_resource
+  outputs:
+  - ingest_get_city_code_geo_result
+  - ingest_get_city_code_geo_status
+  external_system_refs:
+  - data_gouv_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source response is CSV rather than a JSON-only API contract.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: ingest_get_nuclear_json
+  name: Ingest Get Nuclear Json
+  category: Extractor
+  capability: Fetch and parse data.gouv.fr dataset metadata as JSON.
+  source_step_refs:
+  - ingestion_pipeline.get_nuclear_json
+  evidence:
+  - source: description
+    text: Process ingestion_pipeline.get_nuclear_json step.
+  inputs: []
+  outputs:
+  - ingest_get_nuclear_json_result
+  - ingest_get_nuclear_json_status
+  external_system_refs:
+  - data_gouv_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: These source endpoints return dataset metadata consumed by resource downloaders.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: ingest_get_nuclear_data
+  name: Ingest Get Nuclear Data
+  category: Extractor
+  capability: Select and download data.gouv.fr dataset resources from metadata.
+  source_step_refs:
+  - ingestion_pipeline.get_nuclear_data
+  evidence:
+  - source: description
+    text: Process ingestion_pipeline.get_nuclear_data step.
+  inputs:
+  - ingest_get_nuclear_json_result
+  outputs:
+  - ingest_get_nuclear_data_result
+  - ingest_get_nuclear_data_status
+  external_system_refs:
+  - data_gouv_api
+  - workflow_filesystem
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step resolves resource URLs from the preceding metadata artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: ingest_get_death_resource_list
+  name: Ingest Get Death Resource List
+  category: Extractor
+  capability: Fetch and parse data.gouv.fr dataset metadata as JSON.
+  source_step_refs:
+  - ingestion_pipeline.get_death_resource_list
+  evidence:
+  - source: description
+    text: Process ingestion_pipeline.get_death_resource_list step.
+  inputs: []
+  outputs:
+  - ingest_get_death_resource_list_result
+  - ingest_get_death_resource_list_status
+  external_system_refs:
+  - data_gouv_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: These source endpoints return dataset metadata consumed by resource downloaders.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: ingest_get_death_resources
+  name: Ingest Get Death Resources
+  category: Extractor
+  capability: Select and download data.gouv.fr dataset resources from metadata.
+  source_step_refs:
+  - ingestion_pipeline.get_death_resources
+  evidence:
+  - source: description
+    text: Process ingestion_pipeline.get_death_resources step.
+  inputs:
+  - ingest_get_death_resource_list_result
+  outputs:
+  - ingest_get_death_resources_result
+  - ingest_get_death_resources_status
+  external_system_refs:
+  - data_gouv_api
+  - workflow_filesystem
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step resolves resource URLs from the preceding metadata artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: ingest_get_thermal_json
+  name: Ingest Get Thermal Json
+  category: Extractor
+  capability: Fetch and parse data.gouv.fr dataset metadata as JSON.
+  source_step_refs:
+  - ingestion_pipeline.get_thermal_json
+  evidence:
+  - source: description
+    text: Process ingestion_pipeline.get_thermal_json step.
+  inputs: []
+  outputs:
+  - ingest_get_thermal_json_result
+  - ingest_get_thermal_json_status
+  external_system_refs:
+  - data_gouv_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: These source endpoints return dataset metadata consumed by resource downloaders.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: ingest_get_thermal_data
+  name: Ingest Get Thermal Data
+  category: Extractor
+  capability: Select and download data.gouv.fr dataset resources from metadata.
+  source_step_refs:
+  - ingestion_pipeline.get_thermal_data
+  evidence:
+  - source: description
+    text: Process ingestion_pipeline.get_thermal_data step.
+  inputs:
+  - ingest_get_thermal_json_result
+  outputs:
+  - ingest_get_thermal_data_result
+  - ingest_get_thermal_data_status
+  external_system_refs:
+  - data_gouv_api
+  - workflow_filesystem
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step resolves resource URLs from the preceding metadata artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: stage_import_nuclear_clean_data
+  name: Stage Import Nuclear Clean Data
+  category: Transformer
+  capability: Normalize raw nuclear power-plant CSV into the staged canonical form.
+  source_step_refs:
+  - staging_pipeline.import_nuclear_clean_data
+  evidence:
+  - source: description
+    text: Process staging_pipeline.import_nuclear_clean_data step.
+  inputs:
+  - nuclear_raw_csv
+  outputs:
+  - nuclear_clean_csv
+  - stage_import_nuclear_clean_data_status
+  external_system_refs:
+  - workflow_filesystem
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This source step is a CSV standardization operation.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: stage_import_thermal_clean_data
+  name: Stage Import Thermal Clean Data
+  category: Transformer
+  capability: Normalize raw thermal power-plant CSV into the staged canonical form.
+  source_step_refs:
+  - staging_pipeline.import_thermal_clean_data
+  evidence:
+  - source: description
+    text: Process staging_pipeline.import_thermal_clean_data step.
+  inputs:
+  - thermal_raw_csv
+  outputs:
+  - thermal_clean_csv
+  - stage_import_thermal_clean_data_status
+  external_system_refs:
+  - workflow_filesystem
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This source step is a CSV standardization operation.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: stage_create_power_plants_table
+  name: Stage Create Power Plants Table
+  category: Loader
+  capability: Execute the reviewed PostgreSQL SQL script for this staging step.
+  source_step_refs:
+  - staging_pipeline.create_power_plants_table
+  evidence:
+  - source: description
+    text: Process staging_pipeline.create_power_plants_table step.
+  inputs:
+  - create_power_plants_sql
+  - postgres_database_resource
+  outputs:
+  - power_plants_table
+  - stage_create_power_plants_table_status
+  external_system_refs:
+  - postgres_database
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is explicit PostgreSQL SQL execution.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: stage_create_death_table
+  name: Stage Create Death Table
+  category: Loader
+  capability: Execute the reviewed PostgreSQL SQL script for this staging step.
+  source_step_refs:
+  - staging_pipeline.create_death_table
+  evidence:
+  - source: description
+    text: Process staging_pipeline.create_death_table step.
+  inputs:
+  - create_deaths_sql
+  - postgres_database_resource
+  outputs:
+  - deaths_table
+  - stage_create_death_table_status
+  external_system_refs:
+  - postgres_database
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is explicit PostgreSQL SQL execution.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: stage_load_data_from_ingestion
+  name: Stage Load Data From Ingestion
+  category: Loader
+  capability: Load raw death-record files into Redis staging keys.
+  source_step_refs:
+  - staging_pipeline.load_data_from_ingestion
+  evidence:
+  - source: description
+    text: Process staging_pipeline.load_data_from_ingestion step.
+  inputs:
+  - death_source_files
+  - redis_resource
+  outputs:
+  - death_redis_keys
+  - stage_load_data_from_ingestion_status
+  external_system_refs:
+  - redis_database
+  - workflow_filesystem
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source loads file batches into Redis and records imported files.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: stage_cleanse_death_data
+  name: Stage Cleanse Death Data
+  category: Transformer
+  capability: Generate PostgreSQL insert SQL from Redis death records and city geography.
+  source_step_refs:
+  - staging_pipeline.cleanse_death_data
+  evidence:
+  - source: description
+    text: Process staging_pipeline.cleanse_death_data step.
+  inputs:
+  - redis_resource
+  - city_geo_csv
+  outputs:
+  - death_insert_sql
+  - stage_cleanse_death_data_status
+  external_system_refs:
+  - redis_database
+  - workflow_filesystem
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source cleans and enriches death records before rendering SQL.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: stage_death_emptiness_check
+  name: Stage Death Emptiness Check
+  category: Sensor
+  capability: Check whether the generated death SQL artifact contains statements.
+  source_step_refs:
+  - staging_pipeline.death_emptiness_check
+  evidence:
+  - source: description
+    text: Process staging_pipeline.death_emptiness_check step.
+  inputs:
+  - death_sql_location
+  outputs:
+  - stage_death_emptiness_check_decision
+  - stage_death_emptiness_check_status
+  external_system_refs:
+  - workflow_filesystem
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: optional
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This is a file-availability and non-empty gate.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: stage_store_deaths_in_postgres
+  name: Stage Store Deaths In Postgres
+  category: Loader
+  capability: Execute the reviewed PostgreSQL SQL script for this staging step.
+  source_step_refs:
+  - staging_pipeline.store_deaths_in_postgres
+  evidence:
+  - source: description
+    text: Process staging_pipeline.store_deaths_in_postgres step.
+  inputs:
+  - death_insert_sql
+  - postgres_database_resource
+  outputs:
+  - stored_deaths_table
+  - stage_store_deaths_in_postgres_status
+  external_system_refs:
+  - postgres_database
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is explicit PostgreSQL SQL execution.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: stage_clean_tmp_death_files
+  name: Stage Clean Tmp Death Files
+  category: Maintenance
+  capability: Remove temporary death-record files and generated SQL.
+  source_step_refs:
+  - staging_pipeline.clean_tmp_death_files
+  evidence:
+  - source: description
+    text: Process staging_pipeline.clean_tmp_death_files step.
+  inputs: []
+  outputs:
+  - stage_clean_tmp_death_files_status
+  external_system_refs:
+  - workflow_filesystem
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The filesystem cleanup effect is represented independently from Redis cleanup.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: stage_create_plant_persist_sql_query
+  name: Stage Create Plant Persist Sql Query
+  category: Transformer
+  capability: Render PostgreSQL insert SQL for cleaned power-plant CSV records.
+  source_step_refs:
+  - staging_pipeline.create_plant_persist_sql_query
+  evidence:
+  - source: description
+    text: Process staging_pipeline.create_plant_persist_sql_query step.
+  inputs:
+  - clean_power_plants_csv
+  outputs:
+  - plant_insert_sql
+  - stage_create_plant_persist_sql_query_status
+  external_system_refs:
+  - workflow_filesystem
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step converts cleaned CSV records into PostgreSQL insert SQL.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: stage_store_plants_in_postgres
+  name: Stage Store Plants In Postgres
+  category: Loader
+  capability: Execute the reviewed PostgreSQL SQL script for this staging step.
+  source_step_refs:
+  - staging_pipeline.store_plants_in_postgres
+  evidence:
+  - source: description
+    text: Process staging_pipeline.store_plants_in_postgres step.
+  inputs:
+  - plant_insert_sql
+  - postgres_database_resource
+  outputs:
+  - stored_power_plants_table
+  - stage_store_plants_in_postgres_status
+  external_system_refs:
+  - postgres_database
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is explicit PostgreSQL SQL execution.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: stage_clean_tmp_death_redis
+  name: Clean temporary death Redis keys
+  category: Maintenance
+  capability: Delete temporary Redis keys used for death-record staging.
+  source_step_refs:
+  - staging_pipeline.clean_tmp_death_files
+  evidence:
+  - source: description
+    text: Process staging_pipeline.clean_tmp_death_files step.
+  inputs:
+  - redis_resource
+  outputs:
+  - stage_clean_tmp_death_redis_status
+  external_system_refs:
+  - redis_database
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source cleanup step has independent filesystem and Redis cleanup effects.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: ingest_get_nuclear_json
+    to: ingest_get_nuclear_data
+  - from: ingest_get_death_resource_list
+    to: ingest_get_death_resources
+  - from: ingest_get_thermal_json
+    to: ingest_get_thermal_data
+  - from: ingest_get_city_code_geo
+    to: stage_import_nuclear_clean_data
+  - from: ingest_get_city_code_geo
+    to: stage_import_thermal_clean_data
+  - from: ingest_get_city_code_geo
+    to: stage_create_power_plants_table
+  - from: ingest_get_city_code_geo
+    to: stage_create_death_table
+  - from: ingest_get_nuclear_data
+    to: stage_import_nuclear_clean_data
+  - from: ingest_get_nuclear_data
+    to: stage_import_thermal_clean_data
+  - from: ingest_get_nuclear_data
+    to: stage_create_power_plants_table
+  - from: ingest_get_nuclear_data
+    to: stage_create_death_table
+  - from: ingest_get_death_resources
+    to: stage_import_nuclear_clean_data
+  - from: ingest_get_death_resources
+    to: stage_import_thermal_clean_data
+  - from: ingest_get_death_resources
+    to: stage_create_power_plants_table
+  - from: ingest_get_death_resources
+    to: stage_create_death_table
+  - from: ingest_get_thermal_data
+    to: stage_import_nuclear_clean_data
+  - from: ingest_get_thermal_data
+    to: stage_import_thermal_clean_data
+  - from: ingest_get_thermal_data
+    to: stage_create_power_plants_table
+  - from: ingest_get_thermal_data
+    to: stage_create_death_table
+  - from: stage_import_nuclear_clean_data
+    to: stage_import_thermal_clean_data
+  - from: stage_import_thermal_clean_data
+    to: stage_create_power_plants_table
+  - from: stage_create_power_plants_table
+    to: stage_create_plant_persist_sql_query
+  - from: stage_create_plant_persist_sql_query
+    to: stage_store_plants_in_postgres
+  - from: stage_create_death_table
+    to: stage_load_data_from_ingestion
+  - from: stage_load_data_from_ingestion
+    to: stage_cleanse_death_data
+  - from: stage_cleanse_death_data
+    to: stage_death_emptiness_check
+  - from: stage_death_emptiness_check
+    to: stage_store_deaths_in_postgres
+    condition: has_content == true
+  - from: stage_store_deaths_in_postgres
+    to: stage_clean_tmp_death_files
+  - from: stage_store_deaths_in_postgres
+    to: stage_clean_tmp_death_redis
+  parallel_groups:
+  - group_id: ingestion_parallel
+    intent_ids:
+    - ingest_get_city_code_geo
+    - ingest_get_nuclear_json
+    - ingest_get_death_resource_list
+    - ingest_get_thermal_json
+  - group_id: death_cleanup_parallel
+    intent_ids:
+    - stage_clean_tmp_death_files
+    - stage_clean_tmp_death_redis
+  branches: []
+  gates:
+  - gate_id: death_sql_non_empty
+    sensor_intent: stage_death_emptiness_check
+    condition: has_content == true
+    gated_intents:
+    - stage_store_deaths_in_postgres
+    - stage_clean_tmp_death_files
+    - stage_clean_tmp_death_redis
+artifacts:
+- artifact_id: http_api_resource
+  name: data.gouv API resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - ingest_get_city_code_geo
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/http.json
+- artifact_id: postgres_database_resource
+  name: PostgreSQL database resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - stage_create_power_plants_table
+  - stage_create_death_table
+  - stage_store_deaths_in_postgres
+  - stage_store_plants_in_postgres
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/db.json
+- artifact_id: redis_resource
+  name: Redis database resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - stage_load_data_from_ingestion
+  - stage_cleanse_death_data
+  - stage_clean_tmp_death_redis
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/redis.json
+- artifact_id: nuclear_raw_csv
+  name: Raw nuclear plant CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - stage_import_nuclear_clean_data
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/nuclear_raw.csv
+- artifact_id: thermal_raw_csv
+  name: Raw thermal plant CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - stage_import_thermal_clean_data
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/thermal_raw.csv
+- artifact_id: city_geo_csv
+  name: City geography CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - stage_cleanse_death_data
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/city_geo.csv
+- artifact_id: death_source_files
+  name: Raw death-record file batch
+  kind: artifact
+  data_type: text
+  media_type: text/plain
+  role: input
+  producer: null
+  consumers:
+  - stage_load_data_from_ingestion
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/death_records.txt
+- artifact_id: create_power_plants_sql
+  name: Create power plants SQL
+  kind: artifact
+  data_type: text
+  media_type: text/plain
+  role: input
+  producer: null
+  consumers:
+  - stage_create_power_plants_table
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/create_power_plants.sql
+- artifact_id: create_deaths_sql
+  name: Create deaths SQL
+  kind: artifact
+  data_type: text
+  media_type: text/plain
+  role: input
+  producer: null
+  consumers:
+  - stage_create_death_table
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/create_deaths.sql
+- artifact_id: death_sql_location
+  name: Generated death SQL location
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - stage_death_emptiness_check
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/death_sql_location.json
+- artifact_id: clean_power_plants_csv
+  name: Combined cleaned power-plant CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - stage_create_plant_persist_sql_query
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/clean_power_plants.csv
+- artifact_id: ingest_get_city_code_geo_result
+  name: City geography response artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_get_city_code_geo
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_get_city_code_geo_status
+  name: City geography extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_get_city_code_geo
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: ingest_get_nuclear_json_result
+  name: ingest_get_nuclear_json metadata JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  role: intermediate
+  producer: ingest_get_nuclear_json
+  consumers:
+  - ingest_get_nuclear_data
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_metadata.schema.json
+- artifact_id: ingest_get_nuclear_json_status
+  name: ingest_get_nuclear_json extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_get_nuclear_json
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: ingest_get_death_resource_list_result
+  name: ingest_get_death_resource_list metadata JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  role: intermediate
+  producer: ingest_get_death_resource_list
+  consumers:
+  - ingest_get_death_resources
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_metadata.schema.json
+- artifact_id: ingest_get_death_resource_list_status
+  name: ingest_get_death_resource_list extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_get_death_resource_list
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: ingest_get_thermal_json_result
+  name: ingest_get_thermal_json metadata JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  role: intermediate
+  producer: ingest_get_thermal_json
+  consumers:
+  - ingest_get_thermal_data
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_metadata.schema.json
+- artifact_id: ingest_get_thermal_json_status
+  name: ingest_get_thermal_json extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_get_thermal_json
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: ingest_get_nuclear_data_result
+  name: ingest_get_nuclear_data downloaded files
+  kind: artifact
+  data_type: array
+  media_type: application/json
+  role: intermediate
+  producer: ingest_get_nuclear_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/downloaded_files.schema.json
+- artifact_id: ingest_get_nuclear_data_status
+  name: ingest_get_nuclear_data download status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_get_nuclear_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: ingest_get_death_resources_result
+  name: ingest_get_death_resources downloaded files
+  kind: artifact
+  data_type: array
+  media_type: application/json
+  role: intermediate
+  producer: ingest_get_death_resources
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/downloaded_files.schema.json
+- artifact_id: ingest_get_death_resources_status
+  name: ingest_get_death_resources download status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_get_death_resources
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: ingest_get_thermal_data_result
+  name: ingest_get_thermal_data downloaded files
+  kind: artifact
+  data_type: array
+  media_type: application/json
+  role: intermediate
+  producer: ingest_get_thermal_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/downloaded_files.schema.json
+- artifact_id: ingest_get_thermal_data_status
+  name: ingest_get_thermal_data download status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_get_thermal_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: nuclear_clean_csv
+  name: Clean nuclear plant CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: stage_import_nuclear_clean_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: stage_import_nuclear_clean_data_status
+  name: Nuclear CSV transform status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: stage_import_nuclear_clean_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: thermal_clean_csv
+  name: Clean thermal plant CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: stage_import_thermal_clean_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: stage_import_thermal_clean_data_status
+  name: Thermal CSV transform status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: stage_import_thermal_clean_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: power_plants_table
+  name: Created power plants table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: stage_create_power_plants_table
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/table_result.schema.json
+- artifact_id: stage_create_power_plants_table_status
+  name: Create power plants table status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: stage_create_power_plants_table
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: deaths_table
+  name: Created deaths table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: stage_create_death_table
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/table_result.schema.json
+- artifact_id: stage_create_death_table_status
+  name: Create deaths table status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: stage_create_death_table
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: death_redis_keys
+  name: Death-record Redis key references
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: stage_load_data_from_ingestion
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/redis_keys.schema.json
+- artifact_id: stage_load_data_from_ingestion_status
+  name: Redis load status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: stage_load_data_from_ingestion
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: death_insert_sql
+  name: Generated death insert SQL
+  kind: artifact
+  data_type: text
+  media_type: text/plain
+  role: intermediate
+  producer: stage_cleanse_death_data
+  consumers:
+  - stage_store_deaths_in_postgres
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: stage_cleanse_death_data_status
+  name: Death SQL generation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: stage_cleanse_death_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: stage_death_emptiness_check_decision
+  name: Death SQL content decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  role: decision
+  producer: stage_death_emptiness_check
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/death_decision.schema.json
+- artifact_id: stage_death_emptiness_check_status
+  name: Death SQL check status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: stage_death_emptiness_check
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: stored_deaths_table
+  name: Stored deaths table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: stage_store_deaths_in_postgres
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/table_result.schema.json
+- artifact_id: stage_store_deaths_in_postgres_status
+  name: Store deaths status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: stage_store_deaths_in_postgres
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: stage_clean_tmp_death_files_status
+  name: Temporary death file cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: stage_clean_tmp_death_files
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: stage_clean_tmp_death_redis_status
+  name: Temporary death Redis cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: stage_clean_tmp_death_redis
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: plant_insert_sql
+  name: Generated plant insert SQL
+  kind: artifact
+  data_type: text
+  media_type: text/plain
+  role: intermediate
+  producer: stage_create_plant_persist_sql_query
+  consumers:
+  - stage_store_plants_in_postgres
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: stage_create_plant_persist_sql_query_status
+  name: Plant SQL generation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: stage_create_plant_persist_sql_query
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: stored_power_plants_table
+  name: Stored power plants table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: stage_store_plants_in_postgres
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/table_result.schema.json
+- artifact_id: stage_store_plants_in_postgres_status
+  name: Store power plants status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: stage_store_plants_in_postgres
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+bindings:
+- intent_id: ingest_get_city_code_geo
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: http_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: ingest_get_city_code_geo_result
+  - port: extraction_status
+    artifact_id: ingest_get_city_code_geo_status
+  parameter_bindings:
+    endpoint: /resources/communes-de-france.csv
+    method: GET
+    expected_content_types:
+    - text/csv
+    output_name: city_geo_loc.csv
+  secret_bindings: []
+  rationale: The city-geography endpoint returns a CSV artifact rather than JSON.
+  confidence: explicit
+- intent_id: ingest_get_nuclear_json
+  service_id: http_json_request_extractor
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: response_json
+    artifact_id: ingest_get_nuclear_json_result
+  - port: extraction_status
+    artifact_id: ingest_get_nuclear_json_status
+  parameter_bindings:
+    base_url: https://www.data.gouv.fr
+    endpoint: /api/1/datasets/nuclear
+    method: GET
+  secret_bindings: []
+  rationale: The endpoint returns JSON dataset metadata used by the next downloader.
+  confidence: explicit
+- intent_id: ingest_get_death_resource_list
+  service_id: http_json_request_extractor
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: response_json
+    artifact_id: ingest_get_death_resource_list_result
+  - port: extraction_status
+    artifact_id: ingest_get_death_resource_list_status
+  parameter_bindings:
+    base_url: https://www.data.gouv.fr
+    endpoint: /api/1/datasets/deaths
+    method: GET
+  secret_bindings: []
+  rationale: The endpoint returns JSON dataset metadata used by the next downloader.
+  confidence: explicit
+- intent_id: ingest_get_thermal_json
+  service_id: http_json_request_extractor
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: response_json
+    artifact_id: ingest_get_thermal_json_result
+  - port: extraction_status
+    artifact_id: ingest_get_thermal_json_status
+  parameter_bindings:
+    base_url: https://www.data.gouv.fr
+    endpoint: /api/1/datasets/thermal
+    method: GET
+  secret_bindings: []
+  rationale: The endpoint returns JSON dataset metadata used by the next downloader.
+  confidence: explicit
+- intent_id: ingest_get_nuclear_data
+  service_id: data_gouv_dataset_resource_downloader
+  service_version: 1.0.0
+  input_bindings:
+  - port: dataset_metadata_json
+    artifact_id: ingest_get_nuclear_json_result
+  output_bindings:
+  - port: downloaded_files
+    artifact_id: ingest_get_nuclear_data_result
+  - port: download_status
+    artifact_id: ingest_get_nuclear_data_status
+  parameter_bindings:
+    resource_selector:
+      format: csv
+      name_contains: nuclear
+    max_resources: 1
+    output_name_template: nuclear-{resource_name}
+  secret_bindings: []
+  rationale: Selects and downloads the resources described by the preceding metadata.
+  confidence: explicit
+- intent_id: ingest_get_death_resources
+  service_id: data_gouv_dataset_resource_downloader
+  service_version: 1.0.0
+  input_bindings:
+  - port: dataset_metadata_json
+    artifact_id: ingest_get_death_resource_list_result
+  output_bindings:
+  - port: downloaded_files
+    artifact_id: ingest_get_death_resources_result
+  - port: download_status
+    artifact_id: ingest_get_death_resources_status
+  parameter_bindings:
+    resource_selector:
+      format: txt
+    max_resources: 5
+    output_name_template: death-{index}.txt
+  secret_bindings: []
+  rationale: Selects and downloads the resources described by the preceding metadata.
+  confidence: explicit
+- intent_id: ingest_get_thermal_data
+  service_id: data_gouv_dataset_resource_downloader
+  service_version: 1.0.0
+  input_bindings:
+  - port: dataset_metadata_json
+    artifact_id: ingest_get_thermal_json_result
+  output_bindings:
+  - port: downloaded_files
+    artifact_id: ingest_get_thermal_data_result
+  - port: download_status
+    artifact_id: ingest_get_thermal_data_status
+  parameter_bindings:
+    resource_selector:
+      format: csv
+      name_contains: thermal
+    max_resources: 1
+    output_name_template: thermal-{resource_name}
+  secret_bindings: []
+  rationale: Selects and downloads the resources described by the preceding metadata.
+  confidence: explicit
+- intent_id: stage_import_nuclear_clean_data
+  service_id: power_plant_csv_standardizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: raw_power_plant_csv
+    artifact_id: nuclear_raw_csv
+  output_bindings:
+  - port: clean_power_plant_csv
+    artifact_id: nuclear_clean_csv
+  - port: transform_status
+    artifact_id: stage_import_nuclear_clean_data_status
+  parameter_bindings:
+    plant_type: nuclear
+    column_mapping:
+      name: plant_name
+      capacity: capacity_mw
+    output_path: /workspace/artifacts/nuclear_clean_csv.csv
+  secret_bindings: []
+  rationale: Applies the reviewed canonical mapping for nuclear plant CSV data.
+  confidence: explicit
+- intent_id: stage_import_thermal_clean_data
+  service_id: power_plant_csv_standardizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: raw_power_plant_csv
+    artifact_id: thermal_raw_csv
+  output_bindings:
+  - port: clean_power_plant_csv
+    artifact_id: thermal_clean_csv
+  - port: transform_status
+    artifact_id: stage_import_thermal_clean_data_status
+  parameter_bindings:
+    plant_type: thermal
+    column_mapping:
+      name: plant_name
+      capacity: capacity_mw
+    output_path: /workspace/artifacts/thermal_clean_csv.csv
+  secret_bindings: []
+  rationale: Applies the reviewed canonical mapping for thermal plant CSV data.
+  confidence: explicit
+- intent_id: stage_create_power_plants_table
+  service_id: postgres_sql_file_executor
+  service_version: 1.0.0
+  input_bindings:
+  - port: sql_script_file
+    artifact_id: create_power_plants_sql
+  - port: postgres_database
+    artifact_id: postgres_database_resource
+  output_bindings:
+  - port: affected_tables
+    artifact_id: power_plants_table
+  - port: execution_status
+    artifact_id: stage_create_power_plants_table_status
+  parameter_bindings:
+    target_tables:
+    - power_plants
+    transaction_mode: single_transaction
+    statement_type: DDL
+  secret_bindings: []
+  rationale: Executes the reviewed SQL artifact against PostgreSQL.
+  confidence: explicit
+- intent_id: stage_create_death_table
+  service_id: postgres_sql_file_executor
+  service_version: 1.0.0
+  input_bindings:
+  - port: sql_script_file
+    artifact_id: create_deaths_sql
+  - port: postgres_database
+    artifact_id: postgres_database_resource
+  output_bindings:
+  - port: affected_tables
+    artifact_id: deaths_table
+  - port: execution_status
+    artifact_id: stage_create_death_table_status
+  parameter_bindings:
+    target_tables:
+    - deaths
+    transaction_mode: single_transaction
+    statement_type: DDL
+  secret_bindings: []
+  rationale: Executes the reviewed SQL artifact against PostgreSQL.
+  confidence: explicit
+- intent_id: stage_store_deaths_in_postgres
+  service_id: postgres_sql_file_executor
+  service_version: 1.0.0
+  input_bindings:
+  - port: sql_script_file
+    artifact_id: death_insert_sql
+  - port: postgres_database
+    artifact_id: postgres_database_resource
+  output_bindings:
+  - port: affected_tables
+    artifact_id: stored_deaths_table
+  - port: execution_status
+    artifact_id: stage_store_deaths_in_postgres_status
+  parameter_bindings:
+    target_tables:
+    - deaths
+    transaction_mode: single_transaction
+    statement_type: DML
+  secret_bindings: []
+  rationale: Executes the reviewed SQL artifact against PostgreSQL.
+  confidence: explicit
+- intent_id: stage_store_plants_in_postgres
+  service_id: postgres_sql_file_executor
+  service_version: 1.0.0
+  input_bindings:
+  - port: sql_script_file
+    artifact_id: plant_insert_sql
+  - port: postgres_database
+    artifact_id: postgres_database_resource
+  output_bindings:
+  - port: affected_tables
+    artifact_id: stored_power_plants_table
+  - port: execution_status
+    artifact_id: stage_store_plants_in_postgres_status
+  parameter_bindings:
+    target_tables:
+    - power_plants
+    transaction_mode: single_transaction
+    statement_type: DML
+  secret_bindings: []
+  rationale: Executes the reviewed SQL artifact against PostgreSQL.
+  confidence: explicit
+- intent_id: stage_load_data_from_ingestion
+  service_id: redis_file_batch_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_files
+    artifact_id: death_source_files
+  - port: redis_resource
+    artifact_id: redis_resource
+  output_bindings:
+  - port: redis_key_references
+    artifact_id: death_redis_keys
+  - port: load_status
+    artifact_id: stage_load_data_from_ingestion_status
+  parameter_bindings:
+    raw_records_key: death_raw
+    imported_files_key: imported_death_files
+    write_mode: replace
+  secret_bindings: []
+  rationale: Loads death-record file batches into the two source Redis keys.
+  confidence: explicit
+- intent_id: stage_cleanse_death_data
+  service_id: french_death_records_sql_script_generator
+  service_version: 1.0.0
+  input_bindings:
+  - port: redis_resource
+    artifact_id: redis_resource
+  - port: city_geo_csv
+    artifact_id: city_geo_csv
+  output_bindings:
+  - port: death_insert_sql_file
+    artifact_id: death_insert_sql
+  - port: generation_status
+    artifact_id: stage_cleanse_death_data_status
+  parameter_bindings:
+    raw_records_key: death_raw
+    target_table: deaths
+    output_path: /workspace/artifacts/death_insert_sql.sql
+  secret_bindings: []
+  rationale: Cleans French death records and renders the PostgreSQL insert script.
+  confidence: explicit
+- intent_id: stage_death_emptiness_check
+  service_id: file_location_availability_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: file_location_resource
+    artifact_id: death_sql_location
+  output_bindings:
+  - port: availability_decision
+    artifact_id: stage_death_emptiness_check_decision
+  - port: check_status
+    artifact_id: stage_death_emptiness_check_status
+  parameter_bindings:
+    location_type: filesystem
+    path: /workspace/artifacts/death_insert_sql.sql
+    availability_condition: non_empty
+  secret_bindings: []
+  rationale: Checks the generated SQL file before the conditional PostgreSQL load.
+  confidence: explicit
+- intent_id: stage_clean_tmp_death_files
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: stage_clean_tmp_death_files_status
+  parameter_bindings:
+    targets:
+    - /workspace/artifacts/death_insert_sql.sql
+    - /workspace/raw/death
+    ignore_missing: true
+  secret_bindings: []
+  rationale: Removes temporary death-record files after a successful store.
+  confidence: explicit
+- intent_id: stage_clean_tmp_death_redis
+  service_id: redis_key_cleanup
+  service_version: 1.0.0
+  input_bindings:
+  - port: redis_resource
+    artifact_id: redis_resource
+  output_bindings:
+  - port: redis_cleanup_status
+    artifact_id: stage_clean_tmp_death_redis_status
+  parameter_bindings:
+    keys:
+    - death_raw
+    - imported_death_files
+    action: delete
+    ignore_missing: true
+  secret_bindings: []
+  rationale: Removes temporary Redis keys independently from filesystem cleanup.
+  confidence: explicit
+- intent_id: stage_create_plant_persist_sql_query
+  service_id: tabular_csv_postgres_insert_sql_generator
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_csv_files
+    artifact_id: clean_power_plants_csv
+  output_bindings:
+  - port: insert_sql_file
+    artifact_id: plant_insert_sql
+  - port: generation_status
+    artifact_id: stage_create_plant_persist_sql_query_status
+  parameter_bindings:
+    target_table: power_plants
+    insert_mode: insert
+    output_path: /workspace/artifacts/plant_insert_sql.sql
+  secret_bindings: []
+  rationale: Renders PostgreSQL inserts for the cleaned power-plant records.
+  confidence: explicit
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock global DAG.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All 24 source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - 24 exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports, parameters, types, and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Staged Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Scenario executes all 24 steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - Invariants hold
+source_step_accounting:
+- source_step_ref: start_global
+  disposition: orchestration
+  intent_ids: []
+  rationale: The source step controls workflow sequencing or failure handling and does not invoke a reusable
+    catalogue service.
+- source_step_ref: ingestion_pipeline.start
+  disposition: orchestration
+  intent_ids: []
+  rationale: The source step controls workflow sequencing or failure handling and does not invoke a reusable
+    catalogue service.
+- source_step_ref: ingestion_pipeline.get_city_code_geo
+  disposition: service
+  intent_ids:
+  - ingest_get_city_code_geo
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: ingestion_pipeline.get_nuclear_json
+  disposition: service
+  intent_ids:
+  - ingest_get_nuclear_json
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: ingestion_pipeline.get_nuclear_data
+  disposition: service
+  intent_ids:
+  - ingest_get_nuclear_data
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: ingestion_pipeline.get_death_resource_list
+  disposition: service
+  intent_ids:
+  - ingest_get_death_resource_list
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: ingestion_pipeline.get_death_resources
+  disposition: service
+  intent_ids:
+  - ingest_get_death_resources
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: ingestion_pipeline.get_thermal_json
+  disposition: service
+  intent_ids:
+  - ingest_get_thermal_json
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: ingestion_pipeline.get_thermal_data
+  disposition: service
+  intent_ids:
+  - ingest_get_thermal_data
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: ingestion_pipeline.end
+  disposition: orchestration
+  intent_ids: []
+  rationale: The source step controls workflow sequencing or failure handling and does not invoke a reusable
+    catalogue service.
+- source_step_ref: staging_pipeline.start
+  disposition: orchestration
+  intent_ids: []
+  rationale: The source step controls workflow sequencing or failure handling and does not invoke a reusable
+    catalogue service.
+- source_step_ref: staging_pipeline.import_nuclear_clean_data
+  disposition: service
+  intent_ids:
+  - stage_import_nuclear_clean_data
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: staging_pipeline.import_thermal_clean_data
+  disposition: service
+  intent_ids:
+  - stage_import_thermal_clean_data
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: staging_pipeline.create_power_plants_table
+  disposition: service
+  intent_ids:
+  - stage_create_power_plants_table
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: staging_pipeline.create_death_table
+  disposition: service
+  intent_ids:
+  - stage_create_death_table
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: staging_pipeline.load_data_from_ingestion
+  disposition: service
+  intent_ids:
+  - stage_load_data_from_ingestion
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: staging_pipeline.cleanse_death_data
+  disposition: service
+  intent_ids:
+  - stage_cleanse_death_data
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: staging_pipeline.death_emptiness_check
+  disposition: service
+  intent_ids:
+  - stage_death_emptiness_check
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: staging_pipeline.store_deaths_in_postgres
+  disposition: service
+  intent_ids:
+  - stage_store_deaths_in_postgres
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: staging_pipeline.clean_tmp_death_files
+  disposition: service
+  intent_ids:
+  - stage_clean_tmp_death_files
+  - stage_clean_tmp_death_redis
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: staging_pipeline.create_plant_persist_sql_query
+  disposition: service
+  intent_ids:
+  - stage_create_plant_persist_sql_query
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: staging_pipeline.store_plants_in_postgres
+  disposition: service
+  intent_ids:
+  - stage_store_plants_in_postgres
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: staging_pipeline.staging_end
+  disposition: orchestration
+  intent_ids: []
+  rationale: The source step controls workflow sequencing or failure handling and does not invoke a reusable
+    catalogue service.
+- source_step_ref: end_global
+  disposition: orchestration
+  intent_ids: []
+  rationale: The source step controls workflow sequencing or failure handling and does not invoke a reusable
+    catalogue service.

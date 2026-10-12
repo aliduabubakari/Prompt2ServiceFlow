@@ -1,0 +1,50 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:test_dbx_aws_dag_reuse
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_test_dbx_aws_dag_reuse_workflow_load_id_generator_candidates
+  source_step_refs:
+  - start_task
+  service_ids:
+  - workflow_load_id_generator
+  - retention_cutoff_config_resolver
+  - execution_date_backup_strategy_decider
+  - runtime_parameter_allowed_values_validator
+  - dataform_compilation_config_builder
+  - reviewed_domain_adapter
+- candidate_set_id: main_test_dbx_aws_dag_reuse_databricks_notebook_run_executor_candidates
+  source_step_refs:
+  - spark_jar_task
+  - spark_jar_task_2
+  service_ids:
+  - databricks_notebook_run_executor
+  - external_workflow_run_trigger
+  - kubernetes_job_template_executor
+  - spark_class_object_storage_table_loader
+  - google_dataform_workflow_invocation_creator
+  - reviewed_domain_adapter
+- candidate_set_id: main_test_dbx_aws_dag_reuse_temporary_resource_cleanup_candidates
+  source_step_refs:
+  - dummy_task_1
+  - dummy_task_2
+  - dummy_task_3
+  - end_task
+  service_ids:
+  - temporary_resource_cleanup
+  - filesystem_retention_cleanup_with_lock
+  - redis_key_cleanup
+  - database_expired_session_cleanup
+  - airflow_metadata_retention_cleaner
+  - dataset_quarantine_zone_writer
+- candidate_set_id: main_test_dbx_aws_dag_reuse_execution_date_backup_strategy_decider_candidates
+  source_step_refs:
+  - branch_task
+  service_ids:
+  - execution_date_backup_strategy_decider
+  - runtime_parameter_allowed_values_validator
+  - retention_cutoff_config_resolver
+  - fraud_risk_threshold_route_decider
+  - database_backup_artifact_creator
+  - reviewed_python_udf_transformer

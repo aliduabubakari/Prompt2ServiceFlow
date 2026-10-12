@@ -1,0 +1,39 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:retail_inventory_reconciliation
+candidate_sets:
+- candidate_set_id: main_retail_inventory_reconciliation_warehouse_inventory_csv_extractor_candidates
+  required_service_id: warehouse_inventory_csv_extractor
+  labels:
+    warehouse_inventory_csv_extractor: gold
+    ftp_file_artifact_downloader: target_mismatch
+    http_json_request_extractor: format_mismatch
+    database_csv_snapshot_exporter: target_mismatch
+    http_api_request_artifact_extractor: contract_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_retail_inventory_reconciliation_inventory_sku_csv_normalizer_candidates
+  required_service_id: inventory_sku_csv_normalizer
+  labels:
+    inventory_sku_csv_normalizer: gold
+    shipment_data_standardization_enricher: contract_mismatch
+    tabular_null_value_cleanser: semantic_mismatch
+    csv_to_structured_json_standardizer: format_mismatch
+    weather_station_csv_standard_normalizer: semantic_mismatch
+    legacy_csv_schema_validator: deprecated_or_incompatible
+- candidate_set_id: main_retail_inventory_reconciliation_multi_warehouse_inventory_discrepancy_reconciler_candidates
+  required_service_id: multi_warehouse_inventory_discrepancy_reconciler
+  labels:
+    multi_warehouse_inventory_discrepancy_reconciler: gold
+    multi_region_revenue_report_aggregator: semantic_mismatch
+    weather_station_csv_parquet_fusion_aggregator: format_mismatch
+    tabular_entity_reconciliation_enricher: target_mismatch
+    wikidata_entity_reconciliation_transformer: target_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_retail_inventory_reconciliation_inventory_reconciliation_pdf_report_generator_candidates
+  required_service_id: inventory_reconciliation_pdf_report_generator
+  labels:
+    inventory_reconciliation_pdf_report_generator: gold
+    csv_chart_pdf_report_generator: contract_mismatch
+    tabular_dashboard_report_generator: format_mismatch
+    parquet_quality_report_csv_exporter: missing_required_output
+    financial_transaction_regulatory_report_generator: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch

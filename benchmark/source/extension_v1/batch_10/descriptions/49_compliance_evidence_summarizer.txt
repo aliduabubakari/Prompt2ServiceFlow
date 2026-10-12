@@ -1,0 +1,125 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__compliance_evidence_summarizer.py
+- Name: Compliance Evidence Summarizer
+- Purpose: Retrieve relevant evidence, map it to controls, summarize findings, and route gaps.
+- Execution model: bounded batch
+- Extension track: ai_llm_nlp
+- Topology pattern: fan_in
+- Complexity band: very_complex
+- Business domain: Legal/Compliance
+- Input modalities: pdf, text, json, table
+- Output modalities: summary, control_mapping, review_packet
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- evidence document bundle
+- control framework JSON
+- audit request table
+
+External Systems:
+- audit evidence store (fixture-backed; no production system is contacted)
+- compliance review queue (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_primary_source -> validate_source_contracts
+  - ingest_secondary_source -> validate_source_contracts
+  - ingest_reference_source -> validate_source_contracts
+  - validate_source_contracts -> normalize_sources
+  - normalize_sources -> fuse_sources
+  - fuse_sources -> extract_or_parse_text
+  - extract_or_parse_text -> chunk_documents
+  - chunk_documents -> generate_embeddings
+  - generate_embeddings -> write_vector_index
+  - write_vector_index -> retrieve_grounding_context
+  - retrieve_grounding_context -> run_structured_extraction
+  - run_structured_extraction -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_primary_source - Ingest Primary Source
+  - Objective: Ingest the primary source for compliance evidence summary.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. ingest_secondary_source - Ingest Secondary Source
+  - Objective: Ingest the secondary source for compliance evidence summary.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. ingest_reference_source - Ingest Reference Source
+  - Objective: Ingest reference data needed to interpret compliance evidence summary.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. validate_source_contracts - Validate Source Contracts
+  - Objective: Validate schemas, identities, and freshness constraints across all compliance evidence summary sources.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. normalize_sources - Normalize Sources
+  - Objective: Normalize source-specific fields into a shared representation for compliance evidence summary.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. fuse_sources - Fuse Sources
+  - Objective: Fuse normalized sources into a coherent compliance evidence summary artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. extract_or_parse_text - Extract Or Parse Text
+  - Objective: Extract, parse, or transcribe text for compliance evidence summary.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+8. chunk_documents - Chunk Documents
+  - Objective: Chunk documents or transcript segments for compliance evidence summary.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+9. generate_embeddings - Generate Embeddings
+  - Objective: Generate embeddings for chunks or text spans in compliance evidence summary.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+10. write_vector_index - Write Vector Index
+  - Objective: Write or update a fixture-backed vector index for compliance evidence summary.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+11. retrieve_grounding_context - Retrieve Grounding Context
+  - Objective: Retrieve grounding context for compliance evidence summary.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+12. run_structured_extraction - Run Structured Extraction
+  - Objective: Run structured extraction, classification, or summarization for compliance evidence summary.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+13. publish_outputs - Publish Outputs
+  - Objective: Publish the prepared compliance evidence summary outputs and completion status.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

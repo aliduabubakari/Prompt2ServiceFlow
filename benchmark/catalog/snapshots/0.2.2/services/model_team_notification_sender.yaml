@@ -1,0 +1,98 @@
+schema_version: 0.1.0
+service_id: model_team_notification_sender
+version: 1.0.0
+display_name: Model Team Notification Sender
+category: Notifier
+capability:
+  summary: Sends feature-refresh completion status to a configured model team notification service.
+  operations:
+  - Sends feature-refresh completion status to a configured model team notification service.
+  keywords:
+  - model
+  - team
+  - notification
+  - sender
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: feature_publication_status
+    description: Reviewed feature publication status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: notification_service
+    description: Reviewed notification service value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: model_team_notification_status
+    description: Reviewed model team notification status value.
+    channel: artifact
+    data_type: notification
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: recipient_group
+    description: Configuration for recipient group.
+    type: string
+    required: true
+  - name: message_template
+    description: Configuration for message template.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: model-team-notification-sender
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.2
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.model_team_notification_sender
+  implementation_ref: services/implementations/model_team_notification_sender
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-03:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 03 descriptions; bindings retain inference confidence.

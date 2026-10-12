@@ -1,0 +1,645 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-09T01:31:53.368219+00:00",
+  "instance": "benchmark/instances/main/pcd_etl",
+  "workspace": "experiments/workspaces/main/pcd_etl",
+  "submission": "results/paper/runs/m5__main__pcd_etl__deepinfra-deepseek-v4-1-flash__s0__20261009T012814.345022Z__305c0e73/agent_workspace/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G1",
+    "g6_assert_status": "pass",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 0.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": null
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-09T01:31:50.990760+00:00",
+    "workspace": "experiments/workspaces/main/pcd_etl",
+    "submission": "results/paper/runs/m5__main__pcd_etl__deepinfra-deepseek-v4-1-flash__s0__20261009T012814.345022Z__305c0e73/agent_workspace/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G1",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "fail",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'sftp_availability_decision' names consumer 'check_pcd_shared_folder', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'shared_folder_availability_decision' names consumer 'status_tracker', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'shared_folder_availability_decision' names consumer 'financial_expense', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'shared_folder_availability_decision' names consumer 'upcc_financial_reportingr', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'shared_folder_availability_decision' names consumer 'chc_financial_reporting', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'shared_folder_availability_decision' names consumer 'pcn_financial_reporting', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'shared_folder_availability_decision' names consumer 'nppcc_financial_reporting', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'shared_folder_availability_decision' names consumer 'fiscal_year_reporting_dates', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'shared_folder_availability_decision' names consumer 'upcc_primary_care_patient_services', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'shared_folder_availability_decision' names consumer 'chc_primary_care_patient_services', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'shared_folder_availability_decision' names consumer 'practitioner_role_mapping', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'pcd_job_reference' names consumer 'etl_notification', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'pcd_job_status' names consumer 'etl_notification', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "status_tracker: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "financial_expense: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "upcc_financial_reportingr: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "chc_financial_reporting: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "pcn_financial_reporting: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "nppcc_financial_reporting: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "fiscal_year_reporting_dates: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "upcc_primary_care_patient_services: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "chc_primary_care_patient_services: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "practitioner_role_mapping: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "provincial_risk_tracking: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "decision_log: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "ha_hierarchy: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "hr_records: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "uppc_budget: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "chc_budget: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "pcn_budget: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "nppcc_budget: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "pcd_file_upload: input 'input_artifacts' expects array, got json"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "fail",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": [
+          {
+            "code": "G4_REQUIRED_SECRET_UNBOUND",
+            "message": "pcd_file_upload: required secret 'kubernetes_access_credentials' is not bound"
+          },
+          {
+            "code": "G4_UNKNOWN_SECRET",
+            "message": "pcd_file_upload: unknown secret 'pcd_kubernetes_credentials'"
+          }
+        ]
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "pcd-etl-scripts",
+              "scenario": "base",
+              "data_size_bytes": 47992,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "pcd-etl-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 1164,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "pcd-etl-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 47992,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "pcd-etl-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 1164,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "check_pcd_sftp_folder",
+                "check_pcd_shared_folder",
+                "status_tracker",
+                "financial_expense",
+                "upcc_financial_reportingr",
+                "chc_financial_reporting",
+                "pcn_financial_reporting",
+                "nppcc_financial_reporting",
+                "fiscal_year_reporting_dates",
+                "upcc_primary_care_patient_services",
+                "chc_primary_care_patient_services",
+                "practitioner_role_mapping",
+                "provincial_risk_tracking",
+                "decision_log",
+                "ha_hierarchy",
+                "hr_records",
+                "uppc_budget",
+                "chc_budget",
+                "pcn_budget",
+                "nppcc_budget",
+                "pcd_file_upload",
+                "etl_notification"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 22,
+      "submission_intents": 22,
+      "gold_intents": 22,
+      "mapping": {
+        "chc_budget": "chc_budget",
+        "chc_financial_reporting": "chc_financial_reporting",
+        "chc_primary_care_patient_services": "chc_primary_care_patient_services",
+        "check_pcd_sftp_folder": "check_pcd_sftp_folder",
+        "check_pcd_shared_folder": "check_pcd_shared_folder",
+        "decision_log": "decision_log",
+        "etl_notification": "etl_notification",
+        "financial_expense": "financial_expense",
+        "fiscal_year_reporting_dates": "fiscal_year_reporting_dates",
+        "ha_hierarchy": "ha_hierarchy",
+        "hr_records": "hr_records",
+        "nppcc_budget": "nppcc_budget",
+        "nppcc_financial_reporting": "nppcc_financial_reporting",
+        "pcd_file_upload": "pcd_file_upload",
+        "pcn_budget": "pcn_budget",
+        "pcn_financial_reporting": "pcn_financial_reporting",
+        "practitioner_role_mapping": "practitioner_role_mapping",
+        "provincial_risk_tracking": "provincial_risk_tracking",
+        "status_tracker": "status_tracker",
+        "upcc_financial_reportingr": "upcc_financial_reporting",
+        "upcc_primary_care_patient_services": "upcc_primary_care_patient_services",
+        "uppc_budget": "uppc_budget"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 22
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 100,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 24,
+      "total": 24,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 22,
+    "correct": 22,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "chc_budget",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "chc_budget",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "chc_financial_reporting",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "chc_financial_reporting",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "chc_primary_care_patient_services",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "chc_primary_care_patient_services",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "check_pcd_sftp_folder",
+        "gold_service": "file_location_availability_sensor",
+        "submission_intent": "check_pcd_sftp_folder",
+        "submission_service": "file_location_availability_sensor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "check_pcd_shared_folder",
+        "gold_service": "file_location_availability_sensor",
+        "submission_intent": "check_pcd_shared_folder",
+        "submission_service": "file_location_availability_sensor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "decision_log",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "decision_log",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "etl_notification",
+        "gold_service": "email_notification_sender",
+        "submission_intent": "etl_notification",
+        "submission_service": "email_notification_sender",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "financial_expense",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "financial_expense",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "fiscal_year_reporting_dates",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "fiscal_year_reporting_dates",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ha_hierarchy",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "ha_hierarchy",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "hr_records",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "hr_records",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "nppcc_budget",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "nppcc_budget",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "nppcc_financial_reporting",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "nppcc_financial_reporting",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "pcd_file_upload",
+        "gold_service": "kubernetes_job_template_executor",
+        "submission_intent": "pcd_file_upload",
+        "submission_service": "kubernetes_job_template_executor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "pcn_budget",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "pcn_budget",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "pcn_financial_reporting",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "pcn_financial_reporting",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "practitioner_role_mapping",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "practitioner_role_mapping",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "provincial_risk_tracking",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "provincial_risk_tracking",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "status_tracker",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "status_tracker",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "upcc_financial_reporting",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "upcc_financial_reportingr",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "upcc_primary_care_patient_services",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "upcc_primary_care_patient_services",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "uppc_budget",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "uppc_budget",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "applicable": true,
+    "true_positives": 0,
+    "false_positives": 18,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [],
+        "status": "pass"
+      }
+    ],
+    "assertions_total": 0,
+    "assertions_passed": 0,
+    "pass_rate": null,
+    "overall_status": "pass"
+  }
+}

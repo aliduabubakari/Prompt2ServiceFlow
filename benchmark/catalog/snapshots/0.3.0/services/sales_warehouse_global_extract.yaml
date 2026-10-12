@@ -1,0 +1,94 @@
+schema_version: 0.1.0
+service_id: sales_warehouse_global_extract
+version: 1.0.0
+display_name: Sales Warehouse Global Extract
+category: Extractor
+capability:
+  summary: Extracts global sales data from a configured sales warehouse.
+  operations:
+  - Extracts global sales data from a configured sales warehouse.
+  keywords:
+  - sales
+  - warehouse
+  - global
+  - extract
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: sales_warehouse
+    description: Reviewed sales warehouse value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: global_sales_extract
+    description: Reviewed global sales extract value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: extraction_status
+    description: Reviewed extraction status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: query_name
+    description: Configuration for query name.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: sales-warehouse-global-extract
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.1
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.sales_warehouse_global_extract
+  implementation_ref: services/implementations/sales_warehouse_global_extract
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-02:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 02 descriptions; bindings retain inference confidence.

@@ -1,0 +1,352 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: fraud-event-replay-checkpoint-nominal-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: fraud-event-replay-checkpoint-nominal
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: nominal
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters: []
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: fraud-event-replay-checkpoint-nominal-scripts
+  - name: fixtures
+    configMap:
+      name: fraud-event-replay-checkpoint-nominal-fixtures
+      items:
+      - key: fixture-0000
+        path: customer_profiles.csv
+      - key: fixture-0001
+        path: fixture.json
+      - key: fixture-0002
+        path: fraud_events.jsonl
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-source-batch
+        template: run-ingest-source-batch
+      - name: validate-source-contract
+        template: run-validate-source-contract
+        depends: ingest-source-batch.Succeeded
+      - name: load-previous-checkpoint
+        template: run-load-previous-checkpoint
+        depends: validate-source-contract.Succeeded
+      - name: apply-batch-to-checkpoint
+        template: run-apply-batch-to-checkpoint
+        depends: load-previous-checkpoint.Succeeded
+      - name: quarantine-late-or-invalid-records
+        template: run-quarantine-late-or-invalid-records
+        depends: apply-batch-to-checkpoint.Succeeded
+      - name: evaluate-policy-or-risk
+        template: run-evaluate-policy-or-risk
+        depends: quarantine-late-or-invalid-records.Succeeded
+      - name: route-approved-records
+        template: run-route-approved-records
+        depends: evaluate-policy-or-risk.Succeeded
+      - name: route-exception-records
+        template: run-route-exception-records
+        depends: evaluate-policy-or-risk.Succeeded
+      - name: merge-route-outcomes
+        template: run-merge-route-outcomes
+        depends: route-approved-records.Succeeded && route-exception-records.Succeeded
+      - name: publish-outputs
+        template: run-publish-outputs
+        depends: merge-route-outcomes.Succeeded
+  - name: run-ingest-source-batch
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_source_batch
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_ingest_source_batch.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-validate-source-contract
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: validate_source_contract
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_validate_source_contract.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-load-previous-checkpoint
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: load_previous_checkpoint
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_load_previous_checkpoint.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-apply-batch-to-checkpoint
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: apply_batch_to_checkpoint
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_apply_batch_to_checkpoint.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-quarantine-late-or-invalid-records
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: quarantine_late_or_invalid_records
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_quarantine_late_or_invalid_records.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-evaluate-policy-or-risk
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: evaluate_policy_or_risk
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/06_evaluate_policy_or_risk.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-route-approved-records
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: route_approved_records
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/07_route_approved_records.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-route-exception-records
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: route_exception_records
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/08_route_exception_records.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-merge-route-outcomes
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: merge_route_outcomes
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/09_merge_route_outcomes.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-publish-outputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: publish_outputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/10_publish_outputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

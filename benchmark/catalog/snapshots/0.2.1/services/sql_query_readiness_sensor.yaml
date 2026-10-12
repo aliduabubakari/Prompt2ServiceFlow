@@ -1,0 +1,157 @@
+schema_version: 0.1.0
+service_id: sql_query_readiness_sensor
+version: 1.0.0
+display_name: SQL Query Readiness Sensor
+category: Sensor
+capability:
+  summary: Executes a read-only SQL query against a bound database and emits a readiness
+    decision based on row existence, row count, or scalar truth semantics.
+  operations:
+  - Resolve a bound SQL database resource.
+  - Execute a configured read-only SQL query.
+  - Evaluate the result using a configured success condition such as row_exists.
+  - Emit a readiness decision and query execution status without mutating the database.
+  keywords:
+  - sql sensor
+  - database flag
+  - readiness check
+  - row exists
+  - wait poll
+  limitations:
+  - Does not implement polling cadence, timeout, or workflow retries.
+  - Requires caller-supplied read-only SQL.
+  - Does not mutate or create database objects.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: database
+    description: SQL database resource to query for readiness.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: readiness_decision
+    description: Decision showing whether the SQL result satisfies the configured
+      readiness condition.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://sql_readiness_decision/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: query_status
+    description: Query execution status with success flag, row count when available,
+      and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://sql_readiness_query_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: sql_query
+    description: Read-only SQL query used to check readiness.
+    type: string
+    required: true
+  - name: success_condition
+    description: How to interpret the SQL result.
+    type: string
+    required: true
+    enum:
+    - row_exists
+    - row_count_equals
+    - scalar_true
+  - name: expected_row_count
+    description: Expected row count when success_condition is row_count_equals.
+    type: integer
+    required: false
+    minimum: 0.0
+  secrets: []
+contracts:
+- contract_id: sql_readiness_query_non_empty
+  type: precondition
+  applies_to: parameter
+  target: sql_query
+  description: SQL readiness query must be non-empty and read-only.
+  expression: length(trim(sql_query)) > 0 and lower(trim(sql_query)) starts_with 'select'
+- contract_id: sql_readiness_decision_schema
+  type: json_schema
+  applies_to: output
+  target: readiness_decision
+  description: Decision exposes boolean readiness and observed row/scalar information.
+  schema_ref: schema://sql_readiness_decision/v1
+  expression: '{"type":"object","required":["ready","success_condition"],"properties":{"ready":{"type":"boolean"},"success_condition":{"type":"string"},"row_count":{"type":["integer","null"],"minimum":0},"scalar_value":{"type":["boolean","number","string","null"]},"reason":{"type":"string"}}}'
+- contract_id: sql_readiness_status_schema
+  type: json_schema
+  applies_to: output
+  target: query_status
+  description: Status exposes query execution outcome.
+  schema_ref: schema://sql_readiness_query_status/v1
+  expression: '{"type":"object","required":["success","query_executed","read_only"],"properties":{"success":{"type":"boolean"},"query_executed":{"type":"boolean"},"read_only":{"type":"boolean"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: sql_readiness_read_only_effect
+  type: effect
+  applies_to: service
+  target: sql_query_readiness_sensor
+  description: The service is read-only and emits ready=true exactly when the result
+    satisfies success_condition.
+  expression: no_external_mutation
+invocation:
+  type: argo_workflow_template
+  template_name: sql-query-readiness-sensor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.sql_query_readiness_sensor
+  implementation_ref: services/implementations/sql_query_readiness_sensor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - postgresql://*
+  secret_access: required
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit database credentials or raw result rows in status outputs.
+  - Polling interval and timeout are workflow-level settings.
+  idempotency_notes: For a fixed database state and query, the same decision is emitted;
+    observed external database state may change over time.
+  default_timeout_seconds: 120
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:WF_MAIN_DATASETS_LOAD_L2_TO_L2#wait_for_l2_full_load
+  - main:database_partition_check_etl#wait_partition
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The registry lacks a generic SQL readiness sensor, and the active
+    pipeline explicitly waits on a database flag query.'
+  - 'Evidence status: explicit.'

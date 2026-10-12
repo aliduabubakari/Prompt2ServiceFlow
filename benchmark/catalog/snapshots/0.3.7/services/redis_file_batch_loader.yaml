@@ -1,0 +1,155 @@
+schema_version: 0.1.0
+service_id: redis_file_batch_loader
+version: 1.0.0
+display_name: Redis File Batch Loader
+category: Loader
+capability:
+  summary: Loads records from a batch of text files into configured Redis keys and
+    records which files were imported, emitting key references and load status.
+  operations:
+  - Read matching input text files.
+  - Parse or pass through records according to configured mode.
+  - Write raw records to a configured Redis key.
+  - Write imported file identifiers to a tracking key or set/list.
+  keywords:
+  - redis
+  - text files
+  - batch load
+  - raw records
+  - tracking key
+  limitations:
+  - Does not parse domain-specific death record fields.
+  - Does not generate SQL.
+  - Redis data structure names and write mode must be configured by the caller.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_files
+    description: Raw text files to load into Redis.
+    channel: artifact
+    data_type: text
+    media_type: text/plain
+    schema_ref: schema://file_references/v1
+    required: true
+    cardinality: many
+    sensitivity: public
+  - name: redis_resource
+    description: Redis database resource used for intermediate storage.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://redis_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: redis_key_references
+    description: References to Redis keys written or updated.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://redis_key_references/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: load_status
+    description: Observable Redis load status with file and record counts.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://redis_file_batch_load_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: raw_records_key
+    description: Redis key for raw records.
+    type: string
+    required: true
+  - name: imported_files_key
+    description: Redis key for imported file tracking.
+    type: string
+    required: true
+  - name: write_mode
+    description: Redis write behavior.
+    type: string
+    required: false
+    enum:
+    - append
+    - replace
+    - skip_imported
+  secrets: []
+contracts:
+- contract_id: redis_file_batch_has_inputs
+  type: precondition
+  applies_to: input
+  target: source_files
+  description: At least one readable source file must be provided.
+  expression: length(source_files) > 0 and all(readable(f) for f in source_files)
+- contract_id: redis_key_reference_schema
+  type: json_schema
+  applies_to: output
+  target: redis_key_references
+  description: Output identifies raw-record and imported-file tracking keys.
+  schema_ref: schema://redis_key_references/v1
+  expression: '{"type":"object","required":["raw_records_key","imported_files_key"],"properties":{"raw_records_key":{"type":"string"},"imported_files_key":{"type":"string"}}}'
+- contract_id: redis_file_batch_load_status_schema
+  type: json_schema
+  applies_to: output
+  target: load_status
+  description: Status exposes Redis write effect.
+  schema_ref: schema://redis_file_batch_load_status/v1
+  expression: '{"type":"object","required":["success","files_read","records_written","raw_records_key","imported_files_key"],"properties":{"success":{"type":"boolean"},"files_read":{"type":"integer","minimum":0},"records_written":{"type":"integer","minimum":0},"files_marked_imported":{"type":"integer","minimum":0},"raw_records_key":{"type":"string"},"imported_files_key":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+invocation:
+  type: argo_workflow_template
+  template_name: redis-file-batch-loader-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.redis_file_batch_loader
+  implementation_ref: services/implementations/redis_file_batch_loader
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - redis://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - public
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit Redis credentials or raw record contents in outputs.
+  - Intermediate keys should be bound explicitly.
+  idempotency_notes: Retry-safe when write_mode is replace or skip_imported and tracking
+    keys are stable; append mode may duplicate records.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:global_dag#staging_pipeline.load_data_from_ingestion
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing service loads batches of local text artifacts into Redis
+    while tracking imported files.'
+  - 'Evidence status: explicit.'

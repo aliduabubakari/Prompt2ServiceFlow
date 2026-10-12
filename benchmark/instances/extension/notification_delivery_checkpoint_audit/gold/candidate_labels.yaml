@@ -1,0 +1,45 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:notification_delivery_checkpoint_audit
+candidate_sets:
+- candidate_set_id: extension_notification_delivery_checkpoint_audit_notification_delivery_event_ingestor_candidates
+  required_service_id: notification_delivery_event_ingestor
+  labels:
+    notification_delivery_event_ingestor: gold
+    checkpoint_position_only_loader: semantic_mismatch
+    checkpoint_event_sort_deduplicator: contract_mismatch
+    append_only_event_archiver: format_mismatch
+- candidate_set_id: extension_notification_delivery_checkpoint_audit_notification_delivery_checkpoint_validator_candidates
+  required_service_id: notification_delivery_checkpoint_validator
+  labels:
+    notification_delivery_checkpoint_validator: gold
+    checkpoint_event_sort_deduplicator: semantic_mismatch
+    append_only_event_archiver: contract_mismatch
+    generic_queue_metric_counter: format_mismatch
+- candidate_set_id: extension_notification_delivery_checkpoint_audit_checkpoint_event_sort_deduplicator_candidates
+  required_service_id: checkpoint_event_sort_deduplicator
+  labels:
+    checkpoint_event_sort_deduplicator: gold
+    append_only_event_archiver: semantic_mismatch
+    generic_queue_metric_counter: contract_mismatch
+    audit_log_redaction_only_filter: format_mismatch
+- candidate_set_id: extension_notification_delivery_checkpoint_audit_checkpoint_window_builder_candidates
+  required_service_id: checkpoint_window_builder
+  labels:
+    checkpoint_window_builder: gold
+    generic_queue_metric_counter: semantic_mismatch
+    audit_log_redaction_only_filter: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_notification_delivery_checkpoint_audit_notification_delivery_audit_metric_computer_candidates
+  required_service_id: notification_delivery_audit_metric_computer
+  labels:
+    notification_delivery_audit_metric_computer: gold
+    audit_log_redaction_only_filter: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    checkpoint_position_only_loader: format_mismatch
+- candidate_set_id: extension_notification_delivery_checkpoint_audit_checkpoint_audit_bundle_publisher_candidates
+  required_service_id: checkpoint_audit_bundle_publisher
+  labels:
+    checkpoint_audit_bundle_publisher: gold
+    reviewed_domain_adapter: semantic_mismatch
+    checkpoint_position_only_loader: contract_mismatch
+    checkpoint_event_sort_deduplicator: format_mismatch

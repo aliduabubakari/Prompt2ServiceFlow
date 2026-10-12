@@ -1,0 +1,199 @@
+schema_version: 0.1.0
+service_id: filesystem_retention_cleanup_with_lock
+version: 1.0.0
+display_name: Filesystem retention cleanup with lock file
+category: Maintenance
+capability:
+  summary: Deletes files older than a configured retention age from an explicitly
+    bound filesystem directory while acquiring and releasing a lock file, then emits
+    observable cleanup and lock status artifacts.
+  operations:
+  - Validate the bound filesystem directory and retention parameters.
+  - Acquire a lock file atomically before deletion begins.
+  - Enumerate eligible files under the configured directory according to maximum age
+    and traversal parameters.
+  - Delete or dry-run eligible file deletions while preserving non-eligible files
+    and directories according to parameters provided by the caller.
+  keywords:
+  - filesystem
+  - log cleanup
+  - retention
+  - maintenance
+  - lock file
+  - old files
+  - directory cleanup
+  limitations:
+  - Only acts on explicitly bound filesystem directories and configured path parameters.
+  - Does not model cron scheduling, worker fan-out, worker staggering, dependency
+    edges, retries, or failure notification hooks.
+  - Does not infer the retention age source; caller must bind max_age_days from configuration.
+  - Does not clean remote object stores unless they are exposed through an explicitly
+    bound filesystem-like resource.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: target_filesystem_directory
+    description: Filesystem directory resource or root under which eligible log files
+      may be deleted.
+    channel: external_resource
+    data_type: directory
+    schema_ref: schema://filesystem_directory_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: cleanup_status
+    description: Observable status containing success flag, directory processed, retention
+      cutoff, candidate/deleted/skipped counts, and errors.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://filesystem_retention_cleanup_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: lock_file_status
+    description: Observable status for the lock-file lifecycle, including lock path,
+      acquired/released flags, and conflict outcome.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://filesystem_lock_file_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: directory_path
+    description: Path of the directory to clean, resolved within or against the bound
+      filesystem directory resource.
+    type: string
+    required: true
+  - name: max_age_days
+    description: Maximum age in days to retain; files strictly older than this threshold
+      are eligible for deletion.
+    type: integer
+    required: true
+    minimum: 0.0
+  - name: lock_file_path
+    description: Path of the lock file used to prevent concurrent cleanup processes.
+    type: string
+    required: true
+  - name: recursive
+    description: Whether to traverse subdirectories under the configured directory.
+    type: boolean
+    required: false
+  - name: dry_run
+    description: When true, report candidate files without deleting them.
+    type: boolean
+    required: false
+  - name: lock_conflict_policy
+    description: Behavior when the lock file already exists.
+    type: string
+    required: false
+    enum:
+    - fail
+    - skip
+  secrets: []
+contracts:
+- contract_id: filesystem_cleanup_directory_precondition
+  type: precondition
+  applies_to: parameter
+  target: directory_path
+  description: The target directory path must be non-empty and must resolve to a directory
+    under the bound filesystem resource.
+  expression: length(trim(directory_path)) > 0 and resolves_under(target_filesystem_directory,
+    directory_path)
+- contract_id: filesystem_cleanup_retention_precondition
+  type: precondition
+  applies_to: parameter
+  target: max_age_days
+  description: Retention age must be a non-negative integer number of days.
+  expression: max_age_days >= 0
+- contract_id: filesystem_cleanup_lock_precondition
+  type: precondition
+  applies_to: parameter
+  target: lock_file_path
+  description: Lock file path must be non-empty and resolvable by the service before
+    cleanup starts.
+  expression: length(trim(lock_file_path)) > 0 and path_parent_writable(lock_file_path)
+- contract_id: filesystem_retention_cleanup_status_schema
+  type: json_schema
+  applies_to: output
+  target: cleanup_status
+  description: Cleanup status exposes the maintenance effect for deterministic workflow
+    validation.
+  schema_ref: schema://filesystem_retention_cleanup_status/v1
+  expression: '{"type":"object","required":["success","directory_path","max_age_days","candidates_found","files_deleted","files_skipped","dry_run"],"properties":{"success":{"type":"boolean"},"directory_path":{"type":"string"},"max_age_days":{"type":"integer","minimum":0},"cutoff_timestamp":{"type":["string","null"]},"candidates_found":{"type":"integer","minimum":0},"files_deleted":{"type":"integer","minimum":0},"files_skipped":{"type":"integer","minimum":0},"dry_run":{"type":"boolean"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: filesystem_lock_file_status_schema
+  type: json_schema
+  applies_to: output
+  target: lock_file_status
+  description: Lock status exposes acquisition, release, and conflict outcome.
+  schema_ref: schema://filesystem_lock_file_status/v1
+  expression: '{"type":"object","required":["lock_file_path","acquired","released","conflict_detected"],"properties":{"lock_file_path":{"type":"string"},"acquired":{"type":"boolean"},"released":{"type":"boolean"},"conflict_detected":{"type":"boolean"},"conflict_policy":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: filesystem_retention_cleanup_effect
+  type: effect
+  applies_to: service
+  target: filesystem_retention_cleanup_with_lock
+  description: On success, the service acquired and released the lock file, deleted
+    eligible files unless dry_run is true, preserved non-eligible files, and emitted
+    status artifacts.
+  expression: cleanup_status.success == true implies lock_file_status.acquired ==
+    true and lock_file_status.released == true
+invocation:
+  type: argo_workflow_template
+  template_name: filesystem-retention-cleanup-with-lock-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.filesystem_retention_cleanup_with_lock
+  implementation_ref: services/implementations/filesystem_retention_cleanup_with_lock
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Restrict path resolution to explicitly bound filesystem directories to avoid destructive
+    broad deletes.
+  - Do not emit full file contents in status artifacts; counts and bounded path diagnostics
+    are sufficient.
+  - Workflow retries, retry delay, daily schedule, failure email hook, and parallel
+    worker topology are not part of the service capability.
+  idempotency_notes: Retry-safe when lock acquisition succeeds and deletion treats
+    already-removed files as skipped or absent; exact repeat counts can differ after
+    a successful prior cleanup.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:airflow-log-cleanup#log_cleanup_worker_num_1_dir_0
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The existing temporary_resource_cleanup service only removes explicitly
+    configured targets and lacks age-based retention scanning and lock-file lifecycle
+    contracts required by the source cleanup worker.'
+  - 'Evidence status: strongly_inferred.'

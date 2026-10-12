@@ -1,0 +1,55 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:etl_import_mondo
+candidate_sets:
+- candidate_set_id: main_etl_import_mondo_runtime_parameter_allowed_values_validator_candidates
+  required_service_id: runtime_parameter_allowed_values_validator
+  labels:
+    runtime_parameter_allowed_values_validator: gold
+    retention_cutoff_config_resolver: semantic_mismatch
+    dataform_compilation_config_builder: semantic_mismatch
+    execution_date_backup_strategy_decider: contract_mismatch
+    tabular_quality_score_gate: format_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_etl_import_mondo_github_release_asset_object_storage_sync_candidates
+  required_service_id: github_release_asset_object_storage_sync
+  labels:
+    github_release_asset_object_storage_sync: gold
+    checksum_manifest_object_storage_file_sync: contract_mismatch
+    http_api_request_artifact_extractor: missing_required_output
+    ftp_file_artifact_downloader: target_mismatch
+    data_gouv_dataset_resource_downloader: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_etl_import_mondo_spark_class_object_storage_dataset_transformer_candidates
+  required_service_id: spark_class_object_storage_dataset_transformer
+  labels:
+    spark_class_object_storage_dataset_transformer: gold
+    spark_class_object_storage_table_loader: missing_required_output
+    spark_elasticsearch_index_loader: target_mismatch
+    kubernetes_job_template_executor: contract_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_etl_import_mondo_spark_elasticsearch_index_loader_candidates
+  required_service_id: spark_elasticsearch_index_loader
+  labels:
+    spark_elasticsearch_index_loader: gold
+    spark_class_object_storage_dataset_transformer: target_mismatch
+    spark_class_object_storage_table_loader: target_mismatch
+    elasticsearch_index_publisher: semantic_mismatch
+    multi_table_analytics_warehouse_loader: target_mismatch
+    legacy_database_table_loader: deprecated_or_incompatible
+- candidate_set_id: main_etl_import_mondo_elasticsearch_index_publisher_candidates
+  required_service_id: elasticsearch_index_publisher
+  labels:
+    elasticsearch_index_publisher: gold
+    spark_elasticsearch_index_loader: semantic_mismatch
+    database_table_http_flag_publisher: target_mismatch
+    bi_dashboard_refresh_trigger: target_mismatch
+    external_workflow_run_trigger: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_etl_import_mondo_slack_notification_sender_candidates
+  required_service_id: slack_notification_sender
+  labels:
+    slack_notification_sender: gold
+    email_notification_sender: target_mismatch
+    status_context_email_summary_notifier: target_mismatch
+    branch_processing_completion_notifier: contract_mismatch
+    aqi_threshold_email_alert_notifier: semantic_mismatch

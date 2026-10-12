@@ -1,0 +1,29 @@
+assertions_version: 0.1.0
+pipeline_id: database_replication_fanout
+scenarios:
+- scenario: replication
+  assertions:
+  - assertion_id: three_snapshot_rows
+    type: csv_row_count
+    path: artifacts/snapshot.csv
+    expected: 3
+  - assertion_id: exported_rows
+    type: json_path_equals
+    path: artifacts/export_status.json
+    json_path: rows_exported
+    expected: 3
+  - assertion_id: dev_rows_loaded
+    type: json_path_equals
+    path: artifacts/dev_load_status.json
+    json_path: rows_loaded
+    expected: 3
+  - assertion_id: staging_rows_loaded
+    type: json_path_equals
+    path: artifacts/staging_load_status.json
+    json_path: rows_loaded
+    expected: 3
+  - assertion_id: qa_rows_loaded
+    type: json_path_equals
+    path: artifacts/qa_load_status.json
+    json_path: rows_loaded
+    expected: 3

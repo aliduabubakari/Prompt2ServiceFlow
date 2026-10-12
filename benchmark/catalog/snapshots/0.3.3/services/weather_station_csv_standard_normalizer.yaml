@@ -1,0 +1,194 @@
+schema_version: 0.1.0
+service_id: weather_station_csv_standard_normalizer
+version: 1.0.0
+display_name: Weather Station CSV Standard Normalizer
+category: Transformer
+capability:
+  summary: Normalizes agency-specific weather station CSV files into a caller-configured
+    standard station-data CSV schema and emits normalization status.
+  operations:
+  - Read a raw weather station CSV artifact from a meteorological agency.
+  - Parse the CSV using configured delimiter/header behavior.
+  - Apply configured column mappings, value normalization, unit conversions, coordinate
+    cleanup, and date/time parsing rules.
+  - Validate that configured standard output columns are present and write a normalized
+    CSV artifact.
+  keywords:
+  - climate
+  - weather stations
+  - csv normalization
+  - meteorological agency
+  - standard schema
+  - data fusion
+  limitations:
+  - Does not download source files.
+  - Does not merge multiple agencies; use an aggregator for fusion.
+  - Does not infer agency schemas; caller must provide column mappings and normalization
+    rules.
+  - Does not schedule retries or implement dependency edges.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: raw_station_csv
+    description: Raw agency-specific weather station CSV artifact.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://raw_weather_station_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  outputs:
+  - name: normalized_station_csv
+    description: Normalized weather station CSV in the configured standard schema.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://normalized_weather_station_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  - name: normalization_status
+    description: Observable status with agency id, rows read/written, output URI,
+      columns produced, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://weather_station_normalization_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: agency_id
+    description: Logical source agency identifier, such as noaa, ecmwf, jma, metoffice,
+      or bom.
+    type: string
+    required: true
+  - name: column_mapping
+    description: Mapping from source CSV column names to standard output column names.
+    type: object
+    required: true
+  - name: normalization_rules
+    description: Declarative rules for parsing dates, cleaning coordinates, converting
+      units, trimming values, and handling missing values.
+    type: object
+    required: true
+  - name: required_standard_columns
+    description: Standard output columns that must exist in the normalized CSV.
+    type: array
+    required: true
+  - name: output_path
+    description: Deterministic output artifact path or name for the normalized CSV.
+    type: string
+    required: true
+  - name: has_header
+    description: Whether the input CSV contains a header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  secrets: []
+contracts:
+- contract_id: weather_station_normalizer_input_readable
+  type: precondition
+  applies_to: input
+  target: raw_station_csv
+  description: Input must be readable and parseable as CSV using configured parsing
+    parameters.
+  expression: readable(raw_station_csv) and csv_parseable(raw_station_csv, delimiter,
+    has_header)
+- contract_id: weather_station_normalizer_mapping_required
+  type: precondition
+  applies_to: parameter
+  target: column_mapping
+  description: Column mapping and required standard columns must be non-empty for
+    deterministic normalization.
+  expression: length(keys(column_mapping)) > 0 and length(required_standard_columns)
+    > 0
+- contract_id: normalized_weather_station_csv_schema
+  type: tabular_schema
+  applies_to: output
+  target: normalized_station_csv
+  description: Normalized CSV must contain all configured required standard columns.
+  schema_ref: schema://normalized_weather_station_csv/v1
+  expression: csv_parseable(normalized_station_csv) and columns(normalized_station_csv)
+    contains all required_standard_columns
+- contract_id: weather_station_normalization_status_schema
+  type: json_schema
+  applies_to: output
+  target: normalization_status
+  description: Status exposes normalization effect for workflow validation.
+  schema_ref: schema://weather_station_normalization_status/v1
+  expression: '{"type":"object","required":["success","agency_id","rows_read","rows_written","columns_produced","output_uri"],"properties":{"success":{"type":"boolean"},"agency_id":{"type":"string"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"columns_produced":{"type":"array","items":{"type":"string"}},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: weather_station_normalization_effect
+  type: effect
+  applies_to: service
+  target: weather_station_csv_standard_normalizer
+  description: On success, a normalized CSV artifact exists, contains required standard
+    columns, and row counts are reported.
+  expression: normalization_status.success == true implies exists(normalized_station_csv)
+    and normalization_status.rows_written >= 0
+invocation:
+  type: argo_workflow_template
+  template_name: weather-station-csv-standard-normalizer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.weather_station_csv_standard_normalizer
+  implementation_ref: services/implementations/weather_station_csv_standard_normalizer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - public
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full station rows; emit counts, column names, and bounded diagnostics
+    only.
+  - Agency-specific mappings must be supplied by workflow binding for deterministic
+    execution.
+  idempotency_notes: Same input CSV and normalization parameters produce the same
+    normalized CSV.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:climate_data_fusion_pipeline#normalize_bom
+  - main:climate_data_fusion_pipeline#normalize_ecmwf
+  - main:climate_data_fusion_pipeline#normalize_jma
+  - main:climate_data_fusion_pipeline#normalize_metoffice
+  - main:climate_data_fusion_pipeline#normalize_noaa
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service provides a reusable CSV-to-standard-weather-station
+    normalization contract while preserving CSV artifact boundaries.'
+  - 'Evidence status: strongly_inferred.'

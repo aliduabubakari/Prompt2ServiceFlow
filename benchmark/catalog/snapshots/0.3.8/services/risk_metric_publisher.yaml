@@ -1,0 +1,89 @@
+schema_version: 0.1.0
+service_id: risk_metric_publisher
+version: 1.0.0
+display_name: Risk Metric Publisher
+category: Publisher
+capability:
+  summary: Publishes aggregate fraud risk metrics from monitoring updates.
+  operations:
+  - Publishes aggregate fraud risk metrics from monitoring updates.
+  keywords:
+  - risk
+  - metric
+  - publisher
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: monitoring_status
+    description: Reviewed monitoring status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: risk_metrics
+    description: Reviewed risk metrics value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: metric_status
+    description: Reviewed metric status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: metric_name
+    description: Configuration for metric name.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: risk-metric-publisher
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.3
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.risk_metric_publisher
+  implementation_ref: services/implementations/risk_metric_publisher
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-04:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 04 descriptions; bindings retain inference confidence.

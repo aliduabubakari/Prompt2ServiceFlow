@@ -1,0 +1,35 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:pipeline_execution_dag
+mappings:
+- intent_id: load_and_modify
+  inputs:
+    csv_file: input_csv
+  outputs:
+    structured_json: formatted_json
+    transform_status: format_status
+- intent_id: reconciliation
+  inputs:
+    structured_json: formatted_json
+    entity_reconciliation_resource: reconciliation_resource
+  outputs:
+    reconciled_json: reconciled_json
+    reconciliation_status: reconciliation_status
+- intent_id: openmeteo_extension
+  inputs:
+    source_tabular_json: reconciled_json
+    weather_api_resource: weather_api_resource
+  outputs:
+    weather_enriched_json: weather_json
+    enrichment_status: weather_status
+- intent_id: column_extension
+  inputs:
+    source_tabular_json: weather_json
+  outputs:
+    risk_scored_json: extended_json
+    scoring_status: extension_status
+- intent_id: save
+  inputs:
+    structured_json: extended_json
+  outputs:
+    csv_file: output_csv
+    export_status: export_status

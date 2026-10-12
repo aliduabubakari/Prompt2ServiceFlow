@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prompt2serviceflow.local/schemas/validation_report.schema.json",
+  "title": "Prompt2ServiceFlow G0-G6 validation report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_version",
+    "pipeline_id",
+    "generated_at",
+    "overall_status",
+    "gates",
+    "scenario_results"
+  ],
+  "properties": {
+    "report_version": {
+      "const": "0.1.0"
+    },
+    "pipeline_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "overall_status": {
+      "enum": ["pass", "fail"]
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["gate", "status", "checks", "errors"],
+        "properties": {
+          "gate": {
+            "enum": ["G0", "G1", "G2", "G3", "G4", "G5", "G6"]
+          },
+          "status": {
+            "enum": ["pass", "fail"]
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "details": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "scenario_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scenario", "status", "executed_tasks", "skipped_tasks", "assertions"],
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": ["pass", "fail"]
+          },
+          "executed_tasks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "skipped_tasks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assertions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["assertion_id", "status", "message"],
+              "properties": {
+                "assertion_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "enum": ["pass", "fail"]
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

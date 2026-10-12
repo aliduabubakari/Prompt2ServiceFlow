@@ -1,0 +1,25 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: airflow_log_cleanup
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: start
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - start
+- intent_id: log_cleanup_worker_num_1_dir_0
+  script: scripts/01_run.py
+  dependencies:
+  - start
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - clean
+scenarios:
+- name: run
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal

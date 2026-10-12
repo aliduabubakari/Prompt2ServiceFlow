@@ -1,0 +1,106 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: scientific_literature_screening
+image: python:3.12-slim
+workflow_parameters:
+- name: execution-time
+  default: '2026-07-20T12:00:00Z'
+tasks:
+- intent_id: ingest_source_batch
+  script: scripts/01_ingest_source_batch.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  - --execution-time
+  - '{execution-time}'
+- intent_id: validate_source_contract
+  script: scripts/02_validate_source_contract.py
+  dependencies:
+  - ingest_source_batch
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: normalize_partition_a
+  script: scripts/03_normalize_partition_a.py
+  dependencies:
+  - validate_source_contract
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: normalize_partition_b
+  script: scripts/04_normalize_partition_b.py
+  dependencies:
+  - validate_source_contract
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: normalize_partition_c
+  script: scripts/05_normalize_partition_c.py
+  dependencies:
+  - validate_source_contract
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: fuse_partitions
+  script: scripts/06_fuse_partitions.py
+  dependencies:
+  - normalize_partition_a
+  - normalize_partition_b
+  - normalize_partition_c
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: extract_or_parse_text
+  script: scripts/07_extract_or_parse_text.py
+  dependencies:
+  - fuse_partitions
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: chunk_documents
+  script: scripts/08_chunk_documents.py
+  dependencies:
+  - extract_or_parse_text
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: generate_embeddings
+  script: scripts/09_generate_embeddings.py
+  dependencies:
+  - chunk_documents
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: publish_outputs
+  script: scripts/10_publish_outputs.py
+  dependencies:
+  - generate_embeddings
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  - --execution-time
+  - '{execution-time}'
+scenarios:
+- name: nominal
+  parameters:
+    execution-time: '2026-07-20T12:00:00Z'
+  fixture_root: fixtures/scenarios/nominal

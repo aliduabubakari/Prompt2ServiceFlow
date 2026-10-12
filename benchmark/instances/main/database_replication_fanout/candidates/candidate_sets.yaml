@@ -1,0 +1,28 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:database_replication_fanout
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_database_replication_fanout_database_csv_snapshot_exporter_candidates
+  source_step_refs:
+  - dump_prod_csv
+  service_ids:
+  - database_csv_snapshot_exporter
+  - postgres_readonly_query_result_extractor
+  - sql_incremental_table_extractor
+  - database_backup_artifact_creator
+  - database_csv_snapshot_importer
+  - unreviewed_postgres_sql_executor
+- candidate_set_id: main_database_replication_fanout_database_csv_snapshot_importer_candidates
+  source_step_refs:
+  - copy_dev
+  - copy_staging
+  - copy_qa
+  service_ids:
+  - database_csv_snapshot_importer
+  - tabular_dataset_database_loader
+  - postgres_parameterized_sql_executor
+  - postgres_sql_file_executor
+  - database_csv_snapshot_exporter
+  - unreviewed_postgres_sql_executor

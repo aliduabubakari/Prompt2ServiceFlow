@@ -1,0 +1,10 @@
+assertions_version: 0.1.0
+pipeline_id: data_transformation_pipeline
+scenarios:
+  - scenario: dataform_run
+    assertions:
+      - {assertion_id: run_started, type: json_path_equals, path: artifacts/gen_status.json, json_path: success, expected: true}
+      - {assertion_id: config_built, type: json_path_equals, path: artifacts/build_status.json, json_path: success, expected: true}
+      - {assertion_id: compilation_created, type: json_path_equals, path: artifacts/creation_status.json, json_path: success, expected: true}
+      - {assertion_id: workflow_invoked, type: json_path_equals, path: artifacts/invocation_status.json, json_path: success, expected: true}
+      - {assertion_id: cleanup_done, type: json_path_equals, path: artifacts/cleanup_status.json, json_path: success, expected: true}

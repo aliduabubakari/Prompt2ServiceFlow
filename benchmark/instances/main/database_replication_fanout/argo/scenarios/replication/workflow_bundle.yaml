@@ -1,0 +1,265 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-replication-fanout-replication-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Run deterministic production export and target import mocks.\"\
+    \"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport csv\nimport json\nimport shutil\n\
+    from pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--step\", choices=(\"export\"\
+    , \"import\"), required=True)\n    parser.add_argument(\"--database-resource\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--source-fixture\", type=Path)\n    parser.add_argument(\"--target-label\"\
+    )\n    args = parser.parse_args()\n    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True,\
+    \ exist_ok=True)\n    database = json.loads(args.database_resource.read_text(encoding=\"utf-8\"))\n\
+    \    if args.step == \"export\":\n        if args.source_fixture is None:\n            raise SystemExit(\"\
+    --source-fixture is required for export\")\n        snapshot = artifacts / \"snapshot.csv\"\n    \
+    \    shutil.copyfile(args.source_fixture, snapshot)\n        with snapshot.open(encoding=\"utf-8\"\
+    , newline=\"\") as handle:\n            rows = list(csv.DictReader(handle))\n        status = {\"\
+    success\": True, \"source_database\": database[\"target\"], \"rows_exported\": len(rows), \"errors\"\
+    : []}\n        (artifacts / \"export_status.json\").write_text(json.dumps(status, indent=2) + \"\\\
+    n\", encoding=\"utf-8\")\n        return\n    if args.target_label is None:\n        raise SystemExit(\"\
+    --target-label is required for import\")\n    with (artifacts / \"snapshot.csv\").open(encoding=\"\
+    utf-8\", newline=\"\") as handle:\n        rows = list(csv.DictReader(handle))\n    target = args.workspace\
+    \ / \"mock_databases\"\n    target.mkdir(parents=True, exist_ok=True)\n    (target / f\"{args.target_label}.json\"\
+    ).write_text(json.dumps(rows, indent=2) + \"\\n\", encoding=\"utf-8\")\n    reference = {\"target\"\
+    : database[\"target\"], \"table\": database[\"table\"], \"rows_imported\": len(rows)}\n    (artifacts\
+    \ / f\"{args.target_label}_ref.json\").write_text(json.dumps(reference, indent=2) + \"\\n\", encoding=\"\
+    utf-8\")\n    status = {\"success\": True, \"target\": args.target_label, \"rows_loaded\": len(rows),\
+    \ \"errors\": []}\n    (artifacts / f\"{args.target_label}_load_status.json\").write_text(json.dumps(status,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-replication-fanout-replication-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"driver\": \"filesystem-mock\",\n  \"engine\": \"postgresql\",\n  \"target\": \"\
+    dev\",\n  \"table\": \"data\"\n}\n"
+  fixture-0001: "{\n  \"pipeline_id\": \"database_replication_fanout\",\n  \"inputs\": {\n    \"dev_db\"\
+    : \"dev_db.json\",\n    \"qa_db\": \"qa_db.json\",\n    \"prod_db\": \"prod_db.json\",\n    \"prod_snapshot\"\
+    : \"prod_snapshot.csv\",\n    \"staging_db\": \"staging_db.json\"\n  },\n  \"input_modalities\": [\n\
+    \    \"json\",\n    \"table\"\n  ],\n  \"systems\": [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"
+  fixture-0002: "{\n  \"driver\": \"filesystem-mock\",\n  \"engine\": \"postgresql\",\n  \"target\": \"\
+    production\",\n  \"table\": \"data\"\n}\n"
+  fixture-0003: 'id,name,amount
+
+    1,alpha,100
+
+    2,beta,200
+
+    3,gamma,300
+
+    '
+  fixture-0004: "{\n  \"driver\": \"filesystem-mock\",\n  \"engine\": \"postgresql\",\n  \"target\": \"\
+    qa\",\n  \"table\": \"data\"\n}\n"
+  fixture-0005: "{\n  \"driver\": \"filesystem-mock\",\n  \"engine\": \"postgresql\",\n  \"target\": \"\
+    staging\",\n  \"table\": \"data\"\n}\n"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: database-replication-fanout-replication-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: database-replication-fanout-replication
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: replication
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters: []
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: database-replication-fanout-replication-scripts
+  - name: fixtures
+    configMap:
+      name: database-replication-fanout-replication-fixtures
+      items:
+      - key: fixture-0000
+        path: dev_db.json
+      - key: fixture-0001
+        path: fixture.json
+      - key: fixture-0002
+        path: prod_db.json
+      - key: fixture-0003
+        path: prod_snapshot.csv
+      - key: fixture-0004
+        path: qa_db.json
+      - key: fixture-0005
+        path: staging_db.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: dump-prod-csv
+        template: run-dump-prod-csv
+      - name: copy-dev
+        template: run-copy-dev
+        depends: dump-prod-csv.Succeeded
+      - name: copy-staging
+        template: run-copy-staging
+        depends: dump-prod-csv.Succeeded
+      - name: copy-qa
+        template: run-copy-qa
+        depends: dump-prod-csv.Succeeded
+  - name: run-dump-prod-csv
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: dump_prod_csv
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - export
+      - --database-resource
+      - /opt/p2sf/fixtures/prod_db.json
+      - --source-fixture
+      - /opt/p2sf/fixtures/prod_snapshot.csv
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-copy-dev
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: copy_dev
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - import
+      - --target-label
+      - dev
+      - --database-resource
+      - /opt/p2sf/fixtures/dev_db.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-copy-staging
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: copy_staging
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - import
+      - --target-label
+      - staging
+      - --database-resource
+      - /opt/p2sf/fixtures/staging_db.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-copy-qa
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: copy_qa
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - import
+      - --target-label
+      - qa
+      - --database-resource
+      - /opt/p2sf/fixtures/qa_db.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError

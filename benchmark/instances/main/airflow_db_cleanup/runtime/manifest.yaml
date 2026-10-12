@@ -1,0 +1,161 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: airflow_db_cleanup
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: print_configuration
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - config
+  retries: 1
+- intent_id: cleanup_dag_run
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - cleanup_dag_run
+  retries: 1
+  dependencies:
+  - print_configuration
+- intent_id: cleanup_task_instance
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - cleanup_task_instance
+  retries: 1
+  dependencies:
+  - print_configuration
+- intent_id: cleanup_log
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - cleanup_log
+  retries: 1
+  dependencies:
+  - print_configuration
+- intent_id: cleanup_xcom
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - cleanup_xcom
+  retries: 1
+  dependencies:
+  - print_configuration
+- intent_id: cleanup_sla_miss
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - cleanup_sla_miss
+  retries: 1
+  dependencies:
+  - print_configuration
+- intent_id: cleanup_dag_model
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - cleanup_dag_model
+  retries: 1
+  dependencies:
+  - print_configuration
+- intent_id: cleanup_task_reschedule
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - cleanup_task_reschedule
+  retries: 1
+  dependencies:
+  - print_configuration
+- intent_id: cleanup_task_fail
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - cleanup_task_fail
+  retries: 1
+  dependencies:
+  - print_configuration
+- intent_id: cleanup_rendered_task_instance_fields
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - cleanup_rendered_task_instance_fields
+  retries: 1
+  dependencies:
+  - print_configuration
+- intent_id: cleanup_import_error
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - cleanup_import_error
+  retries: 1
+  dependencies:
+  - print_configuration
+- intent_id: cleanup_base_job
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - cleanup_base_job
+  retries: 1
+  dependencies:
+  - print_configuration
+- intent_id: cleanup_sessions
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - cleanup_sessions
+  retries: 1
+  dependencies:
+  - print_configuration
+- intent_id: analyze_query
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - analyze
+  retries: 1
+  dependencies:
+  - cleanup_dag_run
+  - cleanup_task_instance
+  - cleanup_log
+  - cleanup_xcom
+  - cleanup_sla_miss
+  - cleanup_dag_model
+  - cleanup_task_reschedule
+  - cleanup_task_fail
+  - cleanup_rendered_task_instance_fields
+  - cleanup_import_error
+  - cleanup_base_job
+  - cleanup_sessions
+scenarios:
+- name: run
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

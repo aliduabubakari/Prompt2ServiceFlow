@@ -1,0 +1,154 @@
+schema_version: 0.1.0
+service_id: parquet_tabular_feature_engineer
+version: 1.0.0
+display_name: Parquet Tabular Feature Engineer
+category: Transformer
+capability:
+  summary: Adds configured derived feature columns to a tabular Parquet dataset and
+    writes a feature-enriched Parquet artifact with status.
+  operations:
+  - Read a cleaned Parquet tabular dataset.
+  - Validate configured feature engineering rules and required input columns.
+  - Compute derived columns deterministically using configured expressions or implementation
+    profiles.
+  - Write final feature-enriched Parquet and emit transform status.
+  keywords:
+  - parquet
+  - feature engineering
+  - derived columns
+  - tabular data
+  - customer data
+  limitations:
+  - Does not infer feature formulas from domain labels; feature_rules must be supplied
+    for deterministic behavior.
+  - Does not compute data-quality scores.
+  - Does not export CSV or reports.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_parquet
+    description: Cleaned Parquet dataset used as feature-engineering input.
+    channel: artifact
+    data_type: parquet
+    media_type: application/vnd.apache.parquet
+    schema_ref: schema://cleaned_customer_parquet_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  outputs:
+  - name: feature_enriched_parquet
+    description: Final Parquet dataset with engineered feature columns.
+    channel: artifact
+    data_type: parquet
+    media_type: application/vnd.apache.parquet
+    schema_ref: schema://feature_enriched_parquet_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: feature_status
+    description: Observable feature engineering status including rows read/written,
+      feature columns, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://parquet_feature_engineering_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: feature_rules
+    description: Declarative derived-feature rules, expressions, or named feature
+      profile.
+    type: object
+    required: true
+  - name: output_path
+    description: Deterministic output path for the feature-enriched Parquet dataset.
+    type: string
+    required: true
+  - name: allow_noop_features
+    description: Whether no-op feature engineering is allowed when feature_rules produce
+      no new columns.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: parquet_feature_engineer_input_readable
+  type: precondition
+  applies_to: input
+  target: source_parquet
+  description: Input must be readable and parseable as Parquet.
+  expression: readable(source_parquet) and parquet_parseable(source_parquet)
+- contract_id: parquet_feature_rules_required
+  type: precondition
+  applies_to: parameter
+  target: feature_rules
+  description: Feature rules must be supplied unless no-op features are explicitly
+    allowed.
+  expression: allow_noop_features == true or (feature_rules != null and length(keys(feature_rules))
+    > 0)
+- contract_id: parquet_feature_status_schema
+  type: json_schema
+  applies_to: output
+  target: feature_status
+  description: Status exposes feature engineering outcome.
+  schema_ref: schema://parquet_feature_engineering_status/v1
+  expression: '{"type":"object","required":["success","rows_read","rows_written","feature_columns","output_uri"],"properties":{"success":{"type":"boolean"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"feature_columns":{"type":"array","items":{"type":"string"}},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: parquet_feature_engineer_effect
+  type: effect
+  applies_to: service
+  target: parquet_tabular_feature_engineer
+  description: On success, feature-enriched Parquet exists and row counts are reported.
+  expression: feature_status.success == true implies exists(feature_enriched_parquet)
+invocation:
+  type: argo_workflow_template
+  template_name: parquet-tabular-feature-engineer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.parquet_tabular_feature_engineer
+  implementation_ref: services/implementations/parquet_tabular_feature_engineer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - pii
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw customer rows or sensitive derived values.
+  - Feature rules should be reviewed because source description does not specify exact
+    formulas.
+  idempotency_notes: Same input Parquet and feature_rules produce the same feature-enriched
+    output.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:customer_dq_scoring_pipeline#feature_engineering
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: A reusable generic Parquet feature-engineering service is needed;
+    existing transformers are CSV/document-specific or require tabular JSON rather
+    than Parquet.'
+  - 'Evidence status: strongly_inferred.'

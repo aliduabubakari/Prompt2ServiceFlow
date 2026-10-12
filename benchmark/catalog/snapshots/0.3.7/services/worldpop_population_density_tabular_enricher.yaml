@@ -1,0 +1,173 @@
+schema_version: 0.1.0
+service_id: worldpop_population_density_tabular_enricher
+version: 1.0.0
+display_name: WorldPop Population Density Tabular Enricher
+category: DomainAdapter
+capability:
+  summary: Enriches structured tabular JSON rows with population density values by
+    querying a WorldPop-compatible API using latitude, longitude, and a configured
+    radius.
+  operations:
+  - Read structured tabular JSON rows containing coordinate columns.
+  - Validate coordinate columns, radius, and output density column.
+  - Query a bound WorldPop-compatible population-density service for each coordinate/radius.
+  - Append numeric population-density values and emit enrichment status.
+  keywords:
+  - worldpop
+  - population density
+  - demographic enrichment
+  - coordinates
+  - radius
+  - environmental monitoring
+  limitations:
+  - Does not classify land use or compute risk scores.
+  - Does not infer radius; caller must configure it.
+  - External demographic rasters or provider data may change over time.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_tabular_json
+    description: Land-use-enriched tabular JSON containing coordinate columns.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://land_use_enriched_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: population_api_resource
+    description: Bound WorldPop-compatible HTTP API resource.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://http_api_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: population_enriched_json
+    description: Structured tabular JSON with population density column appended.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://population_density_enriched_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: enrichment_status
+    description: Observable population-density enrichment status with counts and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://population_density_enrichment_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: lat_column
+    description: Input column containing latitude values.
+    type: string
+    required: true
+  - name: lon_column
+    description: Input column containing longitude values.
+    type: string
+    required: true
+  - name: radius
+    description: Search or aggregation radius in meters.
+    type: integer
+    required: true
+    minimum: 0.0
+  - name: output_column
+    description: Output column for numeric population density.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: output_path
+    description: Deterministic output artifact path or name.
+    type: string
+    required: true
+  secrets: []
+contracts:
+- contract_id: population_density_input_schema
+  type: json_schema
+  applies_to: input
+  target: source_tabular_json
+  description: Input must contain tabular rows and configured coordinate columns.
+  schema_ref: schema://land_use_enriched_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}}}}
+    and lat_column in source_tabular_json.columns and lon_column in source_tabular_json.columns'
+- contract_id: population_density_radius_contract
+  type: precondition
+  applies_to: parameter
+  target: radius
+  description: Radius must be a non-negative integer number of meters.
+  expression: radius >= 0
+- contract_id: population_density_status_schema
+  type: json_schema
+  applies_to: output
+  target: enrichment_status
+  description: Status exposes population-density enrichment outcome.
+  schema_ref: schema://population_density_enrichment_status/v1
+  expression: '{"type":"object","required":["success","rows_processed","rows_enriched","rows_failed","output_uri"],"properties":{"success":{"type":"boolean"},"rows_processed":{"type":"integer","minimum":0},"rows_enriched":{"type":"integer","minimum":0},"rows_failed":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: population_density_effect
+  type: effect
+  applies_to: service
+  target: worldpop_population_density_tabular_enricher
+  description: On success, a population-density-enriched JSON artifact exists and
+    includes the configured output column.
+  expression: enrichment_status.success == true implies exists(population_enriched_json)
+    and output_column in population_enriched_json.columns
+invocation:
+  type: argo_workflow_template
+  template_name: worldpop-population-density-tabular-enricher-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.worldpop_population_density_tabular_enricher
+  implementation_ref: services/implementations/worldpop_population_density_tabular_enricher
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - https://*.worldpop.org/*
+  - https://api.worldpop.org/*
+  - https://*
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw full station rows or provider responses.
+  - Bind only approved demographic API resources.
+  idempotency_notes: Repeatable for fixed input and stable provider raster/version;
+    provider updates may change density values.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:environmental_monitoring_network_v1#fetch_population_density
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The pipeline requires a demographic API enrichment step not covered
+    by existing services.'
+  - 'Evidence status: explicit.'

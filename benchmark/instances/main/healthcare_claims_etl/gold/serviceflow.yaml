@@ -1,0 +1,617 @@
+ir_version: 0.1.0
+composition_id: healthcare_claims_etl
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:healthcare_claims_etl
+  split: main
+  pipeline_id: healthcare_claims_etl
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/37_healthcare_claims_etl.txt
+  description_sha256: 21243b89f1bf1d44d3e314bc226ecbde6f9b1c7dcc668af58216a62c11292653
+  internal_spec_path: source/internal_specs/main_40/37_healthcare_claims_etl.json
+  internal_spec_sha256: 06df6d25e70bb588a0325df6886c4ac0f80ec58f560832b232175d1be541415b
+requirement:
+  name: Healthcare Claims ETL Pipeline
+  purpose: Extract patient claims and provider data, join and anonymize, compute risk scores, load to
+    analytics warehouse, and trigger BI dashboard refresh.
+  domain: healthcare
+  execution_model: batch
+  topology: staged_etl
+  information_sufficiency: high
+  notes:
+  - Extract phase runs claims and providers in parallel.
+  - Load phase runs warehouse loading and BI refresh in parallel.
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: source_filesystem
+  type: filesystem
+  name: Source filesystem
+  identifier: /data
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: analytics_warehouse
+  type: database
+  name: Analytics warehouse
+  identifier: healthcare_analytics
+  access_mode: write
+  authentication: secret
+  mock_strategy: fixture
+- system_id: bi_platform
+  type: cloud_service
+  name: BI tools
+  identifier: tableau
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: extract_claims
+  name: Extract claims data
+  category: Extractor
+  capability: Parse the claims CSV with validated columns and emit a structured tabular dataset.
+  source_step_refs:
+  - extract_claims
+  evidence:
+  - source: description
+    text: Extract patient claims data from CSV file.
+  inputs:
+  - claims_csv
+  outputs:
+  - claims_dataset
+  - claims_load_status
+  external_system_refs:
+  - source_filesystem
+  preconditions:
+  - A readable claims CSV with expected columns is available.
+  effects:
+  - A structured claims dataset and load status are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - pii
+    - confidential
+  decomposition_rationale: The source step extracts claims from a delimited file.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: extract_providers
+  name: Extract providers data
+  category: Extractor
+  capability: Parse the providers CSV with validated columns and emit a structured tabular dataset.
+  source_step_refs:
+  - extract_providers
+  evidence:
+  - source: description
+    text: Extract provider data from CSV file.
+  inputs:
+  - providers_csv
+  outputs:
+  - providers_dataset
+  - providers_load_status
+  external_system_refs:
+  - source_filesystem
+  preconditions:
+  - A readable providers CSV with expected columns is available.
+  effects:
+  - A structured providers dataset and load status are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step extracts providers from a delimited file.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: transform_join
+  name: Join, anonymize, and score
+  category: PrivacyService
+  capability: Join claims and providers on provider_id, pseudonymize patient identifiers, and compute
+    risk scores.
+  source_step_refs:
+  - transform_join
+  evidence:
+  - source: description
+    text: Join claims and providers data, anonymize PII, calculate risk scores.
+  inputs:
+  - claims_dataset
+  - providers_dataset
+  outputs:
+  - transformed_healthcare_dataset
+  - transform_status
+  external_system_refs: []
+  preconditions:
+  - Both claims and providers datasets are available.
+  effects:
+  - A joined, anonymized, and risk-scored dataset is emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - pii
+    - confidential
+    - internal
+  decomposition_rationale: The source step performs a healthcare-specific join- anonymize-risk pipeline.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: load_warehouse
+  name: Load to analytics warehouse
+  category: Loader
+  capability: Load the transformed healthcare dataset into the analytics warehouse fact and dimension
+    tables.
+  source_step_refs:
+  - load_warehouse
+  evidence:
+  - source: description
+    text: Load transformed data to analytics warehouse.
+  inputs:
+  - transformed_healthcare_dataset
+  - warehouse_resource
+  outputs:
+  - loaded_tables
+  - warehouse_load_status
+  external_system_refs:
+  - analytics_warehouse
+  preconditions:
+  - The transformed dataset and warehouse connection are available.
+  effects:
+  - Loaded table references and load status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: The source step loads the transformed dataset into an analytics warehouse.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: refresh_bi
+  name: Trigger BI dashboard refresh
+  category: Publisher
+  capability: Trigger a BI dashboard refresh using the bound BI service resource.
+  source_step_refs:
+  - refresh_bi
+  evidence:
+  - source: description
+    text: Trigger BI dashboard refresh.
+  inputs:
+  - bi_service_resource
+  outputs:
+  - refresh_notification
+  - refresh_status
+  external_system_refs:
+  - bi_platform
+  preconditions:
+  - The BI service resource is available.
+  effects:
+  - A refresh notification and status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step triggers a BI dashboard refresh.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: extract_claims
+    to: transform_join
+  - from: extract_providers
+    to: transform_join
+  - from: transform_join
+    to: load_warehouse
+  - from: transform_join
+    to: refresh_bi
+  parallel_groups:
+  - group_id: extract_phase
+    intent_ids:
+    - extract_claims
+    - extract_providers
+  - group_id: load_phase
+    intent_ids:
+    - load_warehouse
+    - refresh_bi
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: claims_csv
+  name: Claims CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - extract_claims
+  sensitivity: pii
+  persistence: external
+  fixture_ref: fixtures/inputs/claims.csv
+  external_system_ref: source_filesystem
+- artifact_id: providers_csv
+  name: Providers CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - extract_providers
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/providers.csv
+  external_system_ref: source_filesystem
+- artifact_id: claims_dataset
+  name: Claims dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/claims_dataset.schema.json
+  role: intermediate
+  producer: extract_claims
+  consumers:
+  - transform_join
+  sensitivity: pii
+  persistence: workflow
+- artifact_id: claims_load_status
+  name: Claims load status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/claims_load_status.schema.json
+  role: status
+  producer: extract_claims
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: providers_dataset
+  name: Providers dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/providers_dataset.schema.json
+  role: intermediate
+  producer: extract_providers
+  consumers:
+  - transform_join
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: providers_load_status
+  name: Providers load status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/providers_load_status.schema.json
+  role: status
+  producer: extract_providers
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: transformed_healthcare_dataset
+  name: Transformed healthcare dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/transformed_healthcare_dataset.schema.json
+  role: intermediate
+  producer: transform_join
+  consumers:
+  - load_warehouse
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: transform_status
+  name: Transform status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/transform_status.schema.json
+  role: status
+  producer: transform_join
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: warehouse_resource
+  name: Warehouse connection resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - load_warehouse
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/warehouse_resource.json
+  external_system_ref: analytics_warehouse
+- artifact_id: loaded_tables
+  name: Loaded table references
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/loaded_tables.schema.json
+  role: output
+  producer: load_warehouse
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: warehouse_load_status
+  name: Warehouse load status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/warehouse_load_status.schema.json
+  role: status
+  producer: load_warehouse
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: bi_service_resource
+  name: BI service resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - refresh_bi
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/bi_service.json
+  external_system_ref: bi_platform
+- artifact_id: refresh_notification
+  name: BI refresh notification
+  kind: artifact
+  data_type: notification
+  media_type: application/json
+  schema_ref: contracts/artifacts/refresh_notification.schema.json
+  role: output
+  producer: refresh_bi
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: refresh_status
+  name: BI refresh status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/refresh_status.schema.json
+  role: status
+  producer: refresh_bi
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: extract_claims
+  service_id: delimited_file_tabular_dataset_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: delimited_file
+    artifact_id: claims_csv
+  output_bindings:
+  - port: tabular_dataset
+    artifact_id: claims_dataset
+  - port: load_status
+    artifact_id: claims_load_status
+  parameter_bindings:
+    required_columns:
+    - claim_id
+    - patient_id
+    - provider_id
+    - procedure_code
+    - amount
+    - date_of_service
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: The descriptor loads claims CSV with validated columns into a structured tabular dataset.
+  confidence: explicit
+- intent_id: extract_providers
+  service_id: delimited_file_tabular_dataset_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: delimited_file
+    artifact_id: providers_csv
+  output_bindings:
+  - port: tabular_dataset
+    artifact_id: providers_dataset
+  - port: load_status
+    artifact_id: providers_load_status
+  parameter_bindings:
+    required_columns:
+    - provider_id
+    - provider_name
+    - specialty
+    - location
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: The descriptor loads providers CSV with validated columns into a structured tabular dataset.
+  confidence: explicit
+- intent_id: transform_join
+  service_id: healthcare_claims_provider_join_anonymize_risk_builder
+  service_version: 1.0.0
+  input_bindings:
+  - port: claims_dataset
+    artifact_id: claims_dataset
+  - port: providers_dataset
+    artifact_id: providers_dataset
+  output_bindings:
+  - port: transformed_healthcare_dataset
+    artifact_id: transformed_healthcare_dataset
+  - port: transform_status
+    artifact_id: transform_status
+  parameter_bindings:
+    provider_key_column: provider_id
+    patient_id_column: patient_id
+    anonymization_method: pseudonymize
+    risk_scoring_rules:
+      amount_weight: 0.5
+      procedure_weight: 0.5
+    output_path: /workspace/artifacts/transformed_healthcare_dataset.json
+  secret_bindings: []
+  rationale: The descriptor joins claims and providers, pseudonymizes patient identifiers, and computes
+    risk scores.
+  confidence: explicit
+- intent_id: load_warehouse
+  service_id: multi_table_analytics_warehouse_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: transformed_dataset
+    artifact_id: transformed_healthcare_dataset
+  - port: warehouse_database
+    artifact_id: warehouse_resource
+  output_bindings:
+  - port: loaded_tables
+    artifact_id: loaded_tables
+  - port: load_status
+    artifact_id: warehouse_load_status
+  parameter_bindings:
+    table_mappings:
+      claims_fact: healthcare_analytics.claims_fact
+      providers_dim: healthcare_analytics.providers_dim
+    write_mode: upsert
+  secret_bindings: []
+  rationale: The descriptor loads the transformed dataset into analytics warehouse fact and dimension
+    tables.
+  confidence: explicit
+- intent_id: refresh_bi
+  service_id: bi_dashboard_refresh_trigger
+  service_version: 1.0.0
+  input_bindings:
+  - port: bi_service
+    artifact_id: bi_service_resource
+  output_bindings:
+  - port: refresh_notification
+    artifact_id: refresh_notification
+  - port: refresh_status
+    artifact_id: refresh_status
+  parameter_bindings:
+    bi_tool: tableau
+    target_identifier: healthcare_claims_overview
+  secret_bindings: []
+  rationale: The descriptor triggers a BI dashboard refresh on the configured platform.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides:
+  - intent_id: extract_claims
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 120
+    network_access: forbidden
+  - intent_id: load_warehouse
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 600
+    network_access: required
+  - intent_id: refresh_bi
+    retries: 1
+    timeout_seconds: 120
+    network_access: required
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - PII pseudonymization uses deterministic mock mapping.
+    - Warehouse load and BI refresh use filesystem-backed mocks.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All five source steps are accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Five exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Staged Argo DAG with parallel groups compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Single ETL scenario executes all five steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - Extract
+  - transform
+  - load
+  - and BI refresh invariants hold
+source_step_accounting:
+- source_step_ref: extract_claims
+  disposition: service
+  intent_ids:
+  - extract_claims
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: extract_providers
+  disposition: service
+  intent_ids:
+  - extract_providers
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: transform_join
+  disposition: service
+  intent_ids:
+  - transform_join
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: load_warehouse
+  disposition: service
+  intent_ids:
+  - load_warehouse
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: refresh_bi
+  disposition: service
+  intent_ids:
+  - refresh_bi
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

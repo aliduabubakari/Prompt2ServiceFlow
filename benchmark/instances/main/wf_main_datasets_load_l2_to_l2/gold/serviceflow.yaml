@@ -1,0 +1,907 @@
+ir_version: 0.1.0
+composition_id: wf_main_datasets_load_l2_to_l2
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:WF_MAIN_DATASETS_LOAD_L2_TO_L2
+  split: main
+  pipeline_id: WF_MAIN_DATASETS_LOAD_L2_TO_L2
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/14_wf_main_datasets_load_l2_to_l2.txt
+  description_sha256: 4f81fdc50d1be928adb6d4ef4cd781c79de34678c837c84c97e7be5abaaeb0de
+  internal_spec_path: source/internal_specs/main_40/14_wf_main_datasets_load_l2_to_l2.json
+  internal_spec_sha256: 65607612b9ed8a84b0d17890ffecfd92d8cdb1b48de52283e090a9d9c426f6e7
+requirement:
+  name: WF Main Datasets Load L2 to L2
+  purpose: Generate load ID, register session, wait for external workflows, and notify systems.
+  domain: data_warehouse
+  execution_model: batch
+  topology: mixed
+  information_sufficiency: high
+  notes:
+  - Mixed topology with sensors, triggers, and notifications.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: dwh_database
+  type: database
+  name: DWH database
+  identifier: dwh
+  access_mode: read_write
+  authentication: secret
+  mock_strategy: fixture
+- system_id: workflow_orchestrator
+  type: external_workflow
+  name: Airflow workflow orchestrator
+  identifier: airflow
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+- system_id: sap_api
+  type: http_api
+  name: SAP completion API
+  identifier: sap_conn
+  access_mode: write
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: get_load_id
+  name: Get load ID
+  category: Transformer
+  capability: Generate workflow load ID.
+  source_step_refs:
+  - get_load_id
+  evidence:
+  - source: description
+    text: Get load ID.
+  inputs: []
+  outputs:
+  - load_id
+  - gen_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Load ID generated.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Generates session ID.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: workflow_registration
+  name: Register workflow
+  category: Loader
+  capability: Register workflow session.
+  source_step_refs:
+  - workflow_registration
+  evidence:
+  - source: description
+    text: Register workflow.
+  inputs:
+  - metadata_db
+  - load_id
+  outputs:
+  - session_ref
+  - reg_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Session registered.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Registers session.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: end
+  name: End marker
+  category: Loader
+  capability: Finalize the workflow session metadata with successful status.
+  source_step_refs:
+  - end
+  evidence:
+  - source: description
+    text: End.
+  inputs:
+  - metadata_db
+  - load_id
+  outputs:
+  - final_session_ref
+  - end_status
+  external_system_refs:
+  - dwh_database
+  preconditions: []
+  effects:
+  - Finalized.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source end step finalizes the same registered workflow session.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: wait_for_l2_full_load
+  name: Wait for L2 load
+  category: Sensor
+  capability: Run the configured read-only DWH flag query and emit readiness.
+  source_step_refs:
+  - wait_for_l2_full_load
+  evidence:
+  - source: description
+    text: Wait for L2 load.
+  inputs:
+  - dwh_database_resource
+  outputs:
+  - l2_decision
+  - l2_status
+  external_system_refs:
+  - dwh_database
+  preconditions: []
+  effects:
+  - L2 ready.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source is an SQL readiness sensor, not an external workflow sensor.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: wait_for_success_end
+  name: Wait for success
+  category: Sensor
+  capability: Check whether the previous workflow end task completed successfully.
+  source_step_refs:
+  - wait_for_success_end
+  evidence:
+  - source: description
+    text: Wait for success.
+  inputs:
+  - ext_wf_resource
+  outputs:
+  - success_decision
+  external_system_refs:
+  - workflow_orchestrator
+  preconditions: []
+  effects:
+  - Success detected.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source targets a specific external workflow task and logical execution.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: run_sys_kill_all_session_pg
+  name: Kill sessions
+  category: ExternalWorkflowAdapter
+  capability: Trigger and wait for external workflow run_sys_kill_all_session_pg.
+  source_step_refs:
+  - run_sys_kill_all_session_pg
+  evidence:
+  - source: description
+    text: Kill sessions.
+  inputs:
+  - ext_wf_resource
+  outputs:
+  - kill_result
+  - kill_status
+  external_system_refs:
+  - workflow_orchestrator
+  preconditions: []
+  effects:
+  - Sessions killed.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly triggers an external workflow and waits for completion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: run_wf_data_preparation_for_reports
+  name: Data prep
+  category: ExternalWorkflowAdapter
+  capability: Trigger and wait for external workflow run_wf_data_preparation_for_reports.
+  source_step_refs:
+  - run_wf_data_preparation_for_reports
+  evidence:
+  - source: description
+    text: Data prep.
+  inputs:
+  - ext_wf_resource
+  outputs:
+  - dataprep_result
+  - dataprep_status
+  external_system_refs:
+  - workflow_orchestrator
+  preconditions: []
+  effects:
+  - Data prep triggered.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly triggers an external workflow and waits for completion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: load_ds_client_segmentation
+  name: Client segmentation
+  category: ExternalWorkflowAdapter
+  capability: Trigger and wait for external workflow load_ds_client_segmentation.
+  source_step_refs:
+  - load_ds_client_segmentation
+  evidence:
+  - source: description
+    text: Client segmentation.
+  inputs:
+  - ext_wf_resource
+  outputs:
+  - segment_result
+  - segment_status
+  external_system_refs:
+  - workflow_orchestrator
+  preconditions: []
+  effects:
+  - Segmentation triggered.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly triggers an external workflow and waits for completion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: send_flg_to_sap
+  name: Send flag to SAP
+  category: Publisher
+  capability: Read the segmentation table and publish a completion flag to SAP.
+  source_step_refs:
+  - send_flg_to_sap
+  evidence:
+  - source: description
+    text: Send flag.
+  inputs:
+  - dwh_database_resource
+  - segmentation_source_table
+  - sap_resource
+  outputs:
+  - flag_status
+  - sap_request_summary
+  external_system_refs:
+  - dwh_database
+  - sap_api
+  preconditions: []
+  effects:
+  - Flag sent.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source reads a DWH table and invokes the SAP HTTP endpoint.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: wait_for_l2_full_load
+    to: get_load_id
+  - from: get_load_id
+    to: workflow_registration
+  - from: workflow_registration
+    to: wait_for_success_end
+  - from: wait_for_success_end
+    to: run_sys_kill_all_session_pg
+  - from: run_sys_kill_all_session_pg
+    to: run_wf_data_preparation_for_reports
+  - from: run_sys_kill_all_session_pg
+    to: load_ds_client_segmentation
+  - from: load_ds_client_segmentation
+    to: send_flg_to_sap
+  - from: run_wf_data_preparation_for_reports
+    to: end
+  - from: send_flg_to_sap
+    to: end
+  parallel_groups:
+  - group_id: downstream_workflows
+    intent_ids:
+    - run_wf_data_preparation_for_reports
+    - load_ds_client_segmentation
+  branches: []
+  gates:
+  - gate_id: l2_load_ready
+    sensor_intent: wait_for_l2_full_load
+    condition: ready == true
+    gated_intents:
+    - get_load_id
+    - workflow_registration
+    - wait_for_success_end
+    - run_sys_kill_all_session_pg
+    - run_wf_data_preparation_for_reports
+    - load_ds_client_segmentation
+    - send_flg_to_sap
+    - end
+artifacts:
+- artifact_id: dwh_database_resource
+  name: DWH database resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - wait_for_l2_full_load
+  - send_flg_to_sap
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/db.json
+- artifact_id: metadata_db
+  name: Workflow metadata database
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - workflow_registration
+  - end
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/db.json
+- artifact_id: ext_wf_resource
+  name: External workflow orchestrator
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - wait_for_success_end
+  - run_sys_kill_all_session_pg
+  - run_wf_data_preparation_for_reports
+  - load_ds_client_segmentation
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/ext_wf.json
+- artifact_id: sap_resource
+  name: SAP HTTP API resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - send_flg_to_sap
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/sap.json
+- artifact_id: segmentation_source_table
+  name: Client segmentation source table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - send_flg_to_sap
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/segmentation_table.json
+- artifact_id: l2_decision
+  name: L2 load readiness decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  role: decision
+  producer: wait_for_l2_full_load
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/readiness.schema.json
+- artifact_id: l2_status
+  name: L2 load query status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: wait_for_l2_full_load
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: load_id
+  name: Workflow load ID
+  kind: artifact
+  data_type: string
+  media_type: text/plain
+  role: intermediate
+  producer: get_load_id
+  consumers:
+  - workflow_registration
+  - end
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: gen_status
+  name: Load ID generation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: get_load_id
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: session_ref
+  name: Registered workflow session
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: workflow_registration
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/session.schema.json
+- artifact_id: reg_status
+  name: Workflow registration status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: workflow_registration
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: success_decision
+  name: Previous workflow task completion decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  role: decision
+  producer: wait_for_success_end
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/completion.schema.json
+- artifact_id: kill_result
+  name: Session cleanup workflow run
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: run_sys_kill_all_session_pg
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/run_reference.schema.json
+- artifact_id: kill_status
+  name: Session cleanup trigger status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: run_sys_kill_all_session_pg
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: dataprep_result
+  name: Data preparation workflow run
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: run_wf_data_preparation_for_reports
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/run_reference.schema.json
+- artifact_id: dataprep_status
+  name: Data preparation trigger status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: run_wf_data_preparation_for_reports
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: segment_result
+  name: Segmentation workflow run
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: load_ds_client_segmentation
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/run_reference.schema.json
+- artifact_id: segment_status
+  name: Segmentation trigger status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: load_ds_client_segmentation
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: flag_status
+  name: SAP publication status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: send_flg_to_sap
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: sap_request_summary
+  name: SAP request summary
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: send_flg_to_sap
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/request_summary.schema.json
+- artifact_id: final_session_ref
+  name: Finalized workflow session
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: end
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/session.schema.json
+- artifact_id: end_status
+  name: Workflow finalization status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: end
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+bindings:
+- intent_id: wait_for_l2_full_load
+  service_id: sql_query_readiness_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: database
+    artifact_id: dwh_database_resource
+  output_bindings:
+  - port: readiness_decision
+    artifact_id: l2_decision
+  - port: query_status
+    artifact_id: l2_status
+  parameter_bindings:
+    sql_query: select * from md.dwh_flag where flag_cd = 'l1_to_l2_load_successfull' and bussines_date
+      = current_date - 1
+    success_condition: row_exists
+    expected_row_count: 1
+  secret_bindings: []
+  rationale: Evaluates the exact DWH readiness flag query from the source.
+  confidence: explicit
+- intent_id: get_load_id
+  service_id: workflow_load_id_generator
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: load_id
+    artifact_id: load_id
+  - port: generation_status
+    artifact_id: gen_status
+  parameter_bindings:
+    generation_strategy: runtime_context
+    prefix: wf-l2-
+  secret_bindings: []
+  rationale: Generates a deterministic load identifier from the supplied run label.
+  confidence: explicit
+- intent_id: workflow_registration
+  service_id: workflow_session_metadata_recorder
+  service_version: 1.0.0
+  input_bindings:
+  - port: metadata_database
+    artifact_id: metadata_db
+  - port: load_id
+    artifact_id: load_id
+  output_bindings:
+  - port: session_record_reference
+    artifact_id: session_ref
+  - port: metadata_write_status
+    artifact_id: reg_status
+  parameter_bindings:
+    workflow_id: WF_MAIN_DATASETS_LOAD_L2_TO_L2
+    operation: register
+    session_status: running
+    metadata_target: workflow_sessions
+  secret_bindings: []
+  rationale: Registers the generated load ID before downstream workflow execution.
+  confidence: explicit
+- intent_id: wait_for_success_end
+  service_id: external_workflow_task_completion_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: workflow_orchestrator
+    artifact_id: ext_wf_resource
+  output_bindings:
+  - port: completion_decision
+    artifact_id: success_decision
+  parameter_bindings:
+    external_workflow_id: WF_MAIN_DATASETS_LOAD_L2_TO_L2
+    external_step_id: end
+    execution_selector:
+      logical_date_offset_days: -1
+    terminal_states:
+    - success
+    - failed
+    success_states:
+    - success
+  secret_bindings: []
+  rationale: Checks the previous logical execution's end task, as required by the source.
+  confidence: explicit
+- intent_id: run_sys_kill_all_session_pg
+  service_id: external_workflow_run_trigger
+  service_version: 1.0.0
+  input_bindings:
+  - port: workflow_orchestrator
+    artifact_id: ext_wf_resource
+  output_bindings:
+  - port: run_reference
+    artifact_id: kill_result
+  - port: trigger_status
+    artifact_id: kill_status
+  parameter_bindings:
+    target_workflow_id: sys_kill_all_session_pg
+    wait_for_completion: true
+    run_config: {}
+    success_states:
+    - success
+  secret_bindings: []
+  rationale: Triggers and waits for external workflow sys_kill_all_session_pg.
+  confidence: explicit
+- intent_id: run_wf_data_preparation_for_reports
+  service_id: external_workflow_run_trigger
+  service_version: 1.0.0
+  input_bindings:
+  - port: workflow_orchestrator
+    artifact_id: ext_wf_resource
+  output_bindings:
+  - port: run_reference
+    artifact_id: dataprep_result
+  - port: trigger_status
+    artifact_id: dataprep_status
+  parameter_bindings:
+    target_workflow_id: wf_data_preparation_for_reports
+    wait_for_completion: true
+    run_config: {}
+    success_states:
+    - success
+  secret_bindings: []
+  rationale: Triggers and waits for external workflow wf_data_preparation_for_reports.
+  confidence: explicit
+- intent_id: load_ds_client_segmentation
+  service_id: external_workflow_run_trigger
+  service_version: 1.0.0
+  input_bindings:
+  - port: workflow_orchestrator
+    artifact_id: ext_wf_resource
+  output_bindings:
+  - port: run_reference
+    artifact_id: segment_result
+  - port: trigger_status
+    artifact_id: segment_status
+  parameter_bindings:
+    target_workflow_id: l1_to_l2_p_load_data_ds_client_segmentation_full
+    wait_for_completion: true
+    run_config: {}
+    success_states:
+    - success
+  secret_bindings: []
+  rationale: Triggers and waits for external workflow l1_to_l2_p_load_data_ds_client_segmentation_full.
+  confidence: explicit
+- intent_id: send_flg_to_sap
+  service_id: database_table_http_flag_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_database
+    artifact_id: dwh_database_resource
+  - port: source_table
+    artifact_id: segmentation_source_table
+  - port: http_api_resource
+    artifact_id: sap_resource
+  output_bindings:
+  - port: publish_status
+    artifact_id: flag_status
+  - port: request_summary
+    artifact_id: sap_request_summary
+  parameter_bindings:
+    source_table_name: wk_export.ds_client_segmentation_last_v
+    endpoint: /dwh/load-complete
+    method: POST
+    payload_template:
+      status: complete
+      row_count: '{row_count}'
+    success_status_codes:
+    - 200
+    - 202
+  secret_bindings: []
+  rationale: Publishes the segmentation completion flag using the DWH table and SAP API.
+  confidence: explicit
+- intent_id: end
+  service_id: workflow_session_metadata_recorder
+  service_version: 1.0.0
+  input_bindings:
+  - port: metadata_database
+    artifact_id: metadata_db
+  - port: load_id
+    artifact_id: load_id
+  output_bindings:
+  - port: session_record_reference
+    artifact_id: final_session_ref
+  - port: metadata_write_status
+    artifact_id: end_status
+  parameter_bindings:
+    workflow_id: WF_MAIN_DATASETS_LOAD_L2_TO_L2
+    operation: finalize
+    session_status: success
+    metadata_target: workflow_sessions
+  secret_bindings: []
+  rationale: Finalizes the registered workflow session after both downstream branches complete.
+  confidence: explicit
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock execution.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Gate 0
+- gate: G1
+  expected_status: pass
+  checks:
+  - Gate 1
+- gate: G2
+  expected_status: pass
+  checks:
+  - Gate 2
+- gate: G3
+  expected_status: pass
+  checks:
+  - Gate 3
+- gate: G4
+  expected_status: pass
+  checks:
+  - Gate 4
+- gate: G5
+  expected_status: pass
+  checks:
+  - Gate 5
+- gate: G6
+  expected_status: pass
+  checks:
+  - Gate 6
+source_step_accounting:
+- source_step_ref: get_load_id
+  disposition: service
+  intent_ids:
+  - get_load_id
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: workflow_registration
+  disposition: service
+  intent_ids:
+  - workflow_registration
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: end
+  disposition: service
+  intent_ids:
+  - end
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: wait_for_l2_full_load
+  disposition: service
+  intent_ids:
+  - wait_for_l2_full_load
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: wait_for_success_end
+  disposition: service
+  intent_ids:
+  - wait_for_success_end
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: run_sys_kill_all_session_pg
+  disposition: service
+  intent_ids:
+  - run_sys_kill_all_session_pg
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: run_wf_data_preparation_for_reports
+  disposition: service
+  intent_ids:
+  - run_wf_data_preparation_for_reports
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: email_on_failure
+  disposition: orchestration
+  intent_ids: []
+  rationale: The source step controls workflow sequencing or failure handling and does not invoke a reusable
+    catalogue service.
+- source_step_ref: load_ds_client_segmentation
+  disposition: service
+  intent_ids:
+  - load_ds_client_segmentation
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: send_flg_to_sap
+  disposition: service
+  intent_ids:
+  - send_flg_to_sap
+  rationale: The source step invokes the reviewed service intent or intents listed.

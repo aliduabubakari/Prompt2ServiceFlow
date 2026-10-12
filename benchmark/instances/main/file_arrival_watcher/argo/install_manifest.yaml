@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: file-arrival-watcher-scripts
+  namespace: prompt2serviceflow
+data:
+  01_wait_for_file.py: "#!/usr/bin/env python3\n\"\"\"Observe a mock dated input file without sleeping\
+    \ through the timeout.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\n\
+    from pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--file-location\", type=Path,\
+    \ required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True, exist_ok=True)\n\
+    \    location = json.loads(args.file_location.read_text(encoding=\"utf-8\"))\n    available = args.fixture.is_file()\n\
+    \    decision = {\n        \"available\": available,\n        \"path\": str(args.fixture),\n     \
+    \   \"configured_location\": location[\"path\"],\n        \"reason\": \"fixture_present\" if available\
+    \ else \"fixture_missing_before_timeout\",\n    }\n    (artifacts / \"availability_decision.json\"\
+    ).write_text(\n        json.dumps(decision, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts\
+    \ / \"availability.txt\").write_text(\"true\" if available else \"false\", encoding=\"utf-8\")\n \
+    \   status = {\"success\": True, \"available\": available, \"errors\": []}\n    (artifacts / \"check_status.json\"\
+    ).write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__\
+    \ == \"__main__\":\n    main()\n"
+  02_validate_schema.py: "#!/usr/bin/env python3\n\"\"\"Validate and materialize the arrived transaction\
+    \ CSV.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport csv\nimport json\nimport\
+    \ shutil\nfrom pathlib import Path\n\n\nREQUIRED_COLUMNS = [\"transaction_id\", \"customer_id\", \"\
+    amount\", \"currency\", \"transaction_date\"]\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n    artifacts = args.workspace / \"artifacts\"\
+    \n    artifacts.mkdir(parents=True, exist_ok=True)\n    destination = artifacts / \"transactions.csv\"\
+    \n    shutil.copyfile(args.fixture, destination)\n    with destination.open(encoding=\"utf-8\", newline=\"\
+    \") as handle:\n        reader = csv.DictReader(handle)\n        rows = list(reader)\n        columns\
+    \ = reader.fieldnames or []\n    missing = [column for column in REQUIRED_COLUMNS if column not in\
+    \ columns]\n    if missing:\n        raise SystemExit(f\"missing required columns: {missing}\")\n\
+    \    dataset = {\"columns\": columns, \"rows\": rows}\n    (artifacts / \"validated_dataset.json\"\
+    ).write_text(\n        json.dumps(dataset, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    data_object\
+    \ = {\"source_uri\": str(destination), \"record_count\": len(rows), \"columns\": columns}\n    (artifacts\
+    \ / \"validated_data_object.json\").write_text(\n        json.dumps(data_object, indent=2) + \"\\\
+    n\", encoding=\"utf-8\"\n    )\n    status = {\"success\": True, \"rows_read\": len(rows), \"errors\"\
+    : []}\n    (artifacts / \"validation_status.json\").write_text(\n        json.dumps(status, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  03_load_db.py: "#!/usr/bin/env python3\n\"\"\"Load the schema-validated transaction CSV into a local\
+    \ database mock.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport csv\nimport\
+    \ json\nfrom pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--database-resource\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n    artifacts = args.workspace / \"artifacts\"\
+    \n    with (artifacts / \"transactions.csv\").open(encoding=\"utf-8\", newline=\"\") as handle:\n\
+    \        rows = list(csv.DictReader(handle))\n    resource = json.loads(args.database_resource.read_text(encoding=\"\
+    utf-8\"))\n    database = args.workspace / \"mock_postgres\"\n    database.mkdir(parents=True, exist_ok=True)\n\
+    \    (database / \"transactions.json\").write_text(json.dumps(rows, indent=2) + \"\\n\", encoding=\"\
+    utf-8\")\n    reference = {\"target_table\": \"public.transactions\", \"rows_imported\": len(rows),\
+    \ \"driver\": resource[\"driver\"]}\n    (artifacts / \"target_db_reference.json\").write_text(\n\
+    \        json.dumps(reference, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\"success\"\
+    : True, \"rows_loaded\": len(rows), \"errors\": []}\n    (artifacts / \"load_status.json\").write_text(\n\
+    \        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"\
+    __main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: file-arrival-watcher-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock","path":"/data/incoming","filename_pattern":"transactions_*.csv"}'
+  fixture-0001: '{"driver":"filesystem-mock","engine":"postgresql","target":"workspace/mock_postgres"}'
+  fixture-0002: 'transaction_id,customer_id,amount,currency,transaction_date
+
+    TXN001,CUST001,1500.00,USD,2024-01-15
+
+    TXN002,CUST002,2300.50,USD,2024-01-15
+
+    TXN003,CUST003,875.25,USD,2024-01-15
+
+    '

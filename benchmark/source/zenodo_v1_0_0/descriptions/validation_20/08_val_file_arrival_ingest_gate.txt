@@ -1,0 +1,55 @@
+Pipeline Summary:
+- Pipeline ID: val_file_arrival_ingest_gate
+- Name: File Arrival Ingest Gate
+- Purpose: Wait for an expected partner file, validate its checksum, and load it into staging.
+- Execution model: Batch
+- Topology pattern: Sensor-gated
+- Business domain: Data Ingestion
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - wait_for_partner_file -> validate_file_checksum
+  - validate_file_checksum -> load_file_to_staging
+- Parallel groups:
+  - none
+- Branch points:
+  - none
+- Gate or sensor dependencies:
+  - {'step': 'wait_for_partner_file', 'condition': 'partner_file_exists'}
+
+Data Artifacts / I-O Identifiers:
+  - data_object: partner_file.csv
+  - data_object: checksum_record
+  - data_object: staging_table
+
+External Systems:
+  - external_service: Partner SFTP
+  - external_service: Staging database
+
+Pipeline Steps:
+1. wait_for_partner_file - wait for partner file
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. validate_file_checksum - validate file checksum
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. load_file_to_staging - load file to staging
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

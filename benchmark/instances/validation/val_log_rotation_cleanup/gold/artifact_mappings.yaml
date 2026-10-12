@@ -1,0 +1,16 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_log_rotation_cleanup
+mappings:
+- intent_id: find_expired_logs
+  inputs:
+    file_location_resource: log_location_resource
+  outputs:
+    availability_decision: availability_decision
+    check_status: availability_status
+- intent_id: archive_and_delete_logs
+  inputs:
+    log_directory: local_log_directory_resource
+    archive_destination: log_archive_resource
+  outputs:
+    archive_manifest: archive_manifest
+    cleanup_status: cleanup_status

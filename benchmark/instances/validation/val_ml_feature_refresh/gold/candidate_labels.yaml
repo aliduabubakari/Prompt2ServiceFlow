@@ -1,0 +1,45 @@
+candidate_label_version: 0.1.0
+benchmark_id: validation:val_ml_feature_refresh
+candidate_sets:
+- candidate_set_id: validation_val_ml_feature_refresh_event_lake_raw_event_extractor_candidates
+  required_service_id: event_lake_raw_event_extractor
+  labels:
+    event_lake_raw_event_extractor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    temporary_resource_cleanup: generic_escape_hatch
+- candidate_set_id: validation_val_ml_feature_refresh_event_record_cleaner_candidates
+  required_service_id: event_record_cleaner
+  labels:
+    event_record_cleaner: gold
+    temporary_resource_cleanup: semantic_mismatch
+    csv_to_structured_json_standardizer: generic_escape_hatch
+- candidate_set_id: validation_val_ml_feature_refresh_user_feature_aggregator_candidates
+  required_service_id: user_feature_aggregator
+  labels:
+    user_feature_aggregator: gold
+    csv_to_structured_json_standardizer: semantic_mismatch
+    tabular_dataset_database_loader: generic_escape_hatch
+- candidate_set_id: validation_val_ml_feature_refresh_feature_drift_statistics_computer_candidates
+  required_service_id: feature_drift_statistics_computer
+  labels:
+    feature_drift_statistics_computer: gold
+    tabular_dataset_database_loader: semantic_mismatch
+    http_json_request_extractor: generic_escape_hatch
+- candidate_set_id: validation_val_ml_feature_refresh_feature_table_drift_validator_candidates
+  required_service_id: feature_table_drift_validator
+  labels:
+    feature_table_drift_validator: gold
+    http_json_request_extractor: semantic_mismatch
+    bi_dashboard_refresh_trigger: generic_escape_hatch
+- candidate_set_id: validation_val_ml_feature_refresh_feature_store_table_publisher_candidates
+  required_service_id: feature_store_table_publisher
+  labels:
+    feature_store_table_publisher: gold
+    bi_dashboard_refresh_trigger: semantic_mismatch
+    bulk_email_campaign_sender: generic_escape_hatch
+- candidate_set_id: validation_val_ml_feature_refresh_model_team_notification_sender_candidates
+  required_service_id: model_team_notification_sender
+  labels:
+    model_team_notification_sender: gold
+    bulk_email_campaign_sender: semantic_mismatch
+    parquet_tabular_data_profiler: generic_escape_hatch

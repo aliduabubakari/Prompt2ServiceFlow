@@ -1,0 +1,59 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:WF_MAIN_DATASETS_LOAD_L2_TO_L2
+mappings:
+- intent_id: wait_for_l2_full_load
+  inputs:
+    database: dwh_database_resource
+  outputs:
+    readiness_decision: l2_decision
+    query_status: l2_status
+- intent_id: get_load_id
+  inputs: {}
+  outputs:
+    load_id: load_id
+    generation_status: gen_status
+- intent_id: workflow_registration
+  inputs:
+    metadata_database: metadata_db
+    load_id: load_id
+  outputs:
+    session_record_reference: session_ref
+    metadata_write_status: reg_status
+- intent_id: wait_for_success_end
+  inputs:
+    workflow_orchestrator: ext_wf_resource
+  outputs:
+    completion_decision: success_decision
+- intent_id: run_sys_kill_all_session_pg
+  inputs:
+    workflow_orchestrator: ext_wf_resource
+  outputs:
+    run_reference: kill_result
+    trigger_status: kill_status
+- intent_id: run_wf_data_preparation_for_reports
+  inputs:
+    workflow_orchestrator: ext_wf_resource
+  outputs:
+    run_reference: dataprep_result
+    trigger_status: dataprep_status
+- intent_id: load_ds_client_segmentation
+  inputs:
+    workflow_orchestrator: ext_wf_resource
+  outputs:
+    run_reference: segment_result
+    trigger_status: segment_status
+- intent_id: send_flg_to_sap
+  inputs:
+    source_database: dwh_database_resource
+    source_table: segmentation_source_table
+    http_api_resource: sap_resource
+  outputs:
+    publish_status: flag_status
+    request_summary: sap_request_summary
+- intent_id: end
+  inputs:
+    metadata_database: metadata_db
+    load_id: load_id
+  outputs:
+    session_record_reference: final_session_ref
+    metadata_write_status: end_status

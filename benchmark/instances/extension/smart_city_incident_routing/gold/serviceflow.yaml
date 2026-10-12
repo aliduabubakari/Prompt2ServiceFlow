@@ -1,0 +1,928 @@
+ir_version: 0.1.0
+composition_id: smart_city_incident_routing
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.7
+  sha256: bca4eef4774e1e834ffe7ce1061d4027eeb904bd0a92db33a79b1b90a23b942b
+source:
+  dataset_id: prompt2serviceflow_extension_sources
+  dataset_version: extension_v1
+  benchmark_id: extension:smart_city_incident_routing
+  split: extension
+  pipeline_id: smart_city_incident_routing
+  description_path: source/extension_v1/batch_08/descriptions/37_smart_city_incident_routing.txt
+  description_sha256: 124afa4b9f86d1149eabcc8a0c40833c54ccbf38eed066a01dd8047ef341f6fc
+  internal_spec_path: source/extension_v1/batch_08/specs/37_smart_city_incident_routing.json
+  internal_spec_sha256: 3af266a2912c18237d5ef7c2fb409950caf5ad4ce1628fc2a395b347ddaec27d
+requirement:
+  name: Smart City Incident Routing
+  purpose: Combine report, image, sensor, and asset evidence to route municipal incidents.
+  domain: Public Sector/Geospatial
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: high
+  notes:
+  - Extension-50 Batch 01 synthetic source.
+  - Event and external-system behavior is represented as bounded fixture-backed batch execution.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: municipal_service_queue
+  type: other
+  name: municipal service queue
+  identifier: synthetic://extension-v1/smart_city_incident_routing/1
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+- system_id: asset_management_staging
+  type: object_storage
+  name: asset management staging
+  identifier: synthetic://extension-v1/smart_city_incident_routing/2
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_source_batch
+  name: Ingest Source Batch
+  category: Extractor
+  capability: Ingest all bounded inputs for smart-city incident routing context.
+  source_step_refs:
+  - ingest_source_batch
+  evidence:
+  - source: internal_spec
+    text: Ingest all bounded inputs for smart-city incident routing context.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_source_batch_artifact
+  - ingest_source_batch_status
+  external_system_refs: &id001
+  - municipal_service_queue
+  - asset_management_staging
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_source_batch_artifact, ingest_source_batch_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: validate_source_contract
+  name: Validate Source Contract
+  category: QualityCheck
+  capability: Validate contracts, identifiers, and modality assumptions for smart-city incident routing
+    context.
+  source_step_refs:
+  - validate_source_contract
+  evidence:
+  - source: internal_spec
+    text: Validate contracts, identifiers, and modality assumptions for smart-city incident routing context.
+  inputs:
+  - ingest_source_batch_artifact
+  outputs:
+  - validate_source_contract_artifact
+  - validate_source_contract_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces validate_source_contract_artifact, validate_source_contract_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_partition_a
+  name: Normalize Partition A
+  category: Transformer
+  capability: Normalize the first partition or modality for smart-city incident routing context.
+  source_step_refs:
+  - normalize_partition_a
+  evidence:
+  - source: internal_spec
+    text: Normalize the first partition or modality for smart-city incident routing context.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - normalize_partition_a_artifact
+  - normalize_partition_a_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_partition_a_artifact, normalize_partition_a_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_partition_b
+  name: Normalize Partition B
+  category: Transformer
+  capability: Normalize the second partition or modality for smart-city incident routing context.
+  source_step_refs:
+  - normalize_partition_b
+  evidence:
+  - source: internal_spec
+    text: Normalize the second partition or modality for smart-city incident routing context.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - normalize_partition_b_artifact
+  - normalize_partition_b_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_partition_b_artifact, normalize_partition_b_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_partition_c
+  name: Normalize Partition C
+  category: Transformer
+  capability: Normalize the third partition or modality for smart-city incident routing context.
+  source_step_refs:
+  - normalize_partition_c
+  evidence:
+  - source: internal_spec
+    text: Normalize the third partition or modality for smart-city incident routing context.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - normalize_partition_c_artifact
+  - normalize_partition_c_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_partition_c_artifact, normalize_partition_c_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: fuse_partitions
+  name: Fuse Partitions
+  category: Integrator
+  capability: Fuse normalized partitions into a unified smart-city incident routing context representation.
+  source_step_refs:
+  - fuse_partitions
+  evidence:
+  - source: internal_spec
+    text: Fuse normalized partitions into a unified smart-city incident routing context representation.
+  inputs:
+  - normalize_partition_a_artifact
+  - normalize_partition_b_artifact
+  - normalize_partition_c_artifact
+  outputs:
+  - fuse_partitions_artifact
+  - fuse_partitions_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces fuse_partitions_artifact, fuse_partitions_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: standardize_cross_domain_entities
+  name: Standardize Cross Domain Entities
+  category: Transformer
+  capability: Standardize cross-domain entities for smart-city incident routing context.
+  source_step_refs:
+  - standardize_cross_domain_entities
+  evidence:
+  - source: internal_spec
+    text: Standardize cross-domain entities for smart-city incident routing context.
+  inputs:
+  - fuse_partitions_artifact
+  outputs:
+  - standardize_cross_domain_entities_artifact
+  - standardize_cross_domain_entities_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces standardize_cross_domain_entities_artifact, standardize_cross_domain_entities_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: resolve_entity_conflicts
+  name: Resolve Entity Conflicts
+  category: Reconciler
+  capability: Resolve entity conflicts across modalities and systems for smart-city incident routing context.
+  source_step_refs:
+  - resolve_entity_conflicts
+  evidence:
+  - source: internal_spec
+    text: Resolve entity conflicts across modalities and systems for smart-city incident routing context.
+  inputs:
+  - standardize_cross_domain_entities_artifact
+  outputs:
+  - resolve_entity_conflicts_artifact
+  - resolve_entity_conflicts_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces resolve_entity_conflicts_artifact, resolve_entity_conflicts_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: score_operational_priority
+  name: Score Operational Priority
+  category: ScoringService
+  capability: Score operational priority or risk for smart-city incident routing context.
+  source_step_refs:
+  - score_operational_priority
+  evidence:
+  - source: internal_spec
+    text: Score operational priority or risk for smart-city incident routing context.
+  inputs:
+  - resolve_entity_conflicts_artifact
+  outputs:
+  - score_operational_priority_artifact
+  - score_operational_priority_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces score_operational_priority_artifact, score_operational_priority_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: publish_outputs
+  name: Publish Outputs
+  category: Publisher
+  capability: Publish the fused smart-city incident routing context outputs and completion status.
+  source_step_refs:
+  - publish_outputs
+  evidence:
+  - source: internal_spec
+    text: Publish the fused smart-city incident routing context outputs and completion status.
+  inputs:
+  - score_operational_priority_artifact
+  outputs:
+  - publish_outputs_artifact
+  - publish_outputs_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces publish_outputs_artifact, publish_outputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+source_step_accounting:
+- source_step_ref: ingest_source_batch
+  disposition: service
+  intent_ids:
+  - ingest_source_batch
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: validate_source_contract
+  disposition: service
+  intent_ids:
+  - validate_source_contract
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_partition_a
+  disposition: service
+  intent_ids:
+  - normalize_partition_a
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_partition_b
+  disposition: service
+  intent_ids:
+  - normalize_partition_b
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_partition_c
+  disposition: service
+  intent_ids:
+  - normalize_partition_c
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: fuse_partitions
+  disposition: service
+  intent_ids:
+  - fuse_partitions
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: standardize_cross_domain_entities
+  disposition: service
+  intent_ids:
+  - standardize_cross_domain_entities
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: resolve_entity_conflicts
+  disposition: service
+  intent_ids:
+  - resolve_entity_conflicts
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: score_operational_priority
+  disposition: service
+  intent_ids:
+  - score_operational_priority
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: publish_outputs
+  disposition: service
+  intent_ids:
+  - publish_outputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+control_flow:
+  edges:
+  - from: ingest_source_batch
+    to: validate_source_contract
+  - from: validate_source_contract
+    to: normalize_partition_a
+  - from: normalize_partition_a
+    to: fuse_partitions
+  - from: validate_source_contract
+    to: normalize_partition_b
+  - from: normalize_partition_b
+    to: fuse_partitions
+  - from: validate_source_contract
+    to: normalize_partition_c
+  - from: normalize_partition_c
+    to: fuse_partitions
+  - from: fuse_partitions
+    to: standardize_cross_domain_entities
+  - from: standardize_cross_domain_entities
+    to: resolve_entity_conflicts
+  - from: resolve_entity_conflicts
+    to: score_operational_priority
+  - from: score_operational_priority
+    to: publish_outputs
+  parallel_groups:
+  - group_id: parallel_feature_branches
+    intent_ids:
+    - normalize_partition_a
+    - normalize_partition_b
+    - normalize_partition_c
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: source_bundle
+  name: Source Bundle
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - ingest_source_batch
+  sensitivity: internal
+  persistence: workflow
+  fixture_ref: fixtures/inputs/fixture.json
+- artifact_id: ingest_source_batch_artifact
+  name: Ingest Source Batch Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_source_batch
+  consumers:
+  - validate_source_contract
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_source_batch_status
+  name: Ingest Source Batch Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_source_batch
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: validate_source_contract_artifact
+  name: Validate Source Contract Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: validate_source_contract
+  consumers:
+  - normalize_partition_a
+  - normalize_partition_b
+  - normalize_partition_c
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validate_source_contract_status
+  name: Validate Source Contract Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: validate_source_contract
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_partition_a_artifact
+  name: Normalize Partition A Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_partition_a
+  consumers:
+  - fuse_partitions
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_partition_a_status
+  name: Normalize Partition A Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_partition_a
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_partition_b_artifact
+  name: Normalize Partition B Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_partition_b
+  consumers:
+  - fuse_partitions
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_partition_b_status
+  name: Normalize Partition B Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_partition_b
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_partition_c_artifact
+  name: Normalize Partition C Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_partition_c
+  consumers:
+  - fuse_partitions
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_partition_c_status
+  name: Normalize Partition C Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_partition_c
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: fuse_partitions_artifact
+  name: Fuse Partitions Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: fuse_partitions
+  consumers:
+  - standardize_cross_domain_entities
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: fuse_partitions_status
+  name: Fuse Partitions Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: fuse_partitions
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: standardize_cross_domain_entities_artifact
+  name: Standardize Cross Domain Entities Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: standardize_cross_domain_entities
+  consumers:
+  - resolve_entity_conflicts
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: standardize_cross_domain_entities_status
+  name: Standardize Cross Domain Entities Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: standardize_cross_domain_entities
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: resolve_entity_conflicts_artifact
+  name: Resolve Entity Conflicts Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: resolve_entity_conflicts
+  consumers:
+  - score_operational_priority
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: resolve_entity_conflicts_status
+  name: Resolve Entity Conflicts Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: resolve_entity_conflicts
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: score_operational_priority_artifact
+  name: Score Operational Priority Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: score_operational_priority
+  consumers:
+  - publish_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: score_operational_priority_status
+  name: Score Operational Priority Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: score_operational_priority
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: publish_outputs_artifact
+  name: Publish Outputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: output
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publish_outputs_status
+  name: Publish Outputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+bindings:
+- intent_id: ingest_source_batch
+  service_id: smart_city_incident_batch_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_source_batch_artifact
+  - port: execution_report
+    artifact_id: ingest_source_batch_status
+  parameter_bindings:
+    operation_profile: ingest_source_batch
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: validate_source_contract
+  service_id: smart_city_contract_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: ingest_source_batch_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: validate_source_contract_artifact
+  - port: execution_report
+    artifact_id: validate_source_contract_status
+  parameter_bindings:
+    operation_profile: validate_source_contract
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_partition_a
+  service_id: citizen_report_partition_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_partition_a_artifact
+  - port: execution_report
+    artifact_id: normalize_partition_a_status
+  parameter_bindings:
+    operation_profile: normalize_partition_a
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_partition_b
+  service_id: street_image_partition_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_partition_b_artifact
+  - port: execution_report
+    artifact_id: normalize_partition_b_status
+  parameter_bindings:
+    operation_profile: normalize_partition_b
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_partition_c
+  service_id: sensor_asset_partition_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_partition_c_artifact
+  - port: execution_report
+    artifact_id: normalize_partition_c_status
+  parameter_bindings:
+    operation_profile: normalize_partition_c
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: fuse_partitions
+  service_id: smart_city_incident_context_fuser
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: normalize_partition_a_artifact
+  - port: input_artifacts
+    artifact_id: normalize_partition_b_artifact
+  - port: input_artifacts
+    artifact_id: normalize_partition_c_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: fuse_partitions_artifact
+  - port: execution_report
+    artifact_id: fuse_partitions_status
+  parameter_bindings:
+    operation_profile: fuse_partitions
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: standardize_cross_domain_entities
+  service_id: mixed_domain_entity_standardizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: fuse_partitions_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: standardize_cross_domain_entities_artifact
+  - port: execution_report
+    artifact_id: standardize_cross_domain_entities_status
+  parameter_bindings:
+    operation_profile: standardize_cross_domain_entities
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: resolve_entity_conflicts
+  service_id: cross_modal_entity_conflict_resolver
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: standardize_cross_domain_entities_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: resolve_entity_conflicts_artifact
+  - port: execution_report
+    artifact_id: resolve_entity_conflicts_status
+  parameter_bindings:
+    operation_profile: resolve_entity_conflicts
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: score_operational_priority
+  service_id: smart_city_incident_priority_scorer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: resolve_entity_conflicts_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: score_operational_priority_artifact
+  - port: execution_report
+    artifact_id: score_operational_priority_status
+  parameter_bindings:
+    operation_profile: score_operational_priority
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: publish_outputs
+  service_id: smart_city_work_order_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: score_operational_priority_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: publish_outputs_artifact
+  - port: execution_report
+    artifact_id: publish_outputs_status
+  parameter_bindings:
+    operation_profile: publish_outputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - public
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Batch 01 mocks do not contact production image, document, or review systems.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 reviewed Batch 01 validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 reviewed Batch 01 validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 reviewed Batch 01 validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 reviewed Batch 01 validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 reviewed Batch 01 validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 reviewed Batch 01 validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 reviewed Batch 01 validation.

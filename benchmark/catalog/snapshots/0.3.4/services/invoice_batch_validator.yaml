@@ -1,0 +1,96 @@
+schema_version: 0.1.0
+service_id: invoice_batch_validator
+version: 1.0.0
+display_name: Invoice Batch Validator
+category: QualityCheck
+capability:
+  summary: Validates invoice rows and separates valid and invalid invoice records.
+  operations:
+  - Validates invoice rows and separates valid and invalid invoice records.
+  keywords:
+  - invoice
+  - batch
+  - validator
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: invoice_batch
+    description: Reviewed invoice batch value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: valid_invoice_rows
+    description: Reviewed valid invoice rows value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: invalid_invoice_rows
+    description: Reviewed invalid invoice rows value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: validation_status
+    description: Reviewed validation status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: validation_rules
+    description: Configuration for validation rules.
+    type: object
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: invoice-batch-validator
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.1
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.invoice_batch_validator
+  implementation_ref: services/implementations/invoice_batch_validator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-02:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 02 descriptions; bindings retain inference confidence.

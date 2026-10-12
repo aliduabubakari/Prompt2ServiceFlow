@@ -1,0 +1,110 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:meeting_transcript_action_extraction
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.9
+candidate_sets:
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_transcript_batch_ingestor_candidates
+  source_step_refs:
+  - ingest_source_batch
+  service_ids:
+  - meeting_transcript_batch_ingestor
+  - image_caption_only_generator
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_transcript_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contract
+  service_ids:
+  - meeting_transcript_contract_validator
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator
+  - generic_control_mapping_table_joiner
+- candidate_set_id: extension_meeting_transcript_action_extraction_ai_raw_artifact_stager_candidates
+  source_step_refs:
+  - stage_raw_artifacts
+  service_ids:
+  - ai_raw_artifact_stager
+  - rag_index_without_answer_generator
+  - generic_control_mapping_table_joiner
+  - meeting_summary_without_action_owner
+- candidate_set_id: extension_meeting_transcript_action_extraction_ai_record_metadata_normalizer_candidates
+  source_step_refs:
+  - normalize_records
+  service_ids:
+  - ai_record_metadata_normalizer
+  - generic_control_mapping_table_joiner
+  - meeting_summary_without_action_owner
+  - reviewed_domain_adapter
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_transcript_text_parser_candidates
+  source_step_refs:
+  - extract_or_parse_text
+  service_ids:
+  - meeting_transcript_text_parser
+  - meeting_summary_without_action_owner
+  - reviewed_domain_adapter
+  - image_caption_only_generator
+- candidate_set_id: extension_meeting_transcript_action_extraction_semantic_document_chunker_candidates
+  source_step_refs:
+  - chunk_documents
+  service_ids:
+  - semantic_document_chunker
+  - reviewed_domain_adapter
+  - image_caption_only_generator
+  - invoice_ocr_without_reconciliation
+- candidate_set_id: extension_meeting_transcript_action_extraction_deterministic_text_embedding_generator_candidates
+  source_step_refs:
+  - generate_embeddings
+  service_ids:
+  - deterministic_text_embedding_generator
+  - image_caption_only_generator
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator
+- candidate_set_id: extension_meeting_transcript_action_extraction_fixture_vector_index_writer_candidates
+  source_step_refs:
+  - write_vector_index
+  service_ids:
+  - fixture_vector_index_writer
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator
+  - generic_control_mapping_table_joiner
+- candidate_set_id: extension_meeting_transcript_action_extraction_grounding_context_retriever_candidates
+  source_step_refs:
+  - retrieve_grounding_context
+  service_ids:
+  - grounding_context_retriever
+  - rag_index_without_answer_generator
+  - generic_control_mapping_table_joiner
+  - meeting_summary_without_action_owner
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_decision_action_extractor_candidates
+  source_step_refs:
+  - run_structured_extraction
+  service_ids:
+  - meeting_decision_action_extractor
+  - generic_control_mapping_table_joiner
+  - meeting_summary_without_action_owner
+  - reviewed_domain_adapter
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_action_confidence_scorer_candidates
+  source_step_refs:
+  - score_confidence_and_policy
+  service_ids:
+  - meeting_action_confidence_scorer
+  - meeting_summary_without_action_owner
+  - reviewed_domain_adapter
+  - image_caption_only_generator
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_action_review_packet_builder_candidates
+  source_step_refs:
+  - create_human_review_packet
+  service_ids:
+  - meeting_action_review_packet_builder
+  - reviewed_domain_adapter
+  - image_caption_only_generator
+  - invoice_ocr_without_reconciliation
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_action_register_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - meeting_action_register_publisher
+  - image_caption_only_generator
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator

@@ -1,0 +1,86 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:invoice_pdf_extraction_reconciliation
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.9
+candidate_sets:
+- candidate_set_id: extension_invoice_pdf_extraction_reconciliation_invoice_pdf_bundle_ingestor_candidates
+  source_step_refs:
+  - ingest_primary_source
+  service_ids:
+  - invoice_pdf_bundle_ingestor
+  - image_caption_only_generator
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator
+- candidate_set_id: extension_invoice_pdf_extraction_reconciliation_purchase_order_table_ingestor_candidates
+  source_step_refs:
+  - ingest_secondary_source
+  service_ids:
+  - purchase_order_table_ingestor
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator
+  - generic_control_mapping_table_joiner
+- candidate_set_id: extension_invoice_pdf_extraction_reconciliation_vendor_registry_json_ingestor_candidates
+  source_step_refs:
+  - ingest_reference_source
+  service_ids:
+  - vendor_registry_json_ingestor
+  - rag_index_without_answer_generator
+  - generic_control_mapping_table_joiner
+  - meeting_summary_without_action_owner
+- candidate_set_id: extension_invoice_pdf_extraction_reconciliation_invoice_reconciliation_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contracts
+  service_ids:
+  - invoice_reconciliation_contract_validator
+  - generic_control_mapping_table_joiner
+  - meeting_summary_without_action_owner
+  - reviewed_domain_adapter
+- candidate_set_id: extension_invoice_pdf_extraction_reconciliation_invoice_reference_record_normalizer_candidates
+  source_step_refs:
+  - normalize_sources
+  service_ids:
+  - invoice_reference_record_normalizer
+  - meeting_summary_without_action_owner
+  - reviewed_domain_adapter
+  - image_caption_only_generator
+- candidate_set_id: extension_invoice_pdf_extraction_reconciliation_invoice_purchase_order_context_fuser_candidates
+  source_step_refs:
+  - fuse_sources
+  service_ids:
+  - invoice_purchase_order_context_fuser
+  - reviewed_domain_adapter
+  - image_caption_only_generator
+  - invoice_ocr_without_reconciliation
+- candidate_set_id: extension_invoice_pdf_extraction_reconciliation_invoice_field_extraction_parser_candidates
+  source_step_refs:
+  - extract_or_parse_text
+  service_ids:
+  - invoice_field_extraction_parser
+  - image_caption_only_generator
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator
+- candidate_set_id: extension_invoice_pdf_extraction_reconciliation_semantic_document_chunker_candidates
+  source_step_refs:
+  - chunk_documents
+  service_ids:
+  - semantic_document_chunker
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator
+  - generic_control_mapping_table_joiner
+- candidate_set_id: extension_invoice_pdf_extraction_reconciliation_deterministic_text_embedding_generator_candidates
+  source_step_refs:
+  - generate_embeddings
+  service_ids:
+  - deterministic_text_embedding_generator
+  - rag_index_without_answer_generator
+  - generic_control_mapping_table_joiner
+  - meeting_summary_without_action_owner
+- candidate_set_id: extension_invoice_pdf_extraction_reconciliation_invoice_reconciliation_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - invoice_reconciliation_bundle_publisher
+  - generic_control_mapping_table_joiner
+  - meeting_summary_without_action_owner
+  - reviewed_domain_adapter

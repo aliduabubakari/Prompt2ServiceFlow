@@ -1,0 +1,189 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: backup-strategy-selector-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: backup-strategy-selector
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: saturday-full-backup
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: exec-date-fixture
+      value: execution_date_saturday.txt
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: backup-strategy-selector-scripts
+  - name: fixtures
+    configMap:
+      name: backup-strategy-selector-fixtures
+      items:
+      - key: fixture-0000
+        path: database_resource.json
+      - key: fixture-0001
+        path: execution_date_saturday.txt
+      - key: fixture-0002
+        path: execution_date_weekday.txt
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: date-check-task
+        template: run-date-check-task
+      - name: full-backup-task
+        template: run-full-backup-task
+        depends: date-check-task.Succeeded
+        when: '{{tasks.date-check-task.outputs.parameters.strategy}} == full'
+      - name: incremental-backup-task
+        template: run-incremental-backup-task
+        depends: date-check-task.Succeeded
+        when: '{{tasks.date-check-task.outputs.parameters.strategy}} == incremental'
+      - name: verify-backup-task
+        template: run-verify-backup-task
+        depends: (full-backup-task.Succeeded || incremental-backup-task.Succeeded)
+  - name: run-date-check-task
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: date_check_task
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_date_check_task.py
+      - --workspace
+      - /workspace
+      - --execution-date
+      - /opt/p2sf/fixtures/{{workflow.parameters.exec-date-fixture}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    outputs:
+      parameters:
+      - name: strategy
+        valueFrom:
+          path: /workspace/artifacts/backup_strategy.txt
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-full-backup-task
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: full_backup_task
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_create_backup.py
+      - --workspace
+      - /workspace
+      - --database-resource
+      - /opt/p2sf/fixtures/database_resource.json
+      - --mode
+      - full
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-incremental-backup-task
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: incremental_backup_task
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_create_backup.py
+      - --workspace
+      - /workspace
+      - --database-resource
+      - /opt/p2sf/fixtures/database_resource.json
+      - --mode
+      - incremental
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-verify-backup-task
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: verify_backup_task
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_verify_backup.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError

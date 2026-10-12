@@ -1,0 +1,656 @@
+ir_version: 0.1.0
+composition_id: test_dbx_aws_dag_reuse
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:test_dbx_aws_dag_reuse
+  split: main
+  pipeline_id: test_dbx_aws_dag_reuse
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/11_test_dbx_aws_dag_reuse.txt
+  description_sha256: e9dfb21cec14363066d604d9c8041c085f0953b20d5742027d079e408a01a5b9
+  internal_spec_path: source/internal_specs/main_40/11_test_dbx_aws_dag_reuse.json
+  internal_spec_sha256: b0e3b962504972de19d18f636f23660eb0fcd7a5f0ebc2e57b93f6d8b7ca7884
+requirement:
+  name: Test DBX AWS DAG Reuse
+  purpose: Databricks notebook workflow with cluster reuse and conditional branching.
+  domain: data_platform
+  execution_model: batch
+  topology: branch_merge
+  information_sufficiency: high
+  notes:
+  - Eight-step branch-merge Databricks pipeline.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems: []
+service_intents:
+- intent_id: start_task
+  name: Start
+  category: Transformer
+  capability: Initialize workflow session.
+  source_step_refs:
+  - start_task
+  evidence:
+  - source: description
+    text: Start workflow.
+  inputs: []
+  outputs:
+  - run_id
+  - gen_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Session initialized.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Bookend start.
+  confidence: strongly_inferred
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: spark_jar_task
+  name: Execute notebook
+  category: ExternalWorkflowAdapter
+  capability: Run Databricks notebook.
+  source_step_refs:
+  - spark_jar_task
+  evidence:
+  - source: description
+    text: Execute Databricks notebook.
+  inputs:
+  - dbx_resource
+  outputs:
+  - notebook_result
+  - notebook_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Notebook executed.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Runs Databricks notebook.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: dummy_task_1
+  name: Dummy 1
+  category: Maintenance
+  capability: No-op marker.
+  source_step_refs:
+  - dummy_task_1
+  evidence:
+  - source: description
+    text: Dummy marker.
+  inputs: []
+  outputs:
+  - d1_cleanup
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Marker passed.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Marker step.
+  confidence: strongly_inferred
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: branch_task
+  name: Branch decision
+  category: Transformer
+  capability: Determine branching path.
+  source_step_refs:
+  - branch_task
+  evidence:
+  - source: description
+    text: Branch decision.
+  inputs:
+  - execution_date_str
+  outputs:
+  - branch_decision
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Branch decision emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Branch point.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: spark_jar_task_2
+  name: Execute notebook 2
+  category: ExternalWorkflowAdapter
+  capability: Run second Databricks notebook.
+  source_step_refs:
+  - spark_jar_task_2
+  evidence:
+  - source: description
+    text: Second notebook.
+  inputs:
+  - dbx_resource
+  outputs:
+  - nb2_result
+  - nb2_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Second notebook executed.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Second Databricks run.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: dummy_task_2
+  name: Dummy 2
+  category: Maintenance
+  capability: No-op marker.
+  source_step_refs:
+  - dummy_task_2
+  evidence:
+  - source: description
+    text: Dummy marker.
+  inputs: []
+  outputs:
+  - d2_cleanup
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Marker passed.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Marker step.
+  confidence: strongly_inferred
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: dummy_task_3
+  name: Dummy 3
+  category: Maintenance
+  capability: No-op marker.
+  source_step_refs:
+  - dummy_task_3
+  evidence:
+  - source: description
+    text: Dummy marker.
+  inputs: []
+  outputs:
+  - d3_cleanup
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Marker passed.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Marker step.
+  confidence: strongly_inferred
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: end_task
+  name: End
+  category: Maintenance
+  capability: Finalize workflow.
+  source_step_refs:
+  - end_task
+  evidence:
+  - source: description
+    text: End workflow.
+  inputs: []
+  outputs:
+  - cleanup_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Workflow finalized.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Bookend end.
+  confidence: strongly_inferred
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: start_task
+    to: spark_jar_task
+  - from: spark_jar_task
+    to: dummy_task_1
+  - from: dummy_task_1
+    to: branch_task
+  - from: branch_task
+    to: dummy_task_3
+    condition: branch_decision.route == skip
+  - from: branch_task
+    to: spark_jar_task_2
+    condition: branch_decision.route == execute
+  - from: spark_jar_task_2
+    to: dummy_task_2
+  - from: dummy_task_2
+    to: end_task
+  - from: dummy_task_3
+    to: end_task
+  parallel_groups: []
+  branches:
+  - branch_id: dbx_branch
+    decision_intent: branch_task
+    decision_artifact: branch_decision
+    cases:
+    - case_id: execute
+      condition: branch_decision.route == execute
+      next_intents:
+      - spark_jar_task_2
+    - case_id: skip
+      condition: branch_decision.route == skip
+      next_intents:
+      - dummy_task_3
+    merge_intent: end_task
+  gates: []
+artifacts:
+- artifact_id: run_id
+  name: Run ID
+  kind: artifact
+  data_type: string
+  media_type: text/plain
+  role: output
+  producer: start_task
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: gen_status
+  name: Gen status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: start_task
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: dbx_resource
+  name: Databricks resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - spark_jar_task
+  - spark_jar_task_2
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/dbx.json
+- artifact_id: notebook_result
+  name: Notebook result
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: spark_jar_task
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: notebook_status
+  name: Notebook status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: spark_jar_task
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: d1_cleanup
+  name: D1 cleanup
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: dummy_task_1
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: branch_decision
+  name: Branch decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: decision
+  producer: branch_task
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: nb2_result
+  name: NB2 result
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: output
+  producer: spark_jar_task_2
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: nb2_status
+  name: NB2 status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: spark_jar_task_2
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: d2_cleanup
+  name: D2 cleanup
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: dummy_task_2
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: d3_cleanup
+  name: D3 cleanup
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: dummy_task_3
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: cleanup_status
+  name: Cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: end_task
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: execution_date_str
+  name: Execution date
+  kind: artifact
+  data_type: string
+  media_type: text/plain
+  role: config
+  producer: null
+  consumers:
+  - branch_task
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: start_task
+  service_id: workflow_load_id_generator
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: load_id
+    artifact_id: run_id
+  - port: generation_status
+    artifact_id: gen_status
+  parameter_bindings:
+    generation_strategy: uuid
+    prefix: dbx-run-
+  secret_bindings: []
+  rationale: Generates run ID.
+  confidence: strongly_inferred
+- intent_id: spark_jar_task
+  service_id: databricks_notebook_run_executor
+  service_version: 1.0.0
+  input_bindings:
+  - port: databricks_workspace
+    artifact_id: dbx_resource
+  output_bindings:
+  - port: run_reference
+    artifact_id: notebook_result
+  - port: execution_status
+    artifact_id: notebook_status
+  parameter_bindings:
+    notebook_path: /Users/test/helloworld
+    existing_cluster_id: existing_cluster_id
+  secret_bindings:
+  - secret: databricks_auth
+    kubernetes_secret: dbx-secrets
+    key: token
+  rationale: Runs Databricks notebook.
+  confidence: explicit
+- intent_id: dummy_task_1
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: d1_cleanup
+  parameter_bindings:
+    targets:
+    - /workspace/tmp
+    ignore_missing: true
+  secret_bindings: []
+  rationale: No-op marker.
+  confidence: strongly_inferred
+- intent_id: branch_task
+  service_id: execution_date_backup_strategy_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: execution_date
+    artifact_id: execution_date_str
+  output_bindings:
+  - port: backup_strategy_decision
+    artifact_id: branch_decision
+  parameter_bindings:
+    full_backup_days:
+    - 6
+    full_strategy_label: execute
+    incremental_strategy_label: skip
+  secret_bindings: []
+  rationale: Branch decision.
+  confidence: explicit
+- intent_id: spark_jar_task_2
+  service_id: databricks_notebook_run_executor
+  service_version: 1.0.0
+  input_bindings:
+  - port: databricks_workspace
+    artifact_id: dbx_resource
+  output_bindings:
+  - port: run_reference
+    artifact_id: nb2_result
+  - port: execution_status
+    artifact_id: nb2_status
+  parameter_bindings:
+    notebook_path: /Users/test/helloworld2
+    existing_cluster_id: existing_cluster_id
+  secret_bindings:
+  - secret: databricks_auth
+    kubernetes_secret: dbx-secrets
+    key: token
+  rationale: Second notebook.
+  confidence: explicit
+- intent_id: dummy_task_2
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: d2_cleanup
+  parameter_bindings:
+    targets:
+    - /workspace/tmp
+    ignore_missing: true
+  secret_bindings: []
+  rationale: No-op marker.
+  confidence: strongly_inferred
+- intent_id: dummy_task_3
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: d3_cleanup
+  parameter_bindings:
+    targets:
+    - /workspace/tmp
+    ignore_missing: true
+  secret_bindings: []
+  rationale: No-op marker.
+  confidence: strongly_inferred
+- intent_id: end_task
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: cleanup_status
+  parameter_bindings:
+    targets:
+    - /workspace/tmp
+    ignore_missing: true
+  secret_bindings: []
+  rationale: Final cleanup.
+  confidence: strongly_inferred
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock Databricks execution.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All eight source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Eight exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports, parameters, types, and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Branch-merge Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Scenario executes
+- gate: G6
+  expected_status: pass
+  checks:
+  - Invariants hold
+source_step_accounting:
+- source_step_ref: start_task
+  disposition: service
+  intent_ids:
+  - start_task
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: spark_jar_task
+  disposition: service
+  intent_ids:
+  - spark_jar_task
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: dummy_task_1
+  disposition: service
+  intent_ids:
+  - dummy_task_1
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: branch_task
+  disposition: service
+  intent_ids:
+  - branch_task
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: spark_jar_task_2
+  disposition: service
+  intent_ids:
+  - spark_jar_task_2
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: dummy_task_2
+  disposition: service
+  intent_ids:
+  - dummy_task_2
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: dummy_task_3
+  disposition: service
+  intent_ids:
+  - dummy_task_3
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: end_task
+  disposition: service
+  intent_ids:
+  - end_task
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

@@ -1,0 +1,4 @@
+"""Prompt2ServiceFlow benchmark and compiler package."""
+
+__version__ = "0.0.1"
+

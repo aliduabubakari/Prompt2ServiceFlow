@@ -1,0 +1,424 @@
+ir_version: 0.1.0
+composition_id: file_arrival_watcher
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:file_arrival_watcher
+  split: main
+  pipeline_id: file_arrival_watcher
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/21_file_arrival_watcher.txt
+  description_sha256: afca277b5d7f82d9b5556f5da0a1007b543a866347ad29821a265f5df0f71eb3
+  internal_spec_path: source/internal_specs/main_40/21_file_arrival_watcher.json
+  internal_spec_sha256: b30585793b712222794acf020732e3631bea1cefc6060f79821fe84f71e35bbf
+requirement:
+  name: File Arrival Watcher
+  purpose: Monitor for daily transaction files, validate CSV schema, and load to PostgreSQL.
+  domain: data_platform
+  execution_model: batch
+  topology: sensor_gated
+  information_sufficiency: high
+  notes:
+  - Sensor gates the pipeline; processing starts only after file arrival.
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: incoming_filesystem
+  type: filesystem
+  name: Incoming transaction directory
+  identifier: /data/incoming
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: postgres_database
+  type: database
+  name: PostgreSQL transactions database
+  identifier: localhost:5432/public.transactions
+  access_mode: write
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: wait_for_file
+  name: Wait for transaction file
+  category: Sensor
+  capability: Observe whether the expected dated transaction CSV is available before the timeout.
+  source_step_refs:
+  - wait_for_file
+  evidence:
+  - source: description
+    text: Wait for transaction file arrival.
+  inputs:
+  - file_location_resource
+  outputs:
+  - availability_decision
+  - check_status
+  external_system_refs:
+  - incoming_filesystem
+  preconditions:
+  - Incoming directory is accessible.
+  effects:
+  - Availability decision and check status emitted when file is found.
+  required_policy_properties:
+    network_access: optional
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source is a file-arrival sensor with explicit poke and timeout semantics.
+  confidence: explicit
+  ambiguity:
+    status: resolved
+    notes:
+    - Mock immediately reports file as available.
+- intent_id: validate_schema
+  name: Validate transaction CSV schema
+  category: QualityCheck
+  capability: Validate the arrived transaction CSV schema and materialize a reviewed tabular representation.
+  source_step_refs:
+  - validate_schema
+  evidence:
+  - source: description
+    text: Validate the schema of the incoming transactions file.
+  inputs:
+  - transaction_csv
+  outputs:
+  - validated_dataset
+  - validated_data_object
+  - validation_status
+  external_system_refs: []
+  preconditions:
+  - Transaction CSV file is available and readable.
+  effects:
+  - Validated dataset and validation status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source validates the arriving CSV before database loading.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: load_db
+  name: Load transactions to PostgreSQL
+  category: Loader
+  capability: Load the schema-validated transaction CSV into the target PostgreSQL table.
+  source_step_refs:
+  - load_db
+  evidence:
+  - source: description
+    text: Load validated data to PostgreSQL database.
+  inputs:
+  - transaction_csv
+  - postgres_resource
+  outputs:
+  - target_db_reference
+  - load_status
+  external_system_refs:
+  - postgres_database
+  preconditions:
+  - Validated transaction dataset available.
+  effects:
+  - Database load reference and status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: The source writes the same file only after the preceding schema-validation
+    gate passes.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: wait_for_file
+    to: validate_schema
+  - from: validate_schema
+    to: load_db
+  parallel_groups: []
+  branches: []
+  gates:
+  - gate_id: file_arrival_gate
+    sensor_intent: wait_for_file
+    condition: file_available == true
+    gated_intents:
+    - validate_schema
+    - load_db
+artifacts:
+- artifact_id: file_location_resource
+  name: Incoming file location
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - wait_for_file
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/file_location.json
+  external_system_ref: incoming_filesystem
+- artifact_id: availability_decision
+  name: File availability decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  role: decision
+  producer: wait_for_file
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/availability_decision.schema.json
+- artifact_id: check_status
+  name: File sensor status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: wait_for_file
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/check_status.schema.json
+- artifact_id: transaction_csv
+  name: Incoming transaction CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: config
+  producer: null
+  consumers:
+  - validate_schema
+  - load_db
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/transactions_20240115.csv
+  external_system_ref: incoming_filesystem
+- artifact_id: validated_dataset
+  name: Validated transaction dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: validate_schema
+  consumers: []
+  sensitivity: confidential
+  persistence: workflow
+  schema_ref: contracts/artifacts/validated_dataset.schema.json
+- artifact_id: validated_data_object
+  name: Validated transaction data object
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: validate_schema
+  consumers: []
+  sensitivity: confidential
+  persistence: workflow
+  schema_ref: contracts/artifacts/validated_data_object.schema.json
+- artifact_id: validation_status
+  name: Schema validation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: validate_schema
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/validation_status.schema.json
+- artifact_id: postgres_resource
+  name: PostgreSQL target resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - load_db
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/postgres_resource.json
+  external_system_ref: postgres_database
+- artifact_id: target_db_reference
+  name: Target database reference
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: load_db
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/target_db_reference.schema.json
+- artifact_id: load_status
+  name: Database load status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: load_db
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/load_status.schema.json
+bindings:
+- intent_id: wait_for_file
+  service_id: file_location_availability_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: file_location_resource
+    artifact_id: file_location_resource
+  output_bindings:
+  - port: availability_decision
+    artifact_id: availability_decision
+  - port: check_status
+    artifact_id: check_status
+  parameter_bindings:
+    location_type: filesystem
+    path: /data/incoming/transactions_{{ ds_nodash }}.csv
+    availability_condition: exists
+    filename_pattern: transactions_*.csv
+  secret_bindings: []
+  rationale: Binds the source file sensor, including its dated incoming-file contract.
+  confidence: explicit
+- intent_id: validate_schema
+  service_id: csv_tabular_schema_validating_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_file
+    artifact_id: transaction_csv
+  output_bindings:
+  - port: validated_dataset
+    artifact_id: validated_dataset
+  - port: validated_data_object
+    artifact_id: validated_data_object
+  - port: validation_status
+    artifact_id: validation_status
+  parameter_bindings:
+    required_columns:
+    - transaction_id
+    - customer_id
+    - amount
+    - currency
+    - transaction_date
+    has_header: true
+    fail_on_empty: true
+    output_path: /workspace/artifacts/validated_data_object.json
+  secret_bindings: []
+  rationale: Validates the source transaction CSV before it is eligible for loading.
+  confidence: explicit
+- intent_id: load_db
+  service_id: database_csv_snapshot_importer
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_snapshot
+    artifact_id: transaction_csv
+  - port: target_database
+    artifact_id: postgres_resource
+  output_bindings:
+  - port: target_database_reference
+    artifact_id: target_db_reference
+  - port: load_status
+    artifact_id: load_status
+  parameter_bindings:
+    import_spec:
+      table: public.transactions
+    load_mode: upsert
+    has_header: true
+    target_label: public.transactions
+  secret_bindings: []
+  rationale: Loads the same incoming CSV only after the schema-validation task succeeds.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides:
+  - intent_id: wait_for_file
+    retries: 2
+    timeout_seconds: 86400
+    network_access: optional
+  - intent_id: validate_schema
+    retries: 2
+    timeout_seconds: 180
+    network_access: forbidden
+  - intent_id: load_db
+    retries: 2
+    timeout_seconds: 600
+    network_access: required
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock sensor immediately signals file availability.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and provenance checks validate.
+- gate: G1
+  expected_status: pass
+  checks:
+  - All three source steps have explicit service accounting.
+- gate: G2
+  expected_status: pass
+  checks:
+  - Sensor, CSV validation, and database importer bindings resolve.
+- gate: G3
+  expected_status: pass
+  checks:
+  - Sensor, validation, load, and database-resource contracts close.
+- gate: G4
+  expected_status: pass
+  checks:
+  - The sensor-gated Argo DAG and CronWorkflow compile.
+- gate: G5
+  expected_status: pass
+  checks:
+  - Arrival and missing-file scenarios execute without invoking invalid downstream work.
+- gate: G6
+  expected_status: pass
+  checks:
+  - Availability, route exclusion, validation, and loaded-row assertions hold.
+source_step_accounting:
+- source_step_ref: wait_for_file
+  disposition: service
+  intent_ids:
+  - wait_for_file
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: validate_schema
+  disposition: service
+  intent_ids:
+  - validate_schema
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: load_db
+  disposition: service
+  intent_ids:
+  - load_db
+  rationale: The source step invokes the reviewed service intent or intents listed.

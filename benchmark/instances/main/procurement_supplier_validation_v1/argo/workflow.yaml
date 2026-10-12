@@ -1,0 +1,142 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: procurement-supplier-validation-v1-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: procurement-supplier-validation-v1
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: three-suppliers
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: fixture-file
+      value: suppliers.csv
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: procurement-supplier-validation-v1-scripts
+  - name: fixtures
+    configMap:
+      name: procurement-supplier-validation-v1-fixtures
+      items:
+      - key: fixture-0000
+        path: fixture.json
+      - key: fixture-0001
+        path: suppliers.csv
+      - key: fixture-0002
+        path: wikidata_resource.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: load-and-modify-suppliers
+        template: run-load-and-modify-suppliers
+      - name: reconcile-supplier-entities
+        template: run-reconcile-supplier-entities
+        depends: load-and-modify-suppliers.Succeeded
+      - name: save-validated-suppliers
+        template: run-save-validated-suppliers
+        depends: reconcile-supplier-entities.Succeeded
+  - name: run-load-and-modify-suppliers
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: load_and_modify_suppliers
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_load_suppliers.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-reconcile-supplier-entities
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: reconcile_supplier_entities
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_reconcile_suppliers.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-save-validated-suppliers
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: save_validated_suppliers
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_save_suppliers.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError

@@ -1,0 +1,181 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: document-image-compliance-packet-nominal-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_source_batch.py: "#!/usr/bin/env python3\n\"\"\"Ingest compliance documents, checklist items,\
+    \ and policy rules.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True)\n\
+    \    p.add_argument(\"--fixture\",type=Path,required=True); p.add_argument(\"--execution-time\",type=str,default=None)\n\
+    \    a=p.parse_args(); r=a.workspace; art=r/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n\
+    \    fx=json.loads(a.fixture.read_text(encoding=\"utf-8\")); fd=a.fixture.parent\n    docs=json.loads((fd/fx[\"\
+    inputs\"][\"documents\"]).read_text(encoding=\"utf-8\"))\n    checklist=json.loads((fd/fx[\"inputs\"\
+    ][\"checklist\"]).read_text(encoding=\"utf-8\"))\n    policy=json.loads((fd/fx[\"inputs\"][\"policy\"\
+    ]).read_text(encoding=\"utf-8\"))\n    result={\"documents\":docs,\"checklist\":checklist,\"policy\"\
+    :policy,\"total_docs\":len(docs),\"total_checklist\":len(checklist),\"ingested_at\":a.execution_time}\n\
+    \    (art/\"ingest_source_batch_artifact.json\").write_text(json.dumps(result,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    (art/\"ingest_source_batch_status.json\").write_text(json.dumps({\"success\":True,\"\
+    documents\":len(docs),\"checklist_items\":len(checklist),\"errors\":[]},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+  02_validate_source_contract.py: "#!/usr/bin/env python3\n\"\"\"Validate: required doc fields, scan quality\
+    \ minimum, doc type validity.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom\
+    \ pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    docs,policy=ingested[\"documents\"],ingested[\"policy\"]\n \
+    \   sq_min=policy[\"scan_quality_minimum\"]; required={\"doc_id\",\"doc_type\",\"title\",\"scan_quality\"\
+    ,\"regulatory_refs\"}\n    errors=[]; valid=[]\n    for d in docs:\n        issues=[]\n        if\
+    \ required-set(d.keys()): issues.append(f\"missing_fields: {required-set(d.keys())}\")\n        if\
+    \ d.get(\"scan_quality\",0)<sq_min: issues.append(f\"low_quality: {d.get('scan_quality')}<{sq_min}\"\
+    )\n        if issues: errors.append({\"doc_id\":d.get(\"doc_id\",\"?\"),\"issues\":issues})\n    \
+    \    else: valid.append(d)\n    result={\"valid\":valid,\"errors\":errors,\"total_valid\":len(valid),\"\
+    total_rejected\":len(errors)}\n    (art/\"validate_source_contract_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"validate_source_contract_status.json\").write_text(json.dumps({\"\
+    success\":True,\"valid\":len(valid),\"rejected\":len(errors),\"errors\":errors},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_normalize_partition_a.py: "#!/usr/bin/env python3\n\"\"\"Normalize Partition A: document metadata\
+    \ \u2014 type, pages, age, quality grade.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom datetime import datetime\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    today=datetime(2026,7,20); norm_a=[]\n    for d in validated[\"\
+    valid\"]:\n        days=(today-datetime.strptime(d[\"review_date\"],\"%Y-%m-%d\")).days\n        norm_a.append({\"\
+    doc_id\":d[\"doc_id\"],\"doc_type\":d[\"doc_type\"],\"pages\":d[\"pages\"],\n                    \
+    \   \"scan_quality\":d[\"scan_quality\"],\"days_since_review\":days,\"has_signatures\":d[\"has_signatures\"\
+    ]})\n    (art/\"normalize_partition_a_artifact.json\").write_text(json.dumps({\"partition\":\"A\"\
+    ,\"records\":norm_a,\"total\":len(norm_a)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"normalize_partition_a_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"normalized\":len(norm_a),\"errors\":[]},indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_normalize_partition_b.py: "#!/usr/bin/env python3\n\"\"\"Normalize Partition B: checklist coverage\
+    \ \u2014 match regulatory refs to checklist items.\"\"\"\nfrom __future__ import annotations\nimport\
+    \ argparse, json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    checklist,policy=ingested[\"checklist\"],ingested[\"policy\"\
+    ]; norm_b=[]\n    all_regs=set(c[\"regulation\"] for c in checklist)\n    for d in validated[\"valid\"\
+    ]:\n        refs=set(d.get(\"regulatory_refs\",[]))\n        covered=refs&all_regs\n        total_items=sum(1\
+    \ for c in checklist if c[\"regulation\"] in refs)\n        coverage=round(len(covered)/max(len(all_regs),1)*100,1)\n\
+    \        norm_b.append({\"doc_id\":d[\"doc_id\"],\"regulatory_refs\":sorted(refs),\"checklist_coverage_pct\"\
+    :coverage,\n                       \"total_checklist_items\":total_items,\"regulations_matched\":len(covered)})\n\
+    \    (art/\"normalize_partition_b_artifact.json\").write_text(json.dumps({\"partition\":\"B\",\"records\"\
+    :norm_b,\"total\":len(norm_b)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"normalize_partition_b_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"normalized\":len(norm_b),\"errors\":[]},indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  05_normalize_partition_c.py: "#!/usr/bin/env python3\n\"\"\"Normalize Partition C: signature compliance\
+    \ \u2014 check required signatures by doc type.\"\"\"\nfrom __future__ import annotations\nimport\
+    \ argparse, json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    policy=ingested[\"policy\"]; sig_required=policy[\"signature_required_types\"\
+    ]; norm_c=[]\n    for d in validated[\"valid\"]:\n        needs_sig=d[\"doc_type\"] in sig_required;\
+    \ has_sig=d[\"has_signatures\"]\n        sig_ok=not needs_sig or has_sig\n        norm_c.append({\"\
+    doc_id\":d[\"doc_id\"],\"doc_type\":d[\"doc_type\"],\"signature_required\":needs_sig,\n          \
+    \             \"has_signature\":has_sig,\"signature_compliant\":sig_ok})\n    (art/\"normalize_partition_c_artifact.json\"\
+    ).write_text(json.dumps({\"partition\":\"C\",\"records\":norm_c,\"total\":len(norm_c)},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"normalize_partition_c_status.json\").write_text(json.dumps({\"\
+    success\":True,\"normalized\":len(norm_c),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif\
+    \ __name__==\"__main__\": main()\n"
+  06_fuse_partitions.py: "#!/usr/bin/env python3\n\"\"\"Fuse partitions: merge A+B+C into unified compliance\
+    \ assessment per document.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom\
+    \ pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    pa=json.loads((art/\"normalize_partition_a_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    pb=json.loads((art/\"normalize_partition_b_artifact.json\").read_text(encoding=\"utf-8\"\
+    ))\n    pc=json.loads((art/\"normalize_partition_c_artifact.json\").read_text(encoding=\"utf-8\"))\n\
+    \    ingested=json.loads((art/\"ingest_source_batch_artifact.json\").read_text(encoding=\"utf-8\"\
+    ))\n    policy=ingested[\"policy\"]; status_rules=policy[\"compliance_status\"]\n    am={r[\"doc_id\"\
+    ]:r for r in pa[\"records\"]}; bm={r[\"doc_id\"]:r for r in pb[\"records\"]}; cm={r[\"doc_id\"]:r\
+    \ for r in pc[\"records\"]}\n    fused=[]\n    for did in am:\n        doc_a,doc_b,doc_c=am[did],bm.get(did,{}),cm.get(did,{})\n\
+    \        coverage=doc_b.get(\"checklist_coverage_pct\",0); sig_ok=doc_c.get(\"signature_compliant\"\
+    ,False)\n        qual_ok=doc_a[\"scan_quality\"]>=policy[\"scan_quality_minimum\"]\n        if coverage>=status_rules[\"\
+    fully_compliant\"][\"min_coverage\"] and (not status_rules[\"fully_compliant\"][\"require_signatures\"\
+    ] or sig_ok) and (not status_rules[\"fully_compliant\"][\"require_quality\"] or qual_ok):\n      \
+    \      status=\"fully_compliant\"\n        elif coverage>=status_rules[\"partially_compliant\"][\"\
+    min_coverage\"]:\n            status=\"partially_compliant\"\n        else: status=\"non_compliant\"\
+    \n        fused.append({\"doc_id\":did,\"doc_type\":doc_a[\"doc_type\"],\"pages\":doc_a[\"pages\"\
+    ],\"scan_quality\":doc_a[\"scan_quality\"],\n                      \"checklist_coverage_pct\":coverage,\"\
+    signature_compliant\":sig_ok,\"compliance_status\":status})\n    (art/\"fuse_partitions_artifact.json\"\
+    ).write_text(json.dumps({\"fused\":fused,\"total\":len(fused)},indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    (art/\"fuse_partitions_status.json\").write_text(json.dumps({\"success\":True,\"fused\":len(fused),\"\
+    errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  07_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish: compliance packet CSV + audit manifest.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib import Path\n\n\
+    def main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    p.add_argument(\"--execution-time\",type=str,default=None);\
+    \ a=p.parse_args(); art=a.workspace/\"artifacts\"\n    et=a.execution_time or \"2026-07-20T12:00:00Z\"\
+    ; fx=json.loads(a.fixture.read_text(encoding=\"utf-8\"))\n    fused=json.loads((art/\"fuse_partitions_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    val=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    summary={\"total\":fused[\"total\"]+val[\"total_rejected\"],\"\
+    valid\":fused[\"total\"],\"rejected\":val[\"total_rejected\"],\n             \"fully_compliant\":sum(1\
+    \ for f in fused[\"fused\"] if f[\"compliance_status\"]==\"fully_compliant\"),\n             \"partially_compliant\"\
+    :sum(1 for f in fused[\"fused\"] if f[\"compliance_status\"]==\"partially_compliant\"),\n        \
+    \     \"non_compliant\":sum(1 for f in fused[\"fused\"] if f[\"compliance_status\"]==\"non_compliant\"\
+    )}\n    manifest={\"checkpoint_id\":f\"ckpt_compliance_{et[:10].replace('-','_')}\",\"checkpoint_time\"\
+    :et,\n              \"pipeline_id\":fx[\"pipeline_id\"],\"summary\":summary,\"output_files\":[\"compliance_packet.csv\"\
+    ,\"audit_manifest.json\"],\"status\":\"completed\"}\n    (art/\"audit_manifest.json\").write_text(json.dumps(manifest,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    csv_rel=\"compliance_packet.csv\"\n    with (art/csv_rel).open(\"w\"\
+    ,encoding=\"utf-8\",newline=\"\") as f:\n        w=csv.DictWriter(f,fieldnames=[\"doc_id\",\"doc_type\"\
+    ,\"pages\",\"scan_quality\",\"checklist_coverage_pct\",\"signature_compliant\",\"compliance_status\"\
+    ])\n        w.writeheader()\n        for r in fused[\"fused\"]: w.writerow(r)\n    (art/\"publish_outputs_artifact.json\"\
+    ).write_text(json.dumps({\"manifest\":manifest,\"csv\":csv_rel},indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    (art/\"publish_outputs_status.json\").write_text(json.dumps({\"success\":True,\"csv_exported\"\
+    :csv_rel,\"summary\":summary,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"\
+    __main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: document-image-compliance-packet-nominal-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "[\n  {\"checklist_id\": \"CHK-GDPR-01\", \"regulation\": \"GDPR\", \"item\": \"Data processing\
+    \ agreement in place\", \"required\": true, \"weight\": 3},\n  {\"checklist_id\": \"CHK-GDPR-02\"\
+    , \"regulation\": \"GDPR\", \"item\": \"Data retention schedule defined\", \"required\": true, \"\
+    weight\": 3},\n  {\"checklist_id\": \"CHK-GDPR-03\", \"regulation\": \"GDPR\", \"item\": \"DPIA completed\"\
+    , \"required\": true, \"weight\": 2},\n  {\"checklist_id\": \"CHK-SOX-01\", \"regulation\": \"SOX\"\
+    , \"item\": \"Financial controls documented\", \"required\": true, \"weight\": 3},\n  {\"checklist_id\"\
+    : \"CHK-SOX-02\", \"regulation\": \"SOX\", \"item\": \"Access review logs available\", \"required\"\
+    : true, \"weight\": 2},\n  {\"checklist_id\": \"CHK-PCI-01\", \"regulation\": \"PCI-DSS\", \"item\"\
+    : \"Encryption standards met\", \"required\": true, \"weight\": 3}\n]\n"
+  fixture-0001: "[\n  {\"doc_id\": \"DOC-001\", \"doc_type\": \"contract\", \"title\": \"Vendor Agreement\
+    \ Q2\", \"pages\": 12, \"scan_quality\": 0.95, \"has_signatures\": true, \"regulatory_refs\": [\"\
+    GDPR\", \"SOX\"], \"review_date\": \"2026-07-15\"},\n  {\"doc_id\": \"DOC-002\", \"doc_type\": \"\
+    policy\", \"title\": \"Data Retention Policy\", \"pages\": 8, \"scan_quality\": 0.88, \"has_signatures\"\
+    : true, \"regulatory_refs\": [\"GDPR\"], \"review_date\": \"2026-06-01\"},\n  {\"doc_id\": \"DOC-003\"\
+    , \"doc_type\": \"invoice\", \"title\": \"Legal Services Invoice\", \"pages\": 3, \"scan_quality\"\
+    : 0.72, \"has_signatures\": false, \"regulatory_refs\": [], \"review_date\": \"2026-07-10\"},\n  {\"\
+    doc_id\": \"DOC-004\", \"doc_type\": \"report\", \"title\": \"Annual Compliance Audit\", \"pages\"\
+    : 45, \"scan_quality\": 0.91, \"has_signatures\": true, \"regulatory_refs\": [\"SOX\", \"PCI-DSS\"\
+    , \"GDPR\"], \"review_date\": \"2026-07-20\"},\n  {\"doc_id\": \"DOC-005\", \"doc_type\": \"contract\"\
+    , \"title\": \"NDA Template v3\", \"pages\": 5, \"scan_quality\": 0.40, \"has_signatures\": false,\
+    \ \"regulatory_refs\": [\"GDPR\"], \"review_date\": \"2026-05-20\"}\n]\n"
+  fixture-0002: "{\n  \"input_modalities\": [\n    \"pdf\",\n    \"image\",\n    \"text\"\n  ],\n  \"\
+    inputs\": {\n    \"checklist\": \"checklist_items.json\",\n    \"documents\": \"compliance_documents.json\"\
+    ,\n    \"policy\": \"policy_rules.json\"\n  },\n  \"pipeline_id\": \"document_image_compliance_packet\"\
+    ,\n  \"sample_media\": {\n    \"image\": \"sample_image.png\",\n    \"pdf\": \"sample_document.pdf\"\
+    \n  },\n  \"systems\": [\n    \"document management system\",\n    \"compliance review dashboard\"\
+    \n  ]\n}\n"
+  fixture-0003: "{\n  \"policy_id\": \"compliance-review-v1\",\n  \"description\": \"Document image compliance\
+    \ review policy\",\n  \"scan_quality_minimum\": 0.50,\n  \"signature_required_types\": [\"contract\"\
+    , \"policy\"],\n  \"min_checklist_coverage_pct\": 60.0,\n  \"compliance_status\": {\n    \"fully_compliant\"\
+    : {\"min_coverage\": 80, \"require_signatures\": true, \"require_quality\": true},\n    \"partially_compliant\"\
+    : {\"min_coverage\": 50, \"require_signatures\": false, \"require_quality\": false},\n    \"non_compliant\"\
+    : {}\n  }\n}\n"
+  fixture-0004: "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages\
+    \ /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]\
+    \ /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n4 0 obj\n<< /Length 104 >>\n\
+    stream\nBT /F1 12 Tf 50 740 Td (ServiceComposeBench-ETL sample: document_image_compliance_packet:nominal)\
+    \ Tj ET\nendstream\nendobj\n5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n\
+    xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000241\
+    \ 00000 n \n0000000395 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n465\n%%EOF\n"
+binaryData:
+  fixture-0005: iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGklEQVR42mN49bnhPyWYYdSAUQNGDRguBgAAZG1cLoL4wdkAAAAASUVORK5CYII=

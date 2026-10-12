@@ -1,0 +1,46 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_parallel_thumbnail_generation
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: download_new_images
+  script: scripts/01_download_new_images.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: generate_small_thumbnail
+  script: scripts/02_generate_small_thumbnail.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - download_new_images
+- intent_id: generate_medium_thumbnail
+  script: scripts/03_generate_medium_thumbnail.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - download_new_images
+- intent_id: generate_large_thumbnail
+  script: scripts/04_generate_large_thumbnail.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - download_new_images
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

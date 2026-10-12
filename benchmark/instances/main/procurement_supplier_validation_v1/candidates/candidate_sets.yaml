@@ -1,0 +1,36 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:procurement_supplier_validation_v1
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_procurement_supplier_validation_v1_csv_to_structured_json_table_formatter_candidates
+  source_step_refs:
+  - load_and_modify_suppliers
+  service_ids:
+  - csv_to_structured_json_table_formatter
+  - csv_to_structured_json_standardizer
+  - csv_tabular_schema_validating_loader
+  - customer_segment_csv_loader
+  - delimited_file_tabular_dataset_loader
+  - legacy_csv_schema_validator
+- candidate_set_id: main_procurement_supplier_validation_v1_wikidata_entity_reconciliation_transformer_candidates
+  source_step_refs:
+  - reconcile_supplier_entities
+  service_ids:
+  - wikidata_entity_reconciliation_transformer
+  - tabular_entity_reconciliation_enricher
+  - tabular_http_property_extension_enricher
+  - graphql_json_operation_executor
+  - http_json_request_extractor
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_procurement_supplier_validation_v1_structured_json_to_csv_exporter_candidates
+  source_step_refs:
+  - save_validated_suppliers
+  service_ids:
+  - structured_json_to_csv_exporter
+  - tabular_query_result_csv_writer
+  - structured_json_batch_to_csv_exporter
+  - validated_parquet_to_csv_report_exporter
+  - csv_to_structured_json_standardizer
+  - reviewed_domain_adapter

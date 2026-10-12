@@ -1,0 +1,163 @@
+schema_version: 0.1.0
+service_id: email_attachment_notification_sender
+version: 1.0.0
+display_name: Email Attachment Notification Sender
+category: Notifier
+capability:
+  summary: Sends a templated email with one or more artifact attachments through a
+    bound email service and emits delivery status.
+  operations:
+  - Resolve a bound email service resource.
+  - Validate recipient list, subject, message body, and attachment readability.
+  - Send an email with configured HTML or text body and attached artifacts.
+  - Emit notification delivery status including sent flag, recipient count, attachment
+    count, and diagnostics.
+  keywords:
+  - email
+  - notification
+  - attachments
+  - csv report
+  - pdf report
+  - delivery status
+  limitations:
+  - Does not implement workflow failure hooks or retry policy.
+  - Repeated invocations may send duplicate emails.
+  - Requires caller to bind an approved email service resource and attachment artifacts.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: email_service
+    description: External email or SMTP service used to deliver the message.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://email_service_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: attachments
+    description: Report artifacts to attach to the email, such as CSV and PDF files.
+    channel: artifact
+    data_type: any
+    media_type: application/octet-stream
+    schema_ref: schema://email_attachment_file_references/v1
+    required: true
+    cardinality: many
+    sensitivity: financial
+  outputs:
+  - name: notification_status
+    description: Email delivery status including sent flag, recipients, subject, attachment
+      count, provider message reference when available, and errors.
+    channel: artifact
+    data_type: notification
+    media_type: application/json
+    schema_ref: schema://email_attachment_notification_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: to
+    description: Recipient address list as a comma-separated string or array-compatible
+      value.
+    type: string
+    required: true
+  - name: subject
+    description: Email subject line after workflow binding renders any date variables.
+    type: string
+    required: true
+  - name: html_body
+    description: HTML body content or template for the email.
+    type: string
+    required: false
+  - name: text_body
+    description: Optional plain-text body content or template.
+    type: string
+    required: false
+  secrets: []
+contracts:
+- contract_id: email_attachment_recipient_contract
+  type: precondition
+  applies_to: parameter
+  target: to
+  description: At least one recipient address must be provided.
+  expression: count(parse_email_recipients(to)) > 0
+- contract_id: email_attachment_readable_contract
+  type: precondition
+  applies_to: input
+  target: attachments
+  description: All configured attachments must be readable before send attempt.
+  expression: length(attachments) > 0 and all(readable(a) for a in attachments)
+- contract_id: email_attachment_notification_status_schema
+  type: json_schema
+  applies_to: output
+  target: notification_status
+  description: Notification output exposes delivery attempt and attachment counts.
+  schema_ref: schema://email_attachment_notification_status/v1
+  expression: '{"type":"object","required":["sent","recipients","subject","attachment_count"],"properties":{"sent":{"type":"boolean"},"recipients":{"type":"array","items":{"type":"string"}},"subject":{"type":"string"},"attachment_count":{"type":"integer","minimum":0},"message_id":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: email_attachment_sender_effect
+  type: effect
+  applies_to: service
+  target: email_attachment_notification_sender
+  description: On successful delivery attempt, notification_status.sent is true and
+    attachment_count equals the number of bound attachments.
+  expression: notification_status.sent == true implies notification_status.attachment_count
+    == length(attachments)
+invocation:
+  type: argo_workflow_template
+  template_name: email-attachment-notification-sender-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.email_attachment_notification_sender
+  implementation_ref: services/implementations/email_attachment_notification_sender
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - email://*
+  - smtp://*
+  - https://*
+  secret_access: required
+  retry_safe: false
+  idempotency: non_idempotent
+  data_sensitivity:
+  - internal
+  - pii
+  - financial
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit email credentials in status or logs.
+  - Recipient addresses may be personal/internal data.
+  - Attachments may contain financial business data and should not be logged as raw
+    contents.
+  - Status output is required so workflow validation can observe the notifier effect.
+  idempotency_notes: Retries can send duplicate emails unless the email provider or
+    workflow supplies an idempotency key.
+  default_timeout_seconds: 120
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:daily_sales_report#email_sales_report
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The source step requires attached CSV and PDF artifacts; the existing
+    email sender service does not model attachment inputs or attachment-count effects.'
+  - 'Evidence status: explicit.'

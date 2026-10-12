@@ -1,0 +1,83 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__observability_metrics_incident_digest.py
+- Name: Observability Metrics Incident Digest
+- Purpose: Summarize finite observability windows and attach incident context for operators.
+- Execution model: bounded batch
+- Extension track: time_series_sensor_window
+- Topology pattern: windowed_batch
+- Complexity band: medium
+- Business domain: AI Platform Operations
+- Input modalities: time_series, json, text
+- Output modalities: alert_digest, json, table
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- metrics JSONL export
+- incident ticket CSV
+- service catalog JSON
+
+External Systems:
+- observability export bucket (fixture-backed; no production system is contacted)
+- incident digest store (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_bounded_events -> validate_checkpoint_inputs
+  - validate_checkpoint_inputs -> sort_and_deduplicate_records
+  - sort_and_deduplicate_records -> build_analysis_windows
+  - build_analysis_windows -> compute_window_metrics
+  - compute_window_metrics -> align_time_index
+  - align_time_index -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_bounded_events - Ingest Bounded Events
+  - Objective: Ingest a finite event, log, sensor, or snapshot batch for observability metric incident windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_checkpoint_inputs - Validate Checkpoint Inputs
+  - Objective: Validate batch boundaries, checkpoint references, and required identifiers for observability metric incident windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. sort_and_deduplicate_records - Sort And Deduplicate Records
+  - Objective: Sort and deduplicate records before window or checkpoint processing for observability metric incident windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. build_analysis_windows - Build Analysis Windows
+  - Objective: Build deterministic windows, sessions, or snapshot intervals for observability metric incident windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. compute_window_metrics - Compute Window Metrics
+  - Objective: Compute metrics, state transitions, or anomaly features for observability metric incident windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. align_time_index - Align Time Index
+  - Objective: Align timestamps, station/device identities, and calendar boundaries for observability metric incident windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. publish_outputs - Publish Outputs
+  - Objective: Publish the bounded-window observability metric incident windows outputs and checkpoint manifest.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

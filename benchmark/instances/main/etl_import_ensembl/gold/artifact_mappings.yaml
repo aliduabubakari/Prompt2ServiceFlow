@@ -1,0 +1,15 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:etl_import_ensembl
+mappings:
+- intent_id: file
+  inputs:
+    delimited_file: ensembl_csv
+  outputs:
+    tabular_dataset: ensembl_dataset
+    load_status: ingest_status
+- intent_id: table
+  inputs:
+    ingested_data_object: ensembl_data_obj
+    target_database: db_resource
+  outputs:
+    load_status: load_status

@@ -1,0 +1,121 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_supply_chain_exception_management
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: wait_for_supplier_feeds
+  script: scripts/01_wait_for_supplier_feeds.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: ingest_inventory
+  script: scripts/02_ingest_inventory.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - wait_for_supplier_feeds
+- intent_id: ingest_shipments
+  script: scripts/03_ingest_shipments.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - wait_for_supplier_feeds
+- intent_id: ingest_weather_alerts
+  script: scripts/04_ingest_weather_alerts.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - wait_for_supplier_feeds
+- intent_id: ingest_supplier_capacity
+  script: scripts/05_ingest_supplier_capacity.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - wait_for_supplier_feeds
+- intent_id: harmonize_supply_state
+  script: scripts/06_harmonize_supply_state.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - ingest_inventory
+  - ingest_shipments
+  - ingest_weather_alerts
+  - ingest_supplier_capacity
+- intent_id: detect_disruption_risk
+  script: scripts/07_detect_disruption_risk.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - harmonize_supply_state
+- intent_id: route_exception_severity
+  script: scripts/08_route_exception_severity.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - detect_disruption_risk
+- intent_id: generate_response_plan
+  script: scripts/09_generate_response_plan.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_exception_severity
+- intent_id: publish_operations_dashboard
+  script: scripts/10_publish_operations_dashboard.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_exception_severity
+- intent_id: notify_regional_teams
+  script: scripts/11_notify_regional_teams.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - generate_response_plan
+- intent_id: archive_exception_snapshot
+  script: scripts/12_archive_exception_snapshot.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - publish_operations_dashboard
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

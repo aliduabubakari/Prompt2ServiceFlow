@@ -1,0 +1,240 @@
+{
+  "spec_version": "1.0",
+  "pipeline_id": "genomics_qc_fanout",
+  "pipeline_name": "Genomics Quality-Control Fan-out",
+  "source": {
+    "unique_key": null,
+    "repo": "prompt2serviceflow-diversity-v1",
+    "file_path": "synthetic/genomics_qc_fanout.py",
+    "repo_url": null,
+    "detected_airflow_version": "2.x",
+    "sampled_version": null,
+    "sampled_commit": null,
+    "sampled_time": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Synthetic data-preparation workflow for Science/Biotechnology",
+    "business_domain": "Science/Biotechnology",
+    "execution_model": "batch",
+    "topology_pattern": "fan_out",
+    "notes": "Synthetic Diversity-40 source package."
+  },
+  "schedule": {
+    "schedule_type": "manual",
+    "schedule_expression": null,
+    "timezone": null,
+    "start_date": null,
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "extract_source",
+        "to": "validate_schema"
+      },
+      {
+        "from": "validate_schema",
+        "to": "profile_records"
+      },
+      {
+        "from": "validate_schema",
+        "to": "enrich_reference"
+      },
+      {
+        "from": "validate_schema",
+        "to": "score_records"
+      },
+      {
+        "from": "profile_records",
+        "to": "publish_dataset"
+      },
+      {
+        "from": "enrich_reference",
+        "to": "publish_dataset"
+      },
+      {
+        "from": "score_records",
+        "to": "publish_dataset"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "group_id": "analysis_fanout",
+        "steps": [
+          "profile_records",
+          "enrich_reference",
+          "score_records"
+        ]
+      }
+    ],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "object_storage",
+      "name": "Fixture-backed object storage",
+      "identifier": "synthetic://diversity-v1",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "raw_input.csv",
+        "description": "Synthetic tabular input"
+      },
+      {
+        "identifier": "prepared_output.parquet",
+        "description": "Synthetic prepared output"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "extract_source",
+      "name": "extract_source",
+      "objective": "Extract the source dataset into a raw tabular artifact.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "validate_schema",
+      "name": "validate_schema",
+      "objective": "Validate required columns, formats, and record identity.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "profile_records",
+      "name": "profile_records",
+      "objective": "Produce the profile records artifact.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "enrich_reference",
+      "name": "enrich_reference",
+      "objective": "Produce the enrich reference artifact.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "score_records",
+      "name": "score_records",
+      "objective": "Produce the score records artifact.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_dataset",
+      "name": "publish_dataset",
+      "objective": "Publish branch outputs with completion status.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:payment_ledger_reconciliation
+bindings:
+- intent_id: ingest_source_batch
+  service_id: api_table_source_bundle_ingestor
+  service_version: 1.0.0
+- intent_id: validate_source_contract
+  service_id: api_table_source_contract_validator
+  service_version: 1.0.0
+- intent_id: flatten_nested_payloads
+  service_id: nested_json_payload_flattener
+  service_version: 1.0.0
+- intent_id: join_tabular_reference_data
+  service_id: api_table_reference_joiner
+  service_version: 1.0.0
+- intent_id: reconcile_conflicting_values
+  service_id: api_table_conflict_reconciler
+  service_version: 1.0.0
+- intent_id: evaluate_policy_or_risk
+  service_id: api_table_policy_risk_decider
+  service_version: 1.0.0
+- intent_id: route_approved_records
+  service_id: api_table_approved_record_router
+  service_version: 1.0.0
+- intent_id: route_exception_records
+  service_id: api_table_exception_review_router
+  service_version: 1.0.0
+- intent_id: merge_route_outcomes
+  service_id: api_table_route_outcome_merger
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: api_table_output_bundle_publisher
+  service_version: 1.0.0

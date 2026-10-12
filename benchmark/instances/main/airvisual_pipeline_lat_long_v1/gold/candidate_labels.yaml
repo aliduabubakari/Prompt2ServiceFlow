@@ -1,0 +1,30 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:airvisual_pipeline_lat_long_v1
+candidate_sets:
+  - candidate_set_id: main_airvisual_pipeline_lat_long_v1_airvisual_nearest_city_json_extractor_candidates
+    required_service_id: airvisual_nearest_city_json_extractor
+    labels:
+      airvisual_nearest_city_json_extractor: gold
+      http_json_request_extractor: contract_mismatch
+      http_api_request_artifact_extractor: format_mismatch
+      openmeteo_historical_weather_tabular_enricher: target_mismatch
+      graphql_json_operation_executor: target_mismatch
+      open_network_http_json_requester: policy_incompatible
+  - candidate_set_id: main_airvisual_pipeline_lat_long_v1_airvisual_json_response_validator_candidates
+    required_service_id: airvisual_json_response_validator
+    labels:
+      airvisual_json_response_validator: gold
+      json_field_projection_transformer: semantic_mismatch
+      csv_tabular_schema_validating_loader: format_mismatch
+      air_quality_dimensional_postgres_loader: policy_incompatible
+      http_json_request_extractor: semantic_mismatch
+      reviewed_python_udf_transformer: generic_escape_hatch
+  - candidate_set_id: main_airvisual_pipeline_lat_long_v1_air_quality_dimensional_postgres_loader_candidates
+    required_service_id: air_quality_dimensional_postgres_loader
+    labels:
+      air_quality_dimensional_postgres_loader: gold
+      postgres_parameterized_sql_executor: contract_mismatch
+      tabular_dataset_database_loader: format_mismatch
+      postgres_sql_file_executor: missing_required_output
+      snowflake_ctas_atomic_table_replacer: target_mismatch
+      unreviewed_postgres_sql_executor: policy_incompatible

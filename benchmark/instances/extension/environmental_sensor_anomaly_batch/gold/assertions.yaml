@@ -1,0 +1,77 @@
+assertions_version: 0.1.0
+pipeline_id: environmental_sensor_anomaly_batch
+scenarios:
+- scenario: nominal
+  assertions:
+  # Ingest
+  - assertion_id: ingest_succeeds
+    type: json_path_equals
+    path: artifacts/ingest_bounded_events_status.json
+    json_path: success
+    expected: true
+  - assertion_id: ingest_event_count
+    type: json_path_equals
+    path: artifacts/ingest_bounded_events_status.json
+    json_path: events_ingested
+    expected: 15
+
+  # Validation: STN_DELTA rejected (not in station metadata)
+  - assertion_id: validate_rejected_count
+    type: json_path_equals
+    path: artifacts/validate_checkpoint_inputs_status.json
+    json_path: rejected
+    expected: 2
+  - assertion_id: validate_valid_count
+    type: json_path_equals
+    path: artifacts/validate_checkpoint_inputs_status.json
+    json_path: valid
+    expected: 13
+
+  # Dedup: S008 duplicated
+  - assertion_id: dedup_removed
+    type: json_path_equals
+    path: artifacts/sort_and_deduplicate_records_status.json
+    json_path: duplicates_removed
+    expected: 1
+
+  # Metrics: anomaly detection
+  - assertion_id: metrics_succeed
+    type: json_path_equals
+    path: artifacts/compute_window_metrics_status.json
+    json_path: success
+    expected: true
+  - assertion_id: metrics_has_warnings
+    type: json_path_gte
+    path: artifacts/compute_window_metrics_artifact.json
+    json_path: summary.warning_windows
+    minimum: 1
+  - assertion_id: metrics_has_criticals
+    type: json_path_gte
+    path: artifacts/compute_window_metrics_artifact.json
+    json_path: summary.critical_windows
+    minimum: 0
+
+  # Time alignment
+  - assertion_id: align_succeeds
+    type: json_path_equals
+    path: artifacts/align_time_index_status.json
+    json_path: success
+    expected: true
+
+  # Publish
+  - assertion_id: publish_succeeds
+    type: json_path_equals
+    path: artifacts/publish_outputs_status.json
+    json_path: success
+    expected: true
+  - assertion_id: alert_digest_exists
+    type: file_exists
+    path: artifacts/alert_digest.json
+  - assertion_id: csv_exported
+    type: file_exists
+    path: artifacts/aligned_metrics.csv
+  - assertion_id: checkpoint_completed
+    type: json_path_equals
+    path: artifacts/checkpoint_manifest.json
+    json_path: status
+    expected: completed

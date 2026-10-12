@@ -1,0 +1,570 @@
+ir_version: 0.1.0
+composition_id: regulatory_report_router
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:regulatory_report_router
+  split: main
+  pipeline_id: regulatory_report_router
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/35_regulatory_report_router.txt
+  description_sha256: 4911d399e715de60df2922c7c8d0bd7024b88dde0775d3512e20b1c2be2645a5
+  internal_spec_path: source/internal_specs/main_40/35_regulatory_report_router.json
+  internal_spec_sha256: b4bc7264d58f274af23ba4c3c36740de8f0bb5091b8011f2a3dd047f8462350f
+requirement:
+  name: Regulatory Report Router
+  purpose: Read financial transactions CSV, route international accounts to FATCA reporting and domestic
+    accounts to IRS reporting, then archive all reports.
+  domain: finance
+  execution_model: batch
+  topology: branch_merge
+  information_sufficiency: high
+  notes:
+  - FATCA for international accounts, IRS for domestic. Reports merged at archive step.
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: source_filesystem
+  type: filesystem
+  name: CSV file storage
+  identifier: /data
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: archive_storage
+  type: object_storage
+  name: Secure archive
+  identifier: reports-archive
+  access_mode: write
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: read_csv
+  name: Read transactions CSV
+  category: Extractor
+  capability: Parse the financial transactions CSV with validated columns.
+  source_step_refs:
+  - read_csv
+  evidence:
+  - source: description
+    text: Read CSV file with financial transactions.
+  inputs:
+  - transaction_csv
+  outputs:
+  - transaction_dataset
+  - read_status
+  external_system_refs:
+  - source_filesystem
+  preconditions:
+  - Readable transactions CSV with expected columns.
+  effects:
+  - Structured transaction dataset and read status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: Source step reads and parses the financial CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: account_check
+  name: Check account type and route
+  category: Transformer
+  capability: "Determine routing based on account_type column (international \u2192 FATCA, domestic \u2192\
+    \ IRS)."
+  source_step_refs:
+  - account_check
+  evidence:
+  - source: description
+    text: Determine routing based on account type.
+  inputs:
+  - transaction_dataset
+  outputs:
+  - routing_decision
+  external_system_refs: []
+  preconditions:
+  - Transaction dataset with account_type column.
+  effects:
+  - Routing decision emitted with branch label.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step is the explicit branch decision point.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: route_to_fatca
+  name: Generate FATCA report
+  category: ReportGenerator
+  capability: Generate FATCA regulatory report for international accounts.
+  source_step_refs:
+  - route_to_fatca
+  evidence:
+  - source: description
+    text: Process FATCA regulatory reporting for international accounts.
+  inputs:
+  - transaction_dataset
+  - routing_decision
+  outputs:
+  - fatca_report
+  - fatca_report_status
+  external_system_refs: []
+  preconditions:
+  - Routing decision selects FATCA.
+  effects:
+  - FATCA report text and status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step generates FATCA-specific regulatory report.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: route_to_irs
+  name: Generate IRS report
+  category: ReportGenerator
+  capability: Generate IRS regulatory report for domestic accounts.
+  source_step_refs:
+  - route_to_irs
+  evidence:
+  - source: description
+    text: Process IRS regulatory reporting for domestic accounts.
+  inputs:
+  - transaction_dataset
+  - routing_decision
+  outputs:
+  - irs_report
+  - irs_report_status
+  external_system_refs: []
+  preconditions:
+  - Routing decision selects IRS.
+  effects:
+  - IRS report text and status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step generates IRS-specific regulatory report.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: archive_reports
+  name: Archive all regulatory reports
+  category: Loader
+  capability: Archive the generated regulatory reports to secure object storage.
+  source_step_refs:
+  - archive_reports
+  evidence:
+  - source: description
+    text: Archive all regulatory reports.
+  inputs:
+  - archive_input
+  - archive_destination
+  outputs:
+  - archive_object
+  - archive_status
+  external_system_refs:
+  - archive_storage
+  preconditions:
+  - At least one regulatory report generated.
+  effects:
+  - Archive object and status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step archives all reports at the merge point.
+  confidence: explicit
+  ambiguity:
+    status: resolved
+    notes:
+    - Mock writes archive to filesystem-backed destination.
+control_flow:
+  edges:
+  - from: read_csv
+    to: account_check
+  - from: account_check
+    to: route_to_fatca
+    condition: routing_decision.route == fatca
+  - from: account_check
+    to: route_to_irs
+    condition: routing_decision.route == irs
+  - from: route_to_fatca
+    to: archive_reports
+  - from: route_to_irs
+    to: archive_reports
+  parallel_groups: []
+  branches:
+  - branch_id: regulatory_route
+    decision_intent: account_check
+    decision_artifact: routing_decision
+    cases:
+    - case_id: fatca
+      condition: routing_decision.route == fatca
+      next_intents:
+      - route_to_fatca
+    - case_id: irs
+      condition: routing_decision.route == irs
+      next_intents:
+      - route_to_irs
+    merge_intent: archive_reports
+  gates: []
+artifacts:
+- artifact_id: transaction_csv
+  name: Financial transactions CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - read_csv
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/transactions_international.csv
+  external_system_ref: source_filesystem
+- artifact_id: transaction_dataset
+  name: Transaction dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/tabular.schema.json
+  role: intermediate
+  producer: read_csv
+  consumers:
+  - account_check
+  - route_to_fatca
+  - route_to_irs
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: read_status
+  name: Read status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: read_csv
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: routing_decision
+  name: Routing decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  schema_ref: contracts/artifacts/routing_decision.schema.json
+  role: decision
+  producer: account_check
+  consumers:
+  - route_to_fatca
+  - route_to_irs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: fatca_report
+  name: FATCA report
+  kind: artifact
+  data_type: text
+  media_type: text/plain
+  schema_ref: contracts/artifacts/regulatory_report.schema.json
+  role: intermediate
+  producer: route_to_fatca
+  consumers: []
+  sensitivity: confidential
+  persistence: release
+- artifact_id: fatca_report_status
+  name: FATCA report status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: route_to_fatca
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: irs_report
+  name: IRS report
+  kind: artifact
+  data_type: text
+  media_type: text/plain
+  schema_ref: contracts/artifacts/regulatory_report.schema.json
+  role: intermediate
+  producer: route_to_irs
+  consumers: []
+  sensitivity: confidential
+  persistence: release
+- artifact_id: irs_report_status
+  name: IRS report status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: route_to_irs
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: archive_input
+  name: Archive input reports
+  kind: artifact
+  data_type: any
+  media_type: application/octet-stream
+  role: intermediate
+  producer: null
+  consumers:
+  - archive_reports
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: archive_destination
+  name: Archive destination
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - archive_reports
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/archive_destination.json
+  external_system_ref: archive_storage
+- artifact_id: archive_object
+  name: Archive object
+  kind: artifact
+  data_type: binary
+  media_type: application/octet-stream
+  role: output
+  producer: archive_reports
+  consumers: []
+  sensitivity: confidential
+  persistence: release
+- artifact_id: archive_status
+  name: Archive status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: archive_reports
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: read_csv
+  service_id: delimited_file_tabular_dataset_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: delimited_file
+    artifact_id: transaction_csv
+  output_bindings:
+  - port: tabular_dataset
+    artifact_id: transaction_dataset
+  - port: load_status
+    artifact_id: read_status
+  parameter_bindings:
+    required_columns:
+    - transaction_id
+    - account_type
+    - amount
+    - currency
+    has_header: true
+  secret_bindings: []
+  rationale: Parses the financial transactions CSV.
+  confidence: explicit
+- intent_id: account_check
+  service_id: financial_account_type_regulatory_route_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: transaction_dataset
+    artifact_id: transaction_dataset
+  output_bindings:
+  - port: routing_decision
+    artifact_id: routing_decision
+  parameter_bindings:
+    account_type_column: account_type
+    international_values:
+    - international
+    domestic_values:
+    - domestic
+    fatca_route_label: fatca
+    irs_route_label: irs
+  secret_bindings: []
+  rationale: Routes based on account type to FATCA or IRS.
+  confidence: explicit
+- intent_id: route_to_fatca
+  service_id: financial_transaction_regulatory_report_generator
+  service_version: 1.0.0
+  input_bindings:
+  - port: transaction_dataset
+    artifact_id: transaction_dataset
+  - port: routing_decision
+    artifact_id: routing_decision
+  output_bindings:
+  - port: regulatory_report
+    artifact_id: fatca_report
+  - port: report_status
+    artifact_id: fatca_report_status
+  parameter_bindings:
+    report_profile: fatca
+    account_type_column: account_type
+    account_type_values:
+    - international
+    output_path: /workspace/artifacts/fatca_report.txt
+    fail_if_route_not_selected: true
+  secret_bindings: []
+  rationale: Generates FATCA report for international accounts.
+  confidence: explicit
+- intent_id: route_to_irs
+  service_id: financial_transaction_regulatory_report_generator
+  service_version: 1.0.0
+  input_bindings:
+  - port: transaction_dataset
+    artifact_id: transaction_dataset
+  - port: routing_decision
+    artifact_id: routing_decision
+  output_bindings:
+  - port: regulatory_report
+    artifact_id: irs_report
+  - port: report_status
+    artifact_id: irs_report_status
+  parameter_bindings:
+    report_profile: irs_1099
+    account_type_column: account_type
+    account_type_values:
+    - domestic
+    output_path: /workspace/artifacts/irs_report.txt
+    fail_if_route_not_selected: true
+  secret_bindings: []
+  rationale: Generates IRS report for domestic accounts.
+  confidence: explicit
+- intent_id: archive_reports
+  service_id: report_artifact_object_storage_archiver
+  service_version: 1.0.0
+  input_bindings:
+  - port: report_artifacts
+    artifact_id: archive_input
+  - port: archive_destination
+    artifact_id: archive_destination
+  output_bindings:
+  - port: archive_object
+    artifact_id: archive_object
+  - port: archive_status
+    artifact_id: archive_status
+  parameter_bindings:
+    archive_format: zip
+    destination_prefix: regulatory-reports
+    archive_name: reports_20240115
+  secret_bindings: []
+  rationale: Archives all generated regulatory reports to secure storage.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides:
+  - intent_id: archive_reports
+    retries: 2
+    timeout_seconds: 300
+    network_access: required
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock archive writes to filesystem-backed destination.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All five source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Five exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Branching Argo DAG and CronWorkflow compile
+- gate: G5
+  expected_status: pass
+  checks:
+  - FATCA and IRS scenarios execute
+- gate: G6
+  expected_status: pass
+  checks:
+  - Both branch-specific outcome sets hold
+source_step_accounting:
+- source_step_ref: read_csv
+  disposition: service
+  intent_ids:
+  - read_csv
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: account_check
+  disposition: service
+  intent_ids:
+  - account_check
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: route_to_fatca
+  disposition: service
+  intent_ids:
+  - route_to_fatca
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: route_to_irs
+  disposition: service
+  intent_ids:
+  - route_to_irs
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: archive_reports
+  disposition: service
+  intent_ids:
+  - archive_reports
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

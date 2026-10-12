@@ -1,0 +1,34 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_batch_model_scoring
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.0
+candidate_sets:
+- candidate_set_id: validation_val_batch_model_scoring_feature_store_table_extractor_candidates
+  source_step_refs:
+  - load_feature_table
+  service_ids:
+  - feature_store_table_extractor
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_batch_model_scoring_model_registry_artifact_fetcher_candidates
+  source_step_refs:
+  - load_model_artifact
+  service_ids:
+  - model_registry_artifact_fetcher
+  - temporary_resource_cleanup
+  - csv_to_structured_json_standardizer
+- candidate_set_id: validation_val_batch_model_scoring_tabular_model_scorer_candidates
+  source_step_refs:
+  - score_customers
+  service_ids:
+  - tabular_model_scorer
+  - csv_to_structured_json_standardizer
+  - tabular_dataset_database_loader
+- candidate_set_id: validation_val_batch_model_scoring_prediction_table_database_loader_candidates
+  source_step_refs:
+  - write_predictions
+  service_ids:
+  - prediction_table_database_loader
+  - tabular_dataset_database_loader
+  - http_json_request_extractor

@@ -1,0 +1,21 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:hive_script
+candidate_sets:
+- candidate_set_id: main_hive_script_temporary_resource_cleanup_candidates
+  required_service_id: temporary_resource_cleanup
+  labels:
+    temporary_resource_cleanup: gold
+    filesystem_retention_cleanup_with_lock: contract_mismatch
+    redis_key_cleanup: target_mismatch
+    database_expired_session_cleanup: target_mismatch
+    airflow_metadata_retention_cleaner: target_mismatch
+    dataset_quarantine_zone_writer: semantic_mismatch
+- candidate_set_id: main_hive_script_hive_hql_script_executor_candidates
+  required_service_id: hive_hql_script_executor
+  labels:
+    hive_hql_script_executor: gold
+    postgres_parameterized_sql_executor: target_mismatch
+    postgres_sql_file_executor: format_mismatch
+    snowflake_ctas_atomic_table_replacer: contract_mismatch
+    sql_query_readiness_sensor: semantic_mismatch
+    unreviewed_postgres_sql_executor: policy_incompatible

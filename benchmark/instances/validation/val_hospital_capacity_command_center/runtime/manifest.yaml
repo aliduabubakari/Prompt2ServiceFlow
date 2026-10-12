@@ -1,0 +1,103 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_hospital_capacity_command_center
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: wait_for_census_snapshot
+  script: scripts/01_wait_for_census_snapshot.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: extract_admissions
+  script: scripts/02_extract_admissions.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - wait_for_census_snapshot
+- intent_id: extract_bed_status
+  script: scripts/03_extract_bed_status.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - wait_for_census_snapshot
+- intent_id: extract_staffing_roster
+  script: scripts/04_extract_staffing_roster.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - wait_for_census_snapshot
+- intent_id: extract_discharge_forecast
+  script: scripts/05_extract_discharge_forecast.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - wait_for_census_snapshot
+- intent_id: merge_operational_state
+  script: scripts/06_merge_operational_state.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - extract_admissions
+  - extract_bed_status
+  - extract_staffing_roster
+  - extract_discharge_forecast
+- intent_id: compute_capacity_risk
+  script: scripts/07_compute_capacity_risk.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - merge_operational_state
+- intent_id: route_alert_level
+  script: scripts/08_route_alert_level.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - compute_capacity_risk
+- intent_id: publish_dashboard
+  script: scripts/09_publish_dashboard.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_alert_level
+- intent_id: send_escalation_alert
+  script: scripts/10_send_escalation_alert.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_alert_level
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

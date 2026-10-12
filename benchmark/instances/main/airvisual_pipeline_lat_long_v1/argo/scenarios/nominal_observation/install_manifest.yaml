@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airvisual-pipeline-lat-long-v1-nominal-observation-scripts
+  namespace: prompt2serviceflow
+data:
+  01_fetch_airvisual_data.py: "#!/usr/bin/env python3\n\"\"\"Fixture-backed mock of the AirVisual nearest-city\
+    \ extractor.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib\
+    \ import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    args = parser.parse_args()\n\n    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True,\
+    \ exist_ok=True)\n    response = json.loads(args.fixture.read_text(encoding=\"utf-8\"))\n    output_path\
+    \ = artifacts / \"raw_airvisual_response.json\"\n    output_path.write_text(json.dumps(response, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\")\n    status = {\n        \"action\": \"fetched\",\n        \"success\"\
+    : True,\n        \"duplicate_check_enabled\": True,\n        \"duplicate_found\": False,\n       \
+    \ \"endpoint_url\": \"http://api.airvisual.com/v2/nearest_city\",\n        \"http_status_code\": 200,\n\
+    \        \"latitude\": 13.79059242,\n        \"longitude\": 100.32622308,\n        \"city\": \"Salaya\"\
+    ,\n        \"state\": \"Nakhon Pathom\",\n        \"country\": \"Thailand\",\n        \"output_path\"\
+    : str(output_path),\n        \"error\": None,\n    }\n    (artifacts / \"extraction_status.json\"\
+    ).write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__\
+    \ == \"__main__\":\n    main()\n"
+  02_validate_airvisual_response.py: "#!/usr/bin/env python3\n\"\"\"Validate the required AirVisual nearest-city\
+    \ response fields.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom\
+    \ pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace\
+    \ / \"artifacts\"\n    response = json.loads((artifacts / \"raw_airvisual_response.json\").read_text(encoding=\"\
+    utf-8\"))\n    data = response.get(\"data\", {})\n    location = data.get(\"location\", {})\n    current\
+    \ = data.get(\"current\", {})\n    required = {\n        \"status\": response.get(\"status\"),\n \
+    \       \"city\": data.get(\"city\"),\n        \"state\": data.get(\"state\"),\n        \"country\"\
+    : data.get(\"country\"),\n        \"coordinates\": location.get(\"coordinates\"),\n        \"pollution\"\
+    : current.get(\"pollution\"),\n        \"weather\": current.get(\"weather\"),\n    }\n    missing\
+    \ = [name for name, value in required.items() if value in (None, \"\", [], {})]\n    valid = response.get(\"\
+    status\") == \"success\" and not missing\n    result = {\n        \"valid\": valid,\n        \"checked_schema\"\
+    : \"airvisual_nearest_city_response/v1\",\n        \"errors\": [] if valid else [\"Missing or invalid\
+    \ required fields\"],\n        \"missing_fields\": missing,\n        \"record_count\": 1 if valid\
+    \ else 0,\n    }\n    (artifacts / \"validation_result.json\").write_text(\n        json.dumps(result,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    if not valid:\n        raise SystemExit(\"AirVisual\
+    \ response failed validation\")\n    observation = {\n        \"city\": data[\"city\"],\n        \"\
+    state\": data[\"state\"],\n        \"country\": data[\"country\"],\n        \"coordinates\": location[\"\
+    coordinates\"],\n        \"pollution\": current[\"pollution\"],\n        \"weather\": current[\"weather\"\
+    ],\n        \"source_status\": response[\"status\"],\n    }\n    (artifacts / \"validated_airvisual_observation.json\"\
+    ).write_text(\n        json.dumps(observation, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\n\
+    if __name__ == \"__main__\":\n    main()\n"
+  03_load_airvisual_dimensional_model.py: "#!/usr/bin/env python3\n\"\"\"Filesystem-backed mock of the\
+    \ AirVisual dimensional PostgreSQL loader.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\n\
+    import json\nfrom pathlib import Path\n\n\nTABLES = [\n    \"factairvisualtable\",\n    \"dimDateTimeTable\"\
+    ,\n    \"dimLocationTable\",\n    \"dimMainPollutionTable\",\n]\n\n\ndef main() -> None:\n    parser\
+    \ = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--pollution-mapping\", type=Path, required=True)\n    parser.add_argument(\"\
+    --weather-mapping\", type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts =\
+    \ args.workspace / \"artifacts\"\n    observation = json.loads(\n        (artifacts / \"validated_airvisual_observation.json\"\
+    ).read_text(encoding=\"utf-8\")\n    )\n    pollution_mapping = json.loads(args.pollution_mapping.read_text(encoding=\"\
+    utf-8\"))\n    weather_mapping = json.loads(args.weather_mapping.read_text(encoding=\"utf-8\"))\n\
+    \    pollution = observation[\"pollution\"]\n    weather = observation[\"weather\"]\n    row = {\n\
+    \        \"timestamp\": pollution[\"ts\"],\n        \"city\": observation[\"city\"],\n        \"state\"\
+    : observation[\"state\"],\n        \"country\": observation[\"country\"],\n        \"longitude\":\
+    \ observation[\"coordinates\"][0],\n        \"latitude\": observation[\"coordinates\"][1],\n     \
+    \   \"aqius\": pollution[\"aqius\"],\n        \"main_pollution\": pollution_mapping[pollution[\"mainus\"\
+    ]],\n        \"temperature_c\": weather[\"tp\"],\n        \"weather\": weather_mapping[weather[\"\
+    ic\"]],\n    }\n    mock_database = args.workspace / \"mock_postgres\"\n    mock_database.mkdir(parents=True,\
+    \ exist_ok=True)\n    (mock_database / \"factairvisualtable.json\").write_text(\n        json.dumps([row],\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    loaded_tables = {\"tables\": [{\"name\": name,\
+    \ \"role\": \"fact\" if name.startswith(\"fact\") else \"dimension\"} for name in TABLES]}\n    (artifacts\
+    \ / \"loaded_tables.json\").write_text(\n        json.dumps(loaded_tables, indent=2) + \"\\n\", encoding=\"\
+    utf-8\"\n    )\n    status = {\n        \"success\": True,\n        \"tables\": TABLES,\n        \"\
+    rows_inserted\": 1,\n        \"rows_upserted\": 3,\n        \"rows_skipped\": 0,\n        \"duplicate_found\"\
+    : False,\n        \"errors\": [],\n    }\n    (artifacts / \"dimensional_load_status.json\").write_text(\n\
+    \        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"\
+    __main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airvisual-pipeline-lat-long-v1-nominal-observation-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"status\": \"success\",\n  \"data\": {\n    \"city\": \"Salaya\",\n    \"state\"\
+    : \"Nakhon Pathom\",\n    \"country\": \"Thailand\",\n    \"location\": {\n      \"type\": \"Point\"\
+    ,\n      \"coordinates\": [\n        100.32622308,\n        13.79059242\n      ]\n    },\n    \"current\"\
+    : {\n      \"pollution\": {\n        \"ts\": \"2026-06-01T08:00:00.000Z\",\n        \"aqius\": 42,\n\
+    \        \"mainus\": \"p2\",\n        \"aqicn\": 15,\n        \"maincn\": \"p2\"\n      },\n     \
+    \ \"weather\": {\n        \"ts\": \"2026-06-01T08:00:00.000Z\",\n        \"tp\": 31,\n        \"pr\"\
+    : 1008,\n        \"hu\": 64,\n        \"ws\": 2.1,\n        \"wd\": 180,\n        \"ic\": \"01d\"\n\
+    \      }\n    }\n  }\n}\n"
+  fixture-0001: "{\n  \"pipeline_id\": \"airvisual_pipeline_lat_long_v1\",\n  \"inputs\": {\n    \"postgres_resource\"\
+    : \"postgres_resource.json\",\n    \"airvisual_response\": \"airvisual_response.json\",\n    \"weather_mapping\"\
+    : \"weather_mapping.json\",\n    \"pollution_mapping\": \"pollution_mapping.json\"\n  },\n  \"input_modalities\"\
+    : [\n    \"json\",\n    \"table\"\n  ],\n  \"systems\": [\n    \"system_a\",\n    \"system_b\"\n \
+    \ ]\n}"
+  fixture-0002: "{\n  \"p1\": \"PM10\",\n  \"p2\": \"PM2.5\",\n  \"o3\": \"Ozone\"\n}\n"
+  fixture-0003: "{\n  \"driver\": \"filesystem-mock\",\n  \"target\": \"mock_postgres\"\n}\n"
+  fixture-0004: "{\n  \"01d\": \"Clear day\",\n  \"02d\": \"Partly cloudy day\",\n  \"10d\": \"Rain\"\n\
+    }\n"

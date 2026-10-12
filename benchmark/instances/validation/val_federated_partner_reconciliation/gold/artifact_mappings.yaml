@@ -1,0 +1,68 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_federated_partner_reconciliation
+mappings:
+- intent_id: wait_for_partner_extracts
+  inputs:
+    resource_group: partner_resources
+  outputs:
+    readiness_decision: partner_ready
+    readiness_status: partner_ready_status
+- intent_id: ingest_partner_a
+  inputs:
+    partner_source: partner_resources
+  outputs:
+    partner_extract: partner_a_extract
+    extraction_status: partner_a_status
+- intent_id: ingest_partner_b
+  inputs:
+    partner_source: partner_resources
+  outputs:
+    partner_extract: partner_b_extract
+    extraction_status: partner_b_status
+- intent_id: ingest_partner_c
+  inputs:
+    partner_source: partner_resources
+  outputs:
+    partner_extract: partner_c_extract
+    extraction_status: partner_c_status
+- intent_id: standardize_records
+  inputs:
+    partner_a_extract: partner_a_extract
+    partner_b_extract: partner_b_extract
+    partner_c_extract: partner_c_extract
+  outputs:
+    standardized_records: standardized_records
+    standardization_status: standardization_status
+- intent_id: match_entities
+  inputs:
+    standardized_records: standardized_records
+  outputs:
+    clean_records: clean_records
+    discrepancy_records: discrepancy_records
+    match_status: match_status
+- intent_id: route_discrepancies
+  inputs:
+    clean_records: clean_records
+    discrepancy_records: discrepancy_records
+  outputs:
+    route_decision: discrepancy_route
+    routing_status: discrepancy_routing_status
+- intent_id: publish_clean_records
+  inputs:
+    clean_records: clean_records
+  outputs:
+    publication_status: clean_publication_status
+- intent_id: open_review_cases
+  inputs:
+    review_records: discrepancy_records
+    case_system: review_case_system
+  outputs:
+    review_cases: review_cases
+    case_status: review_case_status
+- intent_id: write_reconciliation_audit
+  inputs:
+    primary_status: clean_publication_status
+    secondary_status: review_case_status
+  outputs:
+    audit_report: audit_report
+    audit_status: audit_status

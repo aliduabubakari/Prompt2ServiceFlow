@@ -1,0 +1,25 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: hive_script
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: run_after_loop
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - loop
+- intent_id: hive_script_task
+  script: scripts/01_run.py
+  dependencies:
+  - run_after_loop
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - hive
+scenarios:
+- name: run
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal

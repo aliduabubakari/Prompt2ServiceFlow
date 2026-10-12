@@ -1,0 +1,114 @@
+Pipeline Summary:
+- Pipeline ID: diversity-v1__renewable_forecast_command_center.py
+- Name: renewable_forecast_command_center
+- Purpose: Renewable Forecast Command Center is a synthetic data-preparation workflow for Environmental/Energy.
+- Execution model: batch
+- Topology pattern: staged
+- Business domain: Environmental/Energy
+- Notes: Synthetic Diversity-40 source; use only as benchmark input and not as hidden gold evidence.
+
+Control Flow:
+- Dependencies (directed edges):
+  - extract_source -> validate_schema
+  - validate_schema -> stage_raw_data
+  - stage_raw_data -> transform_stage
+  - transform_stage -> quality_gate
+  - quality_gate -> publish_dataset
+  - validate_schema -> audit_enrichment_1
+  - validate_schema -> audit_enrichment_2
+  - validate_schema -> audit_enrichment_3
+  - validate_schema -> audit_enrichment_4
+  - validate_schema -> audit_enrichment_5
+  - validate_schema -> audit_enrichment_6
+  - validate_schema -> audit_enrichment_7
+
+Data Artifacts / I-O Identifiers:
+- file: raw_input.csv (Synthetic input data)
+- file: prepared_output.parquet (Prepared output dataset)
+
+External Systems:
+- object_storage: Fixture-backed source and publication location
+
+Pipeline Steps:
+1. extract_source — extract_source
+  - Objective: Extract the source dataset into a raw tabular artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_schema — validate_schema
+  - Objective: Validate required columns, formats, and record identity.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. stage_raw_data — stage_raw_data
+  - Objective: Persist validated data to an auditable staging area.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. transform_stage — transform_stage
+  - Objective: Transform staged records into the canonical data model.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. quality_gate — quality_gate
+  - Objective: Assess transformed data before promotion.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. audit_enrichment_1 — audit_enrichment_1
+  - Objective: Apply audited enrichment stage 1.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. audit_enrichment_2 — audit_enrichment_2
+  - Objective: Apply audited enrichment stage 2.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+8. audit_enrichment_3 — audit_enrichment_3
+  - Objective: Apply audited enrichment stage 3.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+9. audit_enrichment_4 — audit_enrichment_4
+  - Objective: Apply audited enrichment stage 4.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+10. audit_enrichment_5 — audit_enrichment_5
+  - Objective: Apply audited enrichment stage 5.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+11. audit_enrichment_6 — audit_enrichment_6
+  - Objective: Apply audited enrichment stage 6.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+12. audit_enrichment_7 — audit_enrichment_7
+  - Objective: Apply audited enrichment stage 7.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+13. publish_dataset — publish_dataset
+  - Objective: Promote approved records to the final dataset.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

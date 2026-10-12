@@ -1,0 +1,184 @@
+schema_version: 0.1.0
+service_id: csv_to_structured_json_table_formatter
+version: 1.0.0
+display_name: CSV to Structured JSON Table Formatter
+category: Transformer
+capability:
+  summary: Reads a CSV artifact, validates caller-configured table/date metadata,
+    formats rows into structured tabular JSON, and emits transform status.
+  operations:
+  - Read and parse a CSV artifact using configured delimiter/header behavior.
+  - Validate optional input filename pattern and configured date column presence.
+  - Attach dataset identifier, logical table name, and date-column metadata to the
+    structured output.
+  - Write structured tabular JSON rows and emit row-count/status diagnostics.
+  keywords:
+  - csv
+  - structured json
+  - tabular data
+  - date column
+  - table metadata
+  - product reviews
+  limitations:
+  - Does not perform language detection, sentiment scoring, or feature extraction.
+  - Does not infer business-specific column mappings unless supplied by parameters.
+  - Does not access Docker registries or manage container mounts.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: csv_file
+    description: Raw CSV artifact containing product review records.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://csv_file_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: structured_json
+    description: Structured tabular JSON containing columns, row objects, row count,
+      dataset id, logical table name, and date-column metadata when supplied.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://structured_tabular_json_with_table_metadata/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: transform_status
+    description: Observable status with parse success, rows read/written, output URI,
+      and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://csv_table_format_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: input_pattern
+    description: Expected input filename or pattern for deterministic binding.
+    type: string
+    required: false
+  - name: output_path
+    description: Deterministic output path or artifact name for the structured JSON.
+    type: string
+    required: true
+  - name: dataset_id
+    description: Logical dataset identifier to include in output metadata.
+    type: string
+    required: false
+  - name: table_name
+    description: Logical table name or prefix to include in output metadata.
+    type: string
+    required: false
+  - name: date_column
+    description: Input column containing record dates, validated for presence when
+      supplied.
+    type: string
+    required: false
+  - name: has_header
+    description: Whether the CSV contains a header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  secrets: []
+contracts:
+- contract_id: csv_table_formatter_input_readable
+  type: precondition
+  applies_to: input
+  target: csv_file
+  description: Input CSV must be readable and parseable using configured CSV parameters.
+  expression: readable(csv_file) and csv_parseable(csv_file, delimiter, has_header)
+- contract_id: csv_table_formatter_date_column_contract
+  type: precondition
+  applies_to: parameter
+  target: date_column
+  description: When supplied, the date column must be present in the parsed CSV header.
+  expression: date_column == null or date_column in columns(csv_file)
+- contract_id: structured_tabular_json_with_metadata_schema
+  type: json_schema
+  applies_to: output
+  target: structured_json
+  description: Structured output contains columns, rows, row count, and optional metadata
+    fields.
+  schema_ref: schema://structured_tabular_json_with_table_metadata/v1
+  expression: '{"type":"object","required":["columns","rows","row_count"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0},"dataset_id":{"type":["string","null"]},"table_name":{"type":["string","null"]},"date_column":{"type":["string","null"]}}}'
+- contract_id: csv_table_format_status_schema
+  type: json_schema
+  applies_to: output
+  target: transform_status
+  description: Status exposes parse and formatting outcome.
+  schema_ref: schema://csv_table_format_status/v1
+  expression: '{"type":"object","required":["success","rows_read","rows_written","output_uri"],"properties":{"success":{"type":"boolean"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: csv_table_formatter_effect
+  type: effect
+  applies_to: service
+  target: csv_to_structured_json_table_formatter
+  description: On success, the structured JSON artifact exists and rows_written equals
+    rows_read.
+  expression: transform_status.success == true implies exists(structured_json) and
+    transform_status.rows_written == transform_status.rows_read
+invocation:
+  type: argo_workflow_template
+  template_name: csv-to-structured-json-table-formatter-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.csv_to_structured_json_table_formatter
+  implementation_ref: services/implementations/csv_to_structured_json_table_formatter
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - pii
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full review text rows; emit counts, column names, and bounded diagnostics.
+  - Container image, mounted directory, and retry count are runtime/orchestration
+    concerns.
+  idempotency_notes: Same CSV input and formatting parameters produce the same structured
+    JSON output.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:environmental_monitoring_network_v1#load_and_modify_stations
+  - main:multilingual_product_review_analysis_v1#load_and_modify_reviews
+  - main:pipeline_execution_dag#load_and_modify
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The registry CSV standardizer is close but does not expose a date-column
+    validation/metadata contract required by the source step parameters.'
+  - 'Evidence status: strongly_inferred.'

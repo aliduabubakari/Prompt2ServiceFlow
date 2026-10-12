@@ -1,0 +1,106 @@
+schema_version: 0.1.0
+service_id: filesystem_log_archive_and_delete
+version: 1.0.0
+display_name: Filesystem Log Archive And Delete
+category: Maintenance
+capability:
+  summary: Archives eligible log files before deleting their local copies.
+  operations:
+  - Archives eligible log files before deleting their local copies.
+  keywords:
+  - filesystem
+  - log
+  - archive
+  - and
+  - delete
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: log_directory
+    description: Reviewed log directory value.
+    channel: external_resource
+    data_type: directory
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: archive_destination
+    description: Reviewed archive destination value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: archive_manifest
+    description: Reviewed archive manifest value.
+    channel: artifact
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: cleanup_status
+    description: Reviewed cleanup status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: retention_days
+    description: Configuration for retention days.
+    type: integer
+    required: true
+  - name: archive_prefix
+    description: Configuration for archive prefix.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: filesystem-log-archive-and-delete
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.filesystem_log_archive_and_delete
+  implementation_ref: services/implementations/filesystem_log_archive_and_delete
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-24T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-01:curated-extension
+  notes:
+  - Curated from sparse Validation-20 descriptions; bindings retain inference confidence.

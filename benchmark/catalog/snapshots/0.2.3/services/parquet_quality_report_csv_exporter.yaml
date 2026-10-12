@@ -1,0 +1,197 @@
+schema_version: 0.1.0
+service_id: parquet_quality_report_csv_exporter
+version: 1.0.0
+display_name: Parquet Dataset Quality Report CSV Exporter
+category: ReportGenerator
+capability:
+  summary: Exports a final Parquet dataset to CSV and writes a JSON data-quality report
+    from supplied score metrics, emitting report/export status.
+  operations:
+  - Read final feature-enriched Parquet data.
+  - Read data-quality score object.
+  - Serialize Parquet rows to a CSV artifact using configured delimiter/header behavior.
+  - Render a JSON quality report containing score summaries and optional dataset/export
+    metadata.
+  keywords:
+  - parquet
+  - csv export
+  - data quality report
+  - json report
+  - fan-in
+  - customer data
+  limitations:
+  - Does not compute quality scores itself.
+  - Does not send notifications or publish externally.
+  - Timestamp rendering in output names should be supplied by workflow binding for
+    deterministic execution.
+  - Does not clean or engineer data.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: feature_enriched_parquet
+    description: Final Parquet dataset with engineered features.
+    channel: artifact
+    data_type: parquet
+    media_type: application/vnd.apache.parquet
+    schema_ref: schema://feature_enriched_parquet_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: dq_scores
+    description: Data-quality score object produced by upstream scoring service.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://customer_dq_scores/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: csv_export
+    description: Final CSV export artifact serialized from the feature-enriched Parquet
+      dataset.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://csv_file_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: dq_report_json
+    description: JSON data-quality report containing score summaries and export metadata.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://data_quality_report/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: report_status
+    description: Observable status for CSV export and quality-report generation.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://parquet_quality_report_export_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: csv_output_path_template
+    description: Deterministic CSV output path or template; workflow binding may render
+      timestamp tokens.
+    type: string
+    required: true
+  - name: report_output_path_template
+    description: Deterministic JSON report output path or template; workflow binding
+      may render timestamp tokens.
+    type: string
+    required: true
+  - name: columns
+    description: Optional ordered list of columns to include in CSV export.
+    type: array
+    required: false
+  - name: include_header
+    description: Whether to include a header row in the CSV export.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  - name: report_template
+    description: Optional structured template controlling report sections and metadata
+      inclusion.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: parquet_quality_report_inputs_readable
+  type: precondition
+  applies_to: service
+  target: parquet_quality_report_csv_exporter
+  description: Final Parquet must be readable and dq_scores must contain required
+    score fields.
+  expression: readable(feature_enriched_parquet) and parquet_parseable(feature_enriched_parquet)
+    and json_has(dq_scores,'$.overall_score')
+- contract_id: dq_report_schema
+  type: json_schema
+  applies_to: output
+  target: dq_report_json
+  description: Report JSON contains quality score summary and export metadata.
+  schema_ref: schema://data_quality_report/v1
+  expression: '{"type":"object","required":["quality_scores","generated_outputs"],"properties":{"quality_scores":{"type":"object","required":["overall_score"]},"generated_outputs":{"type":"object"},"row_count":{"type":["integer","null"],"minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: parquet_quality_report_export_status_schema
+  type: json_schema
+  applies_to: output
+  target: report_status
+  description: Status exposes CSV and JSON report write effects.
+  schema_ref: schema://parquet_quality_report_export_status/v1
+  expression: '{"type":"object","required":["success","csv_output_uri","report_output_uri","rows_read","rows_written","report_written"],"properties":{"success":{"type":"boolean"},"csv_output_uri":{"type":"string"},"report_output_uri":{"type":"string"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"report_written":{"type":"boolean"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: parquet_quality_report_export_effect
+  type: effect
+  applies_to: service
+  target: parquet_quality_report_csv_exporter
+  description: On success, both CSV export and JSON quality report exist and rows_written
+    equals rows_read.
+  expression: report_status.success == true implies exists(csv_export) and exists(dq_report_json)
+    and report_status.rows_written == report_status.rows_read and report_status.report_written
+    == true
+invocation:
+  type: argo_workflow_template
+  template_name: parquet-quality-report-csv-exporter-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.parquet_quality_report_csv_exporter
+  implementation_ref: services/implementations/parquet_quality_report_csv_exporter
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - pii
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw customer rows.
+  - Timestamped output names should be rendered by workflow binding to keep mock execution
+    deterministic.
+  - Report should expose score summaries and bounded metadata, not raw PII.
+  idempotency_notes: Same final Parquet, dq_scores, output templates, and serialization
+    parameters produce the same artifacts after workflow binding resolves timestamps
+    deterministically.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:customer_dq_scoring_pipeline#save_and_report
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing Parquet-to-CSV report exporter is document-specific and lacks
+    separate JSON data-quality report output.'
+  - 'Evidence status: explicit.'

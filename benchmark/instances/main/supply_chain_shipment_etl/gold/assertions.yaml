@@ -1,0 +1,12 @@
+assertions_version: 0.1.0
+pipeline_id: supply_chain_shipment_etl
+scenarios:
+  - scenario: three_vendor_etl
+    assertions:
+      - {assertion_id: vendor_a_valid, type: json_path_equals, path: artifacts/vendor_a_validation_status.json, json_path: success, expected: true}
+      - {assertion_id: vendor_b_valid, type: json_path_equals, path: artifacts/vendor_b_validation_status.json, json_path: success, expected: true}
+      - {assertion_id: vendor_c_valid, type: json_path_equals, path: artifacts/vendor_c_validation_status.json, json_path: success, expected: true}
+      - {assertion_id: cleanse_succeeded, type: json_path_equals, path: artifacts/transform_status.json, json_path: success, expected: true}
+      - {assertion_id: nine_rows_cleansed, type: json_path_equals, path: artifacts/transform_status.json, json_path: rows_processed, expected: 9}
+      - {assertion_id: db_load_succeeded, type: json_path_equals, path: artifacts/db_load_status.json, json_path: success, expected: true}
+      - {assertion_id: email_sent, type: json_path_equals, path: artifacts/notification_status.json, json_path: sent, expected: true}

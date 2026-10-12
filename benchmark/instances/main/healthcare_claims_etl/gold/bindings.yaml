@@ -1,0 +1,18 @@
+binding_gold_version: 0.1.0
+benchmark_id: main:healthcare_claims_etl
+bindings:
+- intent_id: extract_claims
+  service_id: delimited_file_tabular_dataset_loader
+  service_version: 1.0.0
+- intent_id: extract_providers
+  service_id: delimited_file_tabular_dataset_loader
+  service_version: 1.0.0
+- intent_id: transform_join
+  service_id: healthcare_claims_provider_join_anonymize_risk_builder
+  service_version: 1.0.0
+- intent_id: load_warehouse
+  service_id: multi_table_analytics_warehouse_loader
+  service_version: 1.0.0
+- intent_id: refresh_bi
+  service_id: bi_dashboard_refresh_trigger
+  service_version: 1.0.0

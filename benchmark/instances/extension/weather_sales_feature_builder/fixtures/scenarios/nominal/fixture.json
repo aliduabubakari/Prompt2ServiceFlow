@@ -1,0 +1,19 @@
+{
+  "pipeline_id": "weather_sales_feature_builder",
+  "inputs": {
+    "weather": "weather_api_snapshot.json",
+    "sales": "store_sales.csv",
+    "locations": "store_locations.csv"
+  },
+  "input_modalities": ["json", "table"],
+  "systems": [
+    "weather API fixture",
+    "feature staging bucket"
+  ],
+  "feature_config": {
+    "temp_high_threshold": 28.0,
+    "temp_low_threshold": 10.0,
+    "rain_heavy_threshold_mm": 8.0,
+    "revenue_per_sqm_benchmark": 12.0
+  }
+}

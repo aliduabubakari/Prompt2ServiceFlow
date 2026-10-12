@@ -1,0 +1,63 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:retail_inventory_reconciliation
+mappings:
+- intent_id: fetch_north_warehouse_csv
+  inputs:
+    warehouse_management_system: warehouse_wms_resource
+  outputs:
+    inventory_csv: north_inventory_csv
+    extraction_status: north_fetch_status
+- intent_id: fetch_south_warehouse_csv
+  inputs:
+    warehouse_management_system: warehouse_wms_resource
+  outputs:
+    inventory_csv: south_inventory_csv
+    extraction_status: south_fetch_status
+- intent_id: fetch_east_warehouse_csv
+  inputs:
+    warehouse_management_system: warehouse_wms_resource
+  outputs:
+    inventory_csv: east_inventory_csv
+    extraction_status: east_fetch_status
+- intent_id: fetch_west_warehouse_csv
+  inputs:
+    warehouse_management_system: warehouse_wms_resource
+  outputs:
+    inventory_csv: west_inventory_csv
+    extraction_status: west_fetch_status
+- intent_id: normalize_north_skus
+  inputs:
+    inventory_csv: north_inventory_csv
+  outputs:
+    normalized_inventory_csv: normalized_north_csv
+    normalization_status: north_normalization_status
+- intent_id: normalize_south_skus
+  inputs:
+    inventory_csv: south_inventory_csv
+  outputs:
+    normalized_inventory_csv: normalized_south_csv
+    normalization_status: south_normalization_status
+- intent_id: normalize_east_skus
+  inputs:
+    inventory_csv: east_inventory_csv
+  outputs:
+    normalized_inventory_csv: normalized_east_csv
+    normalization_status: east_normalization_status
+- intent_id: normalize_west_skus
+  inputs:
+    inventory_csv: west_inventory_csv
+  outputs:
+    normalized_inventory_csv: normalized_west_csv
+    normalization_status: west_normalization_status
+- intent_id: reconcile_all_inventories
+  inputs:
+    normalized_inventory_csvs: normalized_north_csv
+  outputs:
+    discrepancy_report_csv: discrepancy_report_csv
+    reconciliation_status: reconciliation_status
+- intent_id: generate_final_report
+  inputs:
+    discrepancy_report_csv: discrepancy_report_csv
+  outputs:
+    pdf_report: final_pdf_report
+    report_status: report_status

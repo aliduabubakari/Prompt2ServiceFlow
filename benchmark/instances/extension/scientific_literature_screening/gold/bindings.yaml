@@ -1,0 +1,33 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:scientific_literature_screening
+bindings:
+- intent_id: ingest_source_batch
+  service_id: literature_pdf_bundle_ingestor
+  service_version: 1.0.0
+- intent_id: validate_source_contract
+  service_id: literature_screening_contract_validator
+  service_version: 1.0.0
+- intent_id: normalize_partition_a
+  service_id: article_pdf_partition_normalizer
+  service_version: 1.0.0
+- intent_id: normalize_partition_b
+  service_id: screening_criteria_partition_normalizer
+  service_version: 1.0.0
+- intent_id: normalize_partition_c
+  service_id: reviewer_roster_partition_normalizer
+  service_version: 1.0.0
+- intent_id: fuse_partitions
+  service_id: literature_screening_context_fuser
+  service_version: 1.0.0
+- intent_id: extract_or_parse_text
+  service_id: pdf_text_extraction_parser
+  service_version: 1.0.0
+- intent_id: chunk_documents
+  service_id: semantic_document_chunker
+  service_version: 1.0.0
+- intent_id: generate_embeddings
+  service_id: deterministic_text_embedding_generator
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: literature_screening_bundle_publisher
+  service_version: 1.0.0

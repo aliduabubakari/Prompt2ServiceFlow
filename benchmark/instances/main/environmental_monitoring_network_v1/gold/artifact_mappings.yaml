@@ -1,0 +1,49 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:environmental_monitoring_network_v1
+mappings:
+- intent_id: load_and_modify_stations
+  inputs:
+    csv_file: stations_csv
+  outputs:
+    structured_json: formatted_stations_json
+    transform_status: format_status
+- intent_id: geocode_stations
+  inputs:
+    structured_json: formatted_stations_json
+    geocoding_api_resource: geocoding_api_resource
+  outputs:
+    geocoded_json: geocoded_stations_json
+    geocoding_status: geocoding_status
+- intent_id: fetch_historical_weather
+  inputs:
+    source_tabular_json: geocoded_stations_json
+    weather_api_resource: weather_api_resource
+  outputs:
+    weather_enriched_json: weather_enriched_json
+    enrichment_status: weather_enrichment_status
+- intent_id: classify_land_use
+  inputs:
+    source_tabular_json: weather_enriched_json
+    land_use_api_resource: land_use_api_resource
+  outputs:
+    land_use_enriched_json: land_use_enriched_json
+    classification_status: land_use_classification_status
+- intent_id: fetch_population_density
+  inputs:
+    source_tabular_json: land_use_enriched_json
+    population_api_resource: population_api_resource
+  outputs:
+    population_enriched_json: population_enriched_json
+    enrichment_status: population_enrichment_status
+- intent_id: calculate_risk_score
+  inputs:
+    source_tabular_json: population_enriched_json
+  outputs:
+    risk_scored_json: risk_scored_json
+    scoring_status: risk_scoring_status
+- intent_id: save_environmental_dataset
+  inputs:
+    structured_json: risk_scored_json
+  outputs:
+    csv_file: enriched_dataset_csv
+    export_status: export_status

@@ -1,0 +1,49 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:etl_import_mondo
+mappings:
+- intent_id: params_validate
+  inputs:
+    runtime_parameters: param_source
+  outputs:
+    validation_decision: validation_decision
+- intent_id: download_mondo_terms
+  inputs:
+    github_release_repository: github_repository
+    object_storage_destination: object_storage_destination
+  outputs:
+    downloaded_asset: mondo_asset
+    asset_metadata: mondo_asset_metadata
+    sync_status: download_status
+- intent_id: normalized_mondo_terms
+  inputs:
+    source_objects: mondo_source_objects
+    version_metadata: mondo_asset_metadata
+    object_storage: object_storage_destination
+    spark_execution_context: spark_execution_context
+  outputs:
+    output_dataset: normalized_dataset
+    transform_status: normalize_status
+- intent_id: index_mondo_terms
+  inputs:
+    source_dataset: normalized_dataset
+    index_template: mondo_index_template
+    version_metadata: mondo_asset_metadata
+    elasticsearch_cluster: elasticsearch_cluster
+    spark_execution_context: spark_execution_context
+  outputs:
+    index_reference: mondo_index_reference
+    index_load_status: load_status
+- intent_id: publish_mondo
+  inputs:
+    index_reference: mondo_index_reference
+    version_metadata: mondo_asset_metadata
+    elasticsearch_cluster: elasticsearch_cluster
+  outputs:
+    published_index: published_mondo_index
+    publish_status: publish_status
+- intent_id: slack
+  inputs:
+    slack_service: slack_resource
+    message_context: published_mondo_index
+  outputs:
+    notification_status: slack_notification_status

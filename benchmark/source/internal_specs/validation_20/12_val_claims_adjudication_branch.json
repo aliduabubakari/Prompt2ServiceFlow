@@ -1,0 +1,248 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_claims_adjudication_branch",
+  "pipeline_name": "Claims Adjudication Branch",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_claims_adjudication_branch.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Score insurance claims, route high-risk claims to manual adjudication, auto-approve low-risk claims, and produce a settlement summary.",
+    "business_domain": "Insurance",
+    "execution_model": "Batch",
+    "topology_pattern": "Branch/merge",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "ingest_claims",
+        "to": "score_claim_risk"
+      },
+      {
+        "from": "score_claim_risk",
+        "to": "route_claim"
+      },
+      {
+        "from": "route_claim",
+        "to": "manual_adjudication"
+      },
+      {
+        "from": "route_claim",
+        "to": "auto_approve_claim"
+      },
+      {
+        "from": "manual_adjudication",
+        "to": "write_settlement_summary"
+      },
+      {
+        "from": "auto_approve_claim",
+        "to": "write_settlement_summary"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [
+      {
+        "step": "route_claim",
+        "conditions": [
+          "risk_score >= 0.75",
+          "risk_score < 0.75"
+        ],
+        "merge_step": "write_settlement_summary"
+      }
+    ],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Claims database",
+      "identifier": "claims_database",
+      "details": [
+        "Validation external dependency: Claims database"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Risk scoring service",
+      "identifier": "risk_scoring_service",
+      "details": [
+        "Validation external dependency: Risk scoring service"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "claim_batch",
+        "description": "Validation artifact: claim_batch"
+      },
+      {
+        "identifier": "risk_scores",
+        "description": "Validation artifact: risk_scores"
+      },
+      {
+        "identifier": "settlement_summary",
+        "description": "Validation artifact: settlement_summary"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "ingest_claims",
+      "name": "ingest_claims",
+      "objective": "Ingest claims",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "score_claim_risk",
+      "name": "score_claim_risk",
+      "objective": "Score claim risk",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "route_claim",
+      "name": "route_claim",
+      "objective": "Route claim",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "manual_adjudication",
+      "name": "manual_adjudication",
+      "objective": "Manual adjudication",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "auto_approve_claim",
+      "name": "auto_approve_claim",
+      "objective": "Auto approve claim",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "write_settlement_summary",
+      "name": "write_settlement_summary",
+      "objective": "Write settlement summary",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

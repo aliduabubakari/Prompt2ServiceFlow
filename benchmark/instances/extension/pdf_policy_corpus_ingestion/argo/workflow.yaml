@@ -1,0 +1,447 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: pdf-policy-corpus-ingestion-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: pdf-policy-corpus-ingestion
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: nominal
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters: []
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: pdf-policy-corpus-ingestion-scripts
+  - name: fixtures
+    configMap:
+      name: pdf-policy-corpus-ingestion-fixtures
+      items:
+      - key: fixture-0000
+        path: data.csv
+      - key: fixture-0001
+        path: data.json
+      - key: fixture-0002
+        path: fixture.json
+      - key: fixture-0003
+        path: sample_document.pdf
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-source-batch
+        template: run-ingest-source-batch
+      - name: validate-source-contract
+        template: run-validate-source-contract
+        depends: ingest-source-batch.Succeeded
+      - name: stage-raw-artifacts
+        template: run-stage-raw-artifacts
+        depends: validate-source-contract.Succeeded
+      - name: normalize-records
+        template: run-normalize-records
+        depends: stage-raw-artifacts.Succeeded
+      - name: extract-or-parse-text
+        template: run-extract-or-parse-text
+        depends: normalize-records.Succeeded
+      - name: chunk-documents
+        template: run-chunk-documents
+        depends: extract-or-parse-text.Succeeded
+      - name: generate-embeddings
+        template: run-generate-embeddings
+        depends: chunk-documents.Succeeded
+      - name: write-vector-index
+        template: run-write-vector-index
+        depends: generate-embeddings.Succeeded
+      - name: retrieve-grounding-context
+        template: run-retrieve-grounding-context
+        depends: write-vector-index.Succeeded
+      - name: run-structured-extraction
+        template: run-run-structured-extraction
+        depends: retrieve-grounding-context.Succeeded
+      - name: score-confidence-and-policy
+        template: run-score-confidence-and-policy
+        depends: run-structured-extraction.Succeeded
+      - name: create-human-review-packet
+        template: run-create-human-review-packet
+        depends: score-confidence-and-policy.Succeeded
+      - name: publish-outputs
+        template: run-publish-outputs
+        depends: create-human-review-packet.Succeeded
+  - name: run-ingest-source-batch
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_source_batch
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_ingest_source_batch.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-validate-source-contract
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: validate_source_contract
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_validate_source_contract.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-raw-artifacts
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_raw_artifacts
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_stage_raw_artifacts.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-normalize-records
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: normalize_records
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_normalize_records.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-extract-or-parse-text
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: extract_or_parse_text
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_extract_or_parse_text.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-chunk-documents
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: chunk_documents
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/06_chunk_documents.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-generate-embeddings
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: generate_embeddings
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/07_generate_embeddings.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-write-vector-index
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: write_vector_index
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/08_write_vector_index.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-retrieve-grounding-context
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: retrieve_grounding_context
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/09_retrieve_grounding_context.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-run-structured-extraction
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: run_structured_extraction
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/10_run_structured_extraction.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-score-confidence-and-policy
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: score_confidence_and_policy
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/11_score_confidence_and_policy.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-create-human-review-packet
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: create_human_review_packet
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/12_create_human_review_packet.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-publish-outputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: publish_outputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/13_publish_outputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

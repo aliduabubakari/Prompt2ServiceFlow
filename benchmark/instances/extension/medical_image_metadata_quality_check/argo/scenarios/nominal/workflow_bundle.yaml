@@ -1,0 +1,368 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: medical-image-metadata-quality-check-nominal-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_source_batch.py: "#!/usr/bin/env python3\n\"\"\"Ingest DICOM metadata (JSON proxy for image\
+    \ headers), modality reference CSV, and quality policy.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, csv, json, re\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True)\n    p.add_argument(\"--fixture\",type=Path,required=True);\
+    \ p.add_argument(\"--execution-time\",type=str,default=None)\n    a=p.parse_args(); r=a.workspace;\
+    \ art=r/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    fx=json.loads(a.fixture.read_text(encoding=\"\
+    utf-8\")); fd=a.fixture.parent\n    studies=json.loads((fd/fx[\"inputs\"][\"metadata\"]).read_text(encoding=\"\
+    utf-8\"))\n    modalities={}\n    with (fd/fx[\"inputs\"][\"modalities\"]).open(encoding=\"utf-8\"\
+    ,newline=\"\") as f:\n        for row in csv.DictReader(f):\n            modalities[row[\"modality\"\
+    ]]={k:(float(v) if v else None) for k,v in row.items() if k!=\"modality\"}\n    thresholds=json.loads((fd/fx[\"\
+    inputs\"][\"thresholds\"]).read_text(encoding=\"utf-8\"))\n    result={\"studies\":studies,\"modalities\"\
+    :modalities,\"thresholds\":thresholds,\"total\":len(studies),\"ingested_at\":a.execution_time}\n \
+    \   (art/\"ingest_source_batch_artifact.json\").write_text(json.dumps(result,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    (art/\"ingest_source_batch_status.json\").write_text(json.dumps({\"success\":True,\"\
+    studies\":len(studies),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\"\
+    : main()\n"
+  02_validate_source_contract.py: "#!/usr/bin/env python3\n\"\"\"Validate: required DICOM fields, patient\
+    \ ID format, modality existence, image count minimum.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json, re\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    studies,modalities,thresholds=ingested[\"studies\"],ingested[\"\
+    modalities\"],ingested[\"thresholds\"]\n    required=set(thresholds[\"required_fields\"]); pid_re=re.compile(thresholds[\"\
+    patient_id_pattern\"])\n    errors=[]; valid=[]\n    for s in studies:\n        issues=[]\n      \
+    \  if required-set(s.keys()): issues.append(f\"missing_fields: {required-set(s.keys())}\")\n     \
+    \   if not pid_re.match(s.get(\"patient_id\",\"\")): issues.append(f\"invalid_patient_id: {s.get('patient_id')}\"\
+    )\n        mod=s.get(\"modality\",\"\")\n        if mod not in modalities: issues.append(f\"unknown_modality:\
+    \ {mod}\")\n        else:\n            ref=modalities[mod]; min_img=ref.get(\"min_images\",0)\n  \
+    \          if s.get(\"image_count\",0)<min_img: issues.append(f\"insufficient_images: {s.get('image_count')}<{min_img}\"\
+    )\n        if issues: errors.append({\"study_uid\":s.get(\"study_uid\",\"?\"),\"issues\":issues})\n\
+    \        else: valid.append(s)\n    result={\"valid_studies\":valid,\"errors\":errors,\"total_valid\"\
+    :len(valid),\"total_rejected\":len(errors)}\n    (art/\"validate_source_contract_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"validate_source_contract_status.json\").write_text(json.dumps({\"\
+    success\":True,\"valid\":len(valid),\"rejected\":len(errors),\"errors\":errors},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_stage_raw_artifacts.py: "#!/usr/bin/env python3\n\"\"\"Stage: join studies with modality reference\
+    \ parameters.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import\
+    \ Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    modalities=ingested[\"modalities\"]\n    staged=[]\n    for s in validated[\"valid_studies\"\
+    ]:\n        ref=modalities.get(s[\"modality\"],{})\n        staged.append({**s,\"ref_pixel_spacing_min\"\
+    :ref.get(\"pixel_spacing_min\"),\"ref_pixel_spacing_max\":ref.get(\"pixel_spacing_max\"),\n      \
+    \                 \"ref_slice_thickness_min\":ref.get(\"slice_thickness_min\"),\"ref_slice_thickness_max\"\
+    :ref.get(\"slice_thickness_max\"),\n                       \"ref_kvp_min\":ref.get(\"kvp_min\"),\"\
+    ref_kvp_max\":ref.get(\"kvp_max\"),\"ref_min_images\":ref.get(\"min_images\")})\n    (art/\"stage_raw_artifacts_artifact.json\"\
+    ).write_text(json.dumps({\"staged\":staged,\"total\":len(staged)},indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    (art/\"stage_raw_artifacts_status.json\").write_text(json.dumps({\"success\":True,\"staged\"\
+    :len(staged),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_normalize_records.py: "#!/usr/bin/env python3\n\"\"\"Normalize: compute quality scores, flag parameter\
+    \ deviations, assign grades.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom\
+    \ pathlib import Path\n\ndef in_range(val, lo, hi):\n    if val is None: return None\n    if lo is\
+    \ not None and val<lo: return False\n    if hi is not None and val>hi: return False\n    return True\n\
+    \ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    staged=json.loads((art/\"stage_raw_artifacts_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    grades=ingested[\"thresholds\"][\"quality_grades\"]\n    normalized=[]\n    for s in\
+    \ staged[\"staged\"]:\n        issues=[]\n        ps_ok=in_range(s.get(\"pixel_spacing\"),s.get(\"\
+    ref_pixel_spacing_min\"),s.get(\"ref_pixel_spacing_max\"))\n        st_ok=in_range(s.get(\"slice_thickness\"\
+    ),s.get(\"ref_slice_thickness_min\"),s.get(\"ref_slice_thickness_max\"))\n        kvp_ok=in_range(s.get(\"\
+    kvp\"),s.get(\"ref_kvp_min\"),s.get(\"ref_kvp_max\"))\n        img_ok=s.get(\"image_count\",0)>= (s.get(\"\
+    ref_min_images\") or 0)\n        if ps_ok is False: issues.append(f\"pixel_spacing_out_of_range: {s.get('pixel_spacing')}\"\
+    )\n        if st_ok is False: issues.append(f\"slice_thickness_out_of_range: {s.get('slice_thickness')}\"\
+    )\n        if kvp_ok is False: issues.append(f\"kvp_out_of_range: {s.get('kvp')}\")\n        if not\
+    \ img_ok: issues.append(f\"insufficient_images: {s.get('image_count')}\")\n        n_issues=len(issues)\n\
+    \        if n_issues<=grades[\"pass\"][\"max_issues\"]: grade=\"pass\"\n        elif n_issues<=grades[\"\
+    warning\"][\"max_issues\"]: grade=\"warning\"\n        else: grade=\"fail\"\n        normalized.append({\"\
+    study_uid\":s[\"study_uid\"],\"patient_id\":s[\"patient_id\"],\"modality\":s[\"modality\"],\n    \
+    \                       \"body_part\":s[\"body_part\"],\"image_count\":s[\"image_count\"],\"quality_grade\"\
+    :grade,\n                           \"issue_count\":n_issues,\"issues\":issues})\n    (art/\"normalize_records_artifact.json\"\
+    ).write_text(json.dumps({\"normalized\":normalized,\"total\":len(normalized)},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    (art/\"normalize_records_status.json\").write_text(json.dumps({\"success\":True,\"normalized\"\
+    :len(normalized),\"pass\":sum(1 for n in normalized if n[\"quality_grade\"]==\"pass\"),\"warning\"\
+    :sum(1 for n in normalized if n[\"quality_grade\"]==\"warning\"),\"fail\":sum(1 for n in normalized\
+    \ if n[\"quality_grade\"]==\"fail\"),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"\
+    __main__\": main()\n"
+  05_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish: CSV quality report + audit manifest.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib import Path\n\n\
+    def main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    p.add_argument(\"--execution-time\",type=str,default=None);\
+    \ a=p.parse_args(); art=a.workspace/\"artifacts\"\n    et=a.execution_time or \"2026-07-20T12:00:00Z\"\
+    ; fx=json.loads(a.fixture.read_text(encoding=\"utf-8\"))\n    norm=json.loads((art/\"normalize_records_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    val=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    summary={\"total\":norm[\"total\"]+val[\"total_rejected\"],\"\
+    valid\":norm[\"total\"],\"rejected\":val[\"total_rejected\"],\n             \"pass\":sum(1 for n in\
+    \ norm[\"normalized\"] if n[\"quality_grade\"]==\"pass\"),\n             \"warning\":sum(1 for n in\
+    \ norm[\"normalized\"] if n[\"quality_grade\"]==\"warning\"),\n             \"fail\":sum(1 for n in\
+    \ norm[\"normalized\"] if n[\"quality_grade\"]==\"fail\")}\n    manifest={\"checkpoint_id\":f\"ckpt_dicom_qc_{et[:10].replace('-','_')}\"\
+    ,\"checkpoint_time\":et,\n              \"pipeline_id\":fx[\"pipeline_id\"],\"summary\":summary,\"\
+    output_files\":[\"dicom_quality_report.csv\",\"audit_manifest.json\"],\"status\":\"completed\"}\n\
+    \    (art/\"audit_manifest.json\").write_text(json.dumps(manifest,indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    csv_rel=\"dicom_quality_report.csv\"\n    with (art/csv_rel).open(\"w\",encoding=\"utf-8\"\
+    ,newline=\"\") as f:\n        w=csv.DictWriter(f,fieldnames=[\"study_uid\",\"patient_id\",\"modality\"\
+    ,\"body_part\",\"image_count\",\"quality_grade\",\"issue_count\",\"issues\"])\n        w.writeheader()\n\
+    \        for n in norm[\"normalized\"]: w.writerow({**n,\"issues\":\"; \".join(n[\"issues\"])})\n\
+    \    (art/\"publish_outputs_artifact.json\").write_text(json.dumps({\"manifest\":manifest,\"csv\"\
+    :csv_rel},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"publish_outputs_status.json\").write_text(json.dumps({\"\
+    success\":True,\"csv_exported\":csv_rel,\"summary\":summary,\"errors\":[]},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: medical-image-metadata-quality-check-nominal-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"input_modalities\": [\n    \"image\",\n    \"json\",\n    \"table\"\n  ],\n  \"\
+    inputs\": {\n    \"metadata\": \"image_metadata.json\",\n    \"modalities\": \"modality_reference.csv\"\
+    ,\n    \"thresholds\": \"quality_thresholds.json\"\n  },\n  \"pipeline_id\": \"medical_image_metadata_quality_check\"\
+    ,\n  \"sample_media\": {\n    \"image\": \"sample_image.png\"\n  },\n  \"systems\": [\n    \"PACS\
+    \ metadata fixture\",\n    \"quality monitoring dashboard\"\n  ]\n}\n"
+  fixture-0001: "[\n  {\"study_uid\": \"1.2.840.10008.5.1.4.1.1.2.20260701.001\", \"patient_id\": \"PT-8842\"\
+    , \"modality\": \"CT\", \"body_part\": \"CHEST\", \"image_count\": 150, \"pixel_spacing\": 0.75, \"\
+    slice_thickness\": 1.25, \"kvp\": 120, \"exposure_time_ms\": 500, \"study_date\": \"2026-07-18\"},\n\
+    \  {\"study_uid\": \"1.2.840.10008.5.1.4.1.1.2.20260701.002\", \"patient_id\": \"PT-3391\", \"modality\"\
+    : \"MR\", \"body_part\": \"BRAIN\", \"image_count\": 200, \"pixel_spacing\": 0.94, \"slice_thickness\"\
+    : 3.0, \"kvp\": null, \"exposure_time_ms\": 1200, \"study_date\": \"2026-07-19\"},\n  {\"study_uid\"\
+    : \"1.2.840.10008.5.1.4.1.1.2.20260701.003\", \"patient_id\": \"INVALID\", \"modality\": \"CT\", \"\
+    body_part\": \"ABDOMEN\", \"image_count\": 80, \"pixel_spacing\": 1.5, \"slice_thickness\": 5.0, \"\
+    kvp\": 120, \"exposure_time_ms\": 350, \"study_date\": \"2026-07-19\"},\n  {\"study_uid\": \"1.2.840.10008.5.1.4.1.1.2.20260701.004\"\
+    , \"patient_id\": \"PT-5501\", \"modality\": \"DX\", \"body_part\": \"CHEST\", \"image_count\": 1,\
+    \ \"pixel_spacing\": 0.14, \"slice_thickness\": null, \"kvp\": 90, \"exposure_time_ms\": 10, \"study_date\"\
+    : \"2026-07-20\"},\n  {\"study_uid\": \"1.2.840.10008.5.1.4.1.1.2.20260701.005\", \"patient_id\":\
+    \ \"PT-7712\", \"modality\": \"CT\", \"body_part\": \"HEAD\", \"image_count\": 300, \"pixel_spacing\"\
+    : 0.45, \"slice_thickness\": 0.625, \"kvp\": 150, \"exposure_time_ms\": 800, \"study_date\": \"2026-07-20\"\
+    },\n  {\"study_uid\": \"1.2.840.10008.5.1.4.1.1.2.20260701.006\", \"patient_id\": \"PT-9900\", \"\
+    modality\": \"US\", \"body_part\": \"ABDOMEN\", \"image_count\": 45, \"pixel_spacing\": null, \"slice_thickness\"\
+    : null, \"kvp\": null, \"exposure_time_ms\": null, \"study_date\": \"2026-07-17\"}\n]\n"
+  fixture-0002: 'modality,pixel_spacing_min,pixel_spacing_max,slice_thickness_min,slice_thickness_max,kvp_min,kvp_max,min_images
+
+    CT,0.4,1.5,0.5,5.0,80,140,50
+
+    MR,0.5,2.0,1.0,8.0,,,60
+
+    DX,0.05,0.4,,,,,1
+
+    US,,,,,,,10
+
+    '
+  fixture-0003: "{\n  \"policy_id\": \"dicom-quality-v2\",\n  \"description\": \"DICOM metadata quality\
+    \ assessment thresholds\",\n  \"patient_id_pattern\": \"^PT-\\\\d{4}$\",\n  \"required_fields\": [\"\
+    study_uid\", \"patient_id\", \"modality\", \"body_part\", \"image_count\", \"study_date\"],\n  \"\
+    quality_grades\": {\n    \"pass\": {\"max_issues\": 0},\n    \"warning\": {\"max_issues\": 2},\n \
+    \   \"fail\": {}\n  }\n}\n"
+binaryData:
+  fixture-0004: iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGUlEQVR42mNwKAv/TwlmGDVg1IBRA4aLAQCTWQwfG6MlqQAAAABJRU5ErkJggg==
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: medical-image-metadata-quality-check-nominal-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: medical-image-metadata-quality-check-nominal
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: nominal
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: execution-time
+      value: '2026-07-20T12:00:00Z'
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: medical-image-metadata-quality-check-nominal-scripts
+  - name: fixtures
+    configMap:
+      name: medical-image-metadata-quality-check-nominal-fixtures
+      items:
+      - key: fixture-0000
+        path: fixture.json
+      - key: fixture-0001
+        path: image_metadata.json
+      - key: fixture-0002
+        path: modality_reference.csv
+      - key: fixture-0003
+        path: quality_thresholds.json
+      - key: fixture-0004
+        path: sample_image.png
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-source-batch
+        template: run-ingest-source-batch
+      - name: validate-source-contract
+        template: run-validate-source-contract
+        depends: ingest-source-batch.Succeeded
+      - name: stage-raw-artifacts
+        template: run-stage-raw-artifacts
+        depends: validate-source-contract.Succeeded
+      - name: normalize-records
+        template: run-normalize-records
+        depends: stage-raw-artifacts.Succeeded
+      - name: publish-outputs
+        template: run-publish-outputs
+        depends: normalize-records.Succeeded
+  - name: run-ingest-source-batch
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_source_batch
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_ingest_source_batch.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-validate-source-contract
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: validate_source_contract
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_validate_source_contract.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-raw-artifacts
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_raw_artifacts
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_stage_raw_artifacts.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-normalize-records
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: normalize_records
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_normalize_records.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-publish-outputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: publish_outputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_publish_outputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

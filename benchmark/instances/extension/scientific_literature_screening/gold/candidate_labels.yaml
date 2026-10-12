@@ -1,0 +1,73 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:scientific_literature_screening
+candidate_sets:
+- candidate_set_id: extension_scientific_literature_screening_literature_pdf_bundle_ingestor_candidates
+  required_service_id: literature_pdf_bundle_ingestor
+  labels:
+    literature_pdf_bundle_ingestor: gold
+    keyword_only_document_searcher: semantic_mismatch
+    embedding_index_manifest_archiver: contract_mismatch
+    generic_llm_prompt_runner: format_mismatch
+- candidate_set_id: extension_scientific_literature_screening_literature_screening_contract_validator_candidates
+  required_service_id: literature_screening_contract_validator
+  labels:
+    literature_screening_contract_validator: gold
+    embedding_index_manifest_archiver: semantic_mismatch
+    generic_llm_prompt_runner: contract_mismatch
+    chunk_count_quality_checker: format_mismatch
+- candidate_set_id: extension_scientific_literature_screening_article_pdf_partition_normalizer_candidates
+  required_service_id: article_pdf_partition_normalizer
+  labels:
+    article_pdf_partition_normalizer: gold
+    generic_llm_prompt_runner: semantic_mismatch
+    chunk_count_quality_checker: contract_mismatch
+    uncontextualized_summary_generator: format_mismatch
+- candidate_set_id: extension_scientific_literature_screening_screening_criteria_partition_normalizer_candidates
+  required_service_id: screening_criteria_partition_normalizer
+  labels:
+    screening_criteria_partition_normalizer: gold
+    chunk_count_quality_checker: semantic_mismatch
+    uncontextualized_summary_generator: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_scientific_literature_screening_reviewer_roster_partition_normalizer_candidates
+  required_service_id: reviewer_roster_partition_normalizer
+  labels:
+    reviewer_roster_partition_normalizer: gold
+    uncontextualized_summary_generator: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    keyword_only_document_searcher: format_mismatch
+- candidate_set_id: extension_scientific_literature_screening_literature_screening_context_fuser_candidates
+  required_service_id: literature_screening_context_fuser
+  labels:
+    literature_screening_context_fuser: gold
+    reviewed_domain_adapter: semantic_mismatch
+    keyword_only_document_searcher: contract_mismatch
+    embedding_index_manifest_archiver: format_mismatch
+- candidate_set_id: extension_scientific_literature_screening_pdf_text_extraction_parser_candidates
+  required_service_id: pdf_text_extraction_parser
+  labels:
+    pdf_text_extraction_parser: gold
+    keyword_only_document_searcher: semantic_mismatch
+    embedding_index_manifest_archiver: contract_mismatch
+    generic_llm_prompt_runner: format_mismatch
+- candidate_set_id: extension_scientific_literature_screening_semantic_document_chunker_candidates
+  required_service_id: semantic_document_chunker
+  labels:
+    semantic_document_chunker: gold
+    embedding_index_manifest_archiver: semantic_mismatch
+    generic_llm_prompt_runner: contract_mismatch
+    chunk_count_quality_checker: format_mismatch
+- candidate_set_id: extension_scientific_literature_screening_deterministic_text_embedding_generator_candidates
+  required_service_id: deterministic_text_embedding_generator
+  labels:
+    deterministic_text_embedding_generator: gold
+    generic_llm_prompt_runner: semantic_mismatch
+    chunk_count_quality_checker: contract_mismatch
+    uncontextualized_summary_generator: format_mismatch
+- candidate_set_id: extension_scientific_literature_screening_literature_screening_bundle_publisher_candidates
+  required_service_id: literature_screening_bundle_publisher
+  labels:
+    literature_screening_bundle_publisher: gold
+    chunk_count_quality_checker: semantic_mismatch
+    uncontextualized_summary_generator: contract_mismatch
+    reviewed_domain_adapter: format_mismatch

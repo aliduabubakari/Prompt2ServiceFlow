@@ -1,0 +1,208 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_customer_profile_refresh",
+  "pipeline_name": "Customer Profile Refresh",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_customer_profile_refresh.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Refresh customer profiles by extracting CRM records, normalizing fields, deduplicating rows, and loading a profile table.",
+    "business_domain": "CRM",
+    "execution_model": "Batch",
+    "topology_pattern": "Linear",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "extract_crm_records",
+        "to": "normalize_profile_fields"
+      },
+      {
+        "from": "normalize_profile_fields",
+        "to": "deduplicate_customers"
+      },
+      {
+        "from": "deduplicate_customers",
+        "to": "load_profile_table"
+      },
+      {
+        "from": "load_profile_table",
+        "to": "emit_refresh_summary"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "CRM API",
+      "identifier": "crm_api",
+      "details": [
+        "Validation external dependency: CRM API"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Customer warehouse",
+      "identifier": "customer_warehouse",
+      "details": [
+        "Validation external dependency: Customer warehouse"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "crm_export",
+        "description": "Validation artifact: crm_export"
+      },
+      {
+        "identifier": "normalized_profiles",
+        "description": "Validation artifact: normalized_profiles"
+      },
+      {
+        "identifier": "profile_table",
+        "description": "Validation artifact: profile_table"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "extract_crm_records",
+      "name": "extract_crm_records",
+      "objective": "Extract crm records",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "normalize_profile_fields",
+      "name": "normalize_profile_fields",
+      "objective": "Normalize profile fields",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "deduplicate_customers",
+      "name": "deduplicate_customers",
+      "objective": "Deduplicate customers",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "load_profile_table",
+      "name": "load_profile_table",
+      "objective": "Load profile table",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "emit_refresh_summary",
+      "name": "emit_refresh_summary",
+      "objective": "Emit refresh summary",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

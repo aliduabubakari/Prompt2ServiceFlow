@@ -1,0 +1,64 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:etl_import_mondo
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_etl_import_mondo_runtime_parameter_allowed_values_validator_candidates
+  source_step_refs:
+  - params_validate
+  service_ids:
+  - runtime_parameter_allowed_values_validator
+  - retention_cutoff_config_resolver
+  - dataform_compilation_config_builder
+  - execution_date_backup_strategy_decider
+  - tabular_quality_score_gate
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_etl_import_mondo_github_release_asset_object_storage_sync_candidates
+  source_step_refs:
+  - download_mondo_terms
+  service_ids:
+  - github_release_asset_object_storage_sync
+  - checksum_manifest_object_storage_file_sync
+  - http_api_request_artifact_extractor
+  - ftp_file_artifact_downloader
+  - data_gouv_dataset_resource_downloader
+  - reviewed_domain_adapter
+- candidate_set_id: main_etl_import_mondo_spark_class_object_storage_dataset_transformer_candidates
+  source_step_refs:
+  - normalized_mondo_terms
+  service_ids:
+  - spark_class_object_storage_dataset_transformer
+  - spark_class_object_storage_table_loader
+  - spark_elasticsearch_index_loader
+  - kubernetes_job_template_executor
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_etl_import_mondo_spark_elasticsearch_index_loader_candidates
+  source_step_refs:
+  - index_mondo_terms
+  service_ids:
+  - spark_elasticsearch_index_loader
+  - spark_class_object_storage_dataset_transformer
+  - spark_class_object_storage_table_loader
+  - elasticsearch_index_publisher
+  - multi_table_analytics_warehouse_loader
+  - legacy_database_table_loader
+- candidate_set_id: main_etl_import_mondo_elasticsearch_index_publisher_candidates
+  source_step_refs:
+  - publish_mondo
+  service_ids:
+  - elasticsearch_index_publisher
+  - spark_elasticsearch_index_loader
+  - database_table_http_flag_publisher
+  - bi_dashboard_refresh_trigger
+  - external_workflow_run_trigger
+  - reviewed_domain_adapter
+- candidate_set_id: main_etl_import_mondo_slack_notification_sender_candidates
+  source_step_refs:
+  - slack
+  service_ids:
+  - slack_notification_sender
+  - email_notification_sender
+  - status_context_email_summary_notifier
+  - branch_processing_completion_notifier
+  - aqi_threshold_email_alert_notifier

@@ -1,0 +1,128 @@
+Pipeline Summary:
+- Pipeline ID: val_supply_chain_exception_management
+- Name: Global Supply Chain Exception Management
+- Purpose: Ingest inventory, shipment, weather, and supplier feeds, detect disruption risk, branch severe exceptions to response planning, and publish a global operations dashboard.
+- Execution model: Batch
+- Topology pattern: Mixed
+- Business domain: Supply Chain
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - wait_for_supplier_feeds -> ingest_inventory
+  - wait_for_supplier_feeds -> ingest_shipments
+  - wait_for_supplier_feeds -> ingest_weather_alerts
+  - wait_for_supplier_feeds -> ingest_supplier_capacity
+  - ingest_inventory -> harmonize_supply_state
+  - ingest_shipments -> harmonize_supply_state
+  - ingest_weather_alerts -> harmonize_supply_state
+  - ingest_supplier_capacity -> harmonize_supply_state
+  - harmonize_supply_state -> detect_disruption_risk
+  - detect_disruption_risk -> route_exception_severity
+  - route_exception_severity -> generate_response_plan
+  - route_exception_severity -> publish_operations_dashboard
+  - generate_response_plan -> notify_regional_teams
+  - publish_operations_dashboard -> archive_exception_snapshot
+- Parallel groups:
+  - group 1: ingest_inventory, ingest_shipments, ingest_weather_alerts, ingest_supplier_capacity
+- Branch points:
+  - {'step': 'route_exception_severity', 'conditions': ['normal', 'severe'], 'merge_step': None}
+- Gate or sensor dependencies:
+  - {'step': 'wait_for_supplier_feeds', 'condition': 'minimum_feed_count_met'}
+
+Data Artifacts / I-O Identifiers:
+  - data_object: inventory_snapshot
+  - data_object: shipment_events
+  - data_object: weather_alerts
+  - data_object: supplier_capacity
+  - data_object: response_plan
+  - data_object: operations_dashboard
+  - data_object: exception_archive
+
+External Systems:
+  - external_service: Inventory database
+  - external_service: Carrier API
+  - external_service: Weather API
+  - external_service: Supplier portal
+  - external_service: Notification service
+
+Pipeline Steps:
+1. wait_for_supplier_feeds - wait for supplier feeds
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. ingest_inventory - ingest inventory
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. ingest_shipments - ingest shipments
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+4. ingest_weather_alerts - ingest weather alerts
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+5. ingest_supplier_capacity - ingest supplier capacity
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+6. harmonize_supply_state - harmonize supply state
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+7. detect_disruption_risk - detect disruption risk
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+8. route_exception_severity - route exception severity
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+9. generate_response_plan - generate response plan
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+10. publish_operations_dashboard - publish operations dashboard
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+11. notify_regional_teams - notify regional teams
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+12. archive_exception_snapshot - archive exception snapshot
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

@@ -1,0 +1,23 @@
+batch_version: 0.1.0
+batch_id: batch_01
+target_size: 5
+strategy: Start with one linear API-to-database flow and one branch-merge quality flow,
+  then add three pipelines only after the shared compiler and G0-G6 validator are stable.
+pipelines:
+  - benchmark_id: main:airvisual_pipeline_lat_long_v1
+    status: local_complete
+    rationale: Exercises HTTP extraction, JSON validation, mapping-driven transformation,
+      database loading, secrets, and idempotency.
+  - benchmark_id: main:data_quality_gate
+    status: local_complete
+    rationale: Exercises branch selection, merge semantics, PII policy, quarantine,
+      notification, and scheduled Argo output.
+  - benchmark_id: main:fraud_detection_triage
+    status: local_complete
+    rationale: Adds a second decision-routing composition with domain-specific scoring.
+  - benchmark_id: main:environmental_monitoring_network_v1
+    status: local_complete
+    rationale: Adds fan-out/fan-in environmental processing and broader artifact flow.
+  - benchmark_id: main:backup_strategy_selector
+    status: local_complete
+    rationale: Adds operational decision logic, integrity verification, and maintenance effects.

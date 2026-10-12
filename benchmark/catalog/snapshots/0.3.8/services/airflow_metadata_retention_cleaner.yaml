@@ -1,0 +1,211 @@
+schema_version: 0.1.0
+service_id: airflow_metadata_retention_cleaner
+version: 1.0.0
+display_name: Airflow Metadata Retention Cleaner
+category: Maintenance
+capability:
+  summary: Deletes Airflow metadata database rows older than a configured cutoff for
+    a specified Airflow metadata model/table, with optional keep-last preservation
+    and exclusion rules, then emits cleanup status.
+  operations:
+  - Resolve a bound Airflow metadata database connection.
+  - Identify candidate rows in a configured metadata table using an age-check column
+    and cutoff timestamp.
+  - Optionally preserve the latest row per configured grouping and filters.
+  - Optionally protect rows from deletion according to DAG-id exclusion behavior or
+    caller-supplied exclusion rules.
+  keywords:
+  - airflow
+  - metadata database
+  - retention cleanup
+  - old rows
+  - keep last
+  - maintenance
+  limitations:
+  - Targets Airflow metadata schemas; not a generic arbitrary business-table cleaner.
+  - Does not schedule cleanup, fan out tasks, or implement retry policy.
+  - Airflow version differences in model/table/column names must be supplied by parameters.
+  - Does not update database statistics; use a statistics analyzer service separately.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: airflow_metadata_database
+    description: Airflow metadata SQL database resource used as the cleanup target.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: retention_config
+    description: Retention cutoff configuration produced by a cutoff resolver or supplied
+      by workflow binding.
+    channel: parameter
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://retention_cutoff_config/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: cleanup_status
+    description: Observable cleanup status including table/model, candidates, deleted/skipped/preserved
+      counts, and dry-run/delete behavior.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://airflow_metadata_retention_cleanup_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: affected_table
+    description: Logical reference to the Airflow metadata table processed by the
+      cleanup.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://sql_table_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: airflow_model_name
+    description: Airflow ORM model name or logical metadata entity name, such as DagRun
+      or TaskInstance.
+    type: string
+    required: true
+  - name: table_name
+    description: Metadata table name to clean, such as dag_run, task_instance, log,
+      or xcom.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: age_check_column
+    description: Timestamp/date column used to decide whether a row is older than
+      the cutoff.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: keep_last
+    description: Whether to preserve the latest row per configured grouping even if
+      older than cutoff.
+    type: boolean
+    required: false
+  - name: keep_last_group_by
+    description: Column used to group rows for keep-last preservation, such as dag_id.
+    type: string
+    required: false
+  - name: keep_last_filters
+    description: Optional filter object applied when selecting rows eligible for keep-last
+      preservation.
+    type: object
+    required: false
+  - name: do_not_delete_by_dag_id
+    description: Whether to protect rows associated with configured DAG identifiers
+      from deletion.
+    type: boolean
+    required: false
+  - name: exclusion_rules
+    description: Optional structured rules describing rows that must be preserved.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: airflow_metadata_cleanup_table_contract
+  type: precondition
+  applies_to: parameter
+  target: table_name
+  description: Table and age-check column must be identifier-like names.
+  expression: table_name matches '^[A-Za-z_][A-Za-z0-9_]*$' and age_check_column matches
+    '^[A-Za-z_][A-Za-z0-9_]*$'
+- contract_id: airflow_metadata_cleanup_retention_input_schema
+  type: json_schema
+  applies_to: input
+  target: retention_config
+  description: Retention config must include cutoff timestamp and enable_delete flag.
+  schema_ref: schema://retention_cutoff_config/v1
+  expression: '{"type":"object","required":["cutoff_timestamp","enable_delete"],"properties":{"cutoff_timestamp":{"type":"string"},"max_age_days":{"type":"integer","minimum":0},"enable_delete":{"type":"boolean"},"print_deletes":{"type":"boolean"}}}'
+- contract_id: airflow_metadata_cleanup_status_schema
+  type: json_schema
+  applies_to: output
+  target: cleanup_status
+  description: Cleanup status exposes deletion effect for workflow validation.
+  schema_ref: schema://airflow_metadata_retention_cleanup_status/v1
+  expression: '{"type":"object","required":["success","table_name","age_check_column","cutoff_timestamp","delete_enabled","candidates_found","rows_deleted","rows_preserved"],"properties":{"success":{"type":"boolean"},"table_name":{"type":"string"},"age_check_column":{"type":"string"},"cutoff_timestamp":{"type":"string"},"delete_enabled":{"type":"boolean"},"keep_last":{"type":"boolean"},"candidates_found":{"type":"integer","minimum":0},"rows_deleted":{"type":"integer","minimum":0},"rows_preserved":{"type":"integer","minimum":0},"rows_skipped":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: airflow_metadata_cleanup_effect
+  type: effect
+  applies_to: service
+  target: airflow_metadata_retention_cleaner
+  description: On success with deletion enabled, eligible rows older than cutoff are
+    deleted except rows protected by keep-last or exclusion rules; with deletion disabled,
+    no rows are deleted and candidates are reported.
+  expression: cleanup_status.success == true and cleanup_status.delete_enabled ==
+    false implies cleanup_status.rows_deleted == 0
+invocation:
+  type: argo_workflow_template
+  template_name: airflow-metadata-retention-cleaner-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.airflow_metadata_retention_cleaner
+  implementation_ref: services/implementations/airflow_metadata_retention_cleaner
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - postgresql://*
+  - mysql://*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  - restricted
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Airflow metadata may contain sensitive values in XCom, logs, rendered fields,
+    or import errors; statuses must contain counts and bounded identifiers, not raw
+    row contents.
+  - Bind only the intended Airflow metadata database resource.
+  idempotency_notes: After a successful deletion, reruns find fewer or no candidate
+    rows. Keep-last and exclusion rules must be stable for retry safety.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:airflow_db_cleanup#cleanup_BaseJob
+  - main:airflow_db_cleanup#cleanup_DagModel
+  - main:airflow_db_cleanup#cleanup_DagRun
+  - main:airflow_db_cleanup#cleanup_ImportError
+  - main:airflow_db_cleanup#cleanup_Log
+  - main:airflow_db_cleanup#cleanup_RenderedTaskInstanceFields
+  - main:airflow_db_cleanup#cleanup_SlaMiss
+  - main:airflow_db_cleanup#cleanup_TaskFail
+  - main:airflow_db_cleanup#cleanup_TaskInstance
+  - main:airflow_db_cleanup#cleanup_TaskReschedule
+  - main:airflow_db_cleanup#cleanup_XCom
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing SQL executor would require caller-supplied SQL and would
+    not preserve Airflow-specific keep-last, age-column, and exclusion contracts.'
+  - 'Evidence status: explicit.'

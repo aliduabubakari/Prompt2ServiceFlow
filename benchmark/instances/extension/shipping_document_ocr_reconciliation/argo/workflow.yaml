@@ -1,0 +1,354 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: shipping-document-ocr-reconciliation-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: shipping-document-ocr-reconciliation
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: nominal
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters: []
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: shipping-document-ocr-reconciliation-scripts
+  - name: fixtures
+    configMap:
+      name: shipping-document-ocr-reconciliation-fixtures
+      items:
+      - key: fixture-0000
+        path: carrier_manifest.csv
+      - key: fixture-0001
+        path: fixture.json
+      - key: fixture-0002
+        path: sample_document.pdf
+      - key: fixture-0003
+        path: sample_image.png
+      - key: fixture-0004
+        path: shipping_docs.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-primary-source
+        template: run-ingest-primary-source
+      - name: ingest-secondary-source
+        template: run-ingest-secondary-source
+      - name: ingest-reference-source
+        template: run-ingest-reference-source
+      - name: validate-source-contracts
+        template: run-validate-source-contracts
+        depends: ingest-primary-source.Succeeded && ingest-secondary-source.Succeeded && ingest-reference-source.Succeeded
+      - name: normalize-sources
+        template: run-normalize-sources
+        depends: validate-source-contracts.Succeeded
+      - name: fuse-sources
+        template: run-fuse-sources
+        depends: normalize-sources.Succeeded
+      - name: extract-visual-text-features
+        template: run-extract-visual-text-features
+        depends: fuse-sources.Succeeded
+      - name: join-reference-metadata
+        template: run-join-reference-metadata
+        depends: extract-visual-text-features.Succeeded
+      - name: assess-multimodal-quality
+        template: run-assess-multimodal-quality
+        depends: join-reference-metadata.Succeeded
+      - name: publish-outputs
+        template: run-publish-outputs
+        depends: assess-multimodal-quality.Succeeded
+  - name: run-ingest-primary-source
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_primary_source
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_ingest_primary_source.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-ingest-secondary-source
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_secondary_source
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_ingest_secondary_source.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-ingest-reference-source
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_reference_source
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_ingest_reference_source.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-validate-source-contracts
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: validate_source_contracts
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_validate_source_contracts.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-normalize-sources
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: normalize_sources
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_normalize_sources.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-fuse-sources
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: fuse_sources
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/06_fuse_sources.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-extract-visual-text-features
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: extract_visual_text_features
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/07_extract_visual_text_features.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-join-reference-metadata
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: join_reference_metadata
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/08_join_reference_metadata.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-assess-multimodal-quality
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: assess_multimodal_quality
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/09_assess_multimodal_quality.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-publish-outputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: publish_outputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/10_publish_outputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

@@ -1,0 +1,42 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:climate_data_fusion_pipeline
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.1
+candidate_sets:
+- candidate_set_id: main_climate_data_fusion_pipeline_weather_station_csv_source_extractor_candidates
+  source_step_refs:
+  - download_noaa
+  - download_ecmwf
+  - download_jma
+  - download_metoffice
+  - download_bom
+  service_ids:
+  - weather_station_csv_source_extractor
+  - http_json_request_extractor
+  - weather_station_csv_standard_normalizer
+  - warehouse_inventory_csv_extractor
+- candidate_set_id: main_climate_data_fusion_pipeline_weather_station_csv_standard_normalizer_candidates
+  source_step_refs:
+  - normalize_noaa
+  - normalize_ecmwf
+  - normalize_jma
+  - normalize_metoffice
+  - normalize_bom
+  service_ids:
+  - weather_station_csv_standard_normalizer
+  - csv_to_structured_json_standardizer
+  - inventory_sku_csv_normalizer
+  - power_plant_csv_standardizer
+  - tabular_null_value_cleanser
+  - legacy_csv_schema_validator
+- candidate_set_id: main_climate_data_fusion_pipeline_weather_station_csv_parquet_fusion_aggregator_candidates
+  source_step_refs:
+  - merge_climate_data
+  service_ids:
+  - weather_station_csv_parquet_fusion_aggregator
+  - weather_station_csv_standard_normalizer
+  - multi_region_revenue_report_aggregator
+  - multi_warehouse_inventory_discrepancy_reconciler
+  - structured_json_batch_to_csv_exporter
+  - reviewed_python_udf_transformer

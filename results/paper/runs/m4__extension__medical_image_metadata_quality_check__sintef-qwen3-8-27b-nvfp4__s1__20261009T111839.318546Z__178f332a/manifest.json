@@ -1,0 +1,164 @@
+{
+  "run_id": "m4__extension__medical_image_metadata_quality_check__sintef-qwen3-8-27b-nvfp4__s1__20261009T111839.318546Z__178f332a",
+  "batch_id": "frozen__freeze-2026-10-01.sintef.v19__20261001T204646.947784Z__7da3753f",
+  "sample_index": 1,
+  "ablation": null,
+  "harness_version": "2.2.2",
+  "method": {
+    "id": "m4",
+    "name": "Contract-first ServiceFlowIR + repair"
+  },
+  "prompt_version": "2.1.0",
+  "runtime_compiler_version": "1.0.0",
+  "model": {
+    "model_id": "sintef-qwen3-8-27b-nvfp4",
+    "model_name": "qwen3.8:27b-nvfp4",
+    "base_url": "https://llm.sct.sintef.no/v1",
+    "temperature": 0.2,
+    "top_p": 1.0,
+    "seed": 202,
+    "max_tokens": 16384,
+    "context_window": 65536
+  },
+  "instance": {
+    "id": "medical_image_metadata_quality_check",
+    "split": "extension",
+    "benchmark_id": "extension:medical_image_metadata_quality_check"
+  },
+  "catalog": {
+    "version": "0.3.0",
+    "pinned_catalog_yaml_sha256": "85d824a0e3d5ffa8b613735c7b28ca1147094499e6bde2c1474b3c8aa3414aee",
+    "sanitized_catalog_yaml_sha256": "9eeb036939e7a20f905598b83bbf97d5c84893e040b1dfff71a8151dd246b7f2",
+    "descriptor_count": 241
+  },
+  "roster_sha256": "4dcb218896d8d1201b53bc224e386f24fff0c779e04a5b5dde9d2ba5d0e26c6b",
+  "workspace_manifest_sha256": "2d1085fdfef0c88c57be2ef7676ca6a05f307785119fbf252753126aefd57f3c",
+  "freeze": {
+    "freeze_id": "freeze-2026-10-01.sintef.v19",
+    "status": "frozen",
+    "sha256": "c1192104f5bca5c669a85082f05136300b440f98325a6c2a56a980da362d6138"
+  },
+  "visible_input_policy": {
+    "method_view": [
+      "task.md",
+      "candidates/",
+      "catalog/",
+      "contracts/",
+      "schemas/",
+      "fixtures/"
+    ],
+    "workspace_manifest": "experiments/workspaces/extension/medical_image_metadata_quality_check/workspace.yaml"
+  },
+  "repair": {
+    "budget": 3,
+    "execution_feedback": true
+  },
+  "environment": {
+    "python": "3.12.3",
+    "platform": "macOS-15.6.1-arm64-arm-64bit",
+    "git_revision": "a0a9a18"
+  },
+  "started_at": "2026-10-09T11:18:39.323062+00:00",
+  "method_status": "completed",
+  "method_error": null,
+  "evaluation": {
+    "error": "evaluation failed: 'status'",
+    "repair_attempts": [
+      {
+        "attempt": 0,
+        "overall_status": "fail",
+        "first_failing_gate": "G0",
+        "gate_statuses": {
+          "G0": "fail"
+        },
+        "selected_as_best": false,
+        "repeated_state": false,
+        "synthetic": true
+      },
+      {
+        "attempt": 1,
+        "overall_status": "fail",
+        "first_failing_gate": "G3",
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "pass",
+          "G2": "pass",
+          "G3": "fail",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": true,
+        "repeated_state": false,
+        "synthetic": false
+      },
+      {
+        "attempt": 2,
+        "overall_status": "pass",
+        "first_failing_gate": null,
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "pass",
+          "G2": "pass",
+          "G3": "pass",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": true,
+        "repeated_state": false,
+        "synthetic": false
+      }
+    ]
+  },
+  "usage": {
+    "llm_calls": 3,
+    "prompt_tokens": 72024,
+    "completion_tokens": 20709,
+    "reasoning_tokens": 0,
+    "total_tokens": 92733,
+    "latency_s": 844.117,
+    "validator_calls": 2,
+    "evaluation_validator_calls": 2,
+    "cost_usd": null,
+    "per_stage": [
+      {
+        "stage": "m3_ir",
+        "model": "qwen3.8:27b-nvfp4",
+        "usage": {
+          "prompt_tokens": 27756,
+          "completion_tokens": 8192,
+          "total_tokens": 35948,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 346.8,
+        "finish_reason": "length"
+      },
+      {
+        "stage": "m4_repair_parse",
+        "model": "qwen3.8:27b-nvfp4",
+        "usage": {
+          "prompt_tokens": 12697,
+          "completion_tokens": 6625,
+          "total_tokens": 19322,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 173.218,
+        "finish_reason": "stop"
+      },
+      {
+        "stage": "m4_repair_2",
+        "model": "qwen3.8:27b-nvfp4",
+        "usage": {
+          "prompt_tokens": 31571,
+          "completion_tokens": 5892,
+          "total_tokens": 37463,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 324.099,
+        "finish_reason": "stop"
+      }
+    ]
+  },
+  "finished_at": "2026-10-09T11:32:57.298395+00:00"
+}

@@ -1,0 +1,54 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:clickstream_session_window_batch
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.4
+candidate_sets:
+- candidate_set_id: extension_clickstream_session_window_batch_checkpoint_bounded_event_ingestor_candidates
+  source_step_refs:
+  - ingest_bounded_events
+  service_ids:
+  - checkpoint_bounded_event_ingestor
+  - reviewed_domain_adapter
+  - bounded_window_checkpoint_validator
+  - event_record_cleaner
+- candidate_set_id: extension_clickstream_session_window_batch_checkpoint_boundary_validator_candidates
+  source_step_refs:
+  - validate_checkpoint_inputs
+  service_ids:
+  - checkpoint_boundary_validator
+  - bounded_window_checkpoint_validator
+  - event_record_cleaner
+  - external_workflow_completion_sensor
+- candidate_set_id: extension_clickstream_session_window_batch_checkpoint_event_sort_deduplicator_candidates
+  source_step_refs:
+  - sort_and_deduplicate_records
+  service_ids:
+  - checkpoint_event_sort_deduplicator
+  - event_record_cleaner
+  - external_workflow_completion_sensor
+  - iot_anomaly_feature_calculator
+- candidate_set_id: extension_clickstream_session_window_batch_checkpoint_window_builder_candidates
+  source_step_refs:
+  - build_analysis_windows
+  service_ids:
+  - checkpoint_window_builder
+  - external_workflow_completion_sensor
+  - iot_anomaly_feature_calculator
+  - dataset_quarantine_zone_writer
+- candidate_set_id: extension_clickstream_session_window_batch_checkpoint_window_metric_computer_candidates
+  source_step_refs:
+  - compute_window_metrics
+  service_ids:
+  - checkpoint_window_metric_computer
+  - iot_anomaly_feature_calculator
+  - dataset_quarantine_zone_writer
+  - reviewed_domain_adapter
+- candidate_set_id: extension_clickstream_session_window_batch_checkpoint_output_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - checkpoint_output_bundle_publisher
+  - dataset_quarantine_zone_writer
+  - reviewed_domain_adapter
+  - bounded_window_checkpoint_validator

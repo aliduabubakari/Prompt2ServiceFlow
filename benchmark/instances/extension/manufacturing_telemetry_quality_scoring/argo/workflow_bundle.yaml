@@ -1,0 +1,453 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: manufacturing-telemetry-quality-scoring-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_source_batch.py: "#!/usr/bin/env python3\n\"\"\"Ingest machine telemetry JSONL, machine master\
+    \ CSV, and quality thresholds.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True)\n    p.add_argument(\"--fixture\",type=Path,required=True); p.add_argument(\"\
+    --execution-time\",type=str,default=None)\n    a=p.parse_args(); r=a.workspace; art=r/\"artifacts\"\
+    ; art.mkdir(parents=True,exist_ok=True)\n    fx=json.loads(a.fixture.read_text(encoding=\"utf-8\"\
+    )); fd=a.fixture.parent\n    telemetry=[]\n    with (fd/fx[\"inputs\"][\"telemetry\"]).open(encoding=\"\
+    utf-8\") as f:\n        for line in f:\n            line=line.strip()\n            if line: telemetry.append(json.loads(line))\n\
+    \    machines={}\n    with (fd/fx[\"inputs\"][\"machines\"]).open(encoding=\"utf-8\",newline=\"\"\
+    ) as f:\n        for row in csv.DictReader(f): machines[row[\"machine_id\"]]=row\n    thresholds=json.loads((fd/fx[\"\
+    inputs\"][\"thresholds\"]).read_text(encoding=\"utf-8\"))\n    result={\"telemetry\":telemetry,\"\
+    machines\":machines,\"thresholds\":thresholds,\"total\":len(telemetry),\"ingested_at\":a.execution_time}\n\
+    \    (art/\"ingest_source_batch_artifact.json\").write_text(json.dumps(result,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    (art/\"ingest_source_batch_status.json\").write_text(json.dumps({\"success\":True,\"\
+    records\":len(telemetry),\"machines\":len(machines),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\nif __name__==\"__main__\": main()\n"
+  02_validate_source_contract.py: "#!/usr/bin/env python3\n\"\"\"Validate: required fields, machine existence,\
+    \ numeric ranges.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import\
+    \ Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    telemetry,machines,thresholds=ingested[\"telemetry\"],ingested[\"machines\"],ingested[\"\
+    thresholds\"]\n    required=set(thresholds[\"required_fields\"]); errors=[]; valid=[]\n    for t in\
+    \ telemetry:\n        issues=[]\n        if required-set(t.keys()): issues.append(f\"missing_fields:\
+    \ {required-set(t.keys())}\")\n        if t.get(\"machine_id\") not in machines: issues.append(f\"\
+    unknown_machine: {t.get('machine_id')}\")\n        if issues: errors.append({\"record\":t.get(\"machine_id\"\
+    ,\"?\"),\"issues\":issues})\n        else: valid.append(t)\n    result={\"valid_records\":valid,\"\
+    errors\":errors,\"total_valid\":len(valid),\"total_rejected\":len(errors)}\n    (art/\"validate_source_contract_artifact.json\"\
+    ).write_text(json.dumps(result,indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"validate_source_contract_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"valid\":len(valid),\"rejected\":len(errors),\"errors\"\
+    :errors},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_extract_branch_features.py: "#!/usr/bin/env python3\n\"\"\"Extract features: compute per-shift metrics\
+    \ (defect rate, utilization, cycles vs rated).\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\nSHIFT_MINUTES=480\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    machines=ingested[\"machines\"]; features=[]\n    for t in validated[\"\
+    valid_records\"]:\n        m=machines.get(t[\"machine_id\"],{})\n        rated=int(m.get(\"rated_cycles_per_shift\"\
+    ,1))\n        dr=round(t[\"defect_count\"]/max(t[\"cycle_count\"],1)*100,2)\n        util=round(t[\"\
+    uptime_min\"]/SHIFT_MINUTES*100,1)\n        features.append({\"machine_id\":t[\"machine_id\"],\"shift\"\
+    :t[\"shift\"],\"date\":t[\"date\"],\n                         \"defect_rate_pct\":dr,\"utilization_pct\"\
+    :util,\n                         \"cycle_efficiency_pct\":round(t[\"cycle_count\"]/rated*100,1)})\n\
+    \    (art/\"extract_branch_features_artifact.json\").write_text(json.dumps({\"features\":features,\"\
+    total\":len(features)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"extract_branch_features_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"extracted\":len(features),\"errors\":[]},indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_enrich_branch_context.py: "#!/usr/bin/env python3\n\"\"\"Enrich context: join with machine master\
+    \ data (type, line, age).\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom datetime\
+    \ import datetime\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    machines=ingested[\"machines\"]; current_year=2026; enriched=[]\n\
+    \    for t in validated[\"valid_records\"]:\n        m=machines.get(t[\"machine_id\"],{})\n      \
+    \  age=current_year-int(m.get(\"install_year\",current_year))\n        enriched.append({\"machine_id\"\
+    :t[\"machine_id\"],\"shift\":t[\"shift\"],\n                         \"machine_type\":m.get(\"machine_type\"\
+    ,\"?\"),\"production_line\":m.get(\"production_line\",\"?\"),\"machine_age_years\":age})\n    (art/\"\
+    enrich_branch_context_artifact.json\").write_text(json.dumps({\"enriched\":enriched,\"total\":len(enriched)},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"enrich_branch_context_status.json\").write_text(json.dumps({\"\
+    success\":True,\"enriched\":len(enriched),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif\
+    \ __name__==\"__main__\": main()\n"
+  05_score_branch_quality.py: "#!/usr/bin/env python3\n\"\"\"Score quality: check telemetry against machine-specific\
+    \ thresholds.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import\
+    \ Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    machines=ingested[\"machines\"]; scores=[]\n    for t in validated[\"valid_records\"\
+    ]:\n        m=machines.get(t[\"machine_id\"],{})\n        issues=[]\n        max_temp=float(m.get(\"\
+    max_temp_c\",100))\n        max_vib=float(m.get(\"max_vibration_rms\",100))\n        if t.get(\"avg_temp_c\"\
+    ,0)>max_temp: issues.append(f\"temp_high: {t['avg_temp_c']}>{max_temp}\")\n        if t.get(\"vibration_rms\"\
+    ,0)>max_vib: issues.append(f\"vibration_high: {t['vibration_rms']}>{max_vib}\")\n        scores.append({\"\
+    machine_id\":t[\"machine_id\"],\"shift\":t[\"shift\"],\"temp_c\":t.get(\"avg_temp_c\"),\n        \
+    \                \"vibration_rms\":t.get(\"vibration_rms\"),\"threshold_issues\":len(issues),\"issues\"\
+    :issues})\n    (art/\"score_branch_quality_artifact.json\").write_text(json.dumps({\"scores\":scores,\"\
+    total\":len(scores)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"score_branch_quality_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"scored\":len(scores),\"errors\":[]},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  06_merge_branch_outputs.py: "#!/usr/bin/env python3\n\"\"\"Merge branches: combine features, enrichment,\
+    \ and quality scores.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib\
+    \ import Path\n\ndef key(r): return (r[\"machine_id\"],r[\"shift\"])\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"\n    feats=json.loads((art/\"extract_branch_features_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    enr=json.loads((art/\"enrich_branch_context_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    scor=json.loads((art/\"score_branch_quality_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    fm={key(f):f for f in feats[\"features\"]}; em={key(e):e for\
+    \ e in enr[\"enriched\"]}; sm={key(s):s for s in scor[\"scores\"]}\n    merged=[]\n    for k in fm:\n\
+    \        m={**fm[k]}\n        if k in em: m.update({kk:vv for kk,vv in em[k].items() if kk not in\
+    \ (\"machine_id\",\"shift\")})\n        if k in sm: m.update({kk:vv for kk,vv in sm[k].items() if\
+    \ kk not in (\"machine_id\",\"shift\")})\n        merged.append(m)\n    (art/\"merge_branch_outputs_artifact.json\"\
+    ).write_text(json.dumps({\"merged\":merged,\"total\":len(merged)},indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    (art/\"merge_branch_outputs_status.json\").write_text(json.dumps({\"success\":True,\"merged\"\
+    :len(merged),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  07_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish: compute final quality grade, export CSV,\
+    \ write manifest.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib\
+    \ import Path\n\nSHIFT_MINUTES=480\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  p.add_argument(\"--execution-time\",type=str,default=None); a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    et=a.execution_time or \"2026-07-20T12:00:00Z\"; fx=json.loads(a.fixture.read_text(encoding=\"\
+    utf-8\"))\n    merged=json.loads((art/\"merge_branch_outputs_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    grades=ingested[\"thresholds\"][\"quality_grades\"]; uptime_min=ingested[\"thresholds\"\
+    ][\"uptime_pct_min\"]\n    assessed=[]\n    for m in merged[\"merged\"]:\n        issues=0\n     \
+    \   if m.get(\"defect_rate_pct\",0)>ingested[\"thresholds\"][\"defect_rate_max\"]: issues+=1\n   \
+    \     if m.get(\"utilization_pct\",100)<uptime_min: issues+=1\n        issues+=m.get(\"threshold_issues\"\
+    ,0)\n        if issues<=grades[\"excellent\"][\"max_issues\"]: grade=\"excellent\"\n        elif issues<=grades[\"\
+    acceptable\"][\"max_issues\"]: grade=\"acceptable\"\n        elif issues<=grades[\"attention\"][\"\
+    max_issues\"]: grade=\"attention\"\n        else: grade=\"critical\"\n        assessed.append({**m,\"\
+    quality_grade\":grade,\"total_issues\":issues})\n    summary={\"total\":len(assessed),\n         \
+    \    \"excellent\":sum(1 for a in assessed if a[\"quality_grade\"]==\"excellent\"),\n            \
+    \ \"acceptable\":sum(1 for a in assessed if a[\"quality_grade\"]==\"acceptable\"),\n             \"\
+    attention\":sum(1 for a in assessed if a[\"quality_grade\"]==\"attention\"),\n             \"critical\"\
+    :sum(1 for a in assessed if a[\"quality_grade\"]==\"critical\")}\n    manifest={\"checkpoint_id\"\
+    :f\"ckpt_mfg_quality_{et[:10].replace('-','_')}\",\"checkpoint_time\":et,\n              \"pipeline_id\"\
+    :fx[\"pipeline_id\"],\"summary\":summary,\"output_files\":[\"mfg_quality_report.csv\",\"audit_manifest.json\"\
+    ],\"status\":\"completed\"}\n    (art/\"audit_manifest.json\").write_text(json.dumps(manifest,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    csv_rel=\"mfg_quality_report.csv\"\n    with (art/csv_rel).open(\"\
+    w\",encoding=\"utf-8\",newline=\"\") as f:\n        fields=[\"machine_id\",\"shift\",\"machine_type\"\
+    ,\"production_line\",\"defect_rate_pct\",\"utilization_pct\",\"cycle_efficiency_pct\",\"quality_grade\"\
+    ,\"total_issues\"]\n        w=csv.DictWriter(f,fieldnames=fields)\n        w.writeheader()\n     \
+    \   for a in assessed: w.writerow({f:a.get(f,\"\") for f in fields})\n    (art/\"publish_outputs_artifact.json\"\
+    ).write_text(json.dumps({\"manifest\":manifest,\"csv\":csv_rel},indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    (art/\"publish_outputs_status.json\").write_text(json.dumps({\"success\":True,\"csv_exported\"\
+    :csv_rel,\"summary\":summary,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"\
+    __main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: manufacturing-telemetry-quality-scoring-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"pipeline_id\": \"manufacturing_telemetry_quality_scoring\",\n  \"inputs\": {\n\
+    \    \"telemetry\": \"machine_telemetry.jsonl\",\n    \"machines\": \"machine_master.csv\",\n    \"\
+    thresholds\": \"quality_thresholds.json\"\n  },\n  \"input_modalities\": [\"time_series\", \"table\"\
+    ],\n  \"systems\": [\n    \"factory telemetry stream\",\n    \"quality monitoring dashboard\"\n  ]\n\
+    }\n"
+  fixture-0001: 'machine_id,machine_type,production_line,install_year,rated_cycles_per_shift,max_temp_c,max_vibration_rms
+
+    MACH-01,CNC_Mill,Line-A,2022,1300,45.0,2.0
+
+    MACH-02,CNC_Mill,Line-A,2023,900,42.0,1.5
+
+    MACH-03,Injection_Mold,Line-B,2020,2000,50.0,3.5
+
+    MACH-04,Robot_Arm,Line-C,2024,1000,40.0,1.2
+
+    '
+  fixture-0002: '{"machine_id": "MACH-01", "shift": "morning", "date": "2026-07-20", "uptime_min": 470,
+    "cycle_count": 1200, "defect_count": 3, "avg_temp_c": 42.5, "vibration_rms": 1.2}
+
+    {"machine_id": "MACH-01", "shift": "afternoon", "date": "2026-07-20", "uptime_min": 455, "cycle_count":
+    1150, "defect_count": 5, "avg_temp_c": 44.0, "vibration_rms": 1.5}
+
+    {"machine_id": "MACH-02", "shift": "morning", "date": "2026-07-20", "uptime_min": 480, "cycle_count":
+    800, "defect_count": 1, "avg_temp_c": 38.0, "vibration_rms": 0.9}
+
+    {"machine_id": "MACH-02", "shift": "afternoon", "date": "2026-07-20", "uptime_min": 300, "cycle_count":
+    500, "defect_count": 2, "avg_temp_c": 39.5, "vibration_rms": 1.0}
+
+    {"machine_id": "MACH-03", "shift": "morning", "date": "2026-07-20", "uptime_min": 510, "cycle_count":
+    2100, "defect_count": 12, "avg_temp_c": 55.0, "vibration_rms": 3.8}
+
+    {"machine_id": "MACH-04", "shift": "morning", "date": "2026-07-20", "uptime_min": 490, "cycle_count":
+    950, "defect_count": 0, "avg_temp_c": 36.0, "vibration_rms": 0.7}
+
+    '
+  fixture-0003: "{\n  \"policy_id\": \"mfg-quality-v1\",\n  \"description\": \"Manufacturing telemetry\
+    \ quality scoring thresholds\",\n  \"required_fields\": [\"machine_id\", \"shift\", \"date\", \"uptime_min\"\
+    , \"cycle_count\", \"defect_count\"],\n  \"defect_rate_max\": 1.0,\n  \"uptime_pct_min\": 80.0,\n\
+    \  \"quality_grades\": {\n    \"excellent\": {\"max_issues\": 0},\n    \"acceptable\": {\"max_issues\"\
+    : 1},\n    \"attention\": {\"max_issues\": 2},\n    \"critical\": {}\n  }\n}\n"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: manufacturing-telemetry-quality-scoring-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: manufacturing-telemetry-quality-scoring
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: nominal
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: execution-time
+      value: '2026-07-20T12:00:00Z'
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: manufacturing-telemetry-quality-scoring-scripts
+  - name: fixtures
+    configMap:
+      name: manufacturing-telemetry-quality-scoring-fixtures
+      items:
+      - key: fixture-0000
+        path: fixture.json
+      - key: fixture-0001
+        path: machine_master.csv
+      - key: fixture-0002
+        path: machine_telemetry.jsonl
+      - key: fixture-0003
+        path: quality_thresholds.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-source-batch
+        template: run-ingest-source-batch
+      - name: validate-source-contract
+        template: run-validate-source-contract
+        depends: ingest-source-batch.Succeeded
+      - name: extract-branch-features
+        template: run-extract-branch-features
+        depends: validate-source-contract.Succeeded
+      - name: enrich-branch-context
+        template: run-enrich-branch-context
+        depends: validate-source-contract.Succeeded
+      - name: score-branch-quality
+        template: run-score-branch-quality
+        depends: validate-source-contract.Succeeded
+      - name: merge-branch-outputs
+        template: run-merge-branch-outputs
+        depends: extract-branch-features.Succeeded && enrich-branch-context.Succeeded && score-branch-quality.Succeeded
+      - name: publish-outputs
+        template: run-publish-outputs
+        depends: merge-branch-outputs.Succeeded
+  - name: run-ingest-source-batch
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_source_batch
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_ingest_source_batch.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-validate-source-contract
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: validate_source_contract
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_validate_source_contract.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-extract-branch-features
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: extract_branch_features
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_extract_branch_features.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-enrich-branch-context
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: enrich_branch_context
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_enrich_branch_context.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-score-branch-quality
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: score_branch_quality
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_score_branch_quality.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-merge-branch-outputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: merge_branch_outputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/06_merge_branch_outputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-publish-outputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: publish_outputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/07_publish_outputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

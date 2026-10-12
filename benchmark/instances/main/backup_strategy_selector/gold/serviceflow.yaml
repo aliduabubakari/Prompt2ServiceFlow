@@ -1,0 +1,490 @@
+ir_version: 0.1.0
+composition_id: backup_strategy_selector
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:backup_strategy_selector
+  split: main
+  pipeline_id: backup_strategy_selector
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/27_backup_strategy_selector.txt
+  description_sha256: 12c1a8c515fac18fd389f54c5babb81f003850e016465ca4e0b9132d69f3a29d
+  internal_spec_path: source/internal_specs/main_40/27_backup_strategy_selector.json
+  internal_spec_sha256: 0532f3bec8ee6860f40dd4484db8802a15eb72d0ab2b7a3053901914f1736da1
+requirement:
+  name: Backup Strategy Selector
+  purpose: Initialize a database backup run, determine full-vs-incremental strategy based on day of week,
+    execute the appropriate backup, verify integrity, and finalize the session.
+  domain: database_maintenance
+  execution_model: batch
+  topology: branch_merge
+  information_sufficiency: high
+  notes:
+  - Full backup runs on Saturday; incremental on weekdays.
+  - Bookend steps initialize and finalize the backup session.
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: backup_database
+  type: database
+  name: Database backup target
+  identifier: backup_target_db
+  access_mode: read
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: date_check_task
+  name: Select backup strategy
+  category: Transformer
+  capability: Select a full or incremental backup mode from the logical execution date.
+  source_step_refs:
+  - date_check_task
+  evidence:
+  - source: description
+    text: Determine day of week and select backup strategy.
+  inputs:
+  - execution_date
+  outputs:
+  - backup_strategy_decision
+  external_system_refs: []
+  preconditions:
+  - A parseable execution date is available.
+  effects:
+  - A backup strategy decision with full/incremental label is emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly evaluates the day of week before choosing a branch.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: full_backup_task
+  name: Perform full database backup
+  category: Maintenance
+  capability: Create a full database backup artifact for the selected branch.
+  source_step_refs:
+  - full_backup_task
+  evidence:
+  - source: description
+    text: Perform full database backup.
+  inputs:
+  - database_resource
+  outputs:
+  - backup_file
+  - backup_manifest
+  - backup_status
+  external_system_refs:
+  - backup_database
+  preconditions:
+  - The strategy decision is full backup.
+  effects:
+  - A full backup artifact, manifest, and status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+    - restricted
+  decomposition_rationale: Both branch steps invoke the same backup capability with a different selected
+    backup mode.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Mock creates a deterministic filesystem artifact.
+- intent_id: incremental_backup_task
+  name: Perform incremental database backup
+  category: Maintenance
+  capability: Create a incremental database backup artifact for the selected branch.
+  source_step_refs:
+  - incremental_backup_task
+  evidence:
+  - source: description
+    text: Perform incremental database backup.
+  inputs:
+  - database_resource
+  outputs:
+  - backup_file
+  - backup_manifest
+  - backup_status
+  external_system_refs:
+  - backup_database
+  preconditions:
+  - The strategy decision is incremental backup.
+  effects:
+  - An incremental backup artifact, manifest, and status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+    - restricted
+  decomposition_rationale: Both branch steps invoke the same backup capability with a different selected
+    backup mode.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Mock creates a deterministic filesystem artifact.
+- intent_id: verify_backup_task
+  name: Verify backup integrity
+  category: QualityCheck
+  capability: Verify the selected backup artifact for readability, integrity, and completeness.
+  source_step_refs:
+  - verify_backup_task
+  evidence:
+  - source: description
+    text: Verify backup integrity and completeness.
+  inputs:
+  - backup_file
+  - backup_manifest
+  outputs:
+  - verification_result
+  - verification_status
+  external_system_refs: []
+  preconditions:
+  - A backup artifact exists from either the full or incremental branch.
+  effects:
+  - A verification decision and status are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: The source merges both backup branches into one backup-integrity check.
+  confidence: strongly_inferred
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: date_check_task
+    to: full_backup_task
+    condition: backup_strategy_decision.selected_strategy == full
+  - from: date_check_task
+    to: incremental_backup_task
+    condition: backup_strategy_decision.selected_strategy == incremental
+  - from: full_backup_task
+    to: verify_backup_task
+  - from: incremental_backup_task
+    to: verify_backup_task
+  parallel_groups: []
+  branches:
+  - branch_id: backup_strategy
+    decision_intent: date_check_task
+    decision_artifact: backup_strategy_decision
+    cases:
+    - case_id: full
+      condition: backup_strategy_decision.selected_strategy == full
+      next_intents:
+      - full_backup_task
+    - case_id: incremental
+      condition: backup_strategy_decision.selected_strategy == incremental
+      next_intents:
+      - incremental_backup_task
+    merge_intent: verify_backup_task
+  gates: []
+artifacts:
+- artifact_id: execution_date
+  name: Execution date
+  kind: external_resource
+  data_type: string
+  media_type: text/plain
+  role: config
+  producer: null
+  consumers:
+  - date_check_task
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/execution_date_saturday.txt
+  external_system_ref: backup_database
+- artifact_id: backup_strategy_decision
+  name: Backup strategy decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  role: decision
+  producer: date_check_task
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/backup_strategy_decision.schema.json
+- artifact_id: database_resource
+  name: Database resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - full_backup_task
+  - incremental_backup_task
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/database_resource.json
+  external_system_ref: backup_database
+- artifact_id: backup_file
+  name: Selected backup file
+  kind: artifact
+  data_type: binary
+  media_type: application/octet-stream
+  role: intermediate
+  producer:
+  - full_backup_task
+  - incremental_backup_task
+  consumers:
+  - verify_backup_task
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: backup_manifest
+  name: Selected backup manifest
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer:
+  - full_backup_task
+  - incremental_backup_task
+  consumers:
+  - verify_backup_task
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/backup_manifest.schema.json
+- artifact_id: backup_status
+  name: Selected backup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer:
+  - full_backup_task
+  - incremental_backup_task
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/backup_status.schema.json
+- artifact_id: verification_result
+  name: Backup verification decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  role: decision
+  producer: verify_backup_task
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/verification_result.schema.json
+- artifact_id: verification_status
+  name: Backup verification status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: verify_backup_task
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/verification_status.schema.json
+bindings:
+- intent_id: date_check_task
+  service_id: execution_date_backup_strategy_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: execution_date
+    artifact_id: execution_date
+  output_bindings:
+  - port: backup_strategy_decision
+    artifact_id: backup_strategy_decision
+  parameter_bindings:
+    full_backup_days:
+    - 5
+    weekday_numbering: python_monday_0
+    full_strategy_label: full
+    incremental_strategy_label: incremental
+    timezone: UTC
+  secret_bindings: []
+  rationale: Binds the source Saturday-vs-weekday rule to the reviewed strategy decider.
+  confidence: explicit
+- intent_id: full_backup_task
+  service_id: database_backup_artifact_creator
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_database
+    artifact_id: database_resource
+  output_bindings:
+  - port: backup_file
+    artifact_id: backup_file
+  - port: backup_manifest
+    artifact_id: backup_manifest
+  - port: backup_status
+    artifact_id: backup_status
+  parameter_bindings:
+    backup_mode: full
+    database_engine: postgresql
+    backup_profile: pg_dump_custom
+    backup_scope:
+      whole_database: true
+    output_path: /workspace/artifacts/backup_file.dump
+    overwrite_output: true
+  secret_bindings: []
+  rationale: Executes the reviewed full backup contract for the selected branch.
+  confidence: explicit
+- intent_id: incremental_backup_task
+  service_id: database_backup_artifact_creator
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_database
+    artifact_id: database_resource
+  output_bindings:
+  - port: backup_file
+    artifact_id: backup_file
+  - port: backup_manifest
+    artifact_id: backup_manifest
+  - port: backup_status
+    artifact_id: backup_status
+  parameter_bindings:
+    backup_mode: incremental
+    database_engine: postgresql
+    backup_profile: pg_dump_custom
+    backup_scope:
+      whole_database: true
+    output_path: /workspace/artifacts/backup_file.dump
+    overwrite_output: true
+  secret_bindings: []
+  rationale: Executes the reviewed incremental backup contract for the selected branch.
+  confidence: explicit
+- intent_id: verify_backup_task
+  service_id: backup_artifact_integrity_verifier
+  service_version: 1.0.0
+  input_bindings:
+  - port: backup_file
+    artifact_id: backup_file
+  - port: backup_manifest
+    artifact_id: backup_manifest
+  output_bindings:
+  - port: verification_result
+    artifact_id: verification_result
+  - port: verification_status
+    artifact_id: verification_status
+  parameter_bindings:
+    require_non_empty: true
+    require_checksum_match: true
+  secret_bindings: []
+  rationale: Verifies the logical conditional backup artifact emitted by the selected branch.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides:
+  - intent_id: full_backup_task
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 3600
+    network_access: required
+  - intent_id: incremental_backup_task
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 3600
+    network_access: required
+  - intent_id: verify_backup_task
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 600
+    network_access: forbidden
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    - restricted
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Database credentials and backup contents are mocked; no real backup is created.
+    - Sensitive backup data is restricted to bounded mock artifacts.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, provenance files, and pinned catalogue checksum validate.
+- gate: G1
+  expected_status: pass
+  checks:
+  - Every source step is explicitly service- or orchestration-accounted.
+- gate: G2
+  expected_status: pass
+  checks:
+  - The three active catalogue bindings resolve from the 0.1.0 snapshot.
+- gate: G3
+  expected_status: pass
+  checks:
+  - Conditional backup outputs, parameters, and policies close against contracts.
+- gate: G4
+  expected_status: pass
+  checks:
+  - The branch/merge Argo DAG and CronWorkflow compile deterministically.
+- gate: G5
+  expected_status: pass
+  checks:
+  - Saturday and weekday backup scenarios execute with one selected branch each.
+- gate: G6
+  expected_status: pass
+  checks:
+  - Strategy, backup mode, checksum verification, and branch exclusivity assertions hold.
+source_step_accounting:
+- source_step_ref: start_backup_process
+  disposition: orchestration
+  intent_ids: []
+  rationale: The source step controls workflow sequencing or failure handling and does not invoke a reusable
+    catalogue service.
+- source_step_ref: date_check_task
+  disposition: service
+  intent_ids:
+  - date_check_task
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: full_backup_task
+  disposition: service
+  intent_ids:
+  - full_backup_task
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: incremental_backup_task
+  disposition: service
+  intent_ids:
+  - incremental_backup_task
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: verify_backup_task
+  disposition: service
+  intent_ids:
+  - verify_backup_task
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: backup_complete
+  disposition: orchestration
+  intent_ids: []
+  rationale: The source step controls workflow sequencing or failure handling and does not invoke a reusable
+    catalogue service.

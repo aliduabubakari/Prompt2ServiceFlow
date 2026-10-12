@@ -1,0 +1,75 @@
+assertions_version: 0.1.0
+pipeline_id: airflow_db_cleanup
+scenarios:
+- scenario: run
+  assertions:
+  - assertion_id: retention_cutoff_resolved
+    type: json_path_equals
+    path: artifacts/retention_config.json
+    json_path: max_age_days
+    expected: 30
+  - assertion_id: dag_run_cleaned
+    type: json_path_equals
+    path: artifacts/dag_run_status.json
+    json_path: success
+    expected: true
+  - assertion_id: task_instance_cleaned
+    type: json_path_equals
+    path: artifacts/task_instance_status.json
+    json_path: success
+    expected: true
+  - assertion_id: log_cleaned
+    type: json_path_equals
+    path: artifacts/log_status.json
+    json_path: success
+    expected: true
+  - assertion_id: xcom_cleaned
+    type: json_path_equals
+    path: artifacts/xcom_status.json
+    json_path: success
+    expected: true
+  - assertion_id: sla_miss_cleaned
+    type: json_path_equals
+    path: artifacts/sla_miss_status.json
+    json_path: success
+    expected: true
+  - assertion_id: dag_model_cleaned
+    type: json_path_equals
+    path: artifacts/dag_model_status.json
+    json_path: success
+    expected: true
+  - assertion_id: task_reschedule_cleaned
+    type: json_path_equals
+    path: artifacts/task_reschedule_status.json
+    json_path: success
+    expected: true
+  - assertion_id: task_fail_cleaned
+    type: json_path_equals
+    path: artifacts/task_fail_status.json
+    json_path: success
+    expected: true
+  - assertion_id: rendered_task_instance_fields_cleaned
+    type: json_path_equals
+    path: artifacts/rendered_task_instance_fields_status.json
+    json_path: success
+    expected: true
+  - assertion_id: import_error_cleaned
+    type: json_path_equals
+    path: artifacts/import_error_status.json
+    json_path: success
+    expected: true
+  - assertion_id: base_job_cleaned
+    type: json_path_equals
+    path: artifacts/base_job_status.json
+    json_path: success
+    expected: true
+  - assertion_id: sessions_cleaned
+    type: json_path_equals
+    path: artifacts/sessions_status.json
+    json_path: success
+    expected: true
+  - assertion_id: all_tables_analyzed
+    type: json_path_equals
+    path: artifacts/analyze_status.json
+    json_path: analyzed_table_count
+    expected: 12

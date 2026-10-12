@@ -1,0 +1,73 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:late_record_replay_quarantine
+candidate_sets:
+- candidate_set_id: extension_late_record_replay_quarantine_late_record_replay_batch_ingestor_candidates
+  required_service_id: late_record_replay_batch_ingestor
+  labels:
+    late_record_replay_batch_ingestor: gold
+    checkpoint_position_only_loader: semantic_mismatch
+    checkpoint_event_sort_deduplicator: contract_mismatch
+    append_only_event_archiver: format_mismatch
+- candidate_set_id: extension_late_record_replay_quarantine_retention_policy_contract_validator_candidates
+  required_service_id: retention_policy_contract_validator
+  labels:
+    retention_policy_contract_validator: gold
+    checkpoint_event_sort_deduplicator: semantic_mismatch
+    append_only_event_archiver: contract_mismatch
+    generic_queue_metric_counter: format_mismatch
+- candidate_set_id: extension_late_record_replay_quarantine_checkpoint_manifest_loader_candidates
+  required_service_id: checkpoint_manifest_loader
+  labels:
+    checkpoint_manifest_loader: gold
+    append_only_event_archiver: semantic_mismatch
+    generic_queue_metric_counter: contract_mismatch
+    audit_log_redaction_only_filter: format_mismatch
+- candidate_set_id: extension_late_record_replay_quarantine_checkpoint_state_transition_applier_candidates
+  required_service_id: checkpoint_state_transition_applier
+  labels:
+    checkpoint_state_transition_applier: gold
+    generic_queue_metric_counter: semantic_mismatch
+    audit_log_redaction_only_filter: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_late_record_replay_quarantine_late_event_quarantine_writer_candidates
+  required_service_id: late_event_quarantine_writer
+  labels:
+    late_event_quarantine_writer: gold
+    audit_log_redaction_only_filter: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    checkpoint_position_only_loader: format_mismatch
+- candidate_set_id: extension_late_record_replay_quarantine_retention_policy_risk_decider_candidates
+  required_service_id: retention_policy_risk_decider
+  labels:
+    retention_policy_risk_decider: gold
+    reviewed_domain_adapter: semantic_mismatch
+    checkpoint_position_only_loader: contract_mismatch
+    checkpoint_event_sort_deduplicator: format_mismatch
+- candidate_set_id: extension_late_record_replay_quarantine_compliance_approved_record_router_candidates
+  required_service_id: compliance_approved_record_router
+  labels:
+    compliance_approved_record_router: gold
+    checkpoint_position_only_loader: semantic_mismatch
+    checkpoint_event_sort_deduplicator: contract_mismatch
+    append_only_event_archiver: format_mismatch
+- candidate_set_id: extension_late_record_replay_quarantine_compliance_exception_review_router_candidates
+  required_service_id: compliance_exception_review_router
+  labels:
+    compliance_exception_review_router: gold
+    checkpoint_event_sort_deduplicator: semantic_mismatch
+    append_only_event_archiver: contract_mismatch
+    generic_queue_metric_counter: format_mismatch
+- candidate_set_id: extension_late_record_replay_quarantine_checkpoint_route_outcome_merger_candidates
+  required_service_id: checkpoint_route_outcome_merger
+  labels:
+    checkpoint_route_outcome_merger: gold
+    append_only_event_archiver: semantic_mismatch
+    generic_queue_metric_counter: contract_mismatch
+    audit_log_redaction_only_filter: format_mismatch
+- candidate_set_id: extension_late_record_replay_quarantine_checkpoint_output_bundle_publisher_candidates
+  required_service_id: checkpoint_output_bundle_publisher
+  labels:
+    checkpoint_output_bundle_publisher: gold
+    generic_queue_metric_counter: semantic_mismatch
+    audit_log_redaction_only_filter: contract_mismatch
+    reviewed_domain_adapter: format_mismatch

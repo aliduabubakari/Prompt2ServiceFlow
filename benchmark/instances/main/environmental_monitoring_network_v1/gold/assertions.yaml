@@ -1,0 +1,78 @@
+assertions_version: 0.1.0
+pipeline_id: environmental_monitoring_network_v1
+scenarios:
+  - scenario: three_stations
+    assertions:
+      - assertion_id: format_succeeded
+        type: json_path_equals
+        path: artifacts/format_status.json
+        json_path: success
+        expected: true
+      - assertion_id: three_stations_formatted
+        type: json_path_equals
+        path: artifacts/format_status.json
+        json_path: rows_written
+        expected: 3
+      - assertion_id: geocoding_succeeded
+        type: json_path_equals
+        path: artifacts/geocoding_status.json
+        json_path: success
+        expected: true
+      - assertion_id: three_stations_geocoded
+        type: json_path_equals
+        path: artifacts/geocoding_status.json
+        json_path: rows_geocoded
+        expected: 3
+      - assertion_id: weather_enrichment_succeeded
+        type: json_path_equals
+        path: artifacts/weather_enrichment_status.json
+        json_path: success
+        expected: true
+      - assertion_id: three_stations_weather_enriched
+        type: json_path_equals
+        path: artifacts/weather_enrichment_status.json
+        json_path: rows_enriched
+        expected: 3
+      - assertion_id: land_use_classification_succeeded
+        type: json_path_equals
+        path: artifacts/land_use_classification_status.json
+        json_path: success
+        expected: true
+      - assertion_id: three_stations_land_use_classified
+        type: json_path_equals
+        path: artifacts/land_use_classification_status.json
+        json_path: rows_classified
+        expected: 3
+      - assertion_id: population_enrichment_succeeded
+        type: json_path_equals
+        path: artifacts/population_enrichment_status.json
+        json_path: success
+        expected: true
+      - assertion_id: three_stations_population_enriched
+        type: json_path_equals
+        path: artifacts/population_enrichment_status.json
+        json_path: rows_enriched
+        expected: 3
+      - assertion_id: risk_scoring_succeeded
+        type: json_path_equals
+        path: artifacts/risk_scoring_status.json
+        json_path: success
+        expected: true
+      - assertion_id: three_stations_scored
+        type: json_path_equals
+        path: artifacts/risk_scoring_status.json
+        json_path: rows_scored
+        expected: 3
+      - assertion_id: export_succeeded
+        type: json_path_equals
+        path: artifacts/export_status.json
+        json_path: success
+        expected: true
+      - assertion_id: three_rows_exported
+        type: json_path_equals
+        path: artifacts/export_status.json
+        json_path: rows_written
+        expected: 3
+      - assertion_id: enriched_csv_has_header
+        type: file_exists
+        path: artifacts/enriched_stations.csv

@@ -1,0 +1,14 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: runelt_alert
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: run_ctas_mau_summary
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+scenarios:
+- name: run
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal

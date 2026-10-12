@@ -1,0 +1,266 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-06T01:54:46.798581+00:00",
+  "instance": "benchmark/instances/validation/val_api_health_snapshot",
+  "workspace": "experiments/workspaces/validation/val_api_health_snapshot",
+  "submission": "results/paper/runs/m4__validation__val_api_health_snapshot__sintef-qwen3-8-27b-nvfp4__s1__20261006T014800.082156Z__d896e4b2/submission",
+  "summary": {
+    "public_gates_status": "pass",
+    "first_failing_gate": null,
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-06T01:54:45.698475+00:00",
+    "workspace": "experiments/workspaces/validation/val_api_health_snapshot",
+    "submission": "results/paper/runs/m4__validation__val_api_health_snapshot__sintef-qwen3-8-27b-nvfp4__s1__20261006T014800.082156Z__d896e4b2/submission",
+    "overall_status": "pass",
+    "first_failing_gate": null,
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "pass",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": []
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "pass",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": []
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "val-api-health-snapshot-scripts",
+              "scenario": "base",
+              "data_size_bytes": 6283,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-api-health-snapshot-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 284,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-api-health-snapshot-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 6283,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-api-health-snapshot-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 284,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "poll_partner_api",
+                "normalize_status_payload",
+                "store_health_snapshot"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 3,
+      "submission_intents": 3,
+      "gold_intents": 3,
+      "mapping": {
+        "normalize_status_payload": "normalize_status_payload",
+        "poll_partner_api": "poll_partner_api",
+        "store_health_snapshot": "store_health_snapshot"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 3
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 2,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 3,
+      "total": 3,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 3,
+    "correct": 3,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "normalize_status_payload",
+        "gold_service": "json_status_payload_normalizer",
+        "submission_intent": "normalize_status_payload",
+        "submission_service": "json_status_payload_normalizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "poll_partner_api",
+        "gold_service": "http_json_request_extractor",
+        "submission_intent": "poll_partner_api",
+        "submission_service": "http_json_request_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "store_health_snapshot",
+        "gold_service": "sqlite_health_snapshot_loader",
+        "submission_intent": "store_health_snapshot",
+        "submission_service": "sqlite_health_snapshot_loader",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 2,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "source_fixture_loaded",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-w7zet__l/artifacts/poll_status.json"
+          },
+          {
+            "assertion_id": "source_files_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-w7zet__l/artifacts/poll_status.json"
+          },
+          {
+            "assertion_id": "source_records_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-w7zet__l/artifacts/poll_status.json"
+          },
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-w7zet__l/artifacts/snapshot_status.json"
+          },
+          {
+            "assertion_id": "final_artifact_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-w7zet__l/artifacts/snapshot_status.json"
+          },
+          {
+            "assertion_id": "upstream_evidence_propagated",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-w7zet__l/artifacts/snapshot_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 6,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

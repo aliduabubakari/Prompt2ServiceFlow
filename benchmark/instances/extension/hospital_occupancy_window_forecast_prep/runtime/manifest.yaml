@@ -1,0 +1,95 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: hospital_occupancy_window_forecast_prep
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: ingest_primary_source
+  script: scripts/01_ingest_primary_source.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: ingest_secondary_source
+  script: scripts/02_ingest_secondary_source.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: ingest_reference_source
+  script: scripts/03_ingest_reference_source.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: validate_source_contracts
+  script: scripts/04_validate_source_contracts.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - ingest_primary_source
+  - ingest_secondary_source
+  - ingest_reference_source
+- intent_id: normalize_sources
+  script: scripts/05_normalize_sources.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - validate_source_contracts
+- intent_id: fuse_sources
+  script: scripts/06_fuse_sources.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - normalize_sources
+- intent_id: align_time_index
+  script: scripts/07_align_time_index.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - fuse_sources
+- intent_id: fill_small_gaps
+  script: scripts/08_fill_small_gaps.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - align_time_index
+- intent_id: detect_window_anomalies
+  script: scripts/09_detect_window_anomalies.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - fill_small_gaps
+- intent_id: publish_outputs
+  script: scripts/10_publish_outputs.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - detect_window_anomalies
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal

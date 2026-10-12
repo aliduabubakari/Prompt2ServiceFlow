@@ -1,0 +1,1071 @@
+ir_version: 0.1.0
+composition_id: climate_data_fusion_pipeline
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.1
+  sha256: 10d37d094836c7051b3c0bad185c8ab0086eddf3b049025b605efd9b757baecf
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:climate_data_fusion_pipeline
+  split: main
+  pipeline_id: climate_data_fusion_pipeline
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/40_climate_data_fusion_pipeline.txt
+  description_sha256: 7551cb31a8aef790dbbdb9248f316f426df874c72d1f95622e8505255eb3b816
+  internal_spec_path: source/internal_specs/main_40/40_climate_data_fusion_pipeline.json
+  internal_spec_sha256: 8570a58daeb2b612b4c86523478f338ede20533e4464ebede23fb944d44298b9
+requirement:
+  name: Climate Data Fusion Pipeline
+  purpose: Download weather station data from 5 agencies, normalize, and fuse into unified dataset.
+  domain: climate
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: high
+  notes:
+  - "Fan-out/fan-in: 5 agencies \u2192 normalize \u2192 fuse."
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: noaa_weather_source
+  type: ftp
+  name: NOAA weather station source
+  identifier: ftp://noaa.gov/weather/stations.csv
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: ecmwf_weather_source
+  type: http_api
+  name: ECMWF weather station source
+  identifier: https://ecmwf.int/data/stations.csv
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: jma_weather_source
+  type: http_api
+  name: JMA weather station source
+  identifier: https://jma.go.jp/weather/stations.csv
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: metoffice_weather_source
+  type: http_api
+  name: METOFFICE weather station source
+  identifier: https://metoffice.gov.uk/data/stations.csv
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: bom_weather_source
+  type: http_api
+  name: BOM weather station source
+  identifier: https://bom.gov.au/observations/stations.csv
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: download_noaa
+  name: Download NOAA
+  category: Extractor
+  capability: Retrieve the NOAA weather-station CSV from its configured remote endpoint.
+  source_step_refs:
+  - download_noaa
+  evidence:
+  - source: description
+    text: Download NOAA data.
+  inputs: []
+  outputs:
+  - noaa_csv
+  - noaa_dl_status
+  external_system_refs:
+  - noaa_weather_source
+  preconditions:
+  - A configured HTTP(S) or FTP endpoint is available.
+  effects:
+  - A raw CSV artifact and extraction status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly downloads an agency CSV and the 0.1.1 extractor owns
+    only retrieval.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: download_ecmwf
+  name: Download ECMWF
+  category: Extractor
+  capability: Retrieve the ECMWF weather-station CSV from its configured remote endpoint.
+  source_step_refs:
+  - download_ecmwf
+  evidence:
+  - source: description
+    text: Download ECMWF data.
+  inputs: []
+  outputs:
+  - ecmwf_csv
+  - ecmwf_dl_status
+  external_system_refs:
+  - ecmwf_weather_source
+  preconditions:
+  - A configured HTTP(S) or FTP endpoint is available.
+  effects:
+  - A raw CSV artifact and extraction status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly downloads an agency CSV and the 0.1.1 extractor owns
+    only retrieval.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: download_jma
+  name: Download JMA
+  category: Extractor
+  capability: Retrieve the JMA weather-station CSV from its configured remote endpoint.
+  source_step_refs:
+  - download_jma
+  evidence:
+  - source: description
+    text: Download JMA data.
+  inputs: []
+  outputs:
+  - jma_csv
+  - jma_dl_status
+  external_system_refs:
+  - jma_weather_source
+  preconditions:
+  - A configured HTTP(S) or FTP endpoint is available.
+  effects:
+  - A raw CSV artifact and extraction status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly downloads an agency CSV and the 0.1.1 extractor owns
+    only retrieval.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: download_metoffice
+  name: Download METOFFICE
+  category: Extractor
+  capability: Retrieve the METOFFICE weather-station CSV from its configured remote endpoint.
+  source_step_refs:
+  - download_metoffice
+  evidence:
+  - source: description
+    text: Download METOFFICE data.
+  inputs: []
+  outputs:
+  - metoffice_csv
+  - metoffice_dl_status
+  external_system_refs:
+  - metoffice_weather_source
+  preconditions:
+  - A configured HTTP(S) or FTP endpoint is available.
+  effects:
+  - A raw CSV artifact and extraction status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly downloads an agency CSV and the 0.1.1 extractor owns
+    only retrieval.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: download_bom
+  name: Download BOM
+  category: Extractor
+  capability: Retrieve the BOM weather-station CSV from its configured remote endpoint.
+  source_step_refs:
+  - download_bom
+  evidence:
+  - source: description
+    text: Download BOM data.
+  inputs: []
+  outputs:
+  - bom_csv
+  - bom_dl_status
+  external_system_refs:
+  - bom_weather_source
+  preconditions:
+  - A configured HTTP(S) or FTP endpoint is available.
+  effects:
+  - A raw CSV artifact and extraction status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly downloads an agency CSV and the 0.1.1 extractor owns
+    only retrieval.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: normalize_noaa
+  name: Normalize NOAA
+  category: Transformer
+  capability: Normalize the NOAA raw station CSV to the standard weather-station CSV contract.
+  source_step_refs:
+  - normalize_noaa
+  evidence:
+  - source: description
+    text: Normalize NOAA data.
+  inputs:
+  - noaa_csv
+  outputs:
+  - norm_noaa_csv
+  - norm_noaa_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Data normalized.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The dedicated weather-station normalizer preserves the CSV boundary required
+    before fusion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: normalize_ecmwf
+  name: Normalize ECMWF
+  category: Transformer
+  capability: Normalize the ECMWF raw station CSV to the standard weather-station CSV contract.
+  source_step_refs:
+  - normalize_ecmwf
+  evidence:
+  - source: description
+    text: Normalize ECMWF data.
+  inputs:
+  - ecmwf_csv
+  outputs:
+  - norm_ecmwf_csv
+  - norm_ecmwf_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Data normalized.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The dedicated weather-station normalizer preserves the CSV boundary required
+    before fusion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: normalize_jma
+  name: Normalize JMA
+  category: Transformer
+  capability: Normalize the JMA raw station CSV to the standard weather-station CSV contract.
+  source_step_refs:
+  - normalize_jma
+  evidence:
+  - source: description
+    text: Normalize JMA data.
+  inputs:
+  - jma_csv
+  outputs:
+  - norm_jma_csv
+  - norm_jma_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Data normalized.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The dedicated weather-station normalizer preserves the CSV boundary required
+    before fusion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: normalize_metoffice
+  name: Normalize METOFFICE
+  category: Transformer
+  capability: Normalize the METOFFICE raw station CSV to the standard weather-station CSV contract.
+  source_step_refs:
+  - normalize_metoffice
+  evidence:
+  - source: description
+    text: Normalize METOFFICE data.
+  inputs:
+  - metoffice_csv
+  outputs:
+  - norm_metoffice_csv
+  - norm_metoffice_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Data normalized.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The dedicated weather-station normalizer preserves the CSV boundary required
+    before fusion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: normalize_bom
+  name: Normalize BOM
+  category: Transformer
+  capability: Normalize the BOM raw station CSV to the standard weather-station CSV contract.
+  source_step_refs:
+  - normalize_bom
+  evidence:
+  - source: description
+    text: Normalize BOM data.
+  inputs:
+  - bom_csv
+  outputs:
+  - norm_bom_csv
+  - norm_bom_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Data normalized.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The dedicated weather-station normalizer preserves the CSV boundary required
+    before fusion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: merge_climate_data
+  name: Merge climate data
+  category: Aggregator
+  capability: Fuse all five normalized weather-station CSV artifacts into one unified Parquet climate
+    dataset.
+  source_step_refs:
+  - merge_climate_data
+  evidence:
+  - source: description
+    text: Merge all agency data.
+  inputs:
+  - norm_noaa_csv
+  - norm_ecmwf_csv
+  - norm_jma_csv
+  - norm_metoffice_csv
+  - norm_bom_csv
+  outputs:
+  - merged_dataset
+  - merge_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Unified dataset emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The dedicated aggregator preserves all five source contributions and writes
+    the required Parquet output.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: download_noaa
+    to: normalize_noaa
+  - from: normalize_noaa
+    to: merge_climate_data
+  - from: download_ecmwf
+    to: normalize_ecmwf
+  - from: normalize_ecmwf
+    to: merge_climate_data
+  - from: download_jma
+    to: normalize_jma
+  - from: normalize_jma
+    to: merge_climate_data
+  - from: download_metoffice
+    to: normalize_metoffice
+  - from: normalize_metoffice
+    to: merge_climate_data
+  - from: download_bom
+    to: normalize_bom
+  - from: normalize_bom
+    to: merge_climate_data
+  parallel_groups:
+  - group_id: download_phase
+    intent_ids:
+    - download_noaa
+    - download_ecmwf
+    - download_jma
+    - download_metoffice
+    - download_bom
+  - group_id: normalize_phase
+    intent_ids:
+    - normalize_noaa
+    - normalize_ecmwf
+    - normalize_jma
+    - normalize_metoffice
+    - normalize_bom
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: noaa_dl_status
+  name: NOAA DL status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: download_noaa
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ecmwf_dl_status
+  name: ECMWF DL status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: download_ecmwf
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: jma_dl_status
+  name: JMA DL status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: download_jma
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: metoffice_dl_status
+  name: METOFFICE DL status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: download_metoffice
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: bom_dl_status
+  name: BOM DL status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: download_bom
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: norm_noaa_csv
+  name: Normalized NOAA weather-station CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: normalize_noaa
+  consumers:
+  - merge_climate_data
+  sensitivity: public
+  persistence: workflow
+- artifact_id: norm_noaa_status
+  name: Norm NOAA status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: normalize_noaa
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: norm_ecmwf_csv
+  name: Normalized ECMWF weather-station CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: normalize_ecmwf
+  consumers:
+  - merge_climate_data
+  sensitivity: public
+  persistence: workflow
+- artifact_id: norm_ecmwf_status
+  name: Norm ECMWF status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: normalize_ecmwf
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: norm_jma_csv
+  name: Normalized JMA weather-station CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: normalize_jma
+  consumers:
+  - merge_climate_data
+  sensitivity: public
+  persistence: workflow
+- artifact_id: norm_jma_status
+  name: Norm JMA status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: normalize_jma
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: norm_metoffice_csv
+  name: Normalized METOFFICE weather-station CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: normalize_metoffice
+  consumers:
+  - merge_climate_data
+  sensitivity: public
+  persistence: workflow
+- artifact_id: norm_metoffice_status
+  name: Norm METOFFICE status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: normalize_metoffice
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: norm_bom_csv
+  name: Normalized BOM weather-station CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: normalize_bom
+  consumers:
+  - merge_climate_data
+  sensitivity: public
+  persistence: workflow
+- artifact_id: norm_bom_status
+  name: Norm BOM status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: normalize_bom
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: merged_dataset
+  name: Unified climate station Parquet dataset
+  kind: artifact
+  data_type: parquet
+  media_type: application/vnd.apache.parquet
+  role: output
+  producer: merge_climate_data
+  consumers: []
+  sensitivity: public
+  persistence: release
+- artifact_id: merge_status
+  name: Merge status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: merge_climate_data
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: noaa_csv
+  name: NOAA raw weather-station CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: download_noaa
+  consumers:
+  - normalize_noaa
+  sensitivity: public
+  persistence: workflow
+- artifact_id: ecmwf_csv
+  name: ECMWF raw weather-station CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: download_ecmwf
+  consumers:
+  - normalize_ecmwf
+  sensitivity: public
+  persistence: workflow
+- artifact_id: jma_csv
+  name: JMA raw weather-station CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: download_jma
+  consumers:
+  - normalize_jma
+  sensitivity: public
+  persistence: workflow
+- artifact_id: metoffice_csv
+  name: METOFFICE raw weather-station CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: download_metoffice
+  consumers:
+  - normalize_metoffice
+  sensitivity: public
+  persistence: workflow
+- artifact_id: bom_csv
+  name: BOM raw weather-station CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: download_bom
+  consumers:
+  - normalize_bom
+  sensitivity: public
+  persistence: workflow
+bindings:
+- intent_id: download_noaa
+  service_id: weather_station_csv_source_extractor
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: raw_station_csv
+    artifact_id: noaa_csv
+  - port: extraction_status
+    artifact_id: noaa_dl_status
+  parameter_bindings:
+    endpoint: ftp://noaa.gov/weather/stations.csv
+    agency_id: noaa
+    output_path: /workspace/artifacts/noaa_raw.csv
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: Retrieves the source-declared NOAA CSV over its declared transport.
+  confidence: explicit
+- intent_id: normalize_noaa
+  service_id: weather_station_csv_standard_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: raw_station_csv
+    artifact_id: noaa_csv
+  output_bindings:
+  - port: normalized_station_csv
+    artifact_id: norm_noaa_csv
+  - port: normalization_status
+    artifact_id: norm_noaa_status
+  parameter_bindings:
+    agency_id: noaa
+    column_mapping:
+      station_id: station_id
+      temperature: temperature
+      timestamp: timestamp
+    normalization_rules:
+      trim_values: true
+    required_standard_columns:
+    - station_id
+    - temperature
+    - timestamp
+    output_path: /workspace/artifacts/norm_noaa.csv
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: Normalizes the NOAA CSV to the shared station schema.
+  confidence: explicit
+- intent_id: download_ecmwf
+  service_id: weather_station_csv_source_extractor
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: raw_station_csv
+    artifact_id: ecmwf_csv
+  - port: extraction_status
+    artifact_id: ecmwf_dl_status
+  parameter_bindings:
+    endpoint: https://ecmwf.int/data/stations.csv
+    agency_id: ecmwf
+    output_path: /workspace/artifacts/ecmwf_raw.csv
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: Retrieves the source-declared ECMWF CSV over its declared transport.
+  confidence: explicit
+- intent_id: normalize_ecmwf
+  service_id: weather_station_csv_standard_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: raw_station_csv
+    artifact_id: ecmwf_csv
+  output_bindings:
+  - port: normalized_station_csv
+    artifact_id: norm_ecmwf_csv
+  - port: normalization_status
+    artifact_id: norm_ecmwf_status
+  parameter_bindings:
+    agency_id: ecmwf
+    column_mapping:
+      station_id: station_id
+      temperature: temperature
+      timestamp: timestamp
+    normalization_rules:
+      trim_values: true
+    required_standard_columns:
+    - station_id
+    - temperature
+    - timestamp
+    output_path: /workspace/artifacts/norm_ecmwf.csv
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: Normalizes the ECMWF CSV to the shared station schema.
+  confidence: explicit
+- intent_id: download_jma
+  service_id: weather_station_csv_source_extractor
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: raw_station_csv
+    artifact_id: jma_csv
+  - port: extraction_status
+    artifact_id: jma_dl_status
+  parameter_bindings:
+    endpoint: https://jma.go.jp/weather/stations.csv
+    agency_id: jma
+    output_path: /workspace/artifacts/jma_raw.csv
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: Retrieves the source-declared JMA CSV over its declared transport.
+  confidence: explicit
+- intent_id: normalize_jma
+  service_id: weather_station_csv_standard_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: raw_station_csv
+    artifact_id: jma_csv
+  output_bindings:
+  - port: normalized_station_csv
+    artifact_id: norm_jma_csv
+  - port: normalization_status
+    artifact_id: norm_jma_status
+  parameter_bindings:
+    agency_id: jma
+    column_mapping:
+      station_id: station_id
+      temperature: temperature
+      timestamp: timestamp
+    normalization_rules:
+      trim_values: true
+    required_standard_columns:
+    - station_id
+    - temperature
+    - timestamp
+    output_path: /workspace/artifacts/norm_jma.csv
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: Normalizes the JMA CSV to the shared station schema.
+  confidence: explicit
+- intent_id: download_metoffice
+  service_id: weather_station_csv_source_extractor
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: raw_station_csv
+    artifact_id: metoffice_csv
+  - port: extraction_status
+    artifact_id: metoffice_dl_status
+  parameter_bindings:
+    endpoint: https://metoffice.gov.uk/data/stations.csv
+    agency_id: metoffice
+    output_path: /workspace/artifacts/metoffice_raw.csv
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: Retrieves the source-declared METOFFICE CSV over its declared transport.
+  confidence: explicit
+- intent_id: normalize_metoffice
+  service_id: weather_station_csv_standard_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: raw_station_csv
+    artifact_id: metoffice_csv
+  output_bindings:
+  - port: normalized_station_csv
+    artifact_id: norm_metoffice_csv
+  - port: normalization_status
+    artifact_id: norm_metoffice_status
+  parameter_bindings:
+    agency_id: metoffice
+    column_mapping:
+      station_id: station_id
+      temperature: temperature
+      timestamp: timestamp
+    normalization_rules:
+      trim_values: true
+    required_standard_columns:
+    - station_id
+    - temperature
+    - timestamp
+    output_path: /workspace/artifacts/norm_metoffice.csv
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: Normalizes the METOFFICE CSV to the shared station schema.
+  confidence: explicit
+- intent_id: download_bom
+  service_id: weather_station_csv_source_extractor
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: raw_station_csv
+    artifact_id: bom_csv
+  - port: extraction_status
+    artifact_id: bom_dl_status
+  parameter_bindings:
+    endpoint: https://bom.gov.au/observations/stations.csv
+    agency_id: bom
+    output_path: /workspace/artifacts/bom_raw.csv
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: Retrieves the source-declared BOM CSV over its declared transport.
+  confidence: explicit
+- intent_id: normalize_bom
+  service_id: weather_station_csv_standard_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: raw_station_csv
+    artifact_id: bom_csv
+  output_bindings:
+  - port: normalized_station_csv
+    artifact_id: norm_bom_csv
+  - port: normalization_status
+    artifact_id: norm_bom_status
+  parameter_bindings:
+    agency_id: bom
+    column_mapping:
+      station_id: station_id
+      temperature: temperature
+      timestamp: timestamp
+    normalization_rules:
+      trim_values: true
+    required_standard_columns:
+    - station_id
+    - temperature
+    - timestamp
+    output_path: /workspace/artifacts/norm_bom.csv
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: Normalizes the BOM CSV to the shared station schema.
+  confidence: explicit
+- intent_id: merge_climate_data
+  service_id: weather_station_csv_parquet_fusion_aggregator
+  service_version: 1.0.0
+  input_bindings:
+  - port: normalized_station_csvs
+    artifact_id: norm_noaa_csv
+  - port: normalized_station_csvs
+    artifact_id: norm_ecmwf_csv
+  - port: normalized_station_csvs
+    artifact_id: norm_jma_csv
+  - port: normalized_station_csvs
+    artifact_id: norm_metoffice_csv
+  - port: normalized_station_csvs
+    artifact_id: norm_bom_csv
+  output_bindings:
+  - port: unified_climate_dataset
+    artifact_id: merged_dataset
+  - port: fusion_status
+    artifact_id: merge_status
+  parameter_bindings:
+    required_standard_columns:
+    - station_id
+    - temperature
+    - timestamp
+    dedupe_key_columns:
+    - station_id
+    - timestamp
+    merge_rules:
+      agency_precedence:
+      - noaa
+      - ecmwf
+      - jma
+      - metoffice
+      - bom
+    output_path: /workspace/artifacts/unified_climate_dataset.parquet
+    delimiter: ','
+    compression: none
+  secret_bindings: []
+  rationale: Fuses all five normalized CSV artifacts into the source-required unified Parquet dataset.
+  confidence: explicit
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - All weather data mocked.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All eleven source steps and fan-in edges are accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - 0.1.1 bindings resolve to active descriptors
+- gate: G3
+  expected_status: pass
+  checks:
+  - CSV/Parquet contracts and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Parallel Argo fan-out/fan-in compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Mock scenarios execute deterministically
+- gate: G6
+  expected_status: pass
+  checks:
+  - Five-source fusion assertions hold
+source_step_accounting:
+- source_step_ref: download_noaa
+  disposition: service
+  intent_ids:
+  - download_noaa
+  rationale: Explicit source capability is represented by the bound service.
+- source_step_ref: download_ecmwf
+  disposition: service
+  intent_ids:
+  - download_ecmwf
+  rationale: Explicit source capability is represented by the bound service.
+- source_step_ref: download_jma
+  disposition: service
+  intent_ids:
+  - download_jma
+  rationale: Explicit source capability is represented by the bound service.
+- source_step_ref: download_metoffice
+  disposition: service
+  intent_ids:
+  - download_metoffice
+  rationale: Explicit source capability is represented by the bound service.
+- source_step_ref: download_bom
+  disposition: service
+  intent_ids:
+  - download_bom
+  rationale: Explicit source capability is represented by the bound service.
+- source_step_ref: normalize_noaa
+  disposition: service
+  intent_ids:
+  - normalize_noaa
+  rationale: Explicit source capability is represented by the bound service.
+- source_step_ref: normalize_ecmwf
+  disposition: service
+  intent_ids:
+  - normalize_ecmwf
+  rationale: Explicit source capability is represented by the bound service.
+- source_step_ref: normalize_jma
+  disposition: service
+  intent_ids:
+  - normalize_jma
+  rationale: Explicit source capability is represented by the bound service.
+- source_step_ref: normalize_metoffice
+  disposition: service
+  intent_ids:
+  - normalize_metoffice
+  rationale: Explicit source capability is represented by the bound service.
+- source_step_ref: normalize_bom
+  disposition: service
+  intent_ids:
+  - normalize_bom
+  rationale: Explicit source capability is represented by the bound service.
+- source_step_ref: merge_climate_data
+  disposition: service
+  intent_ids:
+  - merge_climate_data
+  rationale: Explicit source capability is represented by the bound service.

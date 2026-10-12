@@ -1,0 +1,47 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: multi_channel_marketing_campaign
+image: python:3.12-slim
+workflow_parameters:
+- name: fixture-file
+  default: customer_segments.csv
+tasks:
+- intent_id: load_customer_segment_csv
+  script: scripts/01_load_customer_segment_csv.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{fixture-file}'
+  retries: 2
+- intent_id: send_email_campaign
+  script: scripts/02_send_email_campaign.py
+  dependencies:
+  - load_customer_segment_csv
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: send_sms_campaign
+  script: scripts/03_send_sms_campaign.py
+  dependencies:
+  - load_customer_segment_csv
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: send_push_notification
+  script: scripts/04_send_push_notification.py
+  dependencies:
+  - load_customer_segment_csv
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+scenarios:
+- name: multi_channel_campaign
+  parameters:
+    fixture-file: customer_segments.csv
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

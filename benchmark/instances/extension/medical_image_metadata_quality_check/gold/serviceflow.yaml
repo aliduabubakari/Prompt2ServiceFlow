@@ -1,0 +1,517 @@
+ir_version: 0.1.0
+composition_id: medical_image_metadata_quality_check
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.0
+  sha256: 85d824a0e3d5ffa8b613735c7b28ca1147094499e6bde2c1474b3c8aa3414aee
+source:
+  dataset_id: prompt2serviceflow_extension_sources
+  dataset_version: extension_v1
+  benchmark_id: extension:medical_image_metadata_quality_check
+  split: extension
+  pipeline_id: medical_image_metadata_quality_check
+  description_path: source/extension_v1/batch_01/descriptions/01_medical_image_metadata_quality_check.txt
+  description_sha256: 832258f11bd768b7514b984c00ddaa1baa987ed8f991e72019fc657e13fe57a5
+  internal_spec_path: source/extension_v1/batch_01/specs/01_medical_image_metadata_quality_check.json
+  internal_spec_sha256: d3f6065798cb0daa7d65bb103bc0fb576a6acc006ceb8c44bebb2c1bbcb4dbc2
+requirement:
+  name: Medical Image Metadata Quality Check
+  purpose: Prepare fixture-backed radiology image metadata for downstream quality monitoring without contacting
+    a production PACS.
+  domain: Healthcare/Public Health
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes:
+  - Extension-50 Batch 01 synthetic source.
+  - Event and external-system behavior is represented as bounded fixture-backed batch execution.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: imaging_object_store
+  type: object_storage
+  name: imaging object store
+  identifier: synthetic://extension-v1/medical_image_metadata_quality_check/1
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+- system_id: metadata_registry
+  type: object_storage
+  name: metadata registry
+  identifier: synthetic://extension-v1/medical_image_metadata_quality_check/2
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_source_batch
+  name: Ingest Source Batch
+  category: Extractor
+  capability: Ingest all bounded inputs for medical image study metadata.
+  source_step_refs:
+  - ingest_source_batch
+  evidence:
+  - source: internal_spec
+    text: Ingest all bounded inputs for medical image study metadata.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_source_batch_artifact
+  - ingest_source_batch_status
+  external_system_refs: &id001
+  - imaging_object_store
+  - metadata_registry
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_source_batch_artifact, ingest_source_batch_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: validate_source_contract
+  name: Validate Source Contract
+  category: QualityCheck
+  capability: Validate required schemas, identifiers, and modality assumptions for medical image study
+    metadata.
+  source_step_refs:
+  - validate_source_contract
+  evidence:
+  - source: internal_spec
+    text: Validate required schemas, identifiers, and modality assumptions for medical image study metadata.
+  inputs:
+  - ingest_source_batch_artifact
+  outputs:
+  - validate_source_contract_artifact
+  - validate_source_contract_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces validate_source_contract_artifact, validate_source_contract_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: stage_raw_artifacts
+  name: Stage Raw Artifacts
+  category: Loader
+  capability: Stage validated raw artifacts for auditable medical image study metadata processing.
+  source_step_refs:
+  - stage_raw_artifacts
+  evidence:
+  - source: internal_spec
+    text: Stage validated raw artifacts for auditable medical image study metadata processing.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - stage_raw_artifacts_artifact
+  - stage_raw_artifacts_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces stage_raw_artifacts_artifact, stage_raw_artifacts_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_records
+  name: Normalize Records
+  category: Transformer
+  capability: Normalize staged records and derived fields for medical image study metadata.
+  source_step_refs:
+  - normalize_records
+  evidence:
+  - source: internal_spec
+    text: Normalize staged records and derived fields for medical image study metadata.
+  inputs:
+  - stage_raw_artifacts_artifact
+  outputs:
+  - normalize_records_artifact
+  - normalize_records_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_records_artifact, normalize_records_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: publish_outputs
+  name: Publish Outputs
+  category: Publisher
+  capability: Publish prepared medical image study metadata outputs and completion status.
+  source_step_refs:
+  - publish_outputs
+  evidence:
+  - source: internal_spec
+    text: Publish prepared medical image study metadata outputs and completion status.
+  inputs:
+  - normalize_records_artifact
+  outputs:
+  - publish_outputs_artifact
+  - publish_outputs_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces publish_outputs_artifact, publish_outputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+source_step_accounting:
+- source_step_ref: ingest_source_batch
+  disposition: service
+  intent_ids:
+  - ingest_source_batch
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: validate_source_contract
+  disposition: service
+  intent_ids:
+  - validate_source_contract
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: stage_raw_artifacts
+  disposition: service
+  intent_ids:
+  - stage_raw_artifacts
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_records
+  disposition: service
+  intent_ids:
+  - normalize_records
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: publish_outputs
+  disposition: service
+  intent_ids:
+  - publish_outputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+control_flow:
+  edges:
+  - from: ingest_source_batch
+    to: validate_source_contract
+  - from: validate_source_contract
+    to: stage_raw_artifacts
+  - from: stage_raw_artifacts
+    to: normalize_records
+  - from: normalize_records
+    to: publish_outputs
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: source_bundle
+  name: Source Bundle
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - ingest_source_batch
+  sensitivity: internal
+  persistence: workflow
+  fixture_ref: fixtures/inputs/fixture.json
+- artifact_id: ingest_source_batch_artifact
+  name: Ingest Source Batch Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_source_batch
+  consumers:
+  - validate_source_contract
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_source_batch_status
+  name: Ingest Source Batch Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_source_batch
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: validate_source_contract_artifact
+  name: Validate Source Contract Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: validate_source_contract
+  consumers:
+  - stage_raw_artifacts
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validate_source_contract_status
+  name: Validate Source Contract Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: validate_source_contract
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: stage_raw_artifacts_artifact
+  name: Stage Raw Artifacts Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: stage_raw_artifacts
+  consumers:
+  - normalize_records
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: stage_raw_artifacts_status
+  name: Stage Raw Artifacts Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: stage_raw_artifacts
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_records_artifact
+  name: Normalize Records Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_records
+  consumers:
+  - publish_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_records_status
+  name: Normalize Records Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: publish_outputs_artifact
+  name: Publish Outputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: output
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publish_outputs_status
+  name: Publish Outputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+bindings:
+- intent_id: ingest_source_batch
+  service_id: multimodal_source_bundle_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_source_batch_artifact
+  - port: execution_report
+    artifact_id: ingest_source_batch_status
+  parameter_bindings:
+    operation_profile: ingest_source_batch
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: validate_source_contract
+  service_id: multimodal_source_contract_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: ingest_source_batch_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: validate_source_contract_artifact
+  - port: execution_report
+    artifact_id: validate_source_contract_status
+  parameter_bindings:
+    operation_profile: validate_source_contract
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: stage_raw_artifacts
+  service_id: multimodal_raw_artifact_stager
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: stage_raw_artifacts_artifact
+  - port: execution_report
+    artifact_id: stage_raw_artifacts_status
+  parameter_bindings:
+    operation_profile: stage_raw_artifacts
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_records
+  service_id: multimodal_record_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: stage_raw_artifacts_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_records_artifact
+  - port: execution_report
+    artifact_id: normalize_records_status
+  parameter_bindings:
+    operation_profile: normalize_records
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: publish_outputs
+  service_id: multimodal_output_bundle_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: normalize_records_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: publish_outputs_artifact
+  - port: execution_report
+    artifact_id: publish_outputs_status
+  parameter_bindings:
+    operation_profile: publish_outputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - public
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Batch 01 mocks do not contact production image, document, or review systems.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 reviewed Batch 01 validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 reviewed Batch 01 validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 reviewed Batch 01 validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 reviewed Batch 01 validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 reviewed Batch 01 validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 reviewed Batch 01 validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 reviewed Batch 01 validation.

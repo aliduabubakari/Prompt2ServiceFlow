@@ -1,0 +1,103 @@
+schema_version: 0.1.0
+service_id: transaction_context_joiner
+version: 1.0.0
+display_name: Transaction Context Joiner
+category: Integrator
+capability:
+  summary: Joins stream events, settlement records, and account history into transaction context.
+  operations:
+  - Joins stream events, settlement records, and account history into transaction context.
+  keywords:
+  - transaction
+  - context
+  - joiner
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: stream_events
+    description: Reviewed stream events value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: settlement_records
+    description: Reviewed settlement records value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: account_history
+    description: Reviewed account history value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: transaction_context
+    description: Reviewed transaction context value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: join_status
+    description: Reviewed join status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: join_key
+    description: Configuration for join key.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: transaction-context-joiner
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.3
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.transaction_context_joiner
+  implementation_ref: services/implementations/transaction_context_joiner
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-04:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 04 descriptions; bindings retain inference confidence.

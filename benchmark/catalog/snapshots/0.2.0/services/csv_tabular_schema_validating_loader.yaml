@@ -1,0 +1,196 @@
+schema_version: 0.1.0
+service_id: csv_tabular_schema_validating_loader
+version: 1.0.0
+display_name: CSV Tabular Schema Validating Loader
+category: Extractor
+capability:
+  summary: Reads a CSV artifact, validates parsing and caller-supplied tabular schema
+    requirements, and emits a validated tabular dataset plus load/validation status.
+  operations:
+  - Read a CSV artifact from a bound path or URI.
+  - Parse headers and rows using configured delimiter and header parameters.
+  - Validate required columns, optional type rules, and empty-file behavior according
+    to caller-supplied schema configuration.
+  - Materialize validated rows and metadata as a tabular dataset for downstream services.
+  keywords:
+  - csv
+  - schema validation
+  - tabular data
+  - artifact loading
+  - sales data
+  - validated dataset
+  limitations:
+  - Does not infer business-specific sales semantics unless schema rules are supplied
+    by parameters.
+  - Does not call external systems.
+  - Does not create reports or dashboards.
+  - Does not mutate databases or storage beyond writing output artifacts.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: csv_file
+    description: CSV artifact to parse and validate, such as an aggregated sales CSV
+      produced by an upstream workflow.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://csv_file_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  outputs:
+  - name: validated_dataset
+    description: Validated tabular dataset containing columns, rows, row count, and
+      source metadata.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://validated_tabular_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  - name: validated_data_object
+    description: Dataset reference and metadata suitable for downstream dashboard/report
+      generation.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://tabular_ingest_metadata/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  - name: validation_status
+    description: Observable parse and validation status including row count, produced
+      columns, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://csv_tabular_validation_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: expected_schema
+    description: Optional schema object describing expected columns, data types, nullable
+      fields, and validation rules.
+    type: object
+    required: false
+  - name: required_columns
+    description: Columns that must be present in the CSV header.
+    type: array
+    required: false
+  - name: has_header
+    description: Whether the CSV is expected to contain a header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  - name: fail_on_empty
+    description: Whether zero parsed rows should cause validation failure.
+    type: boolean
+    required: false
+  - name: output_path
+    description: Deterministic output artifact path or name for the validated dataset.
+    type: string
+    required: true
+  secrets: []
+contracts:
+- contract_id: csv_validating_loader_input_readable
+  type: precondition
+  applies_to: input
+  target: csv_file
+  description: Input CSV must be readable and parseable using the configured CSV parameters.
+  expression: readable(csv_file) and csv_parseable(csv_file, delimiter, has_header)
+- contract_id: csv_validating_loader_required_columns
+  type: precondition
+  applies_to: parameter
+  target: required_columns
+  description: When required columns are supplied, every required column must be present
+    in the parsed CSV header.
+  expression: required_columns == null or all(c in columns(csv_file) for c in required_columns)
+- contract_id: validated_tabular_dataset_schema
+  type: json_schema
+  applies_to: output
+  target: validated_dataset
+  description: Validated dataset exposes columns, rows, row count, validation flag,
+    and source URI.
+  schema_ref: schema://validated_tabular_dataset/v1
+  expression: '{"type":"object","required":["columns","rows","row_count","valid","source_uri"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0},"valid":{"type":"boolean"},"source_uri":{"type":"string"}}}'
+- contract_id: csv_validation_status_schema
+  type: json_schema
+  applies_to: output
+  target: validation_status
+  description: Status exposes CSV parse and schema validation outcome.
+  schema_ref: schema://csv_tabular_validation_status/v1
+  expression: '{"type":"object","required":["success","parse_success","schema_valid","rows_read","columns"],"properties":{"success":{"type":"boolean"},"parse_success":{"type":"boolean"},"schema_valid":{"type":"boolean"},"rows_read":{"type":"integer","minimum":0},"columns":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: csv_validating_loader_effect
+  type: effect
+  applies_to: service
+  target: csv_tabular_schema_validating_loader
+  description: On success, the validated dataset exists and validation_status.success=true.
+  expression: validation_status.success == true implies exists(validated_dataset)
+    and validated_dataset.valid == true
+invocation:
+  type: argo_workflow_template
+  template_name: csv-tabular-schema-validating-loader-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.csv_tabular_schema_validating_loader
+  implementation_ref: services/implementations/csv_tabular_schema_validating_loader
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - financial
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw sales rows; emit counts, columns, and bounded diagnostics only.
+  - Exact sales schema should be supplied by workflow binding or test fixture.
+  idempotency_notes: Same CSV input and schema parameters produce the same validated
+    dataset and status.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:executive_sales_dashboard#load_sales_csv
+  - main:file_arrival_watcher#validate_schema
+  - main:regulatory_report_router#read_csv
+  - main:supply_chain_shipment_etl#ingest_vendor_a
+  - main:supply_chain_shipment_etl#ingest_vendor_b
+  - main:supply_chain_shipment_etl#ingest_vendor_c
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The pipeline requires validated sales data, not only basic CSV metadata.
+    A generic schema-validating CSV loader is reusable across pipelines that consume
+    CSV outputs from upstream workflows.'
+  - 'Evidence status: strongly_inferred.'

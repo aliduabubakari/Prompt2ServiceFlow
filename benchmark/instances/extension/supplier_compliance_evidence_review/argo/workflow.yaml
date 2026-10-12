@@ -1,0 +1,364 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: supplier-compliance-evidence-review-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: supplier-compliance-evidence-review
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: nominal
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: execution-time
+      value: '2026-07-20T09:00:00Z'
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: supplier-compliance-evidence-review-scripts
+  - name: fixtures
+    configMap:
+      name: supplier-compliance-evidence-review-fixtures
+      items:
+      - key: fixture-0000
+        path: compliance_policy.json
+      - key: fixture-0001
+        path: fixture.json
+      - key: fixture-0002
+        path: sample_document.pdf
+      - key: fixture-0003
+        path: supplier_certificates.json
+      - key: fixture-0004
+        path: supplier_master.csv
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-primary-source
+        template: run-ingest-primary-source
+      - name: ingest-secondary-source
+        template: run-ingest-secondary-source
+      - name: ingest-reference-source
+        template: run-ingest-reference-source
+      - name: validate-source-contracts
+        template: run-validate-source-contracts
+        depends: ingest-primary-source.Succeeded && ingest-secondary-source.Succeeded && ingest-reference-source.Succeeded
+      - name: normalize-sources
+        template: run-normalize-sources
+        depends: validate-source-contracts.Succeeded
+      - name: fuse-sources
+        template: run-fuse-sources
+        depends: normalize-sources.Succeeded
+      - name: detect-sensitive-fields
+        template: run-detect-sensitive-fields
+        depends: fuse-sources.Succeeded
+      - name: apply-redaction-or-suppression
+        template: run-apply-redaction-or-suppression
+        depends: detect-sensitive-fields.Succeeded
+      - name: create-human-review-packet
+        template: run-create-human-review-packet
+        depends: apply-redaction-or-suppression.Succeeded
+      - name: publish-outputs
+        template: run-publish-outputs
+        depends: create-human-review-packet.Succeeded
+  - name: run-ingest-primary-source
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_primary_source
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_ingest_primary_source.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-ingest-secondary-source
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_secondary_source
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_ingest_secondary_source.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-ingest-reference-source
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_reference_source
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_ingest_reference_source.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-validate-source-contracts
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: validate_source_contracts
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_validate_source_contracts.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-normalize-sources
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: normalize_sources
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_normalize_sources.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-fuse-sources
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: fuse_sources
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/06_fuse_sources.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-detect-sensitive-fields
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: detect_sensitive_fields
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/07_detect_sensitive_fields.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-apply-redaction-or-suppression
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: apply_redaction_or_suppression
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/08_apply_redaction_or_suppression.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-create-human-review-packet
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: create_human_review_packet
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/09_create_human_review_packet.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-publish-outputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: publish_outputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/10_publish_outputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

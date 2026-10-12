@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wf-main-datasets-load-l2-to-l2-l2-ready-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Deterministic DWH L2 workflow orchestration mock.\"\"\"\n\n\
+    from __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib import Path\n\n\n\
+    def boolean(value: str) -> bool:\n    return value.lower() in {\"1\", \"true\", \"yes\"}\n\n\ndef\
+    \ write_json(path: Path, document: object) -> None:\n    path.write_text(json.dumps(document, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\")\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--step\"\
+    , required=True)\n    parser.add_argument(\"--l2-ready\", type=boolean, default=True)\n    parser.add_argument(\"\
+    --run-label\", default=\"batch-001\")\n    args = parser.parse_args()\n    artifacts = args.workspace\
+    \ / \"artifacts\"\n    artifacts.mkdir(parents=True, exist_ok=True)\n\n    if args.step == \"wait_l2\"\
+    :\n        write_json(\n            artifacts / \"l2_decision.json\",\n            {\"ready\": args.l2_ready,\
+    \ \"success\": True, \"row_count\": int(args.l2_ready)},\n        )\n        write_json(\n       \
+    \     artifacts / \"l2_status.json\",\n            {\"success\": True, \"errors\": [], \"query_executed\"\
+    : True},\n        )\n        (artifacts / \"l2_ready.txt\").write_text(\n            str(args.l2_ready).lower(),\
+    \ encoding=\"utf-8\"\n        )\n    elif args.step == \"load_id\":\n        load_id = f\"wf-l2-{args.run_label}\"\
+    \n        (artifacts / \"load_id.txt\").write_text(load_id + \"\\n\", encoding=\"utf-8\")\n      \
+    \  write_json(\n            artifacts / \"gen_status.json\",\n            {\"success\": True, \"errors\"\
+    : [], \"load_id\": load_id},\n        )\n    elif args.step == \"register\":\n        write_json(\n\
+    \            artifacts / \"session_ref.json\",\n            {\"load_id\": \"wf-l2-batch-001\", \"\
+    operation\": \"register\"},\n        )\n        write_json(\n            artifacts / \"reg_status.json\"\
+    ,\n            {\"success\": True, \"errors\": [], \"operation\": \"register\"},\n        )\n    elif\
+    \ args.step == \"wait_success\":\n        write_json(\n            artifacts / \"success_decision.json\"\
+    ,\n            {\"completed\": True, \"succeeded\": True, \"external_step_id\": \"end\"},\n      \
+    \  )\n    elif args.step in {\"kill\", \"dataprep\", \"segment\"}:\n        workflow_id = {\n    \
+    \        \"kill\": \"sys_kill_all_session_pg\",\n            \"dataprep\": \"wf_data_preparation_for_reports\"\
+    ,\n            \"segment\": \"l1_to_l2_p_load_data_ds_client_segmentation_full\",\n        }[args.step]\n\
+    \        prefix = {\"kill\": \"kill\", \"dataprep\": \"dataprep\", \"segment\": \"segment\"}[\n  \
+    \          args.step\n        ]\n        write_json(\n            artifacts / f\"{prefix}_result.json\"\
+    ,\n            {\"workflow_id\": workflow_id, \"run_id\": f\"{workflow_id}-001\"},\n        )\n  \
+    \      write_json(\n            artifacts / f\"{prefix}_status.json\",\n            {\"success\":\
+    \ True, \"errors\": [], \"waited_for_completion\": True},\n        )\n    elif args.step == \"flag\"\
+    :\n        write_json(\n            artifacts / \"sap_request_summary.json\",\n            {\"endpoint\"\
+    : \"/dwh/load-complete\", \"method\": \"POST\", \"row_count\": 2},\n        )\n        write_json(\n\
+    \            artifacts / \"flag_status.json\",\n            {\"success\": True, \"errors\": [], \"\
+    http_status\": 202},\n        )\n    elif args.step == \"end\":\n        write_json(\n           \
+    \ artifacts / \"final_session_ref.json\",\n            {\"load_id\": \"wf-l2-batch-001\", \"operation\"\
+    : \"finalize\"},\n        )\n        write_json(\n            artifacts / \"end_status.json\",\n \
+    \           {\"success\": True, \"errors\": [], \"operation\": \"finalize\"},\n        )\n\n\nif __name__\
+    \ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wf-main-datasets-load-l2-to-l2-l2-ready-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock"}'
+  fixture-0001: '{"driver":"filesystem-mock"}'
+  fixture-0002: '{"driver":"filesystem-mock"}'
+  fixture-0003: '{"driver":"filesystem-mock"}'
+  fixture-0004: '{"columns":["client_id","segment"],"rows":[{"client_id":1,"segment":"A"},{"client_id":2,"segment":"B"}]}
+
+    '

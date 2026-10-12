@@ -1,0 +1,250 @@
+ir_version: 0.1.0
+composition_id: mahidol_aqi_pipeline_v2_alert_1
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:mahidol_aqi_pipeline_v2_alert_1
+  split: main
+  pipeline_id: mahidol_aqi_pipeline_v2_alert_1
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/08_mahidol_aqi_pipeline_v2_alert_1.txt
+  description_sha256: 1b883b1e99f62219b9aea9fd1dd245dfdeb60b62bea5964284e51c4de7169479
+  internal_spec_path: source/internal_specs/main_40/08_mahidol_aqi_pipeline_v2_alert_1.json
+  internal_spec_sha256: 2b24a6eea20e784688d77b6dbeceeb370fc926df16986d734ea9a385844f6f53
+requirement:
+  name: Mahidol AQI Alert Pipeline
+  purpose: Send AQI email alerts based on Mahidol University PM2.5 data.
+  domain: environmental_monitoring
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes:
+  - Single-step alert pipeline with AQI threshold notification.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: '2025-03-20'
+  catchup: false
+external_systems:
+- system_id: email_service
+  type: email
+  name: Gmail SMTP
+  identifier: smtp.gmail.com:587
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+- system_id: local_fs
+  type: filesystem
+  name: Local filesystem
+  identifier: /opt/airflow
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: alert_email
+  name: Send AQI alert email
+  category: Notifier
+  capability: Check AQI thresholds and send email alert if exceeded.
+  source_step_refs:
+  - alert_email
+  evidence:
+  - source: description
+    text: Send email alerts based on AQI values.
+  inputs:
+  - aqi_json
+  - recipients_file
+  - email_config
+  - email_svc
+  outputs:
+  - alert_decision
+  - notification_status
+  external_system_refs:
+  - email_service
+  - local_fs
+  preconditions:
+  - AQI data, recipients, and email config available.
+  effects:
+  - Alert decision and notification status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step sends AQI threshold alert.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges: []
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: aqi_json
+  name: AQI data JSON
+  kind: external_resource
+  data_type: json
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - alert_email
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/aqi_data.json
+  external_system_ref: local_fs
+- artifact_id: recipients_file
+  name: Recipient list
+  kind: external_resource
+  data_type: text
+  media_type: text/plain
+  role: config
+  producer: null
+  consumers:
+  - alert_email
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/recipients.txt
+  external_system_ref: local_fs
+- artifact_id: email_config
+  name: Email config
+  kind: external_resource
+  data_type: text
+  media_type: text/plain
+  role: config
+  producer: null
+  consumers:
+  - alert_email
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/email_config.txt
+  external_system_ref: local_fs
+- artifact_id: email_svc
+  name: Email service resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - alert_email
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/email_service.json
+  external_system_ref: email_service
+- artifact_id: alert_decision
+  name: Alert decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: output
+  producer: alert_email
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: notification_status
+  name: Notification status
+  kind: artifact
+  data_type: notification
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: output
+  producer: alert_email
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: alert_email
+  service_id: aqi_threshold_email_alert_notifier
+  service_version: 1.0.0
+  input_bindings:
+  - port: aqi_data_json
+    artifact_id: aqi_json
+  - port: recipient_list_file
+    artifact_id: recipients_file
+  - port: email_config_file
+    artifact_id: email_config
+  - port: email_service
+    artifact_id: email_svc
+  output_bindings:
+  - port: alert_decision
+    artifact_id: alert_decision
+  - port: notification_status
+    artifact_id: notification_status
+  parameter_bindings:
+    aqi_value_json_path: aqi
+    safe_aqi_min: 0
+    safe_aqi_max: 100
+    city: Salaya
+    state: Nakhon Pathom
+    country: Thailand
+    latitude: 13.79059242
+    longitude: 100.32622308
+    location_description: Mahidol University
+  secret_bindings: []
+  rationale: Sends AQI threshold alert email.
+  confidence: explicit
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock email alert.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - One source step accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - One exact catalogue binding resolves
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports, parameters, types, and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Single-task Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Alert scenario executes
+- gate: G6
+  expected_status: pass
+  checks:
+  - Alert decision invariants hold
+source_step_accounting:
+- source_step_ref: alert_email
+  disposition: service
+  intent_ids:
+  - alert_email
+  rationale: The explicit source step is represented by the reviewed bound service.

@@ -1,0 +1,190 @@
+schema_version: 0.1.0
+service_id: multi_warehouse_inventory_discrepancy_reconciler
+version: 1.0.0
+display_name: Multi-Warehouse Inventory Discrepancy Reconciler
+category: Reconciler
+capability:
+  summary: Compares normalized inventory CSVs from multiple warehouses by canonical
+    SKU, identifies missing or mismatched inventory records, writes a discrepancy
+    CSV, and emits reconciliation status.
+  operations:
+  - Read multiple normalized inventory CSV artifacts.
+  - Validate SKU and quantity columns for each input.
+  - Join inventory records by normalized SKU across configured warehouse labels.
+  - Detect presence/absence and quantity discrepancies according to caller-supplied
+    reconciliation rules.
+  keywords:
+  - inventory
+  - warehouse
+  - reconciliation
+  - discrepancy detection
+  - sku
+  - csv
+  - retail
+  limitations:
+  - Does not fetch or normalize inventory files.
+  - Does not render final PDF reports.
+  - Warehouse labels and reconciliation thresholds must be supplied by workflow binding.
+  - Does not implement fan-in orchestration; it only consumes bound input artifacts.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: normalized_inventory_csvs
+    description: Normalized inventory CSV artifacts from two or more warehouses.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://normalized_inventory_csv/v1
+    required: true
+    cardinality: many
+    sensitivity: internal
+  outputs:
+  - name: discrepancy_report_csv
+    description: CSV report listing inventory discrepancies across warehouses by SKU
+      and discrepancy type.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://inventory_discrepancy_report_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: reconciliation_status
+    description: Observable status with input file count, SKU count, discrepancy count,
+      output URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://inventory_reconciliation_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: warehouse_labels
+    description: Ordered labels corresponding to normalized_inventory_csvs, for example
+      north, south, east, west.
+    type: array
+    required: true
+  - name: sku_column
+    description: Column containing normalized SKU values in each input CSV.
+    type: string
+    required: true
+  - name: quantity_column
+    description: Column containing inventory quantity values to compare.
+    type: string
+    required: true
+  - name: reconciliation_rules
+    description: Declarative rules for discrepancy types, quantity tolerance, missing
+      SKU handling, and output columns.
+    type: object
+    required: false
+  - name: output_path
+    description: Deterministic output artifact path or name for the discrepancy CSV.
+    type: string
+    required: true
+  - name: delimiter
+    description: CSV delimiter for input and output files.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  secrets: []
+contracts:
+- contract_id: inventory_reconciler_inputs_present
+  type: precondition
+  applies_to: input
+  target: normalized_inventory_csvs
+  description: At least two normalized CSV inputs must be supplied and parseable.
+  expression: length(normalized_inventory_csvs) >= 2 and all(readable(f) and csv_parseable(f,
+    delimiter, true) for f in normalized_inventory_csvs)
+- contract_id: inventory_reconciler_label_count
+  type: precondition
+  applies_to: parameter
+  target: warehouse_labels
+  description: Warehouse label count must match the number of normalized inventory
+    CSV inputs.
+  expression: length(warehouse_labels) == length(normalized_inventory_csvs)
+- contract_id: inventory_reconciler_required_columns
+  type: precondition
+  applies_to: parameter
+  target: sku_column
+  description: Each input CSV must contain configured SKU and quantity columns.
+  expression: all(sku_column in columns(f) and quantity_column in columns(f) for f
+    in normalized_inventory_csvs)
+- contract_id: inventory_discrepancy_report_schema
+  type: tabular_schema
+  applies_to: output
+  target: discrepancy_report_csv
+  description: Discrepancy report must include SKU and discrepancy type columns and
+    warehouse-specific comparison fields.
+  schema_ref: schema://inventory_discrepancy_report_csv/v1
+  expression: columns(discrepancy_report_csv) contains 'sku' and columns(discrepancy_report_csv)
+    contains 'discrepancy_type'
+- contract_id: inventory_reconciliation_status_schema
+  type: json_schema
+  applies_to: output
+  target: reconciliation_status
+  description: Status exposes reconciliation effect for validation.
+  schema_ref: schema://inventory_reconciliation_status/v1
+  expression: '{"type":"object","required":["success","input_files_read","warehouse_count","skus_compared","discrepancies_found","output_uri"],"properties":{"success":{"type":"boolean"},"input_files_read":{"type":"integer","minimum":2},"warehouse_count":{"type":"integer","minimum":2},"skus_compared":{"type":"integer","minimum":0},"discrepancies_found":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: inventory_reconciliation_effect
+  type: effect
+  applies_to: service
+  target: multi_warehouse_inventory_discrepancy_reconciler
+  description: On success, the discrepancy CSV exists and reconciliation status reports
+    compared SKUs and discrepancies.
+  expression: reconciliation_status.success == true implies exists(discrepancy_report_csv)
+invocation:
+  type: argo_workflow_template
+  template_name: multi-warehouse-inventory-discrepancy-reconciler-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.multi_warehouse_inventory_discrepancy_reconciler
+  implementation_ref: services/implementations/multi_warehouse_inventory_discrepancy_reconciler
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full inventory rows; discrepancy outputs should be treated as internal
+    operational data.
+  - Workflow fan-in and dependency edges remain orchestration-level concerns.
+  idempotency_notes: Same normalized CSV inputs, warehouse labels, and reconciliation
+    rules produce the same discrepancy report.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:retail_inventory_reconciliation#reconcile_all_inventories
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service reconciles multiple warehouse inventory
+    datasets and emits a discrepancy CSV contract.'
+  - 'Evidence status: strongly_inferred.'

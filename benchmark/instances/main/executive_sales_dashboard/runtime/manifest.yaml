@@ -1,0 +1,39 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: executive_sales_dashboard
+image: python:3.12-slim
+workflow_parameters:
+- name: fixture-file
+  default: sales.csv
+tasks:
+- intent_id: wait_for_sales_aggregation
+  script: scripts/01_wait.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: load_sales_csv
+  script: scripts/02_load.py
+  dependencies:
+  - wait_for_sales_aggregation
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{fixture-file}'
+  retries: 1
+- intent_id: generate_dashboard
+  script: scripts/03_dashboard.py
+  dependencies:
+  - load_sales_csv
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+scenarios:
+- name: dashboard_gen
+  parameters:
+    fixture-file: sales.csv
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prompt2serviceflow.local/schemas/assertions.schema.json",
+  "title": "Prompt2ServiceFlow semantic assertions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["assertions_version", "pipeline_id", "scenarios"],
+  "properties": {
+    "assertions_version": {
+      "const": "0.1.0"
+    },
+    "pipeline_id": {
+      "$ref": "#/$defs/snakeIdentifier"
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scenario", "assertions"],
+        "properties": {
+          "scenario": {
+            "$ref": "#/$defs/snakeIdentifier"
+          },
+          "assertions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["assertion_id", "type", "path"],
+              "properties": {
+                "assertion_id": {
+                  "$ref": "#/$defs/snakeIdentifier"
+                },
+                "type": {
+                  "enum": [
+                    "file_exists",
+                    "file_absent",
+                    "json_path_equals",
+                    "json_path_gte",
+                    "json_array_length",
+                    "csv_row_count"
+                  ]
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "json_path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "expected": {},
+                "minimum": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "snakeIdentifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$",
+      "maxLength": 120
+    }
+  }
+}

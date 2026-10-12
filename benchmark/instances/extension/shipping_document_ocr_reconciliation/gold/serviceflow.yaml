@@ -1,0 +1,926 @@
+ir_version: 0.1.0
+composition_id: shipping_document_ocr_reconciliation
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.1
+  sha256: a8497f3589304d2ff9cb5a734a99b5188d558fa6fdb55f153419458c117b302f
+source:
+  dataset_id: prompt2serviceflow_extension_sources
+  dataset_version: extension_v1
+  benchmark_id: extension:shipping_document_ocr_reconciliation
+  split: extension
+  pipeline_id: shipping_document_ocr_reconciliation
+  description_path: source/extension_v1/batch_02/descriptions/07_shipping_document_ocr_reconciliation.txt
+  description_sha256: efa79766c607056acf86c791b52dc6c2ee11e3f2123199812bc9f849c8cc2f6e
+  internal_spec_path: source/extension_v1/batch_02/specs/07_shipping_document_ocr_reconciliation.json
+  internal_spec_sha256: 4d00f6c6c6f529e48869fe61f0b2850238b1683d0477478821266e9231ec96d8
+requirement:
+  name: Shipping Document OCR Reconciliation
+  purpose: Reconcile OCR-derived shipping details with manifests and carrier snapshots.
+  domain: Supply Chain/Manufacturing
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: high
+  notes:
+  - Extension-50 Batch 01 synthetic source.
+  - Event and external-system behavior is represented as bounded fixture-backed batch execution.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: logistics_document_store
+  type: object_storage
+  name: logistics document store
+  identifier: synthetic://extension-v1/shipping_document_ocr_reconciliation/1
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+- system_id: exception_management_queue
+  type: other
+  name: exception management queue
+  identifier: synthetic://extension-v1/shipping_document_ocr_reconciliation/2
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_primary_source
+  name: Ingest Primary Source
+  category: Extractor
+  capability: Ingest the primary source for shipping document OCR evidence.
+  source_step_refs:
+  - ingest_primary_source
+  evidence:
+  - source: internal_spec
+    text: Ingest the primary source for shipping document OCR evidence.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_primary_source_artifact
+  - ingest_primary_source_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_primary_source_artifact, ingest_primary_source_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: ingest_secondary_source
+  name: Ingest Secondary Source
+  category: Extractor
+  capability: Ingest the secondary source for shipping document OCR evidence.
+  source_step_refs:
+  - ingest_secondary_source
+  evidence:
+  - source: internal_spec
+    text: Ingest the secondary source for shipping document OCR evidence.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_secondary_source_artifact
+  - ingest_secondary_source_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_secondary_source_artifact, ingest_secondary_source_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: ingest_reference_source
+  name: Ingest Reference Source
+  category: Extractor
+  capability: Ingest reference data needed to interpret shipping document OCR evidence.
+  source_step_refs:
+  - ingest_reference_source
+  evidence:
+  - source: internal_spec
+    text: Ingest reference data needed to interpret shipping document OCR evidence.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_reference_source_artifact
+  - ingest_reference_source_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_reference_source_artifact, ingest_reference_source_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: validate_source_contracts
+  name: Validate Source Contracts
+  category: QualityCheck
+  capability: Validate schemas, identities, and freshness constraints across all shipping document OCR
+    evidence sources.
+  source_step_refs:
+  - validate_source_contracts
+  evidence:
+  - source: internal_spec
+    text: Validate schemas, identities, and freshness constraints across all shipping document OCR evidence
+      sources.
+  inputs:
+  - ingest_primary_source_artifact
+  - ingest_secondary_source_artifact
+  - ingest_reference_source_artifact
+  outputs:
+  - validate_source_contracts_artifact
+  - validate_source_contracts_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces validate_source_contracts_artifact, validate_source_contracts_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_sources
+  name: Normalize Sources
+  category: Transformer
+  capability: Normalize source-specific fields into a shared representation for shipping document OCR
+    evidence.
+  source_step_refs:
+  - normalize_sources
+  evidence:
+  - source: internal_spec
+    text: Normalize source-specific fields into a shared representation for shipping document OCR evidence.
+  inputs:
+  - validate_source_contracts_artifact
+  outputs:
+  - normalize_sources_artifact
+  - normalize_sources_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_sources_artifact, normalize_sources_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: fuse_sources
+  name: Fuse Sources
+  category: Reconciler
+  capability: Fuse normalized sources into a coherent shipping document OCR evidence artifact.
+  source_step_refs:
+  - fuse_sources
+  evidence:
+  - source: internal_spec
+    text: Fuse normalized sources into a coherent shipping document OCR evidence artifact.
+  inputs:
+  - normalize_sources_artifact
+  outputs:
+  - fuse_sources_artifact
+  - fuse_sources_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces fuse_sources_artifact, fuse_sources_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: extract_visual_text_features
+  name: Extract Visual Text Features
+  category: Extractor
+  capability: Extract OCR text, visual metadata, or layout features from shipping document OCR evidence.
+  source_step_refs:
+  - extract_visual_text_features
+  evidence:
+  - source: internal_spec
+    text: Extract OCR text, visual metadata, or layout features from shipping document OCR evidence.
+  inputs:
+  - fuse_sources_artifact
+  outputs:
+  - extract_visual_text_features_artifact
+  - extract_visual_text_features_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces extract_visual_text_features_artifact, extract_visual_text_features_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: join_reference_metadata
+  name: Join Reference Metadata
+  category: Integrator
+  capability: Join shipping document OCR evidence features with reference metadata.
+  source_step_refs:
+  - join_reference_metadata
+  evidence:
+  - source: internal_spec
+    text: Join shipping document OCR evidence features with reference metadata.
+  inputs:
+  - extract_visual_text_features_artifact
+  outputs:
+  - join_reference_metadata_artifact
+  - join_reference_metadata_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces join_reference_metadata_artifact, join_reference_metadata_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: assess_multimodal_quality
+  name: Assess Multimodal Quality
+  category: QualityCheck
+  capability: Assess visual, document, and metadata quality for shipping document OCR evidence.
+  source_step_refs:
+  - assess_multimodal_quality
+  evidence:
+  - source: internal_spec
+    text: Assess visual, document, and metadata quality for shipping document OCR evidence.
+  inputs:
+  - join_reference_metadata_artifact
+  outputs:
+  - assess_multimodal_quality_artifact
+  - assess_multimodal_quality_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces assess_multimodal_quality_artifact, assess_multimodal_quality_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: publish_outputs
+  name: Publish Outputs
+  category: Publisher
+  capability: Publish the prepared shipping document OCR evidence outputs and completion status.
+  source_step_refs:
+  - publish_outputs
+  evidence:
+  - source: internal_spec
+    text: Publish the prepared shipping document OCR evidence outputs and completion status.
+  inputs:
+  - assess_multimodal_quality_artifact
+  outputs:
+  - publish_outputs_artifact
+  - publish_outputs_status
+  external_system_refs:
+  - logistics_document_store
+  - exception_management_queue
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces publish_outputs_artifact, publish_outputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+source_step_accounting:
+- source_step_ref: ingest_primary_source
+  disposition: service
+  intent_ids:
+  - ingest_primary_source
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: ingest_secondary_source
+  disposition: service
+  intent_ids:
+  - ingest_secondary_source
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: ingest_reference_source
+  disposition: service
+  intent_ids:
+  - ingest_reference_source
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: validate_source_contracts
+  disposition: service
+  intent_ids:
+  - validate_source_contracts
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_sources
+  disposition: service
+  intent_ids:
+  - normalize_sources
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: fuse_sources
+  disposition: service
+  intent_ids:
+  - fuse_sources
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: extract_visual_text_features
+  disposition: service
+  intent_ids:
+  - extract_visual_text_features
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: join_reference_metadata
+  disposition: service
+  intent_ids:
+  - join_reference_metadata
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: assess_multimodal_quality
+  disposition: service
+  intent_ids:
+  - assess_multimodal_quality
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: publish_outputs
+  disposition: service
+  intent_ids:
+  - publish_outputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+control_flow:
+  edges:
+  - from: ingest_primary_source
+    to: validate_source_contracts
+  - from: ingest_secondary_source
+    to: validate_source_contracts
+  - from: ingest_reference_source
+    to: validate_source_contracts
+  - from: validate_source_contracts
+    to: normalize_sources
+  - from: normalize_sources
+    to: fuse_sources
+  - from: fuse_sources
+    to: extract_visual_text_features
+  - from: extract_visual_text_features
+    to: join_reference_metadata
+  - from: join_reference_metadata
+    to: assess_multimodal_quality
+  - from: assess_multimodal_quality
+    to: publish_outputs
+  parallel_groups:
+  - group_id: source_fanin
+    intent_ids:
+    - ingest_primary_source
+    - ingest_secondary_source
+    - ingest_reference_source
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: source_bundle
+  name: Source Bundle
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - ingest_primary_source
+  - ingest_secondary_source
+  - ingest_reference_source
+  sensitivity: internal
+  persistence: workflow
+  fixture_ref: fixtures/inputs/fixture.json
+- artifact_id: ingest_primary_source_artifact
+  name: Ingest Primary Source Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_primary_source
+  consumers:
+  - validate_source_contracts
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_primary_source_status
+  name: Ingest Primary Source Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_primary_source
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: ingest_secondary_source_artifact
+  name: Ingest Secondary Source Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_secondary_source
+  consumers:
+  - validate_source_contracts
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_secondary_source_status
+  name: Ingest Secondary Source Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_secondary_source
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: ingest_reference_source_artifact
+  name: Ingest Reference Source Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_reference_source
+  consumers:
+  - validate_source_contracts
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_reference_source_status
+  name: Ingest Reference Source Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_reference_source
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: validate_source_contracts_artifact
+  name: Validate Source Contracts Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: validate_source_contracts
+  consumers:
+  - normalize_sources
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validate_source_contracts_status
+  name: Validate Source Contracts Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: validate_source_contracts
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_sources_artifact
+  name: Normalize Sources Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_sources
+  consumers:
+  - fuse_sources
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_sources_status
+  name: Normalize Sources Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_sources
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: fuse_sources_artifact
+  name: Fuse Sources Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: fuse_sources
+  consumers:
+  - extract_visual_text_features
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: fuse_sources_status
+  name: Fuse Sources Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: fuse_sources
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: extract_visual_text_features_artifact
+  name: Extract Visual Text Features Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: extract_visual_text_features
+  consumers:
+  - join_reference_metadata
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: extract_visual_text_features_status
+  name: Extract Visual Text Features Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: extract_visual_text_features
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: join_reference_metadata_artifact
+  name: Join Reference Metadata Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: join_reference_metadata
+  consumers:
+  - assess_multimodal_quality
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: join_reference_metadata_status
+  name: Join Reference Metadata Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: join_reference_metadata
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: assess_multimodal_quality_artifact
+  name: Assess Multimodal Quality Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: assess_multimodal_quality
+  consumers:
+  - publish_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: assess_multimodal_quality_status
+  name: Assess Multimodal Quality Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: assess_multimodal_quality
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: publish_outputs_artifact
+  name: Publish Outputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: output
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publish_outputs_status
+  name: Publish Outputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+bindings:
+- intent_id: ingest_primary_source
+  service_id: multimodal_primary_source_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_primary_source_artifact
+  - port: execution_report
+    artifact_id: ingest_primary_source_status
+  parameter_bindings:
+    operation_profile: ingest_primary_source
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: ingest_secondary_source
+  service_id: multimodal_secondary_source_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_secondary_source_artifact
+  - port: execution_report
+    artifact_id: ingest_secondary_source_status
+  parameter_bindings:
+    operation_profile: ingest_secondary_source
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: ingest_reference_source
+  service_id: multimodal_reference_source_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_reference_source_artifact
+  - port: execution_report
+    artifact_id: ingest_reference_source_status
+  parameter_bindings:
+    operation_profile: ingest_reference_source
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: validate_source_contracts
+  service_id: multimodal_multi_source_contract_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: ingest_primary_source_artifact
+  - port: input_artifacts
+    artifact_id: ingest_secondary_source_artifact
+  - port: input_artifacts
+    artifact_id: ingest_reference_source_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: validate_source_contracts_artifact
+  - port: execution_report
+    artifact_id: validate_source_contracts_status
+  parameter_bindings:
+    operation_profile: validate_source_contracts
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_sources
+  service_id: multimodal_multi_source_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contracts_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_sources_artifact
+  - port: execution_report
+    artifact_id: normalize_sources_status
+  parameter_bindings:
+    operation_profile: normalize_sources
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: fuse_sources
+  service_id: multimodal_source_fusion_reconciler
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: normalize_sources_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: fuse_sources_artifact
+  - port: execution_report
+    artifact_id: fuse_sources_status
+  parameter_bindings:
+    operation_profile: fuse_sources
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: extract_visual_text_features
+  service_id: visual_document_feature_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: fuse_sources_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: extract_visual_text_features_artifact
+  - port: execution_report
+    artifact_id: extract_visual_text_features_status
+  parameter_bindings:
+    operation_profile: extract_visual_text_features
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: join_reference_metadata
+  service_id: multimodal_reference_metadata_joiner
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: extract_visual_text_features_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: join_reference_metadata_artifact
+  - port: execution_report
+    artifact_id: join_reference_metadata_status
+  parameter_bindings:
+    operation_profile: join_reference_metadata
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: assess_multimodal_quality
+  service_id: multimodal_quality_assessor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: join_reference_metadata_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: assess_multimodal_quality_artifact
+  - port: execution_report
+    artifact_id: assess_multimodal_quality_status
+  parameter_bindings:
+    operation_profile: assess_multimodal_quality
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: publish_outputs
+  service_id: multimodal_output_bundle_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: assess_multimodal_quality_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: publish_outputs_artifact
+  - port: execution_report
+    artifact_id: publish_outputs_status
+  parameter_bindings:
+    operation_profile: publish_outputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - public
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Batch 01 mocks do not contact production image, document, or review systems.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 reviewed Batch 01 validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 reviewed Batch 01 validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 reviewed Batch 01 validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 reviewed Batch 01 validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 reviewed Batch 01 validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 reviewed Batch 01 validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 reviewed Batch 01 validation.

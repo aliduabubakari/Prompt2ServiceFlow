@@ -1,0 +1,143 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: executive-sales-dashboard
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: fixture-file
+        value: sales.csv
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: executive-sales-dashboard-scripts
+    - name: fixtures
+      configMap:
+        name: executive-sales-dashboard-fixtures
+        items:
+        - key: fixture-0000
+          path: db.json
+        - key: fixture-0001
+          path: fixture.json
+        - key: fixture-0002
+          path: sales.csv
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: wait-for-sales-aggregation
+          template: run-wait-for-sales-aggregation
+        - name: load-sales-csv
+          template: run-load-sales-csv
+          depends: wait-for-sales-aggregation.Succeeded
+        - name: generate-dashboard
+          template: run-generate-dashboard
+          depends: load-sales-csv.Succeeded
+    - name: run-wait-for-sales-aggregation
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: wait_for_sales_aggregation
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_wait.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-load-sales-csv
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: load_sales_csv
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_load.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-generate-dashboard
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: generate_dashboard
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_dashboard.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError

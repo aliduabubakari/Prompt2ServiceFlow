@@ -1,0 +1,579 @@
+ir_version: 0.1.0
+composition_id: medical_facility_accessibility_v1
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:medical_facility_accessibility_v1
+  split: main
+  pipeline_id: medical_facility_accessibility_v1
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/24_medical_facility_accessibility_v1.txt
+  description_sha256: 80d25b148c4c182cb0a62ae2f3659465feb009f523ab7577f099d383af0fafaa
+  internal_spec_path: source/internal_specs/main_40/24_medical_facility_accessibility_v1.json
+  internal_spec_sha256: 840f0ee26348f399a1347d7cec8e7df29e0130641c92e22a015baf48e5097967
+requirement:
+  name: Medical Facility Accessibility v1
+  purpose: Process medical facility locations, geocode addresses, calculate spatial proximity to public
+    transport and residential zones, and export enriched dataset.
+  domain: urban_planning
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes:
+  - Five-step linear geospatial enrichment pipeline with HERE geocoding and spatial distance calculations.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: source_filesystem
+  type: filesystem
+  name: Source filesystem
+  identifier: /tmp/medical/data
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: geocoding_api
+  type: http_api
+  name: HERE Geocoding API
+  identifier: geocodingHere
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: load_and_modify_facilities
+  name: Load and format facility data
+  category: Transformer
+  capability: Parse facility CSV and emit structured tabular JSON with metadata.
+  source_step_refs:
+  - load_and_modify_facilities
+  evidence:
+  - source: description
+    text: Ingest and format medical facility data from CSV to structured JSON.
+  inputs:
+  - facilities_csv
+  outputs:
+  - formatted_facilities_json
+  - format_status
+  external_system_refs:
+  - source_filesystem
+  preconditions:
+  - Readable facilities CSV available.
+  effects:
+  - Structured tabular JSON and format status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step formats CSV into structured JSON with metadata.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: geocode_facilities
+  name: Geocode facility addresses
+  category: Reconciler
+  capability: Enrich facility JSON with latitude/longitude via HERE-compatible geocoding API.
+  source_step_refs:
+  - geocode_facilities
+  evidence:
+  - source: description
+    text: Geocode facility addresses to latitude/longitude coordinates using HERE Maps API.
+  inputs:
+  - formatted_facilities_json
+  - geocoding_api_resource
+  outputs:
+  - geocoded_facilities_json
+  - geocoding_status
+  external_system_refs:
+  - geocoding_api
+  preconditions:
+  - Structured facility JSON with address column available.
+  effects:
+  - Geocoded JSON with lat/lon and geocoding status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: Source step geocodes addresses via HERE-compatible API.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: calc_distance_public_transport
+  name: Calculate public transport distance
+  category: Reconciler
+  capability: Compute nearest distance from each facility to public transport stops.
+  source_step_refs:
+  - calc_distance_public_transport
+  evidence:
+  - source: description
+    text: Calculate spatial distance from facilities to nearest public transport stops.
+  inputs:
+  - geocoded_facilities_json
+  - transport_stops_geojson
+  outputs:
+  - pt_distance_json
+  - pt_distance_status
+  external_system_refs: []
+  preconditions:
+  - Geocoded facility JSON with lat/lon available
+  - transport stops GeoJSON available.
+  effects:
+  - Distance-to-transport column appended and status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step computes nearest distance to public transport.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: calc_distance_residential
+  name: Calculate residential area distance
+  category: Reconciler
+  capability: Compute nearest distance from each facility to residential zones.
+  source_step_refs:
+  - calc_distance_residential
+  evidence:
+  - source: description
+    text: Calculate spatial distance from facilities to nearest residential areas.
+  inputs:
+  - pt_distance_json
+  - residential_areas_geojson
+  outputs:
+  - residential_distance_json
+  - residential_distance_status
+  external_system_refs: []
+  preconditions:
+  - Facility JSON with transport distances available
+  - residential GeoJSON available.
+  effects:
+  - Distance-to-residential column appended and status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step computes nearest distance to residential zones.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: save_accessibility_data
+  name: Export enriched accessibility data
+  category: Transformer
+  capability: Export the fully enriched facility JSON to a deterministic CSV file.
+  source_step_refs:
+  - save_accessibility_data
+  evidence:
+  - source: description
+    text: Save final enriched accessibility data to CSV format.
+  inputs:
+  - residential_distance_json
+  outputs:
+  - enriched_facilities_csv
+  - export_status
+  external_system_refs: []
+  preconditions:
+  - Fully enriched facility JSON available.
+  effects:
+  - CSV artifact and export status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step exports final enriched data to CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: load_and_modify_facilities
+    to: geocode_facilities
+  - from: geocode_facilities
+    to: calc_distance_public_transport
+  - from: calc_distance_public_transport
+    to: calc_distance_residential
+  - from: calc_distance_residential
+    to: save_accessibility_data
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: facilities_csv
+  name: Facilities CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - load_and_modify_facilities
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/facilities.csv
+  external_system_ref: source_filesystem
+- artifact_id: formatted_facilities_json
+  name: Formatted facility JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/formatted_json.schema.json
+  role: intermediate
+  producer: load_and_modify_facilities
+  consumers:
+  - geocode_facilities
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: format_status
+  name: Format status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: load_and_modify_facilities
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: geocoding_api_resource
+  name: Geocoding API resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - geocode_facilities
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/geocoding_api.json
+  external_system_ref: geocoding_api
+- artifact_id: geocoded_facilities_json
+  name: Geocoded facility JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/formatted_json.schema.json
+  role: intermediate
+  producer: geocode_facilities
+  consumers:
+  - calc_distance_public_transport
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: geocoding_status
+  name: Geocoding status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/geocoding_status.schema.json
+  role: status
+  producer: geocode_facilities
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: transport_stops_geojson
+  name: Transport stops GeoJSON
+  kind: external_resource
+  data_type: json
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - calc_distance_public_transport
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/transport_stops.geojson
+  external_system_ref: source_filesystem
+- artifact_id: pt_distance_json
+  name: Public transport distance JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/formatted_json.schema.json
+  role: intermediate
+  producer: calc_distance_public_transport
+  consumers:
+  - calc_distance_residential
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: pt_distance_status
+  name: PT distance status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/distance_status.schema.json
+  role: status
+  producer: calc_distance_public_transport
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: residential_areas_geojson
+  name: Residential areas GeoJSON
+  kind: external_resource
+  data_type: json
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - calc_distance_residential
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/residential_areas.geojson
+  external_system_ref: source_filesystem
+- artifact_id: residential_distance_json
+  name: Residential distance JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/formatted_json.schema.json
+  role: intermediate
+  producer: calc_distance_residential
+  consumers:
+  - save_accessibility_data
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: residential_distance_status
+  name: Residential distance status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/distance_status.schema.json
+  role: status
+  producer: calc_distance_residential
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: enriched_facilities_csv
+  name: Enriched facilities CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: output
+  producer: save_accessibility_data
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: export_status
+  name: Export status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/export_status.schema.json
+  role: status
+  producer: save_accessibility_data
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: load_and_modify_facilities
+  service_id: csv_to_structured_json_table_formatter
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_file
+    artifact_id: facilities_csv
+  output_bindings:
+  - port: structured_json
+    artifact_id: formatted_facilities_json
+  - port: transform_status
+    artifact_id: format_status
+  parameter_bindings:
+    output_path: /workspace/artifacts/formatted_facilities_json.json
+    dataset_id: '2'
+    table_name: JOT_
+    has_header: true
+  secret_bindings: []
+  rationale: Formats CSV into structured tabular JSON with metadata.
+  confidence: explicit
+- intent_id: geocode_facilities
+  service_id: tabular_address_geocoding_enricher
+  service_version: 1.0.0
+  input_bindings:
+  - port: structured_json
+    artifact_id: formatted_facilities_json
+  - port: geocoding_api_resource
+    artifact_id: geocoding_api_resource
+  output_bindings:
+  - port: geocoded_json
+    artifact_id: geocoded_facilities_json
+  - port: geocoding_status
+    artifact_id: geocoding_status
+  parameter_bindings:
+    address_column: address
+    latitude_column: latitude
+    longitude_column: longitude
+    geocoder_id: geocodingHere
+    dataset_id: '2'
+    output_path: /workspace/artifacts/geocoded_facilities_json.json
+  secret_bindings:
+  - secret: geocoding_api_token
+    kubernetes_secret: here-api
+    key: api-token
+  rationale: Geocodes facility addresses via HERE-compatible API.
+  confidence: explicit
+- intent_id: calc_distance_public_transport
+  service_id: geospatial_nearest_distance_column_extender
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_tabular_json
+    artifact_id: geocoded_facilities_json
+  - port: target_layer_geojson
+    artifact_id: transport_stops_geojson
+  output_bindings:
+  - port: extended_tabular_json
+    artifact_id: pt_distance_json
+  - port: distance_status
+    artifact_id: pt_distance_status
+  parameter_bindings:
+    lat_column: latitude
+    lon_column: longitude
+    target_layer: public_transport
+    output_column: distance_to_pt
+    output_path: /workspace/artifacts/pt_distance_json.json
+  secret_bindings: []
+  rationale: Computes nearest distance to public transport stops.
+  confidence: explicit
+- intent_id: calc_distance_residential
+  service_id: geospatial_nearest_distance_column_extender
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_tabular_json
+    artifact_id: pt_distance_json
+  - port: target_layer_geojson
+    artifact_id: residential_areas_geojson
+  output_bindings:
+  - port: extended_tabular_json
+    artifact_id: residential_distance_json
+  - port: distance_status
+    artifact_id: residential_distance_status
+  parameter_bindings:
+    lat_column: latitude
+    lon_column: longitude
+    target_layer: residential_areas
+    output_column: distance_to_residential
+    output_path: /workspace/artifacts/residential_distance_json.json
+  secret_bindings: []
+  rationale: Computes nearest distance to residential zones.
+  confidence: explicit
+- intent_id: save_accessibility_data
+  service_id: structured_json_to_csv_exporter
+  service_version: 1.0.0
+  input_bindings:
+  - port: structured_json
+    artifact_id: residential_distance_json
+  output_bindings:
+  - port: csv_file
+    artifact_id: enriched_facilities_csv
+  - port: export_status
+    artifact_id: export_status
+  parameter_bindings:
+    output_filename: enriched_facilities.csv
+    include_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: Exports final enriched JSON to CSV.
+  confidence: explicit
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides:
+  - intent_id: geocode_facilities
+    retries: 1
+    timeout_seconds: 600
+    network_access: required
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - All external API calls mocked with deterministic fixtures.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All five source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Five exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Five-task Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Single scenario executes all five steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - All enrichment and export invariants hold
+source_step_accounting:
+- source_step_ref: load_and_modify_facilities
+  disposition: service
+  intent_ids:
+  - load_and_modify_facilities
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: geocode_facilities
+  disposition: service
+  intent_ids:
+  - geocode_facilities
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: calc_distance_public_transport
+  disposition: service
+  intent_ids:
+  - calc_distance_public_transport
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: calc_distance_residential
+  disposition: service
+  intent_ids:
+  - calc_distance_residential
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: save_accessibility_data
+  disposition: service
+  intent_ids:
+  - save_accessibility_data
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

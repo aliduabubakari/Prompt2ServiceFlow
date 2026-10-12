@@ -1,0 +1,52 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:student_record_privacy_review
+candidate_sets:
+- candidate_set_id: extension_student_record_privacy_review_student_record_privacy_batch_ingestor_candidates
+  required_service_id: student_record_privacy_batch_ingestor
+  labels:
+    student_record_privacy_batch_ingestor: gold
+    redaction_only_text_filter: semantic_mismatch
+    generic_human_review_ticket_creator: contract_mismatch
+    audit_log_append_only_writer: format_mismatch
+- candidate_set_id: extension_student_record_privacy_review_student_privacy_contract_validator_candidates
+  required_service_id: student_privacy_contract_validator
+  labels:
+    student_privacy_contract_validator: gold
+    generic_human_review_ticket_creator: semantic_mismatch
+    audit_log_append_only_writer: contract_mismatch
+    privacy_policy_table_loader: format_mismatch
+- candidate_set_id: extension_student_record_privacy_review_student_research_release_policy_decider_candidates
+  required_service_id: student_research_release_policy_decider
+  labels:
+    student_research_release_policy_decider: gold
+    audit_log_append_only_writer: semantic_mismatch
+    privacy_policy_table_loader: contract_mismatch
+    case_status_notifier: format_mismatch
+- candidate_set_id: extension_student_record_privacy_review_student_redacted_release_router_candidates
+  required_service_id: student_redacted_release_router
+  labels:
+    student_redacted_release_router: gold
+    privacy_policy_table_loader: semantic_mismatch
+    case_status_notifier: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_student_record_privacy_review_student_steward_review_router_candidates
+  required_service_id: student_steward_review_router
+  labels:
+    student_steward_review_router: gold
+    case_status_notifier: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    redaction_only_text_filter: format_mismatch
+- candidate_set_id: extension_student_record_privacy_review_policy_route_outcome_merger_candidates
+  required_service_id: policy_route_outcome_merger
+  labels:
+    policy_route_outcome_merger: gold
+    reviewed_domain_adapter: semantic_mismatch
+    redaction_only_text_filter: contract_mismatch
+    generic_human_review_ticket_creator: format_mismatch
+- candidate_set_id: extension_student_record_privacy_review_policy_review_bundle_publisher_candidates
+  required_service_id: policy_review_bundle_publisher
+  labels:
+    policy_review_bundle_publisher: gold
+    redaction_only_text_filter: semantic_mismatch
+    generic_human_review_ticket_creator: contract_mismatch
+    audit_log_append_only_writer: format_mismatch

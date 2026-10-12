@@ -1,0 +1,181 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_weekly_report_packager",
+  "pipeline_name": "Weekly Report Packager",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_weekly_report_packager.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Collect weekly KPI extracts, render a PDF report, and publish the report bundle.",
+    "business_domain": "Business Reporting",
+    "execution_model": "Batch",
+    "topology_pattern": "Linear",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "collect_kpi_extracts",
+        "to": "render_pdf_report"
+      },
+      {
+        "from": "render_pdf_report",
+        "to": "compress_report_bundle"
+      },
+      {
+        "from": "compress_report_bundle",
+        "to": "publish_bundle"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Data warehouse",
+      "identifier": "data_warehouse",
+      "details": [
+        "Validation external dependency: Data warehouse"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Object storage",
+      "identifier": "object_storage",
+      "details": [
+        "Validation external dependency: Object storage"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "kpi_extract",
+        "description": "Validation artifact: kpi_extract"
+      },
+      {
+        "identifier": "weekly_report.pdf",
+        "description": "Validation artifact: weekly_report.pdf"
+      },
+      {
+        "identifier": "report_bundle.zip",
+        "description": "Validation artifact: report_bundle.zip"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "collect_kpi_extracts",
+      "name": "collect_kpi_extracts",
+      "objective": "Collect kpi extracts",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "render_pdf_report",
+      "name": "render_pdf_report",
+      "objective": "Render pdf report",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "compress_report_bundle",
+      "name": "compress_report_bundle",
+      "objective": "Compress report bundle",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_bundle",
+      "name": "publish_bundle",
+      "objective": "Publish bundle",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

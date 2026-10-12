@@ -1,0 +1,179 @@
+schema_version: 0.1.0
+service_id: google_dataform_workflow_invocation_creator
+version: 1.0.0
+display_name: Google Dataform Workflow Invocation Creator
+category: ExternalWorkflowAdapter
+capability:
+  summary: Creates and starts a Google Cloud Dataform workflow invocation from a compilation
+    result reference, optionally enabling full refresh of incremental tables, and
+    emits the workflow invocation reference plus status.
+  operations:
+  - Resolve a bound Google Cloud Dataform repository resource.
+  - Read a compilation result reference.
+  - Submit a create-workflow-invocation request.
+  - Apply invocation options such as asynchronous mode and full refresh when supplied
+    by the caller.
+  keywords:
+  - google dataform
+  - workflow invocation
+  - external workflow
+  - gcp
+  - trigger
+  - asynchronous
+  limitations:
+  - Targets Google Cloud Dataform-compatible repositories only.
+  - Does not wait for invocation completion; use a sensor service for status monitoring.
+  - Does not manage workflow scheduling, retry policy, or dependency ordering.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: dataform_repository
+    description: Google Cloud Dataform repository resource, including project, region,
+      repository identity, and authentication binding.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://google_dataform_repository_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: compilation_result_reference
+    description: Reference to an existing Dataform compilation result to invoke.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://dataform_compilation_result_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: workflow_invocation_reference
+    description: Reference to the created Dataform workflow invocation, including
+      the resource name.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://dataform_workflow_invocation_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: invocation_creation_status
+    description: Observable status for the workflow invocation creation request.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://dataform_workflow_invocation_creation_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: project_id
+    description: Google Cloud project identifier containing the Dataform repository.
+    type: string
+    required: true
+  - name: region
+    description: Google Cloud region for the Dataform repository.
+    type: string
+    required: true
+  - name: repository_id
+    description: Dataform repository identifier.
+    type: string
+    required: true
+  - name: asynchronous
+    description: Whether the service should return after creating the workflow invocation
+      rather than waiting for completion.
+    type: boolean
+    required: false
+  - name: fully_refresh_incremental_tables_enabled
+    description: Whether Dataform should fully refresh incremental tables for this
+      invocation.
+    type: boolean
+    required: false
+  - name: invocation_config
+    description: Optional additional Dataform workflow invocation configuration.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: dataform_workflow_invocation_input_reference_contract
+  type: precondition
+  applies_to: input
+  target: compilation_result_reference
+  description: Compilation result reference must include a non-empty Dataform resource
+    name.
+  expression: length(trim(compilation_result_reference.name)) > 0
+- contract_id: dataform_workflow_invocation_reference_schema
+  type: json_schema
+  applies_to: output
+  target: workflow_invocation_reference
+  description: Workflow invocation reference exposes the created Dataform invocation
+    resource name.
+  schema_ref: schema://dataform_workflow_invocation_reference/v1
+  expression: '{"type":"object","required":["name","project_id","region","repository_id","compilation_result_name"],"properties":{"name":{"type":"string","minLength":1},"project_id":{"type":"string"},"region":{"type":"string"},"repository_id":{"type":"string"},"compilation_result_name":{"type":"string"}}}'
+- contract_id: dataform_workflow_invocation_creation_status_schema
+  type: json_schema
+  applies_to: output
+  target: invocation_creation_status
+  description: Status exposes workflow invocation creation outcome.
+  schema_ref: schema://dataform_workflow_invocation_creation_status/v1
+  expression: '{"type":"object","required":["success","workflow_invocation_name","asynchronous"],"properties":{"success":{"type":"boolean"},"workflow_invocation_name":{"type":["string","null"]},"asynchronous":{"type":"boolean"},"fully_refresh_incremental_tables_enabled":{"type":"boolean"},"api_status_code":{"type":["integer","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: dataform_workflow_invocation_creation_effect
+  type: effect
+  applies_to: service
+  target: google_dataform_workflow_invocation_creator
+  description: On success, a Dataform workflow invocation reference exists and invocation_creation_status.success
+    is true.
+  expression: invocation_creation_status.success == true implies exists(workflow_invocation_reference.name)
+invocation:
+  type: argo_workflow_template
+  template_name: google-dataform-workflow-invocation-creator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.google_dataform_workflow_invocation_creator
+  implementation_ref: services/implementations/google_dataform_workflow_invocation_creator
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - https://dataform.googleapis.com/*
+  secret_access: required
+  retry_safe: false
+  idempotency: non_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit GCP credentials in outputs or logs.
+  - Callers should avoid retrying blindly because duplicate workflow invocations may
+    be created.
+  idempotency_notes: Repeated invocations may start multiple Dataform workflow runs
+    from the same compilation result.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:data-transformation-pipeline#create_workflow_invocation
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No registry service supports creating a Dataform workflow invocation
+    from a compilation result.'
+  - 'Evidence status: explicit.'

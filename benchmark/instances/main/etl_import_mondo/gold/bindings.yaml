@@ -1,0 +1,21 @@
+binding_gold_version: 0.1.0
+benchmark_id: main:etl_import_mondo
+bindings:
+- intent_id: params_validate
+  service_id: runtime_parameter_allowed_values_validator
+  service_version: 1.0.0
+- intent_id: download_mondo_terms
+  service_id: github_release_asset_object_storage_sync
+  service_version: 1.0.0
+- intent_id: normalized_mondo_terms
+  service_id: spark_class_object_storage_dataset_transformer
+  service_version: 1.0.0
+- intent_id: index_mondo_terms
+  service_id: spark_elasticsearch_index_loader
+  service_version: 1.0.0
+- intent_id: publish_mondo
+  service_id: elasticsearch_index_publisher
+  service_version: 1.0.0
+- intent_id: slack
+  service_id: slack_notification_sender
+  service_version: 1.0.0

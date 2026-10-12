@@ -1,0 +1,52 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:support_profile_context_join
+candidate_sets:
+- candidate_set_id: extension_support_profile_context_join_api_table_primary_source_ingestor_candidates
+  required_service_id: api_table_primary_source_ingestor
+  labels:
+    api_table_primary_source_ingestor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    sensor_window_alignment_fuser: contract_mismatch
+    iot_anomaly_feature_calculator: format_mismatch
+- candidate_set_id: extension_support_profile_context_join_api_table_secondary_source_ingestor_candidates
+  required_service_id: api_table_secondary_source_ingestor
+  labels:
+    api_table_secondary_source_ingestor: gold
+    sensor_window_alignment_fuser: semantic_mismatch
+    iot_anomaly_feature_calculator: contract_mismatch
+    event_record_cleaner: format_mismatch
+- candidate_set_id: extension_support_profile_context_join_api_table_reference_source_ingestor_candidates
+  required_service_id: api_table_reference_source_ingestor
+  labels:
+    api_table_reference_source_ingestor: gold
+    iot_anomaly_feature_calculator: semantic_mismatch
+    event_record_cleaner: contract_mismatch
+    feature_table_drift_validator: format_mismatch
+- candidate_set_id: extension_support_profile_context_join_api_table_multi_source_contract_validator_candidates
+  required_service_id: api_table_multi_source_contract_validator
+  labels:
+    api_table_multi_source_contract_validator: gold
+    event_record_cleaner: semantic_mismatch
+    feature_table_drift_validator: contract_mismatch
+    api_table_conflict_reconciler: format_mismatch
+- candidate_set_id: extension_support_profile_context_join_api_table_multi_source_normalizer_candidates
+  required_service_id: api_table_multi_source_normalizer
+  labels:
+    api_table_multi_source_normalizer: gold
+    feature_table_drift_validator: semantic_mismatch
+    api_table_conflict_reconciler: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_support_profile_context_join_api_table_source_fusion_reconciler_candidates
+  required_service_id: api_table_source_fusion_reconciler
+  labels:
+    api_table_source_fusion_reconciler: gold
+    api_table_conflict_reconciler: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    sensor_window_alignment_fuser: format_mismatch
+- candidate_set_id: extension_support_profile_context_join_api_table_output_bundle_publisher_candidates
+  required_service_id: api_table_output_bundle_publisher
+  labels:
+    api_table_output_bundle_publisher: gold
+    reviewed_domain_adapter: semantic_mismatch
+    sensor_window_alignment_fuser: contract_mismatch
+    iot_anomaly_feature_calculator: format_mismatch

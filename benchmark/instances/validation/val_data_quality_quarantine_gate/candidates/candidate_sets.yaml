@@ -1,0 +1,41 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_data_quality_quarantine_gate
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.2
+candidate_sets:
+- candidate_set_id: validation_val_data_quality_quarantine_gate_customer_extract_profiler_candidates
+  source_step_refs:
+  - profile_customer_extract
+  service_ids:
+  - customer_extract_profiler
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_data_quality_quarantine_gate_customer_quality_rule_evaluator_candidates
+  source_step_refs:
+  - evaluate_quality_rules
+  service_ids:
+  - customer_quality_rule_evaluator
+  - temporary_resource_cleanup
+  - csv_to_structured_json_standardizer
+- candidate_set_id: validation_val_data_quality_quarantine_gate_valid_customer_records_loader_candidates
+  source_step_refs:
+  - load_valid_records
+  service_ids:
+  - valid_customer_records_loader
+  - csv_to_structured_json_standardizer
+  - tabular_dataset_database_loader
+- candidate_set_id: validation_val_data_quality_quarantine_gate_invalid_customer_records_quarantine_publisher_candidates
+  source_step_refs:
+  - quarantine_invalid_records
+  service_ids:
+  - invalid_customer_records_quarantine_publisher
+  - tabular_dataset_database_loader
+  - http_json_request_extractor
+- candidate_set_id: validation_val_data_quality_quarantine_gate_quality_audit_summary_writer_candidates
+  source_step_refs:
+  - write_quality_audit
+  service_ids:
+  - quality_audit_summary_writer
+  - http_json_request_extractor
+  - bi_dashboard_refresh_trigger

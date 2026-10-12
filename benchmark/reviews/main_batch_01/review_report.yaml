@@ -1,0 +1,67 @@
+review_version: 0.1.0
+batch_id: main_batch_01
+review_date: '2026-06-15'
+status: provisional
+review_method: codex_assisted_structural_and_semantic_review
+independent_human_review: pending
+pipelines:
+- benchmark_id: main:airflow_db_cleanup
+  decisions:
+  - Rebound retention configuration to retention_cutoff_config_resolver.
+  - Rebound eleven Airflow metadata tables to airflow_metadata_retention_cleaner.
+  - Preserved dedicated session cleanup and database analysis services.
+  - Added assertions for every cleanup branch and the final fan-in.
+  outstanding_questions:
+  - Confirm per-table age columns and keep-last settings against the original implementation.
+- benchmark_id: main:global_dag
+  decisions:
+  - Removed six start/end markers from the service catalogue and classified them as orchestration.
+  - Restored parallel ingestion and independent death-record and power-plant staging branches.
+  - Decomposed temporary death cleanup into filesystem and Redis service effects.
+  - Added present and empty death-record scenarios.
+  outstanding_questions:
+  - Confirm whether downloaded file-reference arrays should gain a catalogue file-selection adapter
+    instead of using reviewed fixture CSVs at the standardizer boundary.
+- benchmark_id: main:pcd-etl
+  decisions:
+  - Classified the two extraction-phase start markers as orchestration.
+  - Rebound eighteen API extraction steps to the HTTP artifact extractor.
+  - Restored the two sequential fan-out/fan-in extraction phases.
+  - Rebound file processing to the Kubernetes Job template executor.
+  outstanding_questions:
+  - Confirm whether the two initial folder checks should remain reusable sensors or retain explicit
+    Kubernetes Job execution semantics.
+- benchmark_id: main:etl_import_mondo
+  decisions:
+  - Rebound download, Spark normalization, Elasticsearch indexing, publication, and Slack steps to
+    their domain-specific services.
+  - Added new-release and already-current scenarios.
+  - Replaced the incorrect email publication interpretation with Elasticsearch publication.
+  outstanding_questions:
+  - Confirm the exact object-storage reference passed from asset synchronization into Spark.
+- benchmark_id: main:WF_MAIN_DATASETS_LOAD_L2_TO_L2
+  decisions:
+  - Rebound the DWH flag check to the SQL readiness sensor.
+  - Rebound the previous-run check to the external task completion sensor.
+  - Restored parallel report-preparation and segmentation branches.
+  - Rebound SAP publication and workflow-session finalization to their reviewed services.
+  - Classified email_on_failure as workflow orchestration rather than a normal success-path service.
+  outstanding_questions:
+  - Add compiler-level Argo onExit or failure-hook projection before cluster qualification.
+validation:
+  local_g0_g6:
+    passed: 5
+    failed: 0
+  main_40_regression:
+    passed: 40
+    failed: 0
+  pytest:
+    passed: 41
+    failed: 0
+  ruff:
+    batch_scope: pass
+    repository_baseline_findings: 391
+  minikube_cluster_execution: deferred
+release_effect:
+  annotation_status: semantic_hardening_complete
+  review_status: independent_review_pending

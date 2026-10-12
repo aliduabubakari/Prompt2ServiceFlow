@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runelt-alert-run-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Mock Snowflake CTAS.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n\
+    \    (art/\"target_table.json\").write_text(json.dumps({\"tables\":[{\"name\":\"analytics.mau_summary\"\
+    ,\"rows\":1000}]},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"exec_status.json\").write_text(json.dumps({\"\
+    success\":True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runelt-alert-run-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"pipeline_id\": \"runelt_alert\",\n  \"inputs\": {\n    \"snowflake\": \"snowflake.json\"\
+    \n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n  ],\n  \"systems\": [\n    \"system_a\"\
+    ,\n    \"system_b\"\n  ]\n}"
+  fixture-0001: '{"driver":"filesystem-mock","engine":"snowflake"}'

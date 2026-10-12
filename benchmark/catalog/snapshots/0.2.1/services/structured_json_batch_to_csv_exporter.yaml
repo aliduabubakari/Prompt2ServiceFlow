@@ -1,0 +1,167 @@
+schema_version: 0.1.0
+service_id: structured_json_batch_to_csv_exporter
+version: 1.0.0
+display_name: Structured JSON Batch to CSV Exporter
+category: Transformer
+capability:
+  summary: Combines one or more structured tabular JSON artifacts into a single deterministic
+    CSV artifact and emits export status.
+  operations:
+  - Read a collection of structured tabular JSON artifacts.
+  - Validate that each artifact contains row and column metadata.
+  - Select and order output columns according to parameters or discovered input metadata.
+  - Serialize rows from all inputs to a single CSV file and emit row/file counts plus
+    diagnostics.
+  keywords:
+  - json
+  - csv export
+  - batch export
+  - tabular data
+  - final output
+  - fan-in artifact
+  limitations:
+  - Does not call external systems.
+  - Does not reconcile, enrich, or validate business semantics.
+  - Requires compatible tabular JSON schemas or explicit column selection for deterministic
+    combined output.
+  - Does not implement workflow dependency edges or retries.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: structured_json_files
+    description: One or more processed structured tabular JSON artifacts to export
+      as a single CSV.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://property_extended_tabular_json/v1
+    required: true
+    cardinality: many
+    sensitivity: internal
+  outputs:
+  - name: csv_file
+    description: Final CSV artifact containing serialized rows from all input JSON
+      artifacts.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://csv_file_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: export_status
+    description: Observable export status with input file count, rows read/written,
+      output URI, exported columns, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://json_batch_to_csv_export_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: output_filename
+    description: Deterministic output CSV filename or artifact path, for example final_output.csv.
+    type: string
+    required: true
+  - name: columns
+    description: Optional ordered list of columns to include; when omitted, implementation
+      derives a deterministic union/order from input metadata.
+    type: array
+    required: false
+  - name: include_header
+    description: Whether to include a CSV header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  secrets: []
+contracts:
+- contract_id: json_batch_to_csv_inputs_present
+  type: precondition
+  applies_to: input
+  target: structured_json_files
+  description: At least one readable structured JSON artifact must be supplied.
+  expression: length(structured_json_files) > 0 and all(readable(f) and json_parseable(f)
+    for f in structured_json_files)
+- contract_id: json_batch_to_csv_input_schema
+  type: json_schema
+  applies_to: input
+  target: structured_json_files
+  description: Each input JSON must contain tabular rows and column metadata.
+  schema_ref: schema://structured_tabular_json/v1
+  expression: all(f matches {"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}}}}
+    for f in structured_json_files)
+- contract_id: json_batch_to_csv_status_schema
+  type: json_schema
+  applies_to: output
+  target: export_status
+  description: Status exposes final CSV export effect.
+  schema_ref: schema://json_batch_to_csv_export_status/v1
+  expression: '{"type":"object","required":["success","input_files_read","rows_read","rows_written","output_uri"],"properties":{"success":{"type":"boolean"},"input_files_read":{"type":"integer","minimum":0},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"columns_exported":{"type":"array","items":{"type":"string"}},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: json_batch_to_csv_effect
+  type: effect
+  applies_to: service
+  target: structured_json_batch_to_csv_exporter
+  description: On success, the final CSV artifact exists and rows_written equals rows_read.
+  expression: export_status.success == true implies exists(csv_file) and export_status.rows_written
+    == export_status.rows_read
+invocation:
+  type: argo_workflow_template
+  template_name: structured-json-batch-to-csv-exporter-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.structured_json_batch_to_csv_exporter
+  implementation_ref: services/implementations/structured_json_batch_to_csv_exporter
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full row contents; emit counts, column names, and bounded diagnostics
+    only.
+  - Filesystem mount paths and container image details are runtime binding concerns.
+  idempotency_notes: Same input JSON artifacts and export parameters produce the same
+    CSV content.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:pipeline_execution_dag#save
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The source save step materializes a single final_output.csv from a
+    pattern of processed JSON files, which is not covered by the existing single-input
+    structured JSON CSV exporter.'
+  - 'Evidence status: explicit.'

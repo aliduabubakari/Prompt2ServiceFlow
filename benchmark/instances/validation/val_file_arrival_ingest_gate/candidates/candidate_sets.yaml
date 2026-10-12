@@ -1,0 +1,27 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_file_arrival_ingest_gate
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.1
+candidate_sets:
+- candidate_set_id: validation_val_file_arrival_ingest_gate_file_location_availability_sensor_candidates
+  source_step_refs:
+  - wait_for_partner_file
+  service_ids:
+  - file_location_availability_sensor
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_file_arrival_ingest_gate_partner_file_checksum_validator_candidates
+  source_step_refs:
+  - validate_file_checksum
+  service_ids:
+  - partner_file_checksum_validator
+  - temporary_resource_cleanup
+  - csv_to_structured_json_standardizer
+- candidate_set_id: validation_val_file_arrival_ingest_gate_database_csv_snapshot_importer_candidates
+  source_step_refs:
+  - load_file_to_staging
+  service_ids:
+  - database_csv_snapshot_importer
+  - csv_to_structured_json_standardizer
+  - tabular_dataset_database_loader

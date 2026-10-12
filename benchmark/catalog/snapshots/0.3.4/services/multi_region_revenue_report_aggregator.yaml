@@ -1,0 +1,190 @@
+schema_version: 0.1.0
+service_id: multi_region_revenue_report_aggregator
+version: 1.0.0
+display_name: Multi Region Revenue Report Aggregator
+category: Aggregator
+capability:
+  summary: Aggregates one or more USD-converted regional sales CSV files into a deterministic
+    global revenue report CSV and emits aggregation status.
+  operations:
+  - Read multiple converted regional sales CSV artifacts.
+  - Validate configured revenue and optional grouping/date/region columns.
+  - Combine rows across regions and compute configured revenue aggregations in USD.
+  - Write a global revenue report CSV and emit row-count and aggregation status.
+  keywords:
+  - multi-region
+  - revenue aggregation
+  - sales report
+  - csv
+  - ecommerce
+  - fan-in
+  limitations:
+  - Does not convert currencies; inputs must already be in the configured report currency.
+  - Does not fetch source data from databases.
+  - Does not render charts or dashboards.
+  - Does not implement fan-in dependency edges or retries.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: converted_sales_files
+    description: USD-converted regional sales CSV artifacts to aggregate.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://usd_converted_regional_sales_csv/v1
+    required: true
+    cardinality: many
+    sensitivity: confidential
+  outputs:
+  - name: global_revenue_report
+    description: Final global revenue report CSV artifact.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://global_revenue_report_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: aggregation_status
+    description: Observable status with input file count, rows read, rows aggregated,
+      report currency, output URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://multi_region_revenue_aggregation_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: report_currency
+    description: Currency expected in all input files and emitted in the report.
+    type: string
+    required: true
+    enum:
+    - USD
+  - name: revenue_column
+    description: Column containing USD revenue or sales amount to aggregate.
+    type: string
+    required: true
+  - name: region_column
+    description: Optional input column containing region labels; if absent, regions
+      may be supplied through file bindings.
+    type: string
+    required: false
+  - name: grouping_columns
+    description: Optional ordered columns used to group the global revenue report,
+      such as date, product, or region.
+    type: array
+    required: false
+  - name: output_path_template
+    description: Deterministic output CSV path or template for the global report.
+    type: string
+    required: true
+  - name: include_header
+    description: Whether to include a CSV header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter for the output report.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  secrets: []
+contracts:
+- contract_id: multi_region_revenue_inputs_present
+  type: precondition
+  applies_to: input
+  target: converted_sales_files
+  description: At least one converted sales CSV must be supplied and all supplied
+    files must be readable and parseable.
+  expression: length(converted_sales_files) > 0 and all(readable(f) and csv_parseable(f)
+    for f in converted_sales_files)
+- contract_id: multi_region_revenue_column_present
+  type: precondition
+  applies_to: parameter
+  target: revenue_column
+  description: Revenue column and configured grouping columns must be present in each
+    input CSV header.
+  expression: all(revenue_column in columns(f) for f in converted_sales_files) and
+    (grouping_columns == null or all(all(c in columns(f) for c in grouping_columns)
+    for f in converted_sales_files))
+- contract_id: global_revenue_report_schema
+  type: tabular_schema
+  applies_to: output
+  target: global_revenue_report
+  description: Report CSV must include the configured grouping columns when supplied
+    and at least one numeric aggregate revenue column in USD.
+  schema_ref: schema://global_revenue_report_csv/v1
+  expression: columns(global_revenue_report) contains all grouping_columns and exists
+    numeric_column(global_revenue_report, 'revenue_usd')
+- contract_id: multi_region_revenue_status_schema
+  type: json_schema
+  applies_to: output
+  target: aggregation_status
+  description: Aggregation status exposes global report generation effect.
+  schema_ref: schema://multi_region_revenue_aggregation_status/v1
+  expression: '{"type":"object","required":["success","input_files_read","rows_read","rows_aggregated","report_currency","output_uri"],"properties":{"success":{"type":"boolean"},"input_files_read":{"type":"integer","minimum":1},"rows_read":{"type":"integer","minimum":0},"rows_aggregated":{"type":"integer","minimum":0},"report_currency":{"type":"string"},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: multi_region_revenue_aggregation_effect
+  type: effect
+  applies_to: service
+  target: multi_region_revenue_report_aggregator
+  description: On success, the global revenue report exists, is denominated in USD,
+    and aggregation_status.success is true.
+  expression: aggregation_status.success == true implies exists(global_revenue_report)
+    and aggregation_status.report_currency == 'USD'
+invocation:
+  type: argo_workflow_template
+  template_name: multi-region-revenue-report-aggregator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.multi_region_revenue_report_aggregator
+  implementation_ref: services/implementations/multi_region_revenue_report_aggregator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw sales rows or confidential revenue values.
+  - Workflow fan-in and retry behavior remain orchestration-level concerns.
+  idempotency_notes: Same converted sales files and aggregation parameters produce
+    the same report CSV after deterministic output-template rendering.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:multi_region_ecommerce_analytics#aggregate_global_revenue
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing service combines multiple converted regional sales files
+    and performs revenue aggregation into a final CSV report with an observable aggregation
+    contract.'
+  - 'Evidence status: strongly_inferred.'

@@ -1,0 +1,218 @@
+schema_version: 0.1.0
+service_id: spark_class_object_storage_table_loader
+version: 1.0.0
+display_name: Spark class object-storage table loader
+category: Loader
+capability:
+  summary: Runs a configured Spark class or application in a bound Spark/Kubernetes
+    execution context, reads input objects from object storage, materializes a configured
+    structured table, and emits table reference plus Spark run status.
+  operations:
+  - Resolve a Spark execution context such as a Kubernetes-backed Spark runtime.
+  - Read object-storage input references produced by an upstream sync or bound by
+    the workflow.
+  - Submit the configured Spark class/application with table, step, and Spark configuration
+    parameters.
+  - Wait for the Spark application to complete or fail within the service invocation
+    timeout.
+  keywords:
+  - spark job
+  - object storage
+  - table loader
+  - kubernetes
+  - structured table
+  - public table import
+  - genomics
+  limitations:
+  - Does not provide or validate Spark application code; caller must configure an
+    available Spark class/application.
+  - Does not manage orchestration retries or dependency edges.
+  - Does not infer table schema from raw files unless implemented by the configured
+    Spark class.
+  - Idempotency depends on the configured Spark application and table write behavior.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_objects
+    description: Object-storage references to raw input files to be processed by the
+      Spark application.
+    channel: artifact
+    data_type: array
+    media_type: application/json
+    schema_ref: schema://object_storage_file_references/v1
+    required: true
+    cardinality: many
+    sensitivity: internal
+  - name: object_storage
+    description: Object-storage resource containing raw inputs and any configured
+      Spark read/write locations.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://object_storage_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: spark_execution_context
+    description: Spark execution resource, such as a Kubernetes context, used to run
+      the configured Spark class.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://spark_execution_context_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: target_table
+    description: Logical reference to the structured table produced or refreshed by
+      the Spark application.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://spark_loaded_table_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: spark_run_status
+    description: Observable Spark run status including application identity, completion
+      state, target table, and errors.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://spark_table_load_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: spark_class
+    description: Fully qualified Spark class or application entry point to run.
+    type: string
+    required: true
+  - name: spark_config
+    description: Named Spark resource/configuration profile to use, for example config-etl-large.
+    type: string
+    required: false
+  - name: table_name
+    description: Logical target table name to produce, for example ensembl_mapping.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_\.]*$
+  - name: steps
+    description: Application-specific processing step selector or list, for example
+      default.
+    type: array
+    required: false
+  - name: app_name
+    description: Spark application name for run identification.
+    type: string
+    required: false
+  - name: application_args
+    description: Additional application-specific argument object passed to the Spark
+      class.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: spark_loader_class_contract
+  type: precondition
+  applies_to: parameter
+  target: spark_class
+  description: Spark class/application entry point must be non-empty.
+  expression: length(trim(spark_class)) > 0
+- contract_id: spark_loader_target_table_contract
+  type: precondition
+  applies_to: parameter
+  target: table_name
+  description: Target table name must be an identifier-like name, optionally namespace-qualified.
+  expression: table_name matches '^[A-Za-z_][A-Za-z0-9_\.]*$'
+- contract_id: spark_loader_source_objects_schema
+  type: json_schema
+  applies_to: input
+  target: source_objects
+  description: Source object references identify object-storage URIs and optional
+    logical file types.
+  schema_ref: schema://object_storage_file_references/v1
+  expression: '{"type":"array","minItems":1,"items":{"type":"object","required":["uri"],"properties":{"uri":{"type":"string"},"file_type":{"type":["string","null"]},"checksum":{"type":["string","null"]}}}}'
+- contract_id: spark_loaded_table_reference_schema
+  type: json_schema
+  applies_to: output
+  target: target_table
+  description: Target table reference exposes the table produced by the Spark load.
+  schema_ref: schema://spark_loaded_table_reference/v1
+  expression: '{"type":"object","required":["table_name"],"properties":{"table_name":{"type":"string"},"database_or_namespace":{"type":["string","null"]},"format":{"type":["string","null"]},"location_uri":{"type":["string","null"]}}}'
+- contract_id: spark_table_load_status_schema
+  type: json_schema
+  applies_to: output
+  target: spark_run_status
+  description: Run status exposes the Spark application outcome for workflow validation.
+  schema_ref: schema://spark_table_load_status/v1
+  expression: '{"type":"object","required":["success","application_name","spark_class","target_table","terminal_state"],"properties":{"success":{"type":"boolean"},"application_name":{"type":["string","null"]},"spark_class":{"type":"string"},"target_table":{"type":"string"},"terminal_state":{"type":"string"},"source_object_count":{"type":"integer","minimum":0},"rows_written":{"type":["integer","null"],"minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: spark_table_loader_effect_contract
+  type: effect
+  applies_to: service
+  target: spark_class_object_storage_table_loader
+  description: On success, the configured Spark application reached a successful terminal
+    state and emitted the configured target table reference.
+  expression: spark_run_status.success == true implies spark_run_status.terminal_state
+    in ['SUCCEEDED','COMPLETED'] and target_table.table_name == table_name
+invocation:
+  type: argo_workflow_template
+  template_name: spark-class-object-storage-table-loader-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.spark_class_object_storage_table_loader
+  implementation_ref: services/implementations/spark_class_object_storage_table_loader
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - kubernetes://*
+  - spark://*
+  - s3://*
+  - object-storage://*
+  secret_access: required
+  retry_safe: false
+  idempotency: unknown
+  data_sensitivity:
+  - public
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Spark/Kubernetes and object-storage credentials must not be emitted in status
+    or logs.
+  - Bind only approved execution contexts and storage resources.
+  - Workflow dependency from file sync to Spark load remains orchestration, not service
+    catalogue behavior.
+  idempotency_notes: The configured Spark class may overwrite, append, or merge table
+    data. Retry safety cannot be guaranteed without an explicit application-level
+    write-mode contract.
+  default_timeout_seconds: 1800
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:etl_import_ensembl#table
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service covers running a configured Spark class
+    over object-storage inputs to materialize an observable structured table.'
+  - 'Evidence status: strongly_inferred.'

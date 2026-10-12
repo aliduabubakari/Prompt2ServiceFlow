@@ -1,0 +1,78 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_supply_chain_exception_management
+mappings:
+- intent_id: wait_for_supplier_feeds
+  inputs:
+    resource_group: supply_sources
+  outputs:
+    readiness_decision: supplier_feeds_ready
+    readiness_status: supplier_feed_status
+- intent_id: ingest_inventory
+  inputs:
+    supply_source: supply_sources
+  outputs:
+    supply_feed: inventory_snapshot
+    extraction_status: inventory_status
+- intent_id: ingest_shipments
+  inputs:
+    supply_source: supply_sources
+  outputs:
+    supply_feed: shipment_events
+    extraction_status: shipment_status
+- intent_id: ingest_weather_alerts
+  inputs:
+    supply_source: supply_sources
+  outputs:
+    supply_feed: weather_alerts
+    extraction_status: weather_status
+- intent_id: ingest_supplier_capacity
+  inputs:
+    supply_source: supply_sources
+  outputs:
+    supply_feed: supplier_capacity
+    extraction_status: capacity_status
+- intent_id: harmonize_supply_state
+  inputs:
+    inventory_snapshot: inventory_snapshot
+    shipment_events: shipment_events
+    weather_alerts: weather_alerts
+    supplier_capacity: supplier_capacity
+  outputs:
+    supply_state: supply_state
+    harmonization_status: supply_harmonization_status
+- intent_id: detect_disruption_risk
+  inputs:
+    supply_state: supply_state
+  outputs:
+    disruption_risk: disruption_risk
+    risk_status: disruption_risk_status
+- intent_id: route_exception_severity
+  inputs:
+    disruption_risk: disruption_risk
+  outputs:
+    severity_route: severity_route
+    routing_status: severity_route_status
+- intent_id: generate_response_plan
+  inputs:
+    disruption_risk: disruption_risk
+  outputs:
+    response_plan: response_plan
+    plan_status: response_plan_status
+- intent_id: publish_operations_dashboard
+  inputs:
+    disruption_risk: disruption_risk
+  outputs:
+    operations_dashboard: operations_dashboard
+    dashboard_status: dashboard_status
+- intent_id: notify_regional_teams
+  inputs:
+    response_plan: response_plan
+    notification_service: notification_service
+  outputs:
+    notification_status: notification_status
+- intent_id: archive_exception_snapshot
+  inputs:
+    operations_dashboard: operations_dashboard
+  outputs:
+    exception_archive: exception_archive
+    archive_status: archive_status

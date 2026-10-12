@@ -1,0 +1,100 @@
+schema_version: 0.1.0
+service_id: escalation_alert_sender
+version: 1.0.0
+display_name: Escalation Alert Sender
+category: Notifier
+capability:
+  summary: Sends a critical escalation alert through a bound alerting service.
+  operations:
+  - Sends a critical escalation alert through a bound alerting service.
+  keywords:
+  - escalation
+  - alert
+  - sender
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: risk_report
+    description: Reviewed risk report value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: alerting_service
+    description: Reviewed alerting service value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: alert_payload
+    description: Reviewed alert payload value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: alert_status
+    description: Reviewed alert status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: recipient_group
+    description: Configuration for recipient group.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: escalation-alert-sender
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.3
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.escalation_alert_sender
+  implementation_ref: services/implementations/escalation_alert_sender
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-04:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 04 descriptions; bindings retain inference confidence.

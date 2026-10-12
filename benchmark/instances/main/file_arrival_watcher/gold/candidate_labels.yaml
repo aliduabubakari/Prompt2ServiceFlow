@@ -1,0 +1,30 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:file_arrival_watcher
+candidate_sets:
+- candidate_set_id: main_file_arrival_watcher_file_location_availability_sensor_candidates
+  required_service_id: file_location_availability_sensor
+  labels:
+    file_location_availability_sensor: gold
+    ftp_file_artifact_downloader: target_mismatch
+    filesystem_retention_cleanup_with_lock: semantic_mismatch
+    sql_query_readiness_sensor: target_mismatch
+    external_workflow_completion_sensor: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_file_arrival_watcher_csv_tabular_schema_validating_loader_candidates
+  required_service_id: csv_tabular_schema_validating_loader
+  labels:
+    csv_tabular_schema_validating_loader: gold
+    csv_artifact_profile_ingestor: missing_required_output
+    delimited_file_tabular_dataset_loader: missing_required_output
+    customer_segment_csv_loader: target_mismatch
+    user_content_csv_scanner: semantic_mismatch
+    legacy_csv_schema_validator: deprecated_or_incompatible
+- candidate_set_id: main_file_arrival_watcher_database_csv_snapshot_importer_candidates
+  required_service_id: database_csv_snapshot_importer
+  labels:
+    database_csv_snapshot_importer: gold
+    tabular_dataset_database_loader: contract_mismatch
+    postgres_parameterized_sql_executor: format_mismatch
+    postgres_sql_file_executor: format_mismatch
+    database_csv_snapshot_exporter: target_mismatch
+    unreviewed_postgres_sql_executor: policy_incompatible

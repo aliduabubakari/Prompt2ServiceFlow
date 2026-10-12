@@ -1,0 +1,6 @@
+assertions_version: 0.1.0
+pipeline_id: airflow_log_cleanup
+scenarios:
+  - scenario: run
+    assertions:
+      - {assertion_id: cleaned, type: json_path_equals, path: artifacts/cleanup_status.json, json_path: success, expected: true}

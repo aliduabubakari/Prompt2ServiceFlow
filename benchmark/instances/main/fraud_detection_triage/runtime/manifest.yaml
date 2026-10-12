@@ -1,0 +1,78 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: fraud_detection_triage
+image: python:3.12-slim
+workflow_parameters:
+- name: fixture-file
+  default: transactions_high_risk.csv
+- name: execution-time
+  default: '2024-01-16T00:00:00Z'
+tasks:
+- intent_id: analyze_transactions
+  script: scripts/01_analyze_transactions.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{fixture-file}'
+  - --execution-time
+  - '{execution-time}'
+  retries: 2
+- intent_id: route_transaction
+  script: scripts/02_route_transaction.py
+  dependencies:
+  - analyze_transactions
+  arguments:
+  - --workspace
+  - '{workspace}'
+  output_parameters:
+  - name: route
+    path: /workspace/artifacts/route.txt
+  retries: 2
+- intent_id: route_to_manual_review
+  script: scripts/03_route_to_manual_review.py
+  dependencies:
+  - route_transaction
+  when: '{{tasks.route_transaction.outputs.parameters.route}} == manual_review'
+  local_condition:
+    path: artifacts/routing_decision.json
+    json_path: route
+    equals: manual_review
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: route_to_auto_approve
+  script: scripts/04_route_to_auto_approve.py
+  dependencies:
+  - route_transaction
+  when: '{{tasks.route_transaction.outputs.parameters.route}} == auto_approve'
+  local_condition:
+    path: artifacts/routing_decision.json
+    json_path: route
+    equals: auto_approve
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: send_notification
+  script: scripts/05_send_notification.py
+  depends: (route_to_manual_review.Succeeded || route_to_auto_approve.Succeeded)
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --execution-time
+  - '{execution-time}'
+scenarios:
+- name: high_risk_manual_review
+  parameters:
+    fixture-file: transactions_high_risk.csv
+    execution-time: '2024-01-16T00:00:00Z'
+  fixture_root: fixtures/inputs
+- name: low_risk_auto_approve
+  parameters:
+    fixture-file: transactions_low_risk.csv
+    execution-time: '2024-01-16T00:00:00Z'
+  fixture_root: fixtures/inputs
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

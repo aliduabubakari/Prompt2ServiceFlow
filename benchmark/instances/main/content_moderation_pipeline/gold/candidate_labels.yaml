@@ -1,0 +1,46 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:content_moderation_pipeline
+candidate_sets:
+- candidate_set_id: main_content_moderation_pipeline_user_content_csv_scanner_candidates
+  required_service_id: user_content_csv_scanner
+  labels:
+    user_content_csv_scanner: gold
+    csv_artifact_profile_ingestor: missing_required_output
+    customer_segment_csv_loader: semantic_mismatch
+    delimited_file_tabular_dataset_loader: contract_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_content_moderation_pipeline_content_toxicity_route_decider_candidates
+  required_service_id: content_toxicity_route_decider
+  labels:
+    content_toxicity_route_decider: gold
+    fraud_risk_threshold_route_decider: semantic_mismatch
+    transaction_csv_fraud_risk_analyzer: target_mismatch
+    tabular_quality_score_gate: contract_mismatch
+    tabular_text_sentiment_scorer: semantic_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_content_moderation_pipeline_moderated_content_action_transformer_candidates
+  required_service_id: moderated_content_action_transformer
+  labels:
+    moderated_content_action_transformer: gold
+    dataset_quarantine_zone_writer: semantic_mismatch
+    fraud_manual_review_status_recorder: target_mismatch
+    safe_content_publication_publisher: semantic_mismatch
+    moderation_audit_log_entry_creator: missing_required_output
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_content_moderation_pipeline_safe_content_publication_publisher_candidates
+  required_service_id: safe_content_publication_publisher
+  labels:
+    safe_content_publication_publisher: gold
+    moderated_content_action_transformer: semantic_mismatch
+    bi_dashboard_refresh_trigger: target_mismatch
+    email_notification_sender: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_content_moderation_pipeline_moderation_audit_log_entry_creator_candidates
+  required_service_id: moderation_audit_log_entry_creator
+  labels:
+    moderation_audit_log_entry_creator: gold
+    branch_processing_completion_notifier: semantic_mismatch
+    workflow_session_metadata_recorder: target_mismatch
+    postgres_parameterized_sql_executor: contract_mismatch
+    moderated_content_action_transformer: missing_required_output
+    legacy_database_table_loader: deprecated_or_incompatible

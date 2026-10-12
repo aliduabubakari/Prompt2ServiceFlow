@@ -1,0 +1,683 @@
+ir_version: 0.1.0
+composition_id: val_marketing_attribution_fan_in
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.2
+  sha256: 68ddbc259a9fa94eb8ee32f5a2f18163ba2a9e1fe3178ecdf3db70fa9a368fbe
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_marketing_attribution_fan_in
+  split: validation
+  pipeline_id: val_marketing_attribution_fan_in
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/13_val_marketing_attribution_fan_in.txt
+  description_sha256: 915fba287558bc7317765410852aa0ef945413454f409e6a519a31fe942cc4d4
+  internal_spec_path: source/internal_specs/validation_20/13_val_marketing_attribution_fan_in.json
+  internal_spec_sha256: cc8c3df2f99957b328d5c74285101567e80c78e648b225158abcf03f3cbfca87
+requirement:
+  name: Val Marketing Attribution Fan In
+  purpose: Extract impressions, clicks, and purchases in parallel, join the channels, compute attribution
+    metrics, publish a table, and send a campaign summary.
+  domain: validation_holdout
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: ad_platform_api
+  type: http_api
+  name: Ad platform API
+  identifier: ad_platform_api
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: commerce_database
+  type: database
+  name: Commerce database
+  identifier: commerce_database
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: email_service
+  type: http_api
+  name: Email service
+  identifier: email_service
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: extract_impressions
+  name: Extract Impressions
+  category: Extractor
+  capability: Perform the reviewed extract impressions capability.
+  source_step_refs:
+  - extract_impressions
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: extract_impressions.'
+  inputs:
+  - ad_platform_api_resource
+  outputs:
+  - impressions
+  - impression_extract_status
+  external_system_refs:
+  - ad_platform_api
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared impressions, impression_extract_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: extract_clicks
+  name: Extract Clicks
+  category: Extractor
+  capability: Perform the reviewed extract clicks capability.
+  source_step_refs:
+  - extract_clicks
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: extract_clicks.'
+  inputs:
+  - ad_platform_api_resource
+  outputs:
+  - clicks
+  - click_extract_status
+  external_system_refs:
+  - ad_platform_api
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared clicks, click_extract_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: extract_purchases
+  name: Extract Purchases
+  category: Extractor
+  capability: Perform the reviewed extract purchases capability.
+  source_step_refs:
+  - extract_purchases
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: extract_purchases.'
+  inputs:
+  - commerce_database_resource
+  outputs:
+  - purchases
+  - purchase_extract_status
+  external_system_refs:
+  - commerce_database
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared purchases, purchase_extract_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: join_customer_events
+  name: Join Customer Events
+  category: Integrator
+  capability: Perform the reviewed join customer events capability.
+  source_step_refs:
+  - join_customer_events
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: join_customer_events.'
+  inputs:
+  - impressions
+  - clicks
+  - purchases
+  outputs:
+  - joined_customer_events
+  - join_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared joined_customer_events, join_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: compute_attribution
+  name: Compute Attribution
+  category: Aggregator
+  capability: Perform the reviewed compute attribution capability.
+  source_step_refs:
+  - compute_attribution
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: compute_attribution.'
+  inputs:
+  - joined_customer_events
+  outputs:
+  - attribution_metrics
+  - attribution_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared attribution_metrics, attribution_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: publish_attribution_table
+  name: Publish Attribution Table
+  category: Publisher
+  capability: Perform the reviewed publish attribution table capability.
+  source_step_refs:
+  - publish_attribution_table
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: publish_attribution_table.'
+  inputs:
+  - attribution_metrics
+  - commerce_database_resource
+  outputs:
+  - attribution_table
+  - attribution_publication_status
+  external_system_refs:
+  - commerce_database
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared attribution_table, attribution_publication_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: send_campaign_summary
+  name: Send Campaign Summary
+  category: Notifier
+  capability: Perform the reviewed send campaign summary capability.
+  source_step_refs:
+  - send_campaign_summary
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: send_campaign_summary.'
+  inputs:
+  - attribution_table
+  - email_service_resource
+  outputs:
+  - campaign_notification_status
+  external_system_refs:
+  - email_service
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared campaign_notification_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: extract_impressions
+  disposition: service
+  intent_ids:
+  - extract_impressions
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: extract_clicks
+  disposition: service
+  intent_ids:
+  - extract_clicks
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: extract_purchases
+  disposition: service
+  intent_ids:
+  - extract_purchases
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: join_customer_events
+  disposition: service
+  intent_ids:
+  - join_customer_events
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: compute_attribution
+  disposition: service
+  intent_ids:
+  - compute_attribution
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: publish_attribution_table
+  disposition: service
+  intent_ids:
+  - publish_attribution_table
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: send_campaign_summary
+  disposition: service
+  intent_ids:
+  - send_campaign_summary
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: extract_impressions
+    to: join_customer_events
+  - from: extract_clicks
+    to: join_customer_events
+  - from: extract_purchases
+    to: join_customer_events
+  - from: join_customer_events
+    to: compute_attribution
+  - from: compute_attribution
+    to: publish_attribution_table
+  - from: publish_attribution_table
+    to: send_campaign_summary
+  parallel_groups:
+  - group_id: marketing_event_extraction
+    intent_ids:
+    - extract_impressions
+    - extract_clicks
+    - extract_purchases
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: ad_platform_api_resource
+  name: Ad Platform Api Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: ad_platform_api
+- artifact_id: commerce_database_resource
+  name: Commerce Database Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: commerce_database
+- artifact_id: email_service_resource
+  name: Email Service Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: email_service
+- artifact_id: impressions
+  name: Impressions
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: extract_impressions
+  consumers:
+  - join_customer_events
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: impression_extract_status
+  name: Impression Extract Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: extract_impressions
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: clicks
+  name: Clicks
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: extract_clicks
+  consumers:
+  - join_customer_events
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: click_extract_status
+  name: Click Extract Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: extract_clicks
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: purchases
+  name: Purchases
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: extract_purchases
+  consumers:
+  - join_customer_events
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: purchase_extract_status
+  name: Purchase Extract Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: extract_purchases
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: joined_customer_events
+  name: Joined Customer Events
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: join_customer_events
+  consumers:
+  - compute_attribution
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: join_status
+  name: Join Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: join_customer_events
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: attribution_metrics
+  name: Attribution Metrics
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: compute_attribution
+  consumers:
+  - publish_attribution_table
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: attribution_status
+  name: Attribution Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: compute_attribution
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: attribution_table
+  name: Attribution Table
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: publish_attribution_table
+  consumers:
+  - send_campaign_summary
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: attribution_publication_status
+  name: Attribution Publication Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: publish_attribution_table
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: campaign_notification_status
+  name: Campaign Notification Status
+  kind: artifact
+  data_type: notification
+  role: output
+  producer: send_campaign_summary
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: extract_impressions
+  service_id: marketing_event_api_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: ad_platform_api
+    artifact_id: ad_platform_api_resource
+  output_bindings:
+  - port: marketing_events
+    artifact_id: impressions
+  - port: extraction_status
+    artifact_id: impression_extract_status
+  parameter_bindings:
+    event_type: impressions
+    lookback_days: 7
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: extract_clicks
+  service_id: marketing_event_api_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: ad_platform_api
+    artifact_id: ad_platform_api_resource
+  output_bindings:
+  - port: marketing_events
+    artifact_id: clicks
+  - port: extraction_status
+    artifact_id: click_extract_status
+  parameter_bindings:
+    event_type: clicks
+    lookback_days: 7
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: extract_purchases
+  service_id: commerce_purchase_event_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: commerce_database
+    artifact_id: commerce_database_resource
+  output_bindings:
+  - port: purchase_events
+    artifact_id: purchases
+  - port: extraction_status
+    artifact_id: purchase_extract_status
+  parameter_bindings:
+    purchase_query: weekly_purchases
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: join_customer_events
+  service_id: customer_event_attribution_joiner
+  service_version: 1.0.0
+  input_bindings:
+  - port: impressions
+    artifact_id: impressions
+  - port: clicks
+    artifact_id: clicks
+  - port: purchases
+    artifact_id: purchases
+  output_bindings:
+  - port: joined_customer_events
+    artifact_id: joined_customer_events
+  - port: join_status
+    artifact_id: join_status
+  parameter_bindings:
+    identity_key: customer_id
+    attribution_window_days: 7
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: compute_attribution
+  service_id: attribution_metric_calculator
+  service_version: 1.0.0
+  input_bindings:
+  - port: joined_customer_events
+    artifact_id: joined_customer_events
+  output_bindings:
+  - port: attribution_metrics
+    artifact_id: attribution_metrics
+  - port: calculation_status
+    artifact_id: attribution_status
+  parameter_bindings:
+    model_name: last_touch
+    conversion_event: purchase
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: publish_attribution_table
+  service_id: attribution_table_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: attribution_metrics
+    artifact_id: attribution_metrics
+  - port: commerce_database
+    artifact_id: commerce_database_resource
+  output_bindings:
+  - port: attribution_table
+    artifact_id: attribution_table
+  - port: publication_status
+    artifact_id: attribution_publication_status
+  parameter_bindings:
+    target_table: marketing_attribution
+    write_mode: replace
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: send_campaign_summary
+  service_id: campaign_summary_notification_sender
+  service_version: 1.0.0
+  input_bindings:
+  - port: attribution_table
+    artifact_id: attribution_table
+  - port: email_service
+    artifact_id: email_service_resource
+  output_bindings:
+  - port: campaign_notification_status
+    artifact_id: campaign_notification_status
+  parameter_bindings:
+    recipient_group: campaign_ops
+    subject: Campaign attribution summary
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

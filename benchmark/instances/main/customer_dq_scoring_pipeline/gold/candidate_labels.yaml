@@ -1,0 +1,54 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:customer_dq_scoring_pipeline
+candidate_sets:
+- candidate_set_id: main_customer_dq_scoring_pipeline_synthetic_customer_parquet_generator_candidates
+  required_service_id: synthetic_customer_parquet_generator
+  labels:
+    synthetic_customer_parquet_generator: gold
+    synthetic_document_parquet_generator: semantic_mismatch
+    customer_segment_csv_loader: format_mismatch
+    parquet_customer_data_clean_standardizer: contract_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_customer_dq_scoring_pipeline_parquet_document_data_profiler_candidates
+  required_service_id: parquet_document_data_profiler
+  labels:
+    parquet_document_data_profiler: gold
+    parquet_tabular_data_profiler: contract_mismatch
+    csv_artifact_profile_ingestor: format_mismatch
+    parquet_document_clean_standardizer: semantic_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_customer_dq_scoring_pipeline_parquet_customer_data_clean_standardizer_candidates
+  required_service_id: parquet_customer_data_clean_standardizer
+  labels:
+    parquet_customer_data_clean_standardizer: gold
+    parquet_document_clean_standardizer: semantic_mismatch
+    tabular_null_value_cleanser: format_mismatch
+    tabular_dataset_declarative_transformer: format_mismatch
+    parquet_tabular_feature_engineer: semantic_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_customer_dq_scoring_pipeline_parquet_customer_quality_score_calculator_candidates
+  required_service_id: parquet_customer_quality_score_calculator
+  labels:
+    parquet_customer_quality_score_calculator: gold
+    tabular_quality_score_gate: contract_mismatch
+    document_feature_validation_quality_check: semantic_mismatch
+    parquet_tabular_data_profiler: missing_required_output
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_customer_dq_scoring_pipeline_parquet_tabular_feature_engineer_candidates
+  required_service_id: parquet_tabular_feature_engineer
+  labels:
+    parquet_tabular_feature_engineer: gold
+    document_keyword_feature_extractor: semantic_mismatch
+    tabular_dataset_declarative_transformer: format_mismatch
+    tabular_text_feature_column_extractor: format_mismatch
+    parquet_customer_data_clean_standardizer: semantic_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_customer_dq_scoring_pipeline_parquet_quality_report_csv_exporter_candidates
+  required_service_id: parquet_quality_report_csv_exporter
+  labels:
+    parquet_quality_report_csv_exporter: gold
+    validated_parquet_to_csv_report_exporter: contract_mismatch
+    tabular_query_result_csv_writer: missing_required_output
+    structured_json_to_csv_exporter: format_mismatch
+    csv_chart_pdf_report_generator: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch

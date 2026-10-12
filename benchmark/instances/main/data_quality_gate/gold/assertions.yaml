@@ -1,0 +1,65 @@
+assertions_version: 0.1.0
+pipeline_id: data_quality_gate
+scenarios:
+  - scenario: high_quality_production
+    assertions:
+      - assertion_id: production_route_selected
+        type: json_path_equals
+        path: artifacts/quality_decision.json
+        json_path: route
+        expected: production
+      - assertion_id: perfect_quality_score
+        type: json_path_equals
+        path: artifacts/quality_decision.json
+        json_path: overall_score
+        expected: 100.0
+      - assertion_id: three_rows_loaded
+        type: json_path_equals
+        path: artifacts/production_load_status.json
+        json_path: rows_written
+        expected: 3
+      - assertion_id: quarantine_not_written
+        type: file_absent
+        path: artifacts/quarantine_status.json
+      - assertion_id: notification_not_sent
+        type: file_absent
+        path: artifacts/notification_status.json
+      - assertion_id: cleanup_succeeded
+        type: json_path_equals
+        path: artifacts/cleanup_status.json
+        json_path: success
+        expected: true
+  - scenario: low_quality_quarantine
+    assertions:
+      - assertion_id: quarantine_route_selected
+        type: json_path_equals
+        path: artifacts/quality_decision.json
+        json_path: route
+        expected: quarantine
+      - assertion_id: quality_below_threshold
+        type: json_path_equals
+        path: artifacts/quality_decision.json
+        json_path: passed
+        expected: false
+      - assertion_id: production_not_written
+        type: file_absent
+        path: artifacts/production_load_status.json
+      - assertion_id: three_rows_quarantined
+        type: json_path_equals
+        path: artifacts/quarantine_status.json
+        json_path: records_quarantined
+        expected: 3
+      - assertion_id: quarantined_csv_has_three_rows
+        type: csv_row_count
+        path: quarantine/customers.csv
+        expected: 3
+      - assertion_id: steward_notification_sent
+        type: json_path_equals
+        path: artifacts/notification_status.json
+        json_path: sent
+        expected: true
+      - assertion_id: cleanup_succeeded
+        type: json_path_equals
+        path: artifacts/cleanup_status.json
+        json_path: success
+        expected: true

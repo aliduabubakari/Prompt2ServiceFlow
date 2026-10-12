@@ -1,0 +1,200 @@
+schema_version: 0.1.0
+service_id: github_release_asset_object_storage_sync
+version: 1.0.0
+display_name: GitHub Release Asset to Object Storage Sync
+category: Extractor
+capability:
+  summary: Discovers a GitHub release asset, downloads it when newer than the stored
+    version, uploads it to S3-compatible object storage, and emits asset metadata
+    plus sync status.
+  operations:
+  - Query a configured GitHub releases endpoint or repository resource.
+  - Select a release using caller-configured selector semantics.
+  - Select an asset by exact name or pattern.
+  - "Compare discovered version with existing destination metadata when skip_if_current\
+    \ is enabled/out-of-date checks are configured\u0915\uCD9C\uC7A5\uC548\uB9C8?\
+    \ no."
+  keywords:
+  - github releases
+  - release asset
+  - object storage
+  - s3
+  - version check
+  - file download
+  - ontology
+  limitations:
+  - Targets GitHub-compatible releases endpoints only.
+  - Does not transform file contents.
+  - Version comparison depends on release tags or configured metadata fields.
+  - Does not schedule polling or retries.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: github_release_repository
+    description: GitHub repository or releases API resource containing release assets.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://github_release_repository_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  - name: object_storage_destination
+    description: S3-compatible object storage resource used as the landing destination.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://object_storage_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: downloaded_asset
+    description: Reference to the downloaded and uploaded asset, such as mondo.obo
+      in the raw landing prefix.
+    channel: artifact
+    data_type: binary
+    media_type: application/octet-stream
+    schema_ref: schema://object_storage_file_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  - name: asset_metadata
+    description: Asset metadata including source release tag/version, asset name,
+      destination URI, and skipped/current status.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://release_asset_metadata/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: sync_status
+    description: Observable status for download, version check, upload, or skip outcome.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://release_asset_sync_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: repository_owner
+    description: GitHub repository owner or organization.
+    type: string
+    required: true
+  - name: repository_name
+    description: GitHub repository name.
+    type: string
+    required: true
+  - name: release_selector
+    description: Release selection mode, such as latest or configured tag.
+    type: string
+    required: true
+    enum:
+    - latest
+    - tag
+  - name: release_tag
+    description: Release tag to use when release_selector is tag.
+    type: string
+    required: false
+  - name: asset_name_pattern
+    description: Exact asset name or pattern to select, such as mondo.obo.
+    type: string
+    required: true
+  - name: destination_prefix
+    description: Object-storage destination prefix for the asset.
+    type: string
+    required: true
+  - name: skip_if_current
+    description: Whether to skip download/upload when destination metadata already
+      matches the discovered release version.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: github_release_asset_selection_contract
+  type: precondition
+  applies_to: service
+  target: github_release_asset_object_storage_sync
+  description: Repository identifiers and asset pattern must be non-empty.
+  expression: length(trim(repository_owner)) > 0 and length(trim(repository_name))
+    > 0 and length(trim(asset_name_pattern)) > 0
+- contract_id: release_asset_metadata_schema
+  type: json_schema
+  applies_to: output
+  target: asset_metadata
+  description: Metadata exposes version and object-storage reference.
+  schema_ref: schema://release_asset_metadata/v1
+  expression: '{"type":"object","required":["asset_name","release_version","destination_uri","action"],"properties":{"asset_name":{"type":"string"},"release_version":{"type":"string"},"destination_uri":{"type":"string"},"source_url":{"type":["string","null"]},"action":{"type":"string","enum":["uploaded","skipped_current","failed"]}}}'
+- contract_id: release_asset_sync_status_schema
+  type: json_schema
+  applies_to: output
+  target: sync_status
+  description: Status exposes version-check and upload effects.
+  schema_ref: schema://release_asset_sync_status/v1
+  expression: '{"type":"object","required":["success","action","version_check_performed","destination_uri"],"properties":{"success":{"type":"boolean"},"action":{"type":"string","enum":["uploaded","skipped_current","failed"]},"version_check_performed":{"type":"boolean"},"destination_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: release_asset_sync_effect
+  type: effect
+  applies_to: service
+  target: github_release_asset_object_storage_sync
+  description: On success, the asset is either uploaded to the destination or explicitly
+    skipped as already current.
+  expression: sync_status.success == true implies sync_status.action in ['uploaded','skipped_current']
+invocation:
+  type: argo_workflow_template
+  template_name: github-release-asset-object-storage-sync-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.github_release_asset_object_storage_sync
+  implementation_ref: services/implementations/github_release_asset_object_storage_sync
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - https://api.github.com/*
+  - https://github.com/*
+  - s3://*
+  - object-storage://*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - public
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Object-storage credentials must not be emitted in outputs or logs.
+  - Downloaded public ontology assets are public, while destination connection details
+    are confidential.
+  idempotency_notes: Retry-safe when release selection and destination object naming
+    are deterministic and skip_if_current/version metadata are enabled.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:etl_import_mondo#download_mondo_terms
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Captures the Mondo download/version-check/upload effect without making
+    the service Mondo-specific.'
+  - 'Evidence status: explicit.'

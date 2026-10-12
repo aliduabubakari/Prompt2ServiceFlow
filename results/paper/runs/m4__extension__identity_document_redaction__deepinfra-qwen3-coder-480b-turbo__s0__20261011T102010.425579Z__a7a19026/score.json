@@ -1,0 +1,336 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-11T10:23:29.961679+00:00",
+  "instance": "benchmark/instances/extension/identity_document_redaction",
+  "workspace": "experiments/workspaces/extension/identity_document_redaction",
+  "submission": "results/paper/runs/m4__extension__identity_document_redaction__deepinfra-qwen3-coder-480b-turbo__s0__20261011T102010.425579Z__a7a19026/submission",
+  "summary": {
+    "public_gates_status": "pass",
+    "first_failing_gate": null,
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 0.2666666666666667,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-11T10:23:28.236678+00:00",
+    "workspace": "experiments/workspaces/extension/identity_document_redaction",
+    "submission": "results/paper/runs/m4__extension__identity_document_redaction__deepinfra-qwen3-coder-480b-turbo__s0__20261011T102010.425579Z__a7a19026/submission",
+    "overall_status": "pass",
+    "first_failing_gate": null,
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "pass",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": []
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "pass",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": []
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "extension-v1-identity-document-redaction-scripts",
+              "scenario": "base",
+              "data_size_bytes": 20867,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-identity-document-redaction-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 2793,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-identity-document-redaction-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 20867,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-identity-document-redaction-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 2793,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_source_batch_intent",
+                "validate_source_contract_intent",
+                "extract_visual_text_features_intent",
+                "join_reference_metadata_intent",
+                "assess_multimodal_quality_intent",
+                "evaluate_policy_or_risk_intent",
+                "route_approved_records_intent",
+                "route_exception_records_intent",
+                "merge_route_outcomes_intent",
+                "publish_outputs_intent"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 10,
+      "submission_intents": 10,
+      "gold_intents": 10,
+      "mapping": {
+        "assess_multimodal_quality_intent": "assess_multimodal_quality",
+        "evaluate_policy_or_risk_intent": "evaluate_policy_or_risk",
+        "extract_visual_text_features_intent": "extract_visual_text_features",
+        "ingest_source_batch_intent": "ingest_source_batch",
+        "join_reference_metadata_intent": "join_reference_metadata",
+        "merge_route_outcomes_intent": "merge_route_outcomes",
+        "publish_outputs_intent": "publish_outputs",
+        "route_approved_records_intent": "route_approved_records",
+        "route_exception_records_intent": "route_exception_records",
+        "validate_source_contract_intent": "validate_source_contract"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 10
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 10,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 10,
+      "total": 10,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 10,
+    "correct": 10,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "assess_multimodal_quality",
+        "gold_service": "multimodal_quality_assessor",
+        "submission_intent": "assess_multimodal_quality_intent",
+        "submission_service": "multimodal_quality_assessor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "evaluate_policy_or_risk",
+        "gold_service": "multimodal_policy_risk_decider",
+        "submission_intent": "evaluate_policy_or_risk_intent",
+        "submission_service": "multimodal_policy_risk_decider",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "extract_visual_text_features",
+        "gold_service": "visual_document_feature_extractor",
+        "submission_intent": "extract_visual_text_features_intent",
+        "submission_service": "visual_document_feature_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_source_batch",
+        "gold_service": "multimodal_source_bundle_ingestor",
+        "submission_intent": "ingest_source_batch_intent",
+        "submission_service": "multimodal_source_bundle_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "join_reference_metadata",
+        "gold_service": "multimodal_reference_metadata_joiner",
+        "submission_intent": "join_reference_metadata_intent",
+        "submission_service": "multimodal_reference_metadata_joiner",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "merge_route_outcomes",
+        "gold_service": "multimodal_route_outcome_merger",
+        "submission_intent": "merge_route_outcomes_intent",
+        "submission_service": "multimodal_route_outcome_merger",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_outputs",
+        "gold_service": "multimodal_output_bundle_publisher",
+        "submission_intent": "publish_outputs_intent",
+        "submission_service": "multimodal_output_bundle_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "route_approved_records",
+        "gold_service": "approved_multimodal_record_router",
+        "submission_intent": "route_approved_records_intent",
+        "submission_service": "approved_multimodal_record_router",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "route_exception_records",
+        "gold_service": "exception_multimodal_review_router",
+        "submission_intent": "route_exception_records_intent",
+        "submission_service": "exception_multimodal_review_router",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "validate_source_contract",
+        "gold_service": "multimodal_source_contract_validator",
+        "submission_intent": "validate_source_contract_intent",
+        "submission_service": "multimodal_source_contract_validator",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 0.15384615384615385,
+    "recall": 1.0,
+    "f1": 0.2666666666666667,
+    "applicable": true,
+    "true_positives": 10,
+    "false_positives": 55,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "source_fixture_loaded",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-_w96491q/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "source_files_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-_w96491q/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "source_records_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-_w96491q/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-_w96491q/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "final_artifact_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-_w96491q/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "upstream_evidence_propagated",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-_w96491q/artifacts/publish_outputs_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 6,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

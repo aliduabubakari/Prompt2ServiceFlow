@@ -1,0 +1,350 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: val-stream-batch-fraud-bridge
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters: []
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: val-stream-batch-fraud-bridge-scripts
+    - name: fixtures
+      configMap:
+        name: val-stream-batch-fraud-bridge-fixtures
+        items:
+        - key: fixture-0000
+          path: data.csv
+        - key: fixture-0001
+          path: fixture.json
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: wait-for-stream-checkpoint
+          template: run-wait-for-stream-checkpoint
+        - name: load-stream-events
+          template: run-load-stream-events
+          depends: wait-for-stream-checkpoint.Succeeded
+        - name: load-batch-settlements
+          template: run-load-batch-settlements
+          depends: wait-for-stream-checkpoint.Succeeded
+        - name: load-account-history
+          template: run-load-account-history
+        - name: join-transaction-context
+          template: run-join-transaction-context
+          depends: load-stream-events.Succeeded && load-batch-settlements.Succeeded && load-account-history.Succeeded
+        - name: score-fraud-risk
+          template: run-score-fraud-risk
+          depends: join-transaction-context.Succeeded
+        - name: route-risk-action
+          template: run-route-risk-action
+          depends: score-fraud-risk.Succeeded
+        - name: update-monitoring-table
+          template: run-update-monitoring-table
+          depends: route-risk-action.Succeeded
+        - name: open-investigation-case
+          template: run-open-investigation-case
+          depends: route-risk-action.Succeeded
+        - name: publish-risk-metrics
+          template: run-publish-risk-metrics
+          depends: update-monitoring-table.Succeeded
+    - name: run-wait-for-stream-checkpoint
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: wait_for_stream_checkpoint
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_wait_for_stream_checkpoint.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-load-stream-events
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: load_stream_events
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_load_stream_events.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-load-batch-settlements
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: load_batch_settlements
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_load_batch_settlements.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-load-account-history
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: load_account_history
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_load_account_history.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-join-transaction-context
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: join_transaction_context
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/05_join_transaction_context.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-score-fraud-risk
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: score_fraud_risk
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/06_score_fraud_risk.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-route-risk-action
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: route_risk_action
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/07_route_risk_action.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-update-monitoring-table
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: update_monitoring_table
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/08_update_monitoring_table.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-open-investigation-case
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: open_investigation_case
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/09_open_investigation_case.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-publish-risk-metrics
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: publish_risk_metrics
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/10_publish_risk_metrics.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

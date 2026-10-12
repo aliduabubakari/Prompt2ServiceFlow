@@ -1,0 +1,425 @@
+ir_version: 0.1.0
+composition_id: val_weekly_report_packager
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.0
+  sha256: 06ea151c94fc25937ea217f18ad8ef4add356fcdf26510e0f4241e17ccc14849
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_weekly_report_packager
+  split: validation
+  pipeline_id: val_weekly_report_packager
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/04_val_weekly_report_packager.txt
+  description_sha256: ce6ef803ff8b903cd8e7d2b987af922408562f811f1cec52c91741026034bdcf
+  internal_spec_path: source/internal_specs/validation_20/04_val_weekly_report_packager.json
+  internal_spec_sha256: f933e6ad6b7c8c3b25be4447f5d2c44c88bb9174dc57d952808016603fff31c0
+requirement:
+  name: Val Weekly Report Packager
+  purpose: Create a weekly PDF report from KPI extracts, package it, and publish the bundle.
+  domain: validation_holdout
+  execution_model: batch
+  topology: linear
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: warehouse
+  type: database
+  name: Analytics warehouse
+  identifier: warehouse
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: report_storage
+  type: object_storage
+  name: Report object storage
+  identifier: report_storage
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: collect_kpi_extracts
+  name: Collect Kpi Extracts
+  category: Extractor
+  capability: Perform the reviewed collect kpi extracts capability.
+  source_step_refs:
+  - collect_kpi_extracts
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: collect_kpi_extracts.'
+  inputs:
+  - warehouse_resource
+  outputs:
+  - kpi_extract
+  - extract_status
+  external_system_refs:
+  - warehouse
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared kpi_extract, extract_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: render_pdf_report
+  name: Render Pdf Report
+  category: ReportGenerator
+  capability: Perform the reviewed render pdf report capability.
+  source_step_refs:
+  - render_pdf_report
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: render_pdf_report.'
+  inputs:
+  - kpi_extract
+  outputs:
+  - weekly_report_pdf
+  - render_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared weekly_report_pdf, render_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: compress_report_bundle
+  name: Compress Report Bundle
+  category: Maintenance
+  capability: Perform the reviewed compress report bundle capability.
+  source_step_refs:
+  - compress_report_bundle
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: compress_report_bundle.'
+  inputs:
+  - weekly_report_pdf
+  - report_storage_resource
+  outputs:
+  - report_bundle
+  - archive_status
+  external_system_refs:
+  - report_storage
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared report_bundle, archive_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: publish_bundle
+  name: Publish Bundle
+  category: Publisher
+  capability: Perform the reviewed publish bundle capability.
+  source_step_refs:
+  - publish_bundle
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: publish_bundle.'
+  inputs:
+  - report_bundle
+  - report_storage_resource
+  outputs:
+  - publication_status
+  external_system_refs:
+  - report_storage
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared publication_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: collect_kpi_extracts
+  disposition: service
+  intent_ids:
+  - collect_kpi_extracts
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: render_pdf_report
+  disposition: service
+  intent_ids:
+  - render_pdf_report
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: compress_report_bundle
+  disposition: service
+  intent_ids:
+  - compress_report_bundle
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: publish_bundle
+  disposition: service
+  intent_ids:
+  - publish_bundle
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: collect_kpi_extracts
+    to: render_pdf_report
+  - from: render_pdf_report
+    to: compress_report_bundle
+  - from: compress_report_bundle
+    to: publish_bundle
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: warehouse_resource
+  name: Warehouse Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: warehouse
+- artifact_id: report_storage_resource
+  name: Report Storage Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: report_storage
+- artifact_id: kpi_extract
+  name: Kpi Extract
+  kind: artifact
+  data_type: csv
+  role: intermediate
+  producer: collect_kpi_extracts
+  consumers:
+  - render_pdf_report
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: extract_status
+  name: Extract Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: collect_kpi_extracts
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: weekly_report_pdf
+  name: Weekly Report Pdf
+  kind: artifact
+  data_type: binary
+  role: intermediate
+  producer: render_pdf_report
+  consumers:
+  - compress_report_bundle
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: render_status
+  name: Render Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: render_pdf_report
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: report_bundle
+  name: Report Bundle
+  kind: artifact
+  data_type: binary
+  role: intermediate
+  producer: compress_report_bundle
+  consumers:
+  - publish_bundle
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: archive_status
+  name: Archive Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: compress_report_bundle
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publication_status
+  name: Publication Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: publish_bundle
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: collect_kpi_extracts
+  service_id: database_csv_snapshot_exporter
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_database
+    artifact_id: warehouse_resource
+  output_bindings:
+  - port: csv_snapshot
+    artifact_id: kpi_extract
+  - port: export_status
+    artifact_id: extract_status
+  parameter_bindings:
+    export_spec:
+      table: weekly_kpis
+    output_path: weekly-kpis.csv
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: render_pdf_report
+  service_id: tabular_kpi_pdf_report_renderer
+  service_version: 1.0.0
+  input_bindings:
+  - port: kpi_extract
+    artifact_id: kpi_extract
+  output_bindings:
+  - port: pdf_report
+    artifact_id: weekly_report_pdf
+  - port: render_status
+    artifact_id: render_status
+  parameter_bindings:
+    report_title: Weekly KPI Report
+    output_path: weekly-report.pdf
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: compress_report_bundle
+  service_id: binary_report_bundle_archiver
+  service_version: 1.0.0
+  input_bindings:
+  - port: report_file
+    artifact_id: weekly_report_pdf
+  - port: archive_destination
+    artifact_id: report_storage_resource
+  output_bindings:
+  - port: report_bundle
+    artifact_id: report_bundle
+  - port: archive_status
+    artifact_id: archive_status
+  parameter_bindings:
+    archive_format: zip
+    archive_name: weekly-report.zip
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: publish_bundle
+  service_id: object_storage_bundle_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: report_bundle
+    artifact_id: report_bundle
+  - port: publish_destination
+    artifact_id: report_storage_resource
+  output_bindings:
+  - port: publication_status
+    artifact_id: publication_status
+  parameter_bindings:
+    destination_prefix: published/
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

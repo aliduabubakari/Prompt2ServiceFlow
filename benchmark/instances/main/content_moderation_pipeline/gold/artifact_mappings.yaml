@@ -1,0 +1,35 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:content_moderation_pipeline
+mappings:
+- intent_id: scan_csv
+  inputs:
+    content_csv_file: user_content_csv
+  outputs:
+    content_scan_dataset: scanned_content_dataset
+    scan_status: scan_status
+- intent_id: toxicity_check
+  inputs:
+    content_scan_dataset: scanned_content_dataset
+  outputs:
+    scored_content_dataset: scored_content_dataset
+    routing_decision: toxicity_routing_decision
+- intent_id: remove_and_flag_content
+  inputs:
+    scored_content_dataset: scored_content_dataset
+    routing_decision: toxicity_routing_decision
+  outputs:
+    moderation_action_results: moderation_action_results
+    action_status: action_status
+- intent_id: publish_content
+  inputs:
+    scored_content_dataset: scored_content_dataset
+    routing_decision: toxicity_routing_decision
+  outputs:
+    publication_results: publication_results
+    publication_status: publication_status
+- intent_id: audit_log
+  inputs:
+    moderation_results: moderation_action_results
+  outputs:
+    audit_log_entry: audit_log_entry
+    audit_status: audit_status

@@ -1,0 +1,106 @@
+{
+  "freeze_id": "freeze-2026-10-08.deepinfra.v22",
+  "status": "frozen",
+  "prompt_version": "2.1.0",
+  "harness_version": "2.2.2",
+  "runtime_compiler_version": "1.0.0",
+  "primary_methods": ["m0", "m1", "m2", "m3", "m4"],
+  "compared_methods": ["m0", "m1", "m2", "m3", "m4", "m5"],
+  "exploratory_methods": [],
+  "repair_budget": 3,
+  "validator_budget_derivation": "repair_budget + 1",
+  "pilot_samples_per_instance": 1,
+  "samples_per_instance": 3,
+  "robustness_samples_per_instance": 3,
+  "roster_sha256": "f2f92b327b6f26cf2bb6be988363bd6fe1cef788838dcd4e6493d710301bf2df",
+  "model_roster": ["deepinfra-deepseek-v4-1-flash"],
+  "endpoint": {
+    "provider": "deepinfra",
+    "base_url": "https://api.deepinfra.com/v1/openai",
+    "api_key_env": "DEEPINFRA_TOKEN",
+    "cost_basis": "provider_token_pricing",
+    "pricing_observed_at": "2026-10-08",
+    "pricing_note": "Current 30% promotional standard-tier price; provider-reported per-call cost is retained when available."
+  },
+  "corpus": {
+    "total_instances": 110,
+    "splits": {"main": 40, "validation": 20, "extension": 50},
+    "execution_order": ["main", "validation", "extension"],
+    "note": "Retain split labels in every cell; headline analysis may pool all 110 with split-specific sensitivity analysis."
+  },
+  "model_artifacts": {
+    "deepinfra-deepseek-v4-1-flash": {
+      "api_identifier": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "quantization": "fp8",
+      "maximum_context_length": 1048576,
+      "input_price_per_mtok_usd": 0.14,
+      "output_price_per_mtok_usd": 0.42,
+      "pricing_note": "30% promotional standard-tier price displayed by DeepInfra on 2026-10-08",
+      "catalog_tags": ["openai-compatible", "tools", "json", "structured-output", "reasoning", "multimodal"]
+    }
+  },
+  "retrieval": {
+    "embedding_model": "text-embedding-nomic-embed-text-v1.5",
+    "top_k": 5,
+    "hybrid_reciprocal_rank_constant": 60,
+    "runtime_probe_required": false,
+    "note": "Candidate sets are prebuilt frozen workspace inputs; retrieval is not rerun during a batch."
+  },
+  "m4_execution_feedback": true,
+  "m4_repair_controller": {
+    "repair_budget_scope": "all repair completions, including parse-seed repairs",
+    "candidate_selection": "lexicographic public-gate rank: overall pass, consecutive passed prefix G0..G6, total passed gates, fewer diagnostics",
+    "repair_base": "best validated candidate",
+    "diagnostic_memory": "up to 60 unique public diagnostics across prior states",
+    "cycle_detection": "exact failed-gate diagnostic fingerprint",
+    "regressions": "audited but never replace a better candidate"
+  },
+  "m5": {
+    "image_version": "2.1.8",
+    "prompt_version": "1.0.2",
+    "agent_step_budget": 12,
+    "validator_budget": 4,
+    "validator_budget_derivation": "repair_budget + 1",
+    "token_cap_default": 750000,
+    "timeout_s_default": 1800,
+    "max_idle_continuations": 3,
+    "agent_context_policy": "per_model",
+    "service_access": "setting-scoped catalog, contract, policy, and public-fixture access",
+    "hidden_gate_policy": "G6 is evaluation-only and never returned to the agent"
+  },
+  "scoring": {
+    "empty_wiring_policy": "not_applicable when both gold and submission have no producer-consumer pairs",
+    "truncation_finish_reasons": ["length", "max_tokens"]
+  },
+  "decoding": {
+    "temperature": 0.2,
+    "top_p": 1.0,
+    "sample_seeds": [101, 202, 303],
+    "max_tokens": 16384,
+    "context_window": "per_model",
+    "parallel_predictions": 1
+  },
+  "execution": {
+    "max_workers": 1,
+    "scope": "within_model_block",
+    "scheduling": "sequential_interleaved_methods",
+    "model_blocks_sequential": true,
+    "model_blocks": [["deepinfra-deepseek-v4-1-flash"]],
+    "screening_model": "deepinfra-deepseek-v4-1-flash"
+  },
+  "design": {
+    "cell_count": 1980,
+    "formula": "110 instances x 1 model x 6 methods x 3 seeds",
+    "split_cells": {"main": 720, "validation": 360, "extension": 900},
+    "primary_unit": "model x method x split x instance x seed",
+    "reasoning_tokens_are_part_of_completion_tokens": true
+  },
+  "notes": [
+    "Fresh DeepSeek-V4.1-Flash candidate using the same current M0-M5 protocol as Qwen v21.",
+    "No model-specific M5 prompt addendum is configured.",
+    "Promote to frozen only after readiness plus one-instance and five-instance M0-M5 checkpoints pass.",
+    "Frozen after the five-instance checkpoint recorded 30/30 valid observations with no infrastructure failures.",
+    "M5 invoked the public validator on four of five instances and achieved two full G0-G6 passes; M4 achieved three full passes.",
+    "Execution remains fixed at one worker per model; model-level concurrency is isolated through separate run roots."
+  ]
+}

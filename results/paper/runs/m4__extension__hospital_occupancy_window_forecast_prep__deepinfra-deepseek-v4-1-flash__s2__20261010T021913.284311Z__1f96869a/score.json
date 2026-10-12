@@ -1,0 +1,336 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-10T02:23:32.052682+00:00",
+  "instance": "benchmark/instances/extension/hospital_occupancy_window_forecast_prep",
+  "workspace": "experiments/workspaces/extension/hospital_occupancy_window_forecast_prep",
+  "submission": "results/paper/runs/m4__extension__hospital_occupancy_window_forecast_prep__deepinfra-deepseek-v4-1-flash__s2__20261010T021913.284311Z__1f96869a/submission",
+  "summary": {
+    "public_gates_status": "pass",
+    "first_failing_gate": null,
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-10T02:23:30.323651+00:00",
+    "workspace": "experiments/workspaces/extension/hospital_occupancy_window_forecast_prep",
+    "submission": "results/paper/runs/m4__extension__hospital_occupancy_window_forecast_prep__deepinfra-deepseek-v4-1-flash__s2__20261010T021913.284311Z__1f96869a/submission",
+    "overall_status": "pass",
+    "first_failing_gate": null,
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "pass",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": []
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "pass",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": []
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "hospital-occupancy-window-forecast-prep-scripts",
+              "scenario": "base",
+              "data_size_bytes": 20933,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "hospital-occupancy-window-forecast-prep-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 2046,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "hospital-occupancy-window-forecast-prep-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 20933,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "hospital-occupancy-window-forecast-prep-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 2046,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_primary_source",
+                "ingest_secondary_source",
+                "ingest_reference_source",
+                "validate_source_contracts",
+                "normalize_sources",
+                "fuse_sources",
+                "align_time_index",
+                "fill_small_gaps",
+                "detect_window_anomalies",
+                "publish_outputs"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 10,
+      "submission_intents": 10,
+      "gold_intents": 10,
+      "mapping": {
+        "align_time_index": "align_time_index",
+        "detect_window_anomalies": "detect_window_anomalies",
+        "fill_small_gaps": "fill_small_gaps",
+        "fuse_sources": "fuse_sources",
+        "ingest_primary_source": "ingest_primary_source",
+        "ingest_reference_source": "ingest_reference_source",
+        "ingest_secondary_source": "ingest_secondary_source",
+        "normalize_sources": "normalize_sources",
+        "publish_outputs": "publish_outputs",
+        "validate_source_contracts": "validate_source_contracts"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 10
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 9,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 10,
+      "total": 10,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 10,
+    "correct": 10,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "align_time_index",
+        "gold_service": "timeseries_index_alignment_transformer",
+        "submission_intent": "align_time_index",
+        "submission_service": "timeseries_index_alignment_transformer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "detect_window_anomalies",
+        "gold_service": "timeseries_window_anomaly_detector",
+        "submission_intent": "detect_window_anomalies",
+        "submission_service": "timeseries_window_anomaly_detector",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "fill_small_gaps",
+        "gold_service": "timeseries_gap_fill_quality_transformer",
+        "submission_intent": "fill_small_gaps",
+        "submission_service": "timeseries_gap_fill_quality_transformer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "fuse_sources",
+        "gold_service": "api_table_source_fusion_reconciler",
+        "submission_intent": "fuse_sources",
+        "submission_service": "api_table_source_fusion_reconciler",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_primary_source",
+        "gold_service": "api_table_primary_source_ingestor",
+        "submission_intent": "ingest_primary_source",
+        "submission_service": "api_table_primary_source_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_reference_source",
+        "gold_service": "api_table_reference_source_ingestor",
+        "submission_intent": "ingest_reference_source",
+        "submission_service": "api_table_reference_source_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_secondary_source",
+        "gold_service": "api_table_secondary_source_ingestor",
+        "submission_intent": "ingest_secondary_source",
+        "submission_service": "api_table_secondary_source_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "normalize_sources",
+        "gold_service": "api_table_multi_source_normalizer",
+        "submission_intent": "normalize_sources",
+        "submission_service": "api_table_multi_source_normalizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_outputs",
+        "gold_service": "timeseries_output_bundle_publisher",
+        "submission_intent": "publish_outputs",
+        "submission_service": "timeseries_output_bundle_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "validate_source_contracts",
+        "gold_service": "api_table_multi_source_contract_validator",
+        "submission_intent": "validate_source_contracts",
+        "submission_service": "api_table_multi_source_contract_validator",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 9,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "source_fixture_loaded",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-ax4jeb00/artifacts/ingest_primary_source_status.json"
+          },
+          {
+            "assertion_id": "source_files_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-ax4jeb00/artifacts/ingest_primary_source_status.json"
+          },
+          {
+            "assertion_id": "source_records_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-ax4jeb00/artifacts/ingest_primary_source_status.json"
+          },
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-ax4jeb00/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "final_artifact_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-ax4jeb00/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "upstream_evidence_propagated",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-ax4jeb00/artifacts/publish_outputs_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 6,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

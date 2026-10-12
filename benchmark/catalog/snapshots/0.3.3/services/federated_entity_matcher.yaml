@@ -1,0 +1,100 @@
+schema_version: 0.1.0
+service_id: federated_entity_matcher
+version: 1.0.0
+display_name: Federated Entity Matcher
+category: Reconciler
+capability:
+  summary: Matches standardized partner records and identifies unresolved discrepancies.
+  operations:
+  - Matches standardized partner records and identifies unresolved discrepancies.
+  keywords:
+  - federated
+  - entity
+  - matcher
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: standardized_records
+    description: Reviewed standardized records value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: clean_records
+    description: Reviewed clean records value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: discrepancy_records
+    description: Reviewed discrepancy records value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: match_status
+    description: Reviewed match status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: match_keys
+    description: Configuration for match keys.
+    type: array
+    required: true
+  - name: matching_policy
+    description: Configuration for matching policy.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: federated-entity-matcher
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.3
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.federated_entity_matcher
+  implementation_ref: services/implementations/federated_entity_matcher
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-04:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 04 descriptions; bindings retain inference confidence.

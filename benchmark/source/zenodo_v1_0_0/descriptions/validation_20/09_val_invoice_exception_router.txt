@@ -1,0 +1,62 @@
+Pipeline Summary:
+- Pipeline ID: val_invoice_exception_router
+- Name: Invoice Exception Router
+- Purpose: Validate invoices, route invalid invoices to exception handling, route valid invoices to posting, and merge audit summaries.
+- Execution model: Batch
+- Topology pattern: Branch/merge
+- Business domain: Finance Operations
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - validate_invoices -> route_invoice_status
+  - route_invoice_status -> post_valid_invoices
+  - route_invoice_status -> create_exception_cases
+- Parallel groups:
+  - none
+- Branch points:
+  - {'step': 'route_invoice_status', 'conditions': ['valid', 'invalid'], 'merge_step': None}
+- Gate or sensor dependencies:
+  - none
+
+Data Artifacts / I-O Identifiers:
+  - data_object: invoice_batch
+  - data_object: valid_invoice_rows
+  - data_object: exception_case_records
+
+External Systems:
+  - external_service: ERP API
+  - external_service: Exception tracker
+
+Pipeline Steps:
+1. validate_invoices - validate invoices
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. route_invoice_status - route invoice status
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. post_valid_invoices - post valid invoices
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+4. create_exception_cases - create exception cases
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

@@ -1,0 +1,181 @@
+schema_version: 0.1.0
+service_id: database_csv_snapshot_exporter
+version: 1.0.0
+display_name: Database CSV Snapshot Exporter
+category: Extractor
+capability:
+  summary: Exports a configured read-only snapshot from a bound SQL database to a
+    deterministic CSV artifact and emits export status.
+  operations:
+  - Resolve a bound source database resource.
+  - Execute a caller-supplied read-only snapshot query or export specification.
+  - Write the result to a CSV artifact at the configured output path.
+  - Emit an export status containing source label, output URI, row count when available,
+    and diagnostics.
+  keywords:
+  - database
+  - csv
+  - snapshot
+  - export
+  - production dump
+  - read-only extraction
+  limitations:
+  - Does not schedule daily execution or implement workflow retries.
+  - Does not infer database engine, tables, or export query; caller must provide an
+    export specification.
+  - Exports to a single CSV artifact; multi-table or binary backup semantics require
+    a different service contract.
+  - Does not mutate the source database.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_database
+    description: SQL database resource used as the source for the CSV snapshot.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: csv_snapshot
+    description: CSV artifact containing the exported database snapshot.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://csv_file_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: export_status
+    description: Observable status for the snapshot export, including success flag,
+      output URI, and row count when available.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://database_csv_snapshot_export_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: export_spec
+    description: Structured read-only export specification, such as SQL query, selected
+      table/view, or engine-specific CSV export options.
+    type: object
+    required: true
+  - name: output_path
+    description: Deterministic output artifact path or name for the CSV snapshot;
+      workflow binding may render logical-date tokens.
+    type: string
+    required: true
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  - name: include_header
+    description: Whether the CSV output should include a header row.
+    type: boolean
+    required: false
+  - name: overwrite_output
+    description: Whether an existing artifact at output_path may be overwritten.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: database_csv_export_spec_schema
+  type: json_schema
+  applies_to: parameter
+  target: export_spec
+  description: Export specification must identify a read-only export source.
+  schema_ref: schema://database_csv_export_spec/v1
+  expression: '{"type":"object","anyOf":[{"required":["sql_query"]},{"required":["source_table"]}],"additionalProperties":true}'
+- contract_id: database_csv_export_readonly_precondition
+  type: precondition
+  applies_to: parameter
+  target: export_spec
+  description: Any SQL query in export_spec must be read-only.
+  expression: export_spec.sql_query == null or (lower(trim(export_spec.sql_query))
+    starts_with 'select' and not contains_mutating_sql(export_spec.sql_query))
+- contract_id: database_csv_export_status_schema
+  type: json_schema
+  applies_to: output
+  target: export_status
+  description: Export status exposes the artifact write effect for workflow validation.
+  schema_ref: schema://database_csv_snapshot_export_status/v1
+  expression: '{"type":"object","required":["success","output_uri","response_saved"],"properties":{"success":{"type":"boolean"},"output_uri":{"type":"string"},"response_saved":{"type":"boolean"},"rows_exported":{"type":["integer","null"],"minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: database_csv_export_effect
+  type: effect
+  applies_to: service
+  target: database_csv_snapshot_exporter
+  description: On success, the source database was read without mutation and the CSV
+    snapshot artifact exists.
+  expression: export_status.success == true implies exists(csv_snapshot) and export_status.response_saved
+    == true and no_source_database_mutation
+invocation:
+  type: argo_workflow_template
+  template_name: database-csv-snapshot-exporter-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.database_csv_snapshot_exporter
+  implementation_ref: services/implementations/database_csv_snapshot_exporter
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - postgresql://*
+  - mysql://*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  - restricted
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit database credentials or raw snapshot rows in logs or status.
+  - The output CSV may contain production data and should be treated as confidential
+    or restricted.
+  idempotency_notes: Retry-safe when export_spec, source database snapshot state,
+    and output_path are stable and overwrite_output is enabled or existing identical
+    artifacts are accepted.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:database_replication_fanout#dump_prod_csv
+  - main:multi_region_ecommerce_analytics#ingest_apac
+  - main:multi_region_ecommerce_analytics#ingest_eu
+  - main:multi_region_ecommerce_analytics#ingest_us_east
+  - main:multi_region_ecommerce_analytics#ingest_us_west
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No registry service exports an arbitrary database snapshot to a CSV
+    artifact; existing query extractors are PostgreSQL-specific or produce JSON/tabular
+    artifacts rather than a CSV snapshot.'
+  - 'Evidence status: strongly_inferred.'

@@ -1,0 +1,285 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: support-profile-context-join-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_primary_source.py: "#!/usr/bin/env python3\nimport argparse\nimport csv\nimport hashlib\n\
+    import json\nfrom pathlib import Path\n\nTASK = 'ingest_primary_source'\nparser = argparse.ArgumentParser()\n\
+    parser.add_argument(\"--workspace\", required=True)\nparser.add_argument(\"--fixture\")\nargs, _ =\
+    \ parser.parse_known_args()\nroot = Path(args.workspace)\nartifact_dir = root / \"artifacts\"\nartifact_dir.mkdir(parents=True,\
+    \ exist_ok=True)\n\ndef describe_file(path):\n    content = path.read_bytes()\n    item = {\n    \
+    \    \"name\": path.name,\n        \"size_bytes\": len(content),\n        \"sha256\": hashlib.sha256(content).hexdigest(),\n\
+    \        \"record_count\": 0,\n    }\n    suffix = path.suffix.lower()\n    if suffix == \".csv\"\
+    :\n        with path.open(encoding=\"utf-8\", newline=\"\") as handle:\n            item[\"record_count\"\
+    ] = sum(1 for _ in csv.DictReader(handle))\n    elif suffix == \".json\":\n        value = json.loads(path.read_text(encoding=\"\
+    utf-8\"))\n        item[\"record_count\"] = len(value) if isinstance(value, (list, dict)) else 1\n\
+    \    elif suffix in {\".jsonl\", \".ndjson\"}:\n        rows = [json.loads(line) for line in path.read_text(encoding=\"\
+    utf-8\").splitlines() if line.strip()]\n        item[\"record_count\"] = len(rows)\n    elif suffix\
+    \ in {\".txt\", \".sql\", \".conf\", \".yaml\", \".yml\", \".geojson\"}:\n        text = path.read_text(encoding=\"\
+    utf-8\")\n        item[\"record_count\"] = len([line for line in text.splitlines() if line.strip()])\n\
+    \    elif suffix == \".pdf\":\n        if not content.startswith(b\"%PDF-\"):\n            raise ValueError(f\"\
+    invalid PDF fixture: {path}\")\n        item[\"record_count\"] = 1\n    elif suffix == \".png\":\n\
+    \        if not content.startswith(b\"\\x89PNG\\r\\n\\x1a\\n\"):\n            raise ValueError(f\"\
+    invalid PNG fixture: {path}\")\n        item[\"record_count\"] = 1\n    else:\n        item[\"record_count\"\
+    ] = 1\n    return item\n\nfixture_path = Path(args.fixture) if args.fixture else None\nif fixture_path\
+    \ is None or not fixture_path.is_file():\n    raise FileNotFoundError(f\"fixture manifest is required\
+    \ for {TASK}: {fixture_path}\")\nfixture_manifest = json.loads(fixture_path.read_text(encoding=\"\
+    utf-8\"))\nfixture_files = [\n    describe_file(path)\n    for path in sorted(fixture_path.parent.rglob(\"\
+    *\"))\n    if path.is_file() and path != fixture_path\n]\nfixture_summary = {\n    \"manifest\": fixture_manifest,\n\
+    \    \"file_count\": len(fixture_files),\n    \"record_count\": sum(item[\"record_count\"] for item\
+    \ in fixture_files),\n    \"files\": fixture_files,\n}\n\nupstream = []\nfor path in sorted(artifact_dir.glob(\"\
+    *.json\")):\n    try:\n        document = json.loads(path.read_text(encoding=\"utf-8\"))\n    except\
+    \ (OSError, json.JSONDecodeError):\n        continue\n    upstream.append({\"artifact\": path.stem,\
+    \ \"producer\": document.get(\"task\")})\n\ndef payload(name):\n    return {\n        \"success\"\
+    : True,\n        \"errors\": [],\n        \"task\": TASK,\n        \"artifact\": name,\n        \"\
+    fixture\": fixture_summary,\n        \"upstream_artifact_count\": len(upstream),\n        \"upstream_artifacts\"\
+    : upstream,\n    }\n\ndef write(name, value):\n    (artifact_dir / f\"{name}.json\").write_text(\n\
+    \        json.dumps(value, indent=2, sort_keys=True) + \"\\n\", encoding=\"utf-8\"\n    )\n\nwrite('ingest_primary_source_artifact',\
+    \ payload('ingest_primary_source_artifact'))\nwrite('ingest_primary_source_status', payload('ingest_primary_source_status'))\n"
+  02_ingest_secondary_source.py: "#!/usr/bin/env python3\nimport argparse\nimport csv\nimport hashlib\n\
+    import json\nfrom pathlib import Path\n\nTASK = 'ingest_secondary_source'\nparser = argparse.ArgumentParser()\n\
+    parser.add_argument(\"--workspace\", required=True)\nparser.add_argument(\"--fixture\")\nargs, _ =\
+    \ parser.parse_known_args()\nroot = Path(args.workspace)\nartifact_dir = root / \"artifacts\"\nartifact_dir.mkdir(parents=True,\
+    \ exist_ok=True)\n\ndef describe_file(path):\n    content = path.read_bytes()\n    item = {\n    \
+    \    \"name\": path.name,\n        \"size_bytes\": len(content),\n        \"sha256\": hashlib.sha256(content).hexdigest(),\n\
+    \        \"record_count\": 0,\n    }\n    suffix = path.suffix.lower()\n    if suffix == \".csv\"\
+    :\n        with path.open(encoding=\"utf-8\", newline=\"\") as handle:\n            item[\"record_count\"\
+    ] = sum(1 for _ in csv.DictReader(handle))\n    elif suffix == \".json\":\n        value = json.loads(path.read_text(encoding=\"\
+    utf-8\"))\n        item[\"record_count\"] = len(value) if isinstance(value, (list, dict)) else 1\n\
+    \    elif suffix in {\".jsonl\", \".ndjson\"}:\n        rows = [json.loads(line) for line in path.read_text(encoding=\"\
+    utf-8\").splitlines() if line.strip()]\n        item[\"record_count\"] = len(rows)\n    elif suffix\
+    \ in {\".txt\", \".sql\", \".conf\", \".yaml\", \".yml\", \".geojson\"}:\n        text = path.read_text(encoding=\"\
+    utf-8\")\n        item[\"record_count\"] = len([line for line in text.splitlines() if line.strip()])\n\
+    \    elif suffix == \".pdf\":\n        if not content.startswith(b\"%PDF-\"):\n            raise ValueError(f\"\
+    invalid PDF fixture: {path}\")\n        item[\"record_count\"] = 1\n    elif suffix == \".png\":\n\
+    \        if not content.startswith(b\"\\x89PNG\\r\\n\\x1a\\n\"):\n            raise ValueError(f\"\
+    invalid PNG fixture: {path}\")\n        item[\"record_count\"] = 1\n    else:\n        item[\"record_count\"\
+    ] = 1\n    return item\n\nfixture_path = Path(args.fixture) if args.fixture else None\nif fixture_path\
+    \ is None or not fixture_path.is_file():\n    raise FileNotFoundError(f\"fixture manifest is required\
+    \ for {TASK}: {fixture_path}\")\nfixture_manifest = json.loads(fixture_path.read_text(encoding=\"\
+    utf-8\"))\nfixture_files = [\n    describe_file(path)\n    for path in sorted(fixture_path.parent.rglob(\"\
+    *\"))\n    if path.is_file() and path != fixture_path\n]\nfixture_summary = {\n    \"manifest\": fixture_manifest,\n\
+    \    \"file_count\": len(fixture_files),\n    \"record_count\": sum(item[\"record_count\"] for item\
+    \ in fixture_files),\n    \"files\": fixture_files,\n}\n\nupstream = []\nfor path in sorted(artifact_dir.glob(\"\
+    *.json\")):\n    try:\n        document = json.loads(path.read_text(encoding=\"utf-8\"))\n    except\
+    \ (OSError, json.JSONDecodeError):\n        continue\n    upstream.append({\"artifact\": path.stem,\
+    \ \"producer\": document.get(\"task\")})\n\ndef payload(name):\n    return {\n        \"success\"\
+    : True,\n        \"errors\": [],\n        \"task\": TASK,\n        \"artifact\": name,\n        \"\
+    fixture\": fixture_summary,\n        \"upstream_artifact_count\": len(upstream),\n        \"upstream_artifacts\"\
+    : upstream,\n    }\n\ndef write(name, value):\n    (artifact_dir / f\"{name}.json\").write_text(\n\
+    \        json.dumps(value, indent=2, sort_keys=True) + \"\\n\", encoding=\"utf-8\"\n    )\n\nwrite('ingest_secondary_source_artifact',\
+    \ payload('ingest_secondary_source_artifact'))\nwrite('ingest_secondary_source_status', payload('ingest_secondary_source_status'))\n"
+  03_ingest_reference_source.py: "#!/usr/bin/env python3\nimport argparse\nimport csv\nimport hashlib\n\
+    import json\nfrom pathlib import Path\n\nTASK = 'ingest_reference_source'\nparser = argparse.ArgumentParser()\n\
+    parser.add_argument(\"--workspace\", required=True)\nparser.add_argument(\"--fixture\")\nargs, _ =\
+    \ parser.parse_known_args()\nroot = Path(args.workspace)\nartifact_dir = root / \"artifacts\"\nartifact_dir.mkdir(parents=True,\
+    \ exist_ok=True)\n\ndef describe_file(path):\n    content = path.read_bytes()\n    item = {\n    \
+    \    \"name\": path.name,\n        \"size_bytes\": len(content),\n        \"sha256\": hashlib.sha256(content).hexdigest(),\n\
+    \        \"record_count\": 0,\n    }\n    suffix = path.suffix.lower()\n    if suffix == \".csv\"\
+    :\n        with path.open(encoding=\"utf-8\", newline=\"\") as handle:\n            item[\"record_count\"\
+    ] = sum(1 for _ in csv.DictReader(handle))\n    elif suffix == \".json\":\n        value = json.loads(path.read_text(encoding=\"\
+    utf-8\"))\n        item[\"record_count\"] = len(value) if isinstance(value, (list, dict)) else 1\n\
+    \    elif suffix in {\".jsonl\", \".ndjson\"}:\n        rows = [json.loads(line) for line in path.read_text(encoding=\"\
+    utf-8\").splitlines() if line.strip()]\n        item[\"record_count\"] = len(rows)\n    elif suffix\
+    \ in {\".txt\", \".sql\", \".conf\", \".yaml\", \".yml\", \".geojson\"}:\n        text = path.read_text(encoding=\"\
+    utf-8\")\n        item[\"record_count\"] = len([line for line in text.splitlines() if line.strip()])\n\
+    \    elif suffix == \".pdf\":\n        if not content.startswith(b\"%PDF-\"):\n            raise ValueError(f\"\
+    invalid PDF fixture: {path}\")\n        item[\"record_count\"] = 1\n    elif suffix == \".png\":\n\
+    \        if not content.startswith(b\"\\x89PNG\\r\\n\\x1a\\n\"):\n            raise ValueError(f\"\
+    invalid PNG fixture: {path}\")\n        item[\"record_count\"] = 1\n    else:\n        item[\"record_count\"\
+    ] = 1\n    return item\n\nfixture_path = Path(args.fixture) if args.fixture else None\nif fixture_path\
+    \ is None or not fixture_path.is_file():\n    raise FileNotFoundError(f\"fixture manifest is required\
+    \ for {TASK}: {fixture_path}\")\nfixture_manifest = json.loads(fixture_path.read_text(encoding=\"\
+    utf-8\"))\nfixture_files = [\n    describe_file(path)\n    for path in sorted(fixture_path.parent.rglob(\"\
+    *\"))\n    if path.is_file() and path != fixture_path\n]\nfixture_summary = {\n    \"manifest\": fixture_manifest,\n\
+    \    \"file_count\": len(fixture_files),\n    \"record_count\": sum(item[\"record_count\"] for item\
+    \ in fixture_files),\n    \"files\": fixture_files,\n}\n\nupstream = []\nfor path in sorted(artifact_dir.glob(\"\
+    *.json\")):\n    try:\n        document = json.loads(path.read_text(encoding=\"utf-8\"))\n    except\
+    \ (OSError, json.JSONDecodeError):\n        continue\n    upstream.append({\"artifact\": path.stem,\
+    \ \"producer\": document.get(\"task\")})\n\ndef payload(name):\n    return {\n        \"success\"\
+    : True,\n        \"errors\": [],\n        \"task\": TASK,\n        \"artifact\": name,\n        \"\
+    fixture\": fixture_summary,\n        \"upstream_artifact_count\": len(upstream),\n        \"upstream_artifacts\"\
+    : upstream,\n    }\n\ndef write(name, value):\n    (artifact_dir / f\"{name}.json\").write_text(\n\
+    \        json.dumps(value, indent=2, sort_keys=True) + \"\\n\", encoding=\"utf-8\"\n    )\n\nwrite('ingest_reference_source_artifact',\
+    \ payload('ingest_reference_source_artifact'))\nwrite('ingest_reference_source_status', payload('ingest_reference_source_status'))\n"
+  04_validate_source_contracts.py: "#!/usr/bin/env python3\nimport argparse\nimport csv\nimport hashlib\n\
+    import json\nfrom pathlib import Path\n\nTASK = 'validate_source_contracts'\nparser = argparse.ArgumentParser()\n\
+    parser.add_argument(\"--workspace\", required=True)\nparser.add_argument(\"--fixture\")\nargs, _ =\
+    \ parser.parse_known_args()\nroot = Path(args.workspace)\nartifact_dir = root / \"artifacts\"\nartifact_dir.mkdir(parents=True,\
+    \ exist_ok=True)\n\ndef describe_file(path):\n    content = path.read_bytes()\n    item = {\n    \
+    \    \"name\": path.name,\n        \"size_bytes\": len(content),\n        \"sha256\": hashlib.sha256(content).hexdigest(),\n\
+    \        \"record_count\": 0,\n    }\n    suffix = path.suffix.lower()\n    if suffix == \".csv\"\
+    :\n        with path.open(encoding=\"utf-8\", newline=\"\") as handle:\n            item[\"record_count\"\
+    ] = sum(1 for _ in csv.DictReader(handle))\n    elif suffix == \".json\":\n        value = json.loads(path.read_text(encoding=\"\
+    utf-8\"))\n        item[\"record_count\"] = len(value) if isinstance(value, (list, dict)) else 1\n\
+    \    elif suffix in {\".jsonl\", \".ndjson\"}:\n        rows = [json.loads(line) for line in path.read_text(encoding=\"\
+    utf-8\").splitlines() if line.strip()]\n        item[\"record_count\"] = len(rows)\n    elif suffix\
+    \ in {\".txt\", \".sql\", \".conf\", \".yaml\", \".yml\", \".geojson\"}:\n        text = path.read_text(encoding=\"\
+    utf-8\")\n        item[\"record_count\"] = len([line for line in text.splitlines() if line.strip()])\n\
+    \    elif suffix == \".pdf\":\n        if not content.startswith(b\"%PDF-\"):\n            raise ValueError(f\"\
+    invalid PDF fixture: {path}\")\n        item[\"record_count\"] = 1\n    elif suffix == \".png\":\n\
+    \        if not content.startswith(b\"\\x89PNG\\r\\n\\x1a\\n\"):\n            raise ValueError(f\"\
+    invalid PNG fixture: {path}\")\n        item[\"record_count\"] = 1\n    else:\n        item[\"record_count\"\
+    ] = 1\n    return item\n\nfixture_path = Path(args.fixture) if args.fixture else None\nif fixture_path\
+    \ is None or not fixture_path.is_file():\n    raise FileNotFoundError(f\"fixture manifest is required\
+    \ for {TASK}: {fixture_path}\")\nfixture_manifest = json.loads(fixture_path.read_text(encoding=\"\
+    utf-8\"))\nfixture_files = [\n    describe_file(path)\n    for path in sorted(fixture_path.parent.rglob(\"\
+    *\"))\n    if path.is_file() and path != fixture_path\n]\nfixture_summary = {\n    \"manifest\": fixture_manifest,\n\
+    \    \"file_count\": len(fixture_files),\n    \"record_count\": sum(item[\"record_count\"] for item\
+    \ in fixture_files),\n    \"files\": fixture_files,\n}\n\nupstream = []\nfor path in sorted(artifact_dir.glob(\"\
+    *.json\")):\n    try:\n        document = json.loads(path.read_text(encoding=\"utf-8\"))\n    except\
+    \ (OSError, json.JSONDecodeError):\n        continue\n    upstream.append({\"artifact\": path.stem,\
+    \ \"producer\": document.get(\"task\")})\n\ndef payload(name):\n    return {\n        \"success\"\
+    : True,\n        \"errors\": [],\n        \"task\": TASK,\n        \"artifact\": name,\n        \"\
+    fixture\": fixture_summary,\n        \"upstream_artifact_count\": len(upstream),\n        \"upstream_artifacts\"\
+    : upstream,\n    }\n\ndef write(name, value):\n    (artifact_dir / f\"{name}.json\").write_text(\n\
+    \        json.dumps(value, indent=2, sort_keys=True) + \"\\n\", encoding=\"utf-8\"\n    )\n\nwrite('validate_source_contracts_artifact',\
+    \ payload('validate_source_contracts_artifact'))\nwrite('validate_source_contracts_status', payload('validate_source_contracts_status'))\n"
+  05_normalize_sources.py: "#!/usr/bin/env python3\nimport argparse\nimport csv\nimport hashlib\nimport\
+    \ json\nfrom pathlib import Path\n\nTASK = 'normalize_sources'\nparser = argparse.ArgumentParser()\n\
+    parser.add_argument(\"--workspace\", required=True)\nparser.add_argument(\"--fixture\")\nargs, _ =\
+    \ parser.parse_known_args()\nroot = Path(args.workspace)\nartifact_dir = root / \"artifacts\"\nartifact_dir.mkdir(parents=True,\
+    \ exist_ok=True)\n\ndef describe_file(path):\n    content = path.read_bytes()\n    item = {\n    \
+    \    \"name\": path.name,\n        \"size_bytes\": len(content),\n        \"sha256\": hashlib.sha256(content).hexdigest(),\n\
+    \        \"record_count\": 0,\n    }\n    suffix = path.suffix.lower()\n    if suffix == \".csv\"\
+    :\n        with path.open(encoding=\"utf-8\", newline=\"\") as handle:\n            item[\"record_count\"\
+    ] = sum(1 for _ in csv.DictReader(handle))\n    elif suffix == \".json\":\n        value = json.loads(path.read_text(encoding=\"\
+    utf-8\"))\n        item[\"record_count\"] = len(value) if isinstance(value, (list, dict)) else 1\n\
+    \    elif suffix in {\".jsonl\", \".ndjson\"}:\n        rows = [json.loads(line) for line in path.read_text(encoding=\"\
+    utf-8\").splitlines() if line.strip()]\n        item[\"record_count\"] = len(rows)\n    elif suffix\
+    \ in {\".txt\", \".sql\", \".conf\", \".yaml\", \".yml\", \".geojson\"}:\n        text = path.read_text(encoding=\"\
+    utf-8\")\n        item[\"record_count\"] = len([line for line in text.splitlines() if line.strip()])\n\
+    \    elif suffix == \".pdf\":\n        if not content.startswith(b\"%PDF-\"):\n            raise ValueError(f\"\
+    invalid PDF fixture: {path}\")\n        item[\"record_count\"] = 1\n    elif suffix == \".png\":\n\
+    \        if not content.startswith(b\"\\x89PNG\\r\\n\\x1a\\n\"):\n            raise ValueError(f\"\
+    invalid PNG fixture: {path}\")\n        item[\"record_count\"] = 1\n    else:\n        item[\"record_count\"\
+    ] = 1\n    return item\n\nfixture_path = Path(args.fixture) if args.fixture else None\nif fixture_path\
+    \ is None or not fixture_path.is_file():\n    raise FileNotFoundError(f\"fixture manifest is required\
+    \ for {TASK}: {fixture_path}\")\nfixture_manifest = json.loads(fixture_path.read_text(encoding=\"\
+    utf-8\"))\nfixture_files = [\n    describe_file(path)\n    for path in sorted(fixture_path.parent.rglob(\"\
+    *\"))\n    if path.is_file() and path != fixture_path\n]\nfixture_summary = {\n    \"manifest\": fixture_manifest,\n\
+    \    \"file_count\": len(fixture_files),\n    \"record_count\": sum(item[\"record_count\"] for item\
+    \ in fixture_files),\n    \"files\": fixture_files,\n}\n\nupstream = []\nfor path in sorted(artifact_dir.glob(\"\
+    *.json\")):\n    try:\n        document = json.loads(path.read_text(encoding=\"utf-8\"))\n    except\
+    \ (OSError, json.JSONDecodeError):\n        continue\n    upstream.append({\"artifact\": path.stem,\
+    \ \"producer\": document.get(\"task\")})\n\ndef payload(name):\n    return {\n        \"success\"\
+    : True,\n        \"errors\": [],\n        \"task\": TASK,\n        \"artifact\": name,\n        \"\
+    fixture\": fixture_summary,\n        \"upstream_artifact_count\": len(upstream),\n        \"upstream_artifacts\"\
+    : upstream,\n    }\n\ndef write(name, value):\n    (artifact_dir / f\"{name}.json\").write_text(\n\
+    \        json.dumps(value, indent=2, sort_keys=True) + \"\\n\", encoding=\"utf-8\"\n    )\n\nwrite('normalize_sources_artifact',\
+    \ payload('normalize_sources_artifact'))\nwrite('normalize_sources_status', payload('normalize_sources_status'))\n"
+  06_fuse_sources.py: "#!/usr/bin/env python3\nimport argparse\nimport csv\nimport hashlib\nimport json\n\
+    from pathlib import Path\n\nTASK = 'fuse_sources'\nparser = argparse.ArgumentParser()\nparser.add_argument(\"\
+    --workspace\", required=True)\nparser.add_argument(\"--fixture\")\nargs, _ = parser.parse_known_args()\n\
+    root = Path(args.workspace)\nartifact_dir = root / \"artifacts\"\nartifact_dir.mkdir(parents=True,\
+    \ exist_ok=True)\n\ndef describe_file(path):\n    content = path.read_bytes()\n    item = {\n    \
+    \    \"name\": path.name,\n        \"size_bytes\": len(content),\n        \"sha256\": hashlib.sha256(content).hexdigest(),\n\
+    \        \"record_count\": 0,\n    }\n    suffix = path.suffix.lower()\n    if suffix == \".csv\"\
+    :\n        with path.open(encoding=\"utf-8\", newline=\"\") as handle:\n            item[\"record_count\"\
+    ] = sum(1 for _ in csv.DictReader(handle))\n    elif suffix == \".json\":\n        value = json.loads(path.read_text(encoding=\"\
+    utf-8\"))\n        item[\"record_count\"] = len(value) if isinstance(value, (list, dict)) else 1\n\
+    \    elif suffix in {\".jsonl\", \".ndjson\"}:\n        rows = [json.loads(line) for line in path.read_text(encoding=\"\
+    utf-8\").splitlines() if line.strip()]\n        item[\"record_count\"] = len(rows)\n    elif suffix\
+    \ in {\".txt\", \".sql\", \".conf\", \".yaml\", \".yml\", \".geojson\"}:\n        text = path.read_text(encoding=\"\
+    utf-8\")\n        item[\"record_count\"] = len([line for line in text.splitlines() if line.strip()])\n\
+    \    elif suffix == \".pdf\":\n        if not content.startswith(b\"%PDF-\"):\n            raise ValueError(f\"\
+    invalid PDF fixture: {path}\")\n        item[\"record_count\"] = 1\n    elif suffix == \".png\":\n\
+    \        if not content.startswith(b\"\\x89PNG\\r\\n\\x1a\\n\"):\n            raise ValueError(f\"\
+    invalid PNG fixture: {path}\")\n        item[\"record_count\"] = 1\n    else:\n        item[\"record_count\"\
+    ] = 1\n    return item\n\nfixture_path = Path(args.fixture) if args.fixture else None\nif fixture_path\
+    \ is None or not fixture_path.is_file():\n    raise FileNotFoundError(f\"fixture manifest is required\
+    \ for {TASK}: {fixture_path}\")\nfixture_manifest = json.loads(fixture_path.read_text(encoding=\"\
+    utf-8\"))\nfixture_files = [\n    describe_file(path)\n    for path in sorted(fixture_path.parent.rglob(\"\
+    *\"))\n    if path.is_file() and path != fixture_path\n]\nfixture_summary = {\n    \"manifest\": fixture_manifest,\n\
+    \    \"file_count\": len(fixture_files),\n    \"record_count\": sum(item[\"record_count\"] for item\
+    \ in fixture_files),\n    \"files\": fixture_files,\n}\n\nupstream = []\nfor path in sorted(artifact_dir.glob(\"\
+    *.json\")):\n    try:\n        document = json.loads(path.read_text(encoding=\"utf-8\"))\n    except\
+    \ (OSError, json.JSONDecodeError):\n        continue\n    upstream.append({\"artifact\": path.stem,\
+    \ \"producer\": document.get(\"task\")})\n\ndef payload(name):\n    return {\n        \"success\"\
+    : True,\n        \"errors\": [],\n        \"task\": TASK,\n        \"artifact\": name,\n        \"\
+    fixture\": fixture_summary,\n        \"upstream_artifact_count\": len(upstream),\n        \"upstream_artifacts\"\
+    : upstream,\n    }\n\ndef write(name, value):\n    (artifact_dir / f\"{name}.json\").write_text(\n\
+    \        json.dumps(value, indent=2, sort_keys=True) + \"\\n\", encoding=\"utf-8\"\n    )\n\nwrite('fuse_sources_artifact',\
+    \ payload('fuse_sources_artifact'))\nwrite('fuse_sources_status', payload('fuse_sources_status'))\n"
+  07_publish_outputs.py: "#!/usr/bin/env python3\nimport argparse\nimport csv\nimport hashlib\nimport\
+    \ json\nfrom pathlib import Path\n\nTASK = 'publish_outputs'\nparser = argparse.ArgumentParser()\n\
+    parser.add_argument(\"--workspace\", required=True)\nparser.add_argument(\"--fixture\")\nargs, _ =\
+    \ parser.parse_known_args()\nroot = Path(args.workspace)\nartifact_dir = root / \"artifacts\"\nartifact_dir.mkdir(parents=True,\
+    \ exist_ok=True)\n\ndef describe_file(path):\n    content = path.read_bytes()\n    item = {\n    \
+    \    \"name\": path.name,\n        \"size_bytes\": len(content),\n        \"sha256\": hashlib.sha256(content).hexdigest(),\n\
+    \        \"record_count\": 0,\n    }\n    suffix = path.suffix.lower()\n    if suffix == \".csv\"\
+    :\n        with path.open(encoding=\"utf-8\", newline=\"\") as handle:\n            item[\"record_count\"\
+    ] = sum(1 for _ in csv.DictReader(handle))\n    elif suffix == \".json\":\n        value = json.loads(path.read_text(encoding=\"\
+    utf-8\"))\n        item[\"record_count\"] = len(value) if isinstance(value, (list, dict)) else 1\n\
+    \    elif suffix in {\".jsonl\", \".ndjson\"}:\n        rows = [json.loads(line) for line in path.read_text(encoding=\"\
+    utf-8\").splitlines() if line.strip()]\n        item[\"record_count\"] = len(rows)\n    elif suffix\
+    \ in {\".txt\", \".sql\", \".conf\", \".yaml\", \".yml\", \".geojson\"}:\n        text = path.read_text(encoding=\"\
+    utf-8\")\n        item[\"record_count\"] = len([line for line in text.splitlines() if line.strip()])\n\
+    \    elif suffix == \".pdf\":\n        if not content.startswith(b\"%PDF-\"):\n            raise ValueError(f\"\
+    invalid PDF fixture: {path}\")\n        item[\"record_count\"] = 1\n    elif suffix == \".png\":\n\
+    \        if not content.startswith(b\"\\x89PNG\\r\\n\\x1a\\n\"):\n            raise ValueError(f\"\
+    invalid PNG fixture: {path}\")\n        item[\"record_count\"] = 1\n    else:\n        item[\"record_count\"\
+    ] = 1\n    return item\n\nfixture_path = Path(args.fixture) if args.fixture else None\nif fixture_path\
+    \ is None or not fixture_path.is_file():\n    raise FileNotFoundError(f\"fixture manifest is required\
+    \ for {TASK}: {fixture_path}\")\nfixture_manifest = json.loads(fixture_path.read_text(encoding=\"\
+    utf-8\"))\nfixture_files = [\n    describe_file(path)\n    for path in sorted(fixture_path.parent.rglob(\"\
+    *\"))\n    if path.is_file() and path != fixture_path\n]\nfixture_summary = {\n    \"manifest\": fixture_manifest,\n\
+    \    \"file_count\": len(fixture_files),\n    \"record_count\": sum(item[\"record_count\"] for item\
+    \ in fixture_files),\n    \"files\": fixture_files,\n}\n\nupstream = []\nfor path in sorted(artifact_dir.glob(\"\
+    *.json\")):\n    try:\n        document = json.loads(path.read_text(encoding=\"utf-8\"))\n    except\
+    \ (OSError, json.JSONDecodeError):\n        continue\n    upstream.append({\"artifact\": path.stem,\
+    \ \"producer\": document.get(\"task\")})\n\ndef payload(name):\n    return {\n        \"success\"\
+    : True,\n        \"errors\": [],\n        \"task\": TASK,\n        \"artifact\": name,\n        \"\
+    fixture\": fixture_summary,\n        \"upstream_artifact_count\": len(upstream),\n        \"upstream_artifacts\"\
+    : upstream,\n    }\n\ndef write(name, value):\n    (artifact_dir / f\"{name}.json\").write_text(\n\
+    \        json.dumps(value, indent=2, sort_keys=True) + \"\\n\", encoding=\"utf-8\"\n    )\n\nwrite('publish_outputs_artifact',\
+    \ payload('publish_outputs_artifact'))\nwrite('publish_outputs_status', payload('publish_outputs_status'))\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: support-profile-context-join-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: 'customer_id,customer_name,account_tier,monthly_spend,contract_start,industry,region,churn_risk
+
+    CUST-A100,Acme Corp,enterprise,25000.00,2024-01-15,Manufacturing,EMEA,low
+
+    CUST-B200,BetaStartup,starter,500.00,2025-06-01,Technology,AMER,medium
+
+    CUST-C300,Gamma LLC,professional,5000.00,2024-09-01,Healthcare,EMEA,low
+
+    CUST-D400,Delta Industries,enterprise,45000.00,2023-03-01,Manufacturing,APAC,high
+
+    '
+  fixture-0001: "{\n  \"pipeline_id\": \"support_profile_context_join\",\n  \"inputs\": {\n    \"tickets\"\
+    : \"support_tickets.json\",\n    \"profiles\": \"customer_profiles.csv\",\n    \"policy\": \"routing_policy.json\"\
+    \n  },\n  \"input_modalities\": [\"json\", \"table\", \"text\"],\n  \"systems\": [\"ticketing system\"\
+    , \"CRM\", \"routing engine\"]\n}\n"
+  fixture-0002: "{\n  \"policy_id\": \"support-routing-v2\",\n  \"description\": \"Support ticket routing\
+    \ and escalation policy\",\n  \"priority_weights\": {\"critical\": 10, \"high\": 5, \"medium\": 2,\
+    \ \"low\": 1},\n  \"tier_multipliers\": {\"enterprise\": 2.0, \"professional\": 1.5, \"starter\":\
+    \ 1.0},\n  \"escalation_threshold\": 10,\n  \"churn_high_priority_threshold\": \"medium\",\n  \"categories_requiring_immediate\"\
+    : [\"outage\", \"security\"]\n}\n"
+  fixture-0003: "[\n  {\"ticket_id\": \"TKT-5001\", \"customer_id\": \"CUST-A100\", \"priority\": \"high\"\
+    , \"category\": \"billing\", \"subject\": \"Duplicate charge on invoice\", \"status\": \"open\", \"\
+    created_date\": \"2026-07-19\", \"agent_notes\": \"Customer reports double billing on July statement\"\
+    },\n  {\"ticket_id\": \"TKT-5002\", \"customer_id\": \"CUST-B200\", \"priority\": \"medium\", \"category\"\
+    : \"technical\", \"subject\": \"API integration failing\", \"status\": \"open\", \"created_date\"\
+    : \"2026-07-18\", \"agent_notes\": \"Timeout errors on v2 endpoint\"},\n  {\"ticket_id\": \"TKT-5003\"\
+    , \"customer_id\": \"CUST-C300\", \"priority\": \"low\", \"category\": \"general\", \"subject\": \"\
+    Password reset request\", \"status\": \"open\", \"created_date\": \"2026-07-20\", \"agent_notes\"\
+    : \"Standard reset procedure\"},\n  {\"ticket_id\": \"TKT-5004\", \"customer_id\": \"CUST-D400\",\
+    \ \"priority\": \"critical\", \"category\": \"outage\", \"subject\": \"Production system down\", \"\
+    status\": \"open\", \"created_date\": \"2026-07-20\", \"agent_notes\": \"All services unavailable\
+    \ since 08:00 UTC\"},\n  {\"ticket_id\": \"TKT-5005\", \"customer_id\": \"CUST-A100\", \"priority\"\
+    : \"medium\", \"category\": \"billing\", \"subject\": \"Refund not processed\", \"status\": \"open\"\
+    , \"created_date\": \"2026-07-15\", \"agent_notes\": \"Refund requested 5 days ago, still pending\"\
+    }\n]\n"

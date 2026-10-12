@@ -1,0 +1,411 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_federated_partner_reconciliation",
+  "pipeline_name": "Federated Partner Reconciliation",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_federated_partner_reconciliation.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Wait for partner extracts, ingest several feeds in parallel, reconcile discrepancies, branch unresolved records to review, and publish consolidated outputs.",
+    "business_domain": "Partner Data Exchange",
+    "execution_model": "Batch",
+    "topology_pattern": "Mixed",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "wait_for_partner_extracts",
+        "to": "ingest_partner_a"
+      },
+      {
+        "from": "wait_for_partner_extracts",
+        "to": "ingest_partner_b"
+      },
+      {
+        "from": "wait_for_partner_extracts",
+        "to": "ingest_partner_c"
+      },
+      {
+        "from": "ingest_partner_a",
+        "to": "standardize_records"
+      },
+      {
+        "from": "ingest_partner_b",
+        "to": "standardize_records"
+      },
+      {
+        "from": "ingest_partner_c",
+        "to": "standardize_records"
+      },
+      {
+        "from": "standardize_records",
+        "to": "match_entities"
+      },
+      {
+        "from": "match_entities",
+        "to": "route_discrepancies"
+      },
+      {
+        "from": "route_discrepancies",
+        "to": "publish_clean_records"
+      },
+      {
+        "from": "route_discrepancies",
+        "to": "open_review_cases"
+      },
+      {
+        "from": "publish_clean_records",
+        "to": "write_reconciliation_audit"
+      },
+      {
+        "from": "open_review_cases",
+        "to": "write_reconciliation_audit"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "steps": [
+          "ingest_partner_a",
+          "ingest_partner_b",
+          "ingest_partner_c"
+        ]
+      }
+    ],
+    "branch_points": [
+      {
+        "step": "route_discrepancies",
+        "conditions": [
+          "matched",
+          "unresolved"
+        ],
+        "merge_step": "write_reconciliation_audit"
+      }
+    ],
+    "gates": [
+      {
+        "step": "wait_for_partner_extracts",
+        "condition": "all_partner_files_arrived"
+      }
+    ]
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Partner A SFTP",
+      "identifier": "partner_a_sftp",
+      "details": [
+        "Validation external dependency: Partner A SFTP"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Partner B API",
+      "identifier": "partner_b_api",
+      "details": [
+        "Validation external dependency: Partner B API"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Partner C bucket",
+      "identifier": "partner_c_bucket",
+      "details": [
+        "Validation external dependency: Partner C bucket"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Review case system",
+      "identifier": "review_case_system",
+      "details": [
+        "Validation external dependency: Review case system"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "partner_a_extract",
+        "description": "Validation artifact: partner_a_extract"
+      },
+      {
+        "identifier": "partner_b_extract",
+        "description": "Validation artifact: partner_b_extract"
+      },
+      {
+        "identifier": "partner_c_extract",
+        "description": "Validation artifact: partner_c_extract"
+      },
+      {
+        "identifier": "clean_records",
+        "description": "Validation artifact: clean_records"
+      },
+      {
+        "identifier": "review_cases",
+        "description": "Validation artifact: review_cases"
+      },
+      {
+        "identifier": "audit_report",
+        "description": "Validation artifact: audit_report"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "wait_for_partner_extracts",
+      "name": "wait_for_partner_extracts",
+      "objective": "Wait for partner extracts",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "ingest_partner_a",
+      "name": "ingest_partner_a",
+      "objective": "Ingest partner a",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "ingest_partner_b",
+      "name": "ingest_partner_b",
+      "objective": "Ingest partner b",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "ingest_partner_c",
+      "name": "ingest_partner_c",
+      "objective": "Ingest partner c",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "standardize_records",
+      "name": "standardize_records",
+      "objective": "Standardize records",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "match_entities",
+      "name": "match_entities",
+      "objective": "Match entities",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "route_discrepancies",
+      "name": "route_discrepancies",
+      "objective": "Route discrepancies",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_clean_records",
+      "name": "publish_clean_records",
+      "objective": "Publish clean records",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "open_review_cases",
+      "name": "open_review_cases",
+      "objective": "Open review cases",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "write_reconciliation_audit",
+      "name": "write_reconciliation_audit",
+      "objective": "Write reconciliation audit",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

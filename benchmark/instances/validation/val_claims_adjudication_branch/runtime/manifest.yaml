@@ -1,0 +1,65 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_claims_adjudication_branch
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: ingest_claims
+  script: scripts/01_ingest_claims.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: score_claim_risk
+  script: scripts/02_score_claim_risk.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - ingest_claims
+- intent_id: route_claim
+  script: scripts/03_route_claim.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - score_claim_risk
+- intent_id: manual_adjudication
+  script: scripts/04_manual_adjudication.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_claim
+- intent_id: auto_approve_claim
+  script: scripts/05_auto_approve_claim.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_claim
+- intent_id: write_settlement_summary
+  script: scripts/06_write_settlement_summary.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - manual_adjudication
+  - auto_approve_claim
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

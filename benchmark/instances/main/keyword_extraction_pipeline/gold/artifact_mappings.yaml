@@ -1,0 +1,38 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:keyword_extraction_pipeline
+mappings:
+- intent_id: generate_documents
+  inputs: {}
+  outputs:
+    document_parquet: doc_parquet
+    generation_status: gen_status
+- intent_id: explore_data
+  inputs:
+    document_parquet: doc_parquet
+  outputs:
+    profile_report: profile_report
+    profile_status: profile_status
+- intent_id: clean_data
+  inputs:
+    raw_document_parquet: doc_parquet
+  outputs:
+    cleaned_document_parquet: cleaned_parquet
+    transform_status: clean_status
+- intent_id: extract_features
+  inputs:
+    cleaned_document_parquet: cleaned_parquet
+  outputs:
+    processed_document_parquet: featured_parquet
+    feature_status: feature_status
+- intent_id: validate_data
+  inputs:
+    processed_document_parquet: featured_parquet
+  outputs:
+    validation_results: validation_result
+    validation_status: validation_status
+- intent_id: save_and_report
+  inputs:
+    structured_json: featured_json
+  outputs:
+    csv_file: report_csv
+    export_status: report_status

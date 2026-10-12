@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-transformation-pipeline-scripts
+  namespace: prompt2serviceflow
+data:
+  01_start.py: "#!/usr/bin/env python3\n\"\"\"Generate run ID.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json, uuid\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    rid=f\"dataform-run-{uuid.uuid4()!s}\"\n \
+    \   (art/\"run_id.txt\").write_text(rid+\"\\n\",encoding=\"utf-8\")\n    (art/\"gen_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif\
+    \ __name__==\"__main__\": main()\n"
+  02_parse_input_params.py: "#!/usr/bin/env python3\n\"\"\"Mock build compilation config.\"\"\"\nfrom\
+    \ __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"\n    cfg={\"git_commitish\":\"full-version\",\"tables\":[\"sales\"\
+    ,\"customers\"],\"vars\":{\"logical_date\":\"2024-01-15\"}}\n    (art/\"compilation_config.json\"\
+    ).write_text(json.dumps(cfg,indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"build_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif\
+    \ __name__==\"__main__\": main()\n"
+  03_create_compilation_result.py: "#!/usr/bin/env python3\n\"\"\"Mock create compilation result.\"\"\"\
+    \nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"\n    ref={\"name\":\"projects/whejna/locations/europe-west3/repositories/training-repo/compilationResults/cr-001\"\
+    }\n    (art/\"compilation_result_ref.json\").write_text(json.dumps(ref,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    (art/\"creation_status.json\").write_text(json.dumps({\"success\":True,\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_create_workflow_invocation.py: "#!/usr/bin/env python3\n\"\"\"Mock create workflow invocation.\"\"\
+    \"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"\n    ref={\"name\":\"projects/whejna/locations/europe-west3/repositories/training-repo/workflowInvocations/wfi-001\"\
+    }\n    (art/\"workflow_invocation_ref.json\").write_text(json.dumps(ref,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    (art/\"invocation_status.json\").write_text(json.dumps({\"success\":True,\"errors\"\
+    :[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  05_is_workflow_invocation_done.py: "#!/usr/bin/env python3\n\"\"\"Mock monitor workflow completion.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"\n    res={\"status\":\"SUCCEEDED\",\"state\":\"COMPLETED\",\"success\"\
+    :True}\n    (art/\"invocation_status_result.json\").write_text(json.dumps(res,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+  06_end.py: "#!/usr/bin/env python3\n\"\"\"Cleanup temporary workspace.\"\"\"\nfrom __future__ import\
+    \ annotations\nimport argparse, json, shutil\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"\n    t=a.workspace/\"tmp\"\n    existed=t.exists()\n    if existed: shutil.rmtree(t)\n\
+    \    st={\"success\":True,\"targets_processed\":1,\"targets_deleted\":1 if existed else 0,\"missing_targets\"\
+    :[] if existed else [str(t)],\"errors\":[]}\n    (art/\"cleanup_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-transformation-pipeline-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock","repository":"whejna-modelling-sandbox/training-repo","region":"europe-west3"}'
+  fixture-0001: "{\n  \"pipeline_id\": \"data_transformation_pipeline\",\n  \"inputs\": {\n    \"dataform_repo\"\
+    : \"dataform_repo.json\"\n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n  ],\n  \"\
+    systems\": [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"

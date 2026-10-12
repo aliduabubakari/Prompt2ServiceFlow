@@ -1,0 +1,180 @@
+schema_version: 0.1.0
+service_id: csv_to_structured_json_standardizer
+version: 1.0.0
+display_name: CSV to Structured JSON Standardizer
+category: Transformer
+capability:
+  summary: Reads a CSV artifact, applies caller-configured table/dataset metadata
+    and optional column normalization rules, and writes a standardized structured
+    JSON table artifact with observable transform status.
+  operations:
+  - Read and parse a CSV file artifact.
+  - Validate header and row structure according to supplied parsing parameters.
+  - Apply optional column normalization and table metadata annotations.
+  - Write a structured JSON artifact representing rows and metadata for downstream
+    processing.
+  keywords:
+  - csv
+  - structured json
+  - standardization
+  - tabular data
+  - artifact transform
+  limitations:
+  - Does not reconcile entities or call external services.
+  - Does not infer business-specific normalization rules unless supplied by parameters.
+  - Does not load data into a database.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: csv_file
+    description: Input CSV artifact containing tabular records to standardize.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://csv_file_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: structured_json
+    description: Standardized JSON table artifact containing row records, column metadata,
+      dataset identifier, and optional logical table name.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://structured_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: transform_status
+    description: Observable status including parse success, rows read/written, columns
+      produced, output URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://csv_to_structured_json_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: input_pattern
+    description: Expected input filename or pattern used for deterministic binding
+      and validation.
+    type: string
+    required: false
+  - name: output_path
+    description: Deterministic output artifact path or name for the structured JSON.
+    type: string
+    required: true
+  - name: dataset_id
+    description: Logical dataset identifier to annotate in the structured JSON metadata.
+    type: string
+    required: false
+  - name: table_name
+    description: Logical table name or prefix to annotate in the structured JSON metadata.
+    type: string
+    required: false
+  - name: has_header
+    description: Whether the CSV is expected to contain a header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  - name: column_mapping
+    description: Optional mapping from source column names to normalized output column
+      names.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: csv_standardizer_input_readable
+  type: precondition
+  applies_to: input
+  target: csv_file
+  description: Input CSV must be readable and parseable with the configured delimiter/header
+    behavior.
+  expression: readable(csv_file) and csv_parseable(csv_file, delimiter, has_header)
+- contract_id: structured_tabular_json_schema
+  type: json_schema
+  applies_to: output
+  target: structured_json
+  description: Structured JSON contains dataset metadata, column names, and row objects.
+  schema_ref: schema://structured_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"dataset_id":{"type":["string","null"]},"table_name":{"type":["string","null"]},"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0}}}'
+- contract_id: csv_standardizer_status_schema
+  type: json_schema
+  applies_to: output
+  target: transform_status
+  description: Status exposes the standardization outcome for deterministic workflow
+    validation.
+  schema_ref: schema://csv_to_structured_json_status/v1
+  expression: '{"type":"object","required":["success","rows_read","rows_written","output_uri"],"properties":{"success":{"type":"boolean"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"columns_produced":{"type":"array","items":{"type":"string"}},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: csv_standardizer_effect
+  type: effect
+  applies_to: service
+  target: csv_to_structured_json_standardizer
+  description: On success, the structured JSON artifact exists and rows_written equals
+    rows_read after standardization.
+  expression: transform_status.success == true implies exists(structured_json) and
+    transform_status.rows_written == transform_status.rows_read
+invocation:
+  type: argo_workflow_template
+  template_name: csv-to-structured-json-standardizer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.csv_to_structured_json_standardizer
+  implementation_ref: services/implementations/csv_to_structured_json_standardizer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full supplier row contents; emit counts, column names, and bounded
+    diagnostics only.
+  - Container image, host mounts, and retry count are supplied by workflow/runtime
+    configuration, not by this catalogue service.
+  idempotency_notes: Same CSV input and parameters produce the same structured JSON
+    output.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:medical_facility_accessibility_v1#load_and_modify_facilities
+  - main:procurement_supplier_validation_v1#load_and_modify_suppliers
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service both parses CSV and materializes standardized
+    structured JSON with table/dataset metadata; the available CSV ingestor only emits
+    profile metadata.'
+  - 'Evidence status: strongly_inferred.'

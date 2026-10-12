@@ -1,0 +1,282 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multilingual-product-review-analysis-v1-thr-ae859929-scripts
+  namespace: prompt2serviceflow
+data:
+  01_load_reviews.py: "#!/usr/bin/env python3\n\"\"\"Load review CSV and produce structured JSON.\"\"\"\
+    \nfrom __future__ import annotations\nimport argparse, csv, json, shutil\nfrom pathlib import Path\n\
+    \ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    dest=art/\"reviews.csv\"; shutil.copyfile(a.fixture,dest)\n\
+    \    with dest.open(encoding=\"utf-8\",newline=\"\") as f:\n        r=csv.DictReader(f); rows=list(r);\
+    \ cols=r.fieldnames or []\n    out={\"columns\":cols,\"rows\":rows,\"row_count\":len(rows)}\n    (art/\"\
+    formatted_reviews_json.json\").write_text(json.dumps(out,indent=2)+\"\\n\",encoding=\"utf-8\")\n \
+    \   (art/\"format_status.json\").write_text(json.dumps({\"success\":True,\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  02_detect_language.py: "#!/usr/bin/env python3\n\"\"\"Mock language detection.\"\"\"\nfrom __future__\
+    \ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"\n    src=json.loads((art/\"formatted_reviews_json.json\").read_text(encoding=\"utf-8\"\
+    ))\n    for r in src[\"rows\"]:\n        txt=r.get(\"review_text\",\"\")\n        if \"amazing\" in\
+    \ txt.lower() or \"love\" in txt.lower(): r[\"language\"]=\"en\"\n        elif \"terrible\" in txt.lower()\
+    \ or \"recommande\" in txt.lower(): r[\"language\"]=\"fr\"\n        else: r[\"language\"]=\"de\"\n\
+    \    src[\"columns\"]=src[\"columns\"]+[\"language\"]\n    (art/\"lang_detected_json.json\").write_text(json.dumps(src,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"lang_detection_status.json\").write_text(json.dumps({\"success\"\
+    :True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_analyze_sentiment.py: "#!/usr/bin/env python3\n\"\"\"Mock sentiment analysis.\"\"\"\nfrom __future__\
+    \ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"\n    src=json.loads((art/\"lang_detected_json.json\").read_text(encoding=\"utf-8\"))\n\
+    \    for r in src[\"rows\"]:\n        txt=r.get(\"review_text\",\"\").lower()\n        if any(w in\
+    \ txt for w in [\"amazing\",\"love\",\"great\",\"excellent\",\"good\"]): r[\"sentiment_score\"]=0.85\n\
+    \        elif any(w in txt for w in [\"terrible\",\"bad\",\"hate\",\"awful\"]): r[\"sentiment_score\"\
+    ]=0.15\n        else: r[\"sentiment_score\"]=0.60\n    src[\"columns\"]=src[\"columns\"]+[\"sentiment_score\"\
+    ]\n    (art/\"sentiment_json.json\").write_text(json.dumps(src,indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    (art/\"sentiment_status.json\").write_text(json.dumps({\"success\":True,\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_extract_features.py: "#!/usr/bin/env python3\n\"\"\"Extract text features (word count).\"\"\"\nfrom\
+    \ __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"\n    src=json.loads((art/\"sentiment_json.json\").read_text(encoding=\"\
+    utf-8\"))\n    for r in src[\"rows\"]:\n        r[\"word_count\"]=len(r.get(\"review_text\",\"\").split())\n\
+    \    src[\"columns\"]=src[\"columns\"]+[\"word_count\"]\n    (art/\"features_json.json\").write_text(json.dumps(src,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"feature_extraction_status.json\").write_text(json.dumps({\"\
+    success\":True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  05_save_reviews.py: "#!/usr/bin/env python3\n\"\"\"Export enriched reviews to CSV.\"\"\"\nfrom __future__\
+    \ import annotations\nimport argparse, csv, json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"\n    src=json.loads((art/\"features_json.json\").read_text(encoding=\"utf-8\"))\n    out=art/\"\
+    enriched_reviews.csv\"\n    with out.open(\"w\",encoding=\"utf-8\",newline=\"\") as f:\n        w=csv.DictWriter(f,fieldnames=src[\"\
+    columns\"]); w.writeheader(); w.writerows(src[\"rows\"])\n    (art/\"export_status.json\").write_text(json.dumps({\"\
+    success\":True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multilingual-product-review-analysis-v1-thr-ae859929-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"pipeline_id\": \"multilingual_product_review_analysis_v1\",\n  \"inputs\": {\n\
+    \    \"reviews\": \"reviews.csv\"\n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n\
+    \  ],\n  \"systems\": [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"
+  fixture-0001: 'review_id,product_id,review_text,rating
+
+    R001,P001,"This product is amazing, I love it!",5
+
+    R002,P002,"Produit terrible, ne recommande pas.",1
+
+    R003,P003,"Gutes Produkt, zufrieden damit.",4
+
+    '
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: multilingual-product-review-analysis-v1-thr-ae859929-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: multilingual-product-review-analysis-v1-thr-ae859929
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: three-reviews
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: fixture-file
+      value: reviews.csv
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: multilingual-product-review-analysis-v1-thr-ae859929-scripts
+  - name: fixtures
+    configMap:
+      name: multilingual-product-review-analysis-v1-thr-ae859929-fixtures
+      items:
+      - key: fixture-0000
+        path: fixture.json
+      - key: fixture-0001
+        path: reviews.csv
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: load-and-modify-reviews
+        template: run-load-and-modify-reviews
+      - name: detect-language
+        template: run-detect-language
+        depends: load-and-modify-reviews.Succeeded
+      - name: analyze-sentiment
+        template: run-analyze-sentiment
+        depends: detect-language.Succeeded
+      - name: extract-features
+        template: run-extract-features
+        depends: analyze-sentiment.Succeeded
+      - name: save-enriched-reviews
+        template: run-save-enriched-reviews
+        depends: extract-features.Succeeded
+  - name: run-load-and-modify-reviews
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: load_and_modify_reviews
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_load_reviews.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-detect-language
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: detect_language
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_detect_language.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-analyze-sentiment
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: analyze_sentiment
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_analyze_sentiment.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-extract-features
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: extract_features
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_extract_features.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-save-enriched-reviews
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: save_enriched_reviews
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_save_reviews.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError

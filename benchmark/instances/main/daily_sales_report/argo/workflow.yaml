@@ -1,0 +1,170 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: daily-sales-report-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: daily-sales-report
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: daily-report-generation
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters: []
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: daily-sales-report-scripts
+  - name: fixtures
+    configMap:
+      name: daily-sales-report-fixtures
+      items:
+      - key: fixture-0000
+        path: email_service.json
+      - key: fixture-0001
+        path: fixture.json
+      - key: fixture-0002
+        path: postgres_resource.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: query-sales-data
+        template: run-query-sales-data
+      - name: transform-to-csv
+        template: run-transform-to-csv
+        depends: query-sales-data.Succeeded
+      - name: generate-pdf-chart
+        template: run-generate-pdf-chart
+        depends: transform-to-csv.Succeeded
+      - name: email-sales-report
+        template: run-email-sales-report
+        depends: generate-pdf-chart.Succeeded
+  - name: run-query-sales-data
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: query_sales_data
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_query_sales_data.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-transform-to-csv
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: transform_to_csv
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_transform_to_csv.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-generate-pdf-chart
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: generate_pdf_chart
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_generate_pdf_chart.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-email-sales-report
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: email_sales_report
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_email_sales_report.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError

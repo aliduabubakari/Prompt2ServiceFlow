@@ -1,0 +1,207 @@
+schema_version: 0.1.0
+service_id: regional_sales_currency_usd_converter
+version: 1.0.0
+display_name: Regional Sales Currency USD Converter
+category: Transformer
+capability:
+  summary: Reads a regional sales CSV file, converts configured monetary columns from
+    source or row-level currencies to USD using a supplied exchange-rate table, and
+    writes a converted sales CSV with status.
+  operations:
+  - Read and parse a regional sales CSV artifact.
+  - Validate configured amount, currency, and optional transaction-date columns.
+  - Read a supplied exchange-rate table containing currency codes, rates to USD, and
+    optional effective dates.
+  - Convert configured monetary fields to USD and optionally append original currency/rate
+    metadata columns.
+  keywords:
+  - currency conversion
+  - sales data
+  - usd
+  - exchange rates
+  - csv
+  - ecommerce
+  limitations:
+  - Does not fetch exchange rates from external providers; rates must be supplied
+    by workflow binding.
+  - Does not infer sales schema or monetary columns.
+  - Does not aggregate revenue across regions.
+  - Does not implement retries or fan-out orchestration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: sales_data_file
+    description: Regional sales CSV artifact to convert.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://regional_sales_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: exchange_rate_table
+    description: Exchange-rate table or JSON artifact with currency_code, rate_to_usd,
+      and optional effective_date fields.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://exchange_rate_table/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: converted_sales_file
+    description: Regional sales CSV artifact with configured monetary columns converted
+      to USD.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://usd_converted_regional_sales_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: conversion_status
+    description: Observable status with region, rows read/written, converted value
+      counts, rates applied, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://sales_currency_conversion_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: region
+    description: Region label for the input sales file.
+    type: string
+    required: true
+  - name: target_currency
+    description: Target currency code for converted outputs.
+    type: string
+    required: true
+    enum:
+    - USD
+  - name: source_currency
+    description: Default source currency code used when no row-level currency column
+      is configured.
+    type: string
+    required: false
+  - name: amount_columns
+    description: CSV columns containing monetary amounts to convert.
+    type: array
+    required: true
+  - name: currency_column
+    description: Optional CSV column containing row-level source currency codes.
+    type: string
+    required: false
+  - name: transaction_date_column
+    description: Optional date column used to select effective exchange rates.
+    type: string
+    required: false
+  - name: missing_rate_policy
+    description: Behavior when a required exchange rate is missing.
+    type: string
+    required: false
+    enum:
+    - fail
+    - skip_row
+    - preserve_original
+  - name: output_path
+    description: Deterministic output path or artifact name for the converted CSV.
+    type: string
+    required: true
+  secrets: []
+contracts:
+- contract_id: sales_currency_input_csv_readable
+  type: precondition
+  applies_to: input
+  target: sales_data_file
+  description: Input sales file must be readable and parseable as CSV.
+  expression: readable(sales_data_file) and csv_parseable(sales_data_file)
+- contract_id: sales_currency_rate_table_schema
+  type: json_schema
+  applies_to: input
+  target: exchange_rate_table
+  description: Exchange-rate table contains at least currency_code and rate_to_usd
+    fields, with optional effective_date.
+  schema_ref: schema://exchange_rate_table/v1
+  expression: '{"type":"object","required":["rows"],"properties":{"rows":{"type":"array","items":{"type":"object","required":["currency_code","rate_to_usd"],"properties":{"currency_code":{"type":"string"},"rate_to_usd":{"type":"number"},"effective_date":{"type":["string","null"]}}}}}}'
+- contract_id: sales_currency_columns_present
+  type: precondition
+  applies_to: parameter
+  target: amount_columns
+  description: All configured amount columns and any configured currency/date columns
+    must exist in the input CSV header.
+  expression: all(c in columns(sales_data_file) for c in amount_columns) and (currency_column
+    == null or currency_column in columns(sales_data_file)) and (transaction_date_column
+    == null or transaction_date_column in columns(sales_data_file))
+- contract_id: sales_currency_conversion_status_schema
+  type: json_schema
+  applies_to: output
+  target: conversion_status
+  description: Conversion status exposes row counts and conversion effect.
+  schema_ref: schema://sales_currency_conversion_status/v1
+  expression: '{"type":"object","required":["success","region","target_currency","rows_read","rows_written","values_converted","output_uri"],"properties":{"success":{"type":"boolean"},"region":{"type":"string"},"target_currency":{"type":"string"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"values_converted":{"type":"integer","minimum":0},"missing_rates":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: sales_currency_conversion_effect
+  type: effect
+  applies_to: service
+  target: regional_sales_currency_usd_converter
+  description: On success, converted_sales_file exists, target_currency is USD, and
+    conversion_status.success is true.
+  expression: conversion_status.success == true implies exists(converted_sales_file)
+    and conversion_status.target_currency == 'USD'
+invocation:
+  type: argo_workflow_template
+  template_name: regional-sales-currency-usd-converter-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.regional_sales_currency_usd_converter
+  implementation_ref: services/implementations/regional_sales_currency_usd_converter
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw sales rows or confidential revenue values.
+  - Exchange-rate inputs must be versioned or otherwise bound deterministically for
+    reproducible results.
+  idempotency_notes: Same input CSV, exchange-rate table, and parameters produce the
+    same converted CSV.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:multi_region_ecommerce_analytics#convert_currency_apac
+  - main:multi_region_ecommerce_analytics#convert_currency_eu
+  - main:multi_region_ecommerce_analytics#convert_currency_us_east
+  - main:multi_region_ecommerce_analytics#convert_currency_us_west
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing service provides a closed-world currency-conversion contract
+    with exchange-rate validation and CSV artifact output.'
+  - 'Evidence status: strongly_inferred.'

@@ -1,0 +1,33 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:airvisual_pipeline_lat_long_v1
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+  - candidate_set_id: main_airvisual_pipeline_lat_long_v1_airvisual_nearest_city_json_extractor_candidates
+    source_step_refs: [get_airvisual_data_hourly]
+    service_ids:
+      - airvisual_nearest_city_json_extractor
+      - http_json_request_extractor
+      - http_api_request_artifact_extractor
+      - openmeteo_historical_weather_tabular_enricher
+      - graphql_json_operation_executor
+      - open_network_http_json_requester
+  - candidate_set_id: main_airvisual_pipeline_lat_long_v1_airvisual_json_response_validator_candidates
+    source_step_refs: [read_data_airvisual]
+    service_ids:
+      - airvisual_json_response_validator
+      - json_field_projection_transformer
+      - csv_tabular_schema_validating_loader
+      - air_quality_dimensional_postgres_loader
+      - http_json_request_extractor
+      - reviewed_python_udf_transformer
+  - candidate_set_id: main_airvisual_pipeline_lat_long_v1_air_quality_dimensional_postgres_loader_candidates
+    source_step_refs: [load_data_airvisual_to_postgresql]
+    service_ids:
+      - air_quality_dimensional_postgres_loader
+      - postgres_parameterized_sql_executor
+      - tabular_dataset_database_loader
+      - postgres_sql_file_executor
+      - snowflake_ctas_atomic_table_replacer
+      - unreviewed_postgres_sql_executor

@@ -1,0 +1,601 @@
+ir_version: 0.1.0
+composition_id: val_claims_adjudication_branch
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.2
+  sha256: 68ddbc259a9fa94eb8ee32f5a2f18163ba2a9e1fe3178ecdf3db70fa9a368fbe
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_claims_adjudication_branch
+  split: validation
+  pipeline_id: val_claims_adjudication_branch
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/12_val_claims_adjudication_branch.txt
+  description_sha256: d9cc29a87b290c60a72402ec88779b90875ff6dcce80654fe890e97ca7816edf
+  internal_spec_path: source/internal_specs/validation_20/12_val_claims_adjudication_branch.json
+  internal_spec_sha256: dffb5a0faaaa211b236e9ff00e6096763f3d756006bb8225b94cf07f4eff034d
+requirement:
+  name: Val Claims Adjudication Branch
+  purpose: Score insurance claims, route high-risk claims to manual adjudication, auto-approve low-risk
+    claims, and produce a settlement summary.
+  domain: validation_holdout
+  execution_model: batch
+  topology: branch_merge
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: claims_database
+  type: database
+  name: Claims database
+  identifier: claims_database
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: risk_scoring_service
+  type: http_api
+  name: Risk scoring service
+  identifier: risk_scoring_service
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_claims
+  name: Ingest Claims
+  category: Extractor
+  capability: Perform the reviewed ingest claims capability.
+  source_step_refs:
+  - ingest_claims
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: ingest_claims.'
+  inputs:
+  - claims_database_resource
+  outputs:
+  - claim_batch
+  - claim_extract_status
+  external_system_refs:
+  - claims_database
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared claim_batch, claim_extract_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: score_claim_risk
+  name: Score Claim Risk
+  category: ScoringService
+  capability: Perform the reviewed score claim risk capability.
+  source_step_refs:
+  - score_claim_risk
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: score_claim_risk.'
+  inputs:
+  - claim_batch
+  - risk_scoring_service_resource
+  outputs:
+  - risk_scores
+  - risk_scoring_status
+  external_system_refs:
+  - risk_scoring_service
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared risk_scores, risk_scoring_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: route_claim
+  name: Route Claim
+  category: DomainAdapter
+  capability: Perform the reviewed route claim capability.
+  source_step_refs:
+  - route_claim
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: route_claim.'
+  inputs:
+  - risk_scores
+  outputs:
+  - claim_route_decision
+  - claim_routing_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared claim_route_decision, claim_routing_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: manual_adjudication
+  name: Manual Adjudication
+  category: DomainAdapter
+  capability: Perform the reviewed manual adjudication capability.
+  source_step_refs:
+  - manual_adjudication
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: manual_adjudication.'
+  inputs:
+  - risk_scores
+  outputs:
+  - manual_adjudication_records
+  - manual_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared manual_adjudication_records, manual_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: auto_approve_claim
+  name: Auto Approve Claim
+  category: DomainAdapter
+  capability: Perform the reviewed auto approve claim capability.
+  source_step_refs:
+  - auto_approve_claim
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: auto_approve_claim.'
+  inputs:
+  - risk_scores
+  outputs:
+  - auto_approval_records
+  - approval_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared auto_approval_records, approval_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: write_settlement_summary
+  name: Write Settlement Summary
+  category: ReportGenerator
+  capability: Perform the reviewed write settlement summary capability.
+  source_step_refs:
+  - write_settlement_summary
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: write_settlement_summary.'
+  inputs:
+  - manual_adjudication_records
+  - auto_approval_records
+  outputs:
+  - settlement_summary
+  - settlement_summary_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared settlement_summary, settlement_summary_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: ingest_claims
+  disposition: service
+  intent_ids:
+  - ingest_claims
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: score_claim_risk
+  disposition: service
+  intent_ids:
+  - score_claim_risk
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: route_claim
+  disposition: service
+  intent_ids:
+  - route_claim
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: manual_adjudication
+  disposition: service
+  intent_ids:
+  - manual_adjudication
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: auto_approve_claim
+  disposition: service
+  intent_ids:
+  - auto_approve_claim
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: write_settlement_summary
+  disposition: service
+  intent_ids:
+  - write_settlement_summary
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: ingest_claims
+    to: score_claim_risk
+  - from: score_claim_risk
+    to: route_claim
+  - from: route_claim
+    to: manual_adjudication
+  - from: route_claim
+    to: auto_approve_claim
+  - from: manual_adjudication
+    to: write_settlement_summary
+  - from: auto_approve_claim
+    to: write_settlement_summary
+  parallel_groups: []
+  branches:
+  - branch_id: claim_risk_route
+    decision_intent: route_claim
+    decision_artifact: claim_route_decision
+    cases:
+    - case_id: high_risk
+      condition: claim_route_decision.route == manual_adjudication
+      next_intents:
+      - manual_adjudication
+    - case_id: low_risk
+      condition: claim_route_decision.route == auto_approve_claim
+      next_intents:
+      - auto_approve_claim
+    merge_intent: write_settlement_summary
+  gates: []
+artifacts:
+- artifact_id: claims_database_resource
+  name: Claims Database Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: claims_database
+- artifact_id: risk_scoring_service_resource
+  name: Risk Scoring Service Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: risk_scoring_service
+- artifact_id: claim_batch
+  name: Claim Batch
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: ingest_claims
+  consumers:
+  - score_claim_risk
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: claim_extract_status
+  name: Claim Extract Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: ingest_claims
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: risk_scores
+  name: Risk Scores
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: score_claim_risk
+  consumers:
+  - route_claim
+  - manual_adjudication
+  - auto_approve_claim
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: risk_scoring_status
+  name: Risk Scoring Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: score_claim_risk
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: claim_route_decision
+  name: Claim Route Decision
+  kind: artifact
+  data_type: json
+  role: output
+  producer: route_claim
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: claim_routing_status
+  name: Claim Routing Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: route_claim
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: manual_adjudication_records
+  name: Manual Adjudication Records
+  kind: artifact
+  data_type: json
+  role: intermediate
+  producer: manual_adjudication
+  consumers:
+  - write_settlement_summary
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: manual_status
+  name: Manual Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: manual_adjudication
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: auto_approval_records
+  name: Auto Approval Records
+  kind: artifact
+  data_type: json
+  role: intermediate
+  producer: auto_approve_claim
+  consumers:
+  - write_settlement_summary
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: approval_status
+  name: Approval Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: auto_approve_claim
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: settlement_summary
+  name: Settlement Summary
+  kind: artifact
+  data_type: json
+  role: output
+  producer: write_settlement_summary
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: settlement_summary_status
+  name: Settlement Summary Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: write_settlement_summary
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: ingest_claims
+  service_id: claims_database_batch_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: claims_database
+    artifact_id: claims_database_resource
+  output_bindings:
+  - port: claim_batch
+    artifact_id: claim_batch
+  - port: extraction_status
+    artifact_id: claim_extract_status
+  parameter_bindings:
+    claim_query: daily_open_claims
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: score_claim_risk
+  service_id: claim_risk_scoring_service
+  service_version: 1.0.0
+  input_bindings:
+  - port: claim_batch
+    artifact_id: claim_batch
+  - port: risk_service
+    artifact_id: risk_scoring_service_resource
+  output_bindings:
+  - port: risk_scores
+    artifact_id: risk_scores
+  - port: scoring_status
+    artifact_id: risk_scoring_status
+  parameter_bindings:
+    risk_profile: standard
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: route_claim
+  service_id: claim_risk_route_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: risk_scores
+    artifact_id: risk_scores
+  output_bindings:
+  - port: claim_route_decision
+    artifact_id: claim_route_decision
+  - port: routing_status
+    artifact_id: claim_routing_status
+  parameter_bindings:
+    risk_threshold: 0.75
+    manual_route: manual_adjudication
+    auto_route: auto_approve_claim
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: manual_adjudication
+  service_id: manual_claim_adjudication_recorder
+  service_version: 1.0.0
+  input_bindings:
+  - port: risk_scores
+    artifact_id: risk_scores
+  output_bindings:
+  - port: manual_adjudication_records
+    artifact_id: manual_adjudication_records
+  - port: manual_status
+    artifact_id: manual_status
+  parameter_bindings:
+    queue_name: manual_claim_review
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: auto_approve_claim
+  service_id: low_risk_claim_auto_approver
+  service_version: 1.0.0
+  input_bindings:
+  - port: risk_scores
+    artifact_id: risk_scores
+  output_bindings:
+  - port: auto_approval_records
+    artifact_id: auto_approval_records
+  - port: approval_status
+    artifact_id: approval_status
+  parameter_bindings:
+    approval_policy: low_risk_standard
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: write_settlement_summary
+  service_id: claim_settlement_summary_writer
+  service_version: 1.0.0
+  input_bindings:
+  - port: manual_adjudication_records
+    artifact_id: manual_adjudication_records
+  - port: auto_approval_records
+    artifact_id: auto_approval_records
+  output_bindings:
+  - port: settlement_summary
+    artifact_id: settlement_summary
+  - port: summary_status
+    artifact_id: settlement_summary_status
+  parameter_bindings:
+    summary_name: claim_settlement_summary
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

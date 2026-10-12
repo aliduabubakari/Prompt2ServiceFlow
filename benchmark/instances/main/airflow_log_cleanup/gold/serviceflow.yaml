@@ -1,0 +1,206 @@
+ir_version: 0.1.0
+composition_id: airflow_log_cleanup
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:airflow-log-cleanup
+  split: main
+  pipeline_id: airflow-log-cleanup
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/05_airflow_log_cleanup.txt
+  description_sha256: 5053df3462514e66cca536bab558494e14988b2548d600d05c7b80433176d960
+  internal_spec_path: source/internal_specs/main_40/05_airflow_log_cleanup.json
+  internal_spec_sha256: b2c50994ff5e964abe3542474331d5873aa6b9dc32768244fa6c828a16cb8d92
+requirement:
+  name: Airflow Log Cleanup
+  purpose: Processing pipeline.
+  domain: infrastructure_maintenance
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes: []
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems: []
+service_intents:
+- intent_id: start
+  name: Start
+  category: Maintenance
+  capability: Initialize cleanup.
+  source_step_refs:
+  - start
+  evidence:
+  - source: description
+    text: Start.
+  inputs: []
+  outputs:
+  - start_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Started.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Bookend start.
+  confidence: strongly_inferred
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: log_cleanup_worker_num_1_dir_0
+  name: Cleanup logs
+  category: Maintenance
+  capability: Clean log files.
+  source_step_refs:
+  - log_cleanup_worker_num_1_dir_0
+  evidence:
+  - source: description
+    text: Clean logs.
+  inputs: []
+  outputs:
+  - cleanup_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Logs cleaned.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Log cleanup.
+  confidence: strongly_inferred
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: start
+    to: log_cleanup_worker_num_1_dir_0
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: start_status
+  name: Start status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: start
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: cleanup_status
+  name: Cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: output
+  producer: log_cleanup_worker_num_1_dir_0
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: start
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: start_status
+  parameter_bindings:
+    targets:
+    - /tmp
+    ignore_missing: true
+  secret_bindings: []
+  rationale: Start marker.
+  confidence: strongly_inferred
+- intent_id: log_cleanup_worker_num_1_dir_0
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: cleanup_status
+  parameter_bindings:
+    targets:
+    - /var/log/airflow
+    ignore_missing: true
+  secret_bindings: []
+  rationale: Log cleanup.
+  confidence: strongly_inferred
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Gate 0
+- gate: G1
+  expected_status: pass
+  checks:
+  - Gate 1
+- gate: G2
+  expected_status: pass
+  checks:
+  - Gate 2
+- gate: G3
+  expected_status: pass
+  checks:
+  - Gate 3
+- gate: G4
+  expected_status: pass
+  checks:
+  - Gate 4
+- gate: G5
+  expected_status: pass
+  checks:
+  - Gate 5
+- gate: G6
+  expected_status: pass
+  checks:
+  - Gate 6
+source_step_accounting:
+- source_step_ref: start
+  disposition: service
+  intent_ids:
+  - start
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: log_cleanup_worker_num_1_dir_0
+  disposition: service
+  intent_ids:
+  - log_cleanup_worker_num_1_dir_0
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

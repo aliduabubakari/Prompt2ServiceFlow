@@ -1,0 +1,21 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:etl_import_ensembl
+candidate_sets:
+- candidate_set_id: main_etl_import_ensembl_delimited_file_tabular_dataset_loader_candidates
+  required_service_id: delimited_file_tabular_dataset_loader
+  labels:
+    delimited_file_tabular_dataset_loader: gold
+    csv_tabular_schema_validating_loader: policy_incompatible
+    csv_artifact_profile_ingestor: missing_required_output
+    customer_segment_csv_loader: target_mismatch
+    csv_to_structured_json_standardizer: format_mismatch
+    legacy_csv_schema_validator: deprecated_or_incompatible
+- candidate_set_id: main_etl_import_ensembl_tabular_dataset_database_loader_candidates
+  required_service_id: tabular_dataset_database_loader
+  labels:
+    tabular_dataset_database_loader: gold
+    postgres_parameterized_sql_executor: contract_mismatch
+    database_csv_snapshot_importer: format_mismatch
+    multi_table_analytics_warehouse_loader: contract_mismatch
+    air_quality_dimensional_postgres_loader: target_mismatch
+    legacy_database_table_loader: deprecated_or_incompatible

@@ -1,0 +1,110 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:rag_answer_pack_builder
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.9
+candidate_sets:
+- candidate_set_id: extension_rag_answer_pack_builder_rag_source_bundle_ingestor_candidates
+  source_step_refs:
+  - ingest_source_batch
+  service_ids:
+  - rag_source_bundle_ingestor
+  - image_caption_only_generator
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator
+- candidate_set_id: extension_rag_answer_pack_builder_rag_answer_pack_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contract
+  service_ids:
+  - rag_answer_pack_contract_validator
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator
+  - generic_control_mapping_table_joiner
+- candidate_set_id: extension_rag_answer_pack_builder_rag_document_partition_normalizer_candidates
+  source_step_refs:
+  - normalize_partition_a
+  service_ids:
+  - rag_document_partition_normalizer
+  - rag_index_without_answer_generator
+  - generic_control_mapping_table_joiner
+  - meeting_summary_without_action_owner
+- candidate_set_id: extension_rag_answer_pack_builder_rag_question_partition_normalizer_candidates
+  source_step_refs:
+  - normalize_partition_b
+  service_ids:
+  - rag_question_partition_normalizer
+  - generic_control_mapping_table_joiner
+  - meeting_summary_without_action_owner
+  - reviewed_domain_adapter
+- candidate_set_id: extension_rag_answer_pack_builder_rag_config_partition_normalizer_candidates
+  source_step_refs:
+  - normalize_partition_c
+  service_ids:
+  - rag_config_partition_normalizer
+  - meeting_summary_without_action_owner
+  - reviewed_domain_adapter
+  - image_caption_only_generator
+- candidate_set_id: extension_rag_answer_pack_builder_rag_corpus_question_config_fuser_candidates
+  source_step_refs:
+  - fuse_partitions
+  service_ids:
+  - rag_corpus_question_config_fuser
+  - reviewed_domain_adapter
+  - image_caption_only_generator
+  - invoice_ocr_without_reconciliation
+- candidate_set_id: extension_rag_answer_pack_builder_pdf_text_extraction_parser_candidates
+  source_step_refs:
+  - extract_or_parse_text
+  service_ids:
+  - pdf_text_extraction_parser
+  - image_caption_only_generator
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator
+- candidate_set_id: extension_rag_answer_pack_builder_semantic_document_chunker_candidates
+  source_step_refs:
+  - chunk_documents
+  service_ids:
+  - semantic_document_chunker
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator
+  - generic_control_mapping_table_joiner
+- candidate_set_id: extension_rag_answer_pack_builder_deterministic_text_embedding_generator_candidates
+  source_step_refs:
+  - generate_embeddings
+  service_ids:
+  - deterministic_text_embedding_generator
+  - rag_index_without_answer_generator
+  - generic_control_mapping_table_joiner
+  - meeting_summary_without_action_owner
+- candidate_set_id: extension_rag_answer_pack_builder_fixture_vector_index_writer_candidates
+  source_step_refs:
+  - write_vector_index
+  service_ids:
+  - fixture_vector_index_writer
+  - generic_control_mapping_table_joiner
+  - meeting_summary_without_action_owner
+  - reviewed_domain_adapter
+- candidate_set_id: extension_rag_answer_pack_builder_grounding_context_retriever_candidates
+  source_step_refs:
+  - retrieve_grounding_context
+  service_ids:
+  - grounding_context_retriever
+  - meeting_summary_without_action_owner
+  - reviewed_domain_adapter
+  - image_caption_only_generator
+- candidate_set_id: extension_rag_answer_pack_builder_rag_grounded_answer_generator_candidates
+  source_step_refs:
+  - run_structured_extraction
+  service_ids:
+  - rag_grounded_answer_generator
+  - reviewed_domain_adapter
+  - image_caption_only_generator
+  - invoice_ocr_without_reconciliation
+- candidate_set_id: extension_rag_answer_pack_builder_rag_answer_pack_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - rag_answer_pack_publisher
+  - image_caption_only_generator
+  - invoice_ocr_without_reconciliation
+  - rag_index_without_answer_generator

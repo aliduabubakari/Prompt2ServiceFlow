@@ -1,0 +1,48 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: extension:manufacturing_telemetry_quality_scoring
+mappings:
+- intent_id: ingest_source_batch
+  inputs:
+    input_artifacts: source_bundle
+  outputs:
+    output_artifacts: ingest_source_batch_artifact
+    execution_report: ingest_source_batch_status
+- intent_id: validate_source_contract
+  inputs:
+    input_artifacts: ingest_source_batch_artifact
+  outputs:
+    output_artifacts: validate_source_contract_artifact
+    execution_report: validate_source_contract_status
+- intent_id: extract_branch_features
+  inputs:
+    input_artifacts: validate_source_contract_artifact
+  outputs:
+    output_artifacts: extract_branch_features_artifact
+    execution_report: extract_branch_features_status
+- intent_id: enrich_branch_context
+  inputs:
+    input_artifacts: validate_source_contract_artifact
+  outputs:
+    output_artifacts: enrich_branch_context_artifact
+    execution_report: enrich_branch_context_status
+- intent_id: score_branch_quality
+  inputs:
+    input_artifacts: validate_source_contract_artifact
+  outputs:
+    output_artifacts: score_branch_quality_artifact
+    execution_report: score_branch_quality_status
+- intent_id: merge_branch_outputs
+  inputs:
+    input_artifacts:
+    - extract_branch_features_artifact
+    - enrich_branch_context_artifact
+    - score_branch_quality_artifact
+  outputs:
+    output_artifacts: merge_branch_outputs_artifact
+    execution_report: merge_branch_outputs_status
+- intent_id: publish_outputs
+  inputs:
+    input_artifacts: merge_branch_outputs_artifact
+  outputs:
+    output_artifacts: publish_outputs_artifact
+    execution_report: publish_outputs_status

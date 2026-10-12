@@ -1,0 +1,41 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_claims_adjudication_branch
+mappings:
+- intent_id: ingest_claims
+  inputs:
+    claims_database: claims_database_resource
+  outputs:
+    claim_batch: claim_batch
+    extraction_status: claim_extract_status
+- intent_id: score_claim_risk
+  inputs:
+    claim_batch: claim_batch
+    risk_service: risk_scoring_service_resource
+  outputs:
+    risk_scores: risk_scores
+    scoring_status: risk_scoring_status
+- intent_id: route_claim
+  inputs:
+    risk_scores: risk_scores
+  outputs:
+    claim_route_decision: claim_route_decision
+    routing_status: claim_routing_status
+- intent_id: manual_adjudication
+  inputs:
+    risk_scores: risk_scores
+  outputs:
+    manual_adjudication_records: manual_adjudication_records
+    manual_status: manual_status
+- intent_id: auto_approve_claim
+  inputs:
+    risk_scores: risk_scores
+  outputs:
+    auto_approval_records: auto_approval_records
+    approval_status: approval_status
+- intent_id: write_settlement_summary
+  inputs:
+    manual_adjudication_records: manual_adjudication_records
+    auto_approval_records: auto_approval_records
+  outputs:
+    settlement_summary: settlement_summary
+    summary_status: settlement_summary_status

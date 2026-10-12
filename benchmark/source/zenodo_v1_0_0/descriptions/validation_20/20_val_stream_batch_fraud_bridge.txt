@@ -1,0 +1,110 @@
+Pipeline Summary:
+- Pipeline ID: val_stream_batch_fraud_bridge
+- Name: Stream-Batch Fraud Bridge
+- Purpose: Wait for stream checkpoints and batch settlement files, combine online transaction events with batch history, branch suspicious accounts to investigation, and update monitoring outputs.
+- Execution model: Hybrid
+- Topology pattern: Mixed
+- Business domain: Fraud Detection
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - wait_for_stream_checkpoint -> load_stream_events
+  - wait_for_stream_checkpoint -> load_batch_settlements
+  - load_stream_events -> join_transaction_context
+  - load_batch_settlements -> join_transaction_context
+  - load_account_history -> join_transaction_context
+  - join_transaction_context -> score_fraud_risk
+  - score_fraud_risk -> route_risk_action
+  - route_risk_action -> update_monitoring_table
+  - route_risk_action -> open_investigation_case
+  - update_monitoring_table -> publish_risk_metrics
+- Parallel groups:
+  - group 1: load_stream_events, load_batch_settlements, load_account_history
+- Branch points:
+  - {'step': 'route_risk_action', 'conditions': ['low_risk', 'high_risk'], 'merge_step': None}
+- Gate or sensor dependencies:
+  - {'step': 'wait_for_stream_checkpoint', 'condition': 'checkpoint_committed'}
+
+Data Artifacts / I-O Identifiers:
+  - data_object: stream_events
+  - data_object: settlement_file
+  - data_object: account_history
+  - data_object: risk_scores
+  - data_object: investigation_cases
+  - data_object: risk_metrics
+
+External Systems:
+  - external_service: Kafka topic
+  - external_service: Settlement warehouse
+  - external_service: Account database
+  - external_service: Case management system
+
+Pipeline Steps:
+1. wait_for_stream_checkpoint - wait for stream checkpoint
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. load_stream_events - load stream events
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. load_batch_settlements - load batch settlements
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+4. load_account_history - load account history
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+5. join_transaction_context - join transaction context
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+6. score_fraud_risk - score fraud risk
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+7. route_risk_action - route risk action
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+8. update_monitoring_table - update monitoring table
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+9. open_investigation_case - open investigation case
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+10. publish_risk_metrics - publish risk metrics
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

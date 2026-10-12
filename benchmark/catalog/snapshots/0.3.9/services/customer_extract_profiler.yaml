@@ -1,0 +1,89 @@
+schema_version: 0.1.0
+service_id: customer_extract_profiler
+version: 1.0.0
+display_name: Customer Extract Profiler
+category: DataProfiler
+capability:
+  summary: Profiles a customer extract before quality-rule evaluation.
+  operations:
+  - Profiles a customer extract before quality-rule evaluation.
+  keywords:
+  - customer
+  - extract
+  - profiler
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: customer_extract
+    description: Reviewed customer extract value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: profile_report
+    description: Reviewed profile report value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: profile_status
+    description: Reviewed profile status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: profile_rules
+    description: Configuration for profile rules.
+    type: object
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: customer-extract-profiler
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.2
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.customer_extract_profiler
+  implementation_ref: services/implementations/customer_extract_profiler
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-03:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 03 descriptions; bindings retain inference confidence.

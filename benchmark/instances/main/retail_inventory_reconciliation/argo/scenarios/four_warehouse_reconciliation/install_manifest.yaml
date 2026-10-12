@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: retail-inventory-reconciliation-four-wareho-fa70dc61-scripts
+  namespace: prompt2serviceflow
+data:
+  01_fetch_warehouse_csv.py: "#!/usr/bin/env python3\n\"\"\"Fetch inventory CSV from a warehouse (mock).\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, shutil\nfrom pathlib import Path\n\ndef\
+    \ main():\n    p=argparse.ArgumentParser()\n    p.add_argument(\"--workspace\",type=Path,required=True)\n\
+    \    p.add_argument(\"--fixture\",type=Path,required=True)\n    p.add_argument(\"--warehouse\",type=str,required=True)\n\
+    \    a=p.parse_args()\n    art=a.workspace/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n\
+    \    dest=art/f\"{a.warehouse}_inventory.csv\"\n    shutil.copyfile(a.fixture,dest)\n    import json\n\
+    \    st={\"success\":True,\"errors\":[]}\n    (art/f\"{a.warehouse}_fetch_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  02_normalize_skus.py: "#!/usr/bin/env python3\n\"\"\"Normalize SKU formats for a warehouse.\"\"\"\n\
+    from __future__ import annotations\nimport argparse, csv, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser()\n    p.add_argument(\"--workspace\",type=Path,required=True)\n  \
+    \  p.add_argument(\"--warehouse\",type=str,required=True)\n    a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"\n    src_path=art/f\"{a.warehouse}_inventory.csv\"\n    with src_path.open(encoding=\"\
+    utf-8\",newline=\"\") as f:\n        r=csv.DictReader(f); rows=list(r); cols=r.fieldnames or []\n\
+    \    for row in rows:\n        row[\"sku\"]=row[\"sku\"].upper().replace(\"-\",\"_\")\n    out=art/f\"\
+    normalized_{a.warehouse}.csv\"\n    with out.open(\"w\",encoding=\"utf-8\",newline=\"\") as f:\n \
+    \       w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows(rows)\n    st={\"success\"\
+    :True,\"errors\":[]}\n    (art/f\"{a.warehouse}_normalization_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_reconcile_all_inventories.py: "#!/usr/bin/env python3\n\"\"\"Reconcile normalized inventories across\
+    \ all 4 warehouses.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib\
+    \ import Path\n\nWH=[\"north\",\"south\",\"east\",\"west\"]\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"\n    all_data={}\n    for w in WH:\n        pth=art/f\"normalized_{w}.csv\"\n        if\
+    \ pth.is_file():\n            with pth.open(encoding=\"utf-8\",newline=\"\") as f:\n             \
+    \   all_data[w]=list(csv.DictReader(f))\n    skus=set()\n    for rows in all_data.values():\n    \
+    \    for r in rows: skus.add(r[\"sku\"])\n    report_rows=[]\n    for sku in sorted(skus):\n     \
+    \   qty={}\n        for w in WH:\n            for r in all_data.get(w,[]):\n                if r[\"\
+    sku\"]==sku: qty[w]=int(r[\"quantity\"])\n        qty_list=[qty.get(w,0) for w in WH]\n        if\
+    \ max(qty_list)-min(qty_list)>10:\n            report_rows.append({\"sku\":sku,\"warehouses\":\",\"\
+    .join(WH),\"discrepancy\":\"quantity_mismatch\"})\n    out=art/\"discrepancy_report.csv\"\n    with\
+    \ out.open(\"w\",encoding=\"utf-8\",newline=\"\") as f:\n        w=csv.DictWriter(f,fieldnames=[\"\
+    sku\",\"warehouses\",\"discrepancy\"])\n        w.writeheader(); w.writerows(report_rows)\n    st={\"\
+    success\":True,\"errors\":[]}\n    (art/\"reconciliation_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_generate_final_report.py: "#!/usr/bin/env python3\n\"\"\"Generate mock PDF reconciliation report.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"\n    pdf=art/\"reconciliation_report.pdf\"\n    pdf.write_bytes(b\"\
+    %PDF-1.4\\n%% MOCK RECONCILIATION REPORT\\n\"*15)\n    st={\"success\":True,\"errors\":[]}\n    (art/\"\
+    report_status.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"\
+    __main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: retail-inventory-reconciliation-four-wareho-fa70dc61-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"pipeline_id\": \"retail_inventory_reconciliation\",\n  \"inputs\": {\n    \"warehouse_east\"\
+    : \"warehouse_east.csv\",\n    \"warehouse_wms\": \"warehouse_wms.json\",\n    \"warehouse_west\"\
+    : \"warehouse_west.csv\",\n    \"warehouse_north\": \"warehouse_north.csv\",\n    \"warehouse_south\"\
+    : \"warehouse_south.csv\"\n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n  ],\n \
+    \ \"systems\": [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"
+  fixture-0001: 'sku,product_name,quantity,location
+
+    SKU-E-001,Widget A,140,Bin-10
+
+    SKU-E-002,Widget B,210,Bin-11
+
+    SKU-E-004,Widget E,55,Bin-12
+
+    '
+  fixture-0002: 'sku,product_name,quantity,location
+
+    SKU-N-001,Widget A,150,Shelf-A1
+
+    SKU-N-002,Widget B,200,Shelf-A2
+
+    SKU-N-003,Widget C,75,Shelf-B1
+
+    '
+  fixture-0003: 'sku,product_name,quantity,location
+
+    SKU_S_001,Widget A,120,Rack-1A
+
+    SKU_S_002,Widget B,180,Rack-1B
+
+    SKU_S_003,Widget D,90,Rack-2A
+
+    '
+  fixture-0004: 'sku,product_name,quantity,location
+
+    SKU-W-001,Widget A,130,Pallet-1
+
+    SKU-W-002,Widget B,195,Pallet-2
+
+    SKU-W-003,Widget C,80,Pallet-3
+
+    '
+  fixture-0005: '{"driver":"filesystem-mock","provider":"warehouse-wms","target":"workspace/mock_wms"}'

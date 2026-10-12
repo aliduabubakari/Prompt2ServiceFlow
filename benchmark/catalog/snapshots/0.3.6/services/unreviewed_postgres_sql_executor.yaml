@@ -1,0 +1,187 @@
+schema_version: 0.1.0
+service_id: unreviewed_postgres_sql_executor
+version: 1.0.0
+display_name: Unreviewed PostgreSQL SQL Executor
+category: Loader
+capability:
+  summary: Executes caller-supplied PostgreSQL statements without a reviewed SQL allowlist.
+  operations:
+  - Connect to a bound PostgreSQL database resource.
+  - Execute one or more SQL statements in supplied order.
+  - Bind parameters from an optional JSON object for parameterized statements.
+  - Report affected tables, rows affected when available, and success/failure status.
+  keywords:
+  - postgresql
+  - sql
+  - ddl
+  - dml
+  - parameterized query
+  - create table
+  - insert
+  - database mutation
+  limitations:
+  - SQL text is not constrained to a reviewed statement set.
+  - Not approved for confidential, restricted, PII, PHI, or financial data.
+lifecycle:
+  status: experimental
+interface:
+  inputs:
+  - name: postgres_database
+    description: PostgreSQL-compatible database resource used to execute SQL.
+    channel: external_resource
+    data_type: object
+    schema_ref: schema://postgres_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: parameter_values
+    description: Optional JSON object containing values to bind into parameterized
+      SQL statements, such as firstname, lastname, and email.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://sql_parameter_values/v1
+    required: false
+    cardinality: one
+    sensitivity: pii
+  outputs:
+  - name: affected_tables
+    description: Logical references to PostgreSQL tables affected or expected to be
+      affected by the SQL statements.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://sql_affected_table_references/v1
+    required: true
+    cardinality: many
+    sensitivity: internal
+  - name: execution_status
+    description: Observable SQL execution status containing success, statement counts,
+      affected row count, target tables, and errors.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://postgres_sql_execution_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: sql_statements
+    description: Array of SQL statements to execute in order.
+    type: array
+    required: true
+  - name: target_tables
+    description: Optional array of expected affected table names, optionally schema-qualified.
+    type: array
+    required: false
+  - name: transaction_mode
+    description: Transaction behavior for multiple statements.
+    type: string
+    required: false
+    enum:
+    - single_transaction
+    - autocommit
+  - name: statement_type
+    description: Declared statement class for policy and mock validation.
+    type: string
+    required: false
+    enum:
+    - ddl
+    - dml
+    - mixed
+  secrets: []
+contracts:
+- contract_id: postgres_sql_non_empty_contract
+  type: precondition
+  applies_to: parameter
+  target: sql_statements
+  description: At least one non-empty SQL statement must be supplied.
+  expression: length(sql_statements) > 0 and all(length(trim(s)) > 0 for s in sql_statements)
+- contract_id: postgres_target_table_contract
+  type: precondition
+  applies_to: parameter
+  target: target_tables
+  description: Configured target table names must be valid SQL identifier-like names,
+    optionally schema-qualified.
+  expression: target_tables == null or all(t matches '^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$'
+    for t in target_tables)
+- contract_id: sql_parameter_values_schema
+  type: json_schema
+  applies_to: input
+  target: parameter_values
+  description: Parameter values, when supplied, are a JSON object keyed by parameter
+    name.
+  schema_ref: schema://sql_parameter_values/v1
+  expression: '{"type":"object","additionalProperties":true}'
+- contract_id: postgres_affected_tables_schema
+  type: json_schema
+  applies_to: output
+  target: affected_tables
+  description: Affected table references expose database table identifiers and operation
+    type when known.
+  schema_ref: schema://sql_affected_table_references/v1
+  expression: '{"type":"array","items":{"type":"object","required":["table_name"],"properties":{"schema_name":{"type":["string","null"]},"table_name":{"type":"string"},"operation":{"type":["string","null"]}}}}'
+- contract_id: postgres_sql_execution_status_schema
+  type: json_schema
+  applies_to: output
+  target: execution_status
+  description: Status exposes database mutation outcome for downstream validation.
+  schema_ref: schema://postgres_sql_execution_status/v1
+  expression: '{"type":"object","required":["success","statements_submitted","statements_succeeded","affected_tables"],"properties":{"success":{"type":"boolean"},"statements_submitted":{"type":"integer","minimum":0},"statements_succeeded":{"type":"integer","minimum":0},"rows_affected":{"type":["integer","null"],"minimum":0},"affected_tables":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: postgres_sql_executor_effect
+  type: effect
+  applies_to: service
+  target: unreviewed_postgres_sql_executor
+  description: On success, all submitted statements completed and execution_status.success
+    is true.
+  expression: execution_status.success == true implies execution_status.statements_succeeded
+    == execution_status.statements_submitted
+invocation:
+  type: argo_workflow_template
+  template_name: unreviewed-postgres-sql-executor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.unreviewed_postgres_sql_executor
+  implementation_ref: services/implementations/unreviewed_postgres_sql_executor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - postgresql://*
+  secret_access: required
+  retry_safe: false
+  idempotency: unknown
+  data_sensitivity:
+  - public
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Caller-supplied SQL is executed without allowlist review.
+  - Use with sensitive data or production databases is prohibited.
+  idempotency_notes: DDL with CREATE TABLE IF NOT EXISTS may be idempotent; INSERT
+    statements can duplicate rows unless constrained or written with conflict handling.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: reviewed
+  source_refs:
+  - catalog-curation:0.1.0
+  notes:
+  - Curated supplementary service derived from postgres_parameterized_sql_executor.
+  - Lifecycle and policy metadata reflect catalogue governance constraints.

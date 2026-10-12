@@ -1,0 +1,195 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: satellite-change-report-assembler-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_source_batch.py: "#!/usr/bin/env python3\n\"\"\"Ingest satellite image pairs (JSON metadata\
+    \ proxy), GeoJSON regions, and region reference CSV.\"\"\"\nfrom __future__ import annotations\nimport\
+    \ argparse, csv, json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True)\n    p.add_argument(\"--fixture\",type=Path,required=True);\
+    \ p.add_argument(\"--execution-time\",type=str,default=None)\n    a=p.parse_args(); r=a.workspace;\
+    \ art=r/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    fx=json.loads(a.fixture.read_text(encoding=\"\
+    utf-8\")); fd=a.fixture.parent\n    images=json.loads((fd/fx[\"inputs\"][\"images\"]).read_text(encoding=\"\
+    utf-8\"))\n    regions=json.loads((fd/fx[\"inputs\"][\"regions\"]).read_text(encoding=\"utf-8\"))\n\
+    \    ref={}\n    with (fd/fx[\"inputs\"][\"reference\"]).open(encoding=\"utf-8\",newline=\"\") as\
+    \ f:\n        for row in csv.DictReader(f): ref[row[\"region_id\"]]=row\n    result={\"images\":images,\"\
+    regions\":regions,\"reference\":ref,\"total_images\":len(images),\"total_regions\":len(ref),\"ingested_at\"\
+    :a.execution_time}\n    (art/\"ingest_source_batch_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"ingest_source_batch_status.json\").write_text(json.dumps({\"\
+    success\":True,\"images\":len(images),\"regions\":len(ref),\"errors\":[]},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+  02_validate_source_contract.py: "#!/usr/bin/env python3\n\"\"\"Validate: required fields, region existence,\
+    \ date ordering, cloud cover threshold.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom datetime import datetime\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    images,ref,thresh=ingested[\"images\"],ingested[\"reference\"\
+    ],ingested.get(\"thresholds\",{})\n    if not thresh:\n        fx=json.loads(a.fixture.read_text(encoding=\"\
+    utf-8\")); thresh=fx.get(\"change_thresholds\",{})\n    cloud_max=thresh.get(\"cloud_cover_max_pct\"\
+    ,30); min_days=thresh.get(\"min_days_between\",1)\n    required={\"region_id\",\"before_date\",\"\
+    after_date\",\"ndvi_before\",\"ndvi_after\",\"cloud_cover_pct\"}\n    errors=[]; valid=[]\n    for\
+    \ img in images:\n        issues=[]\n        if required-set(img.keys()): issues.append(f\"missing_fields:\
+    \ {required-set(img.keys())}\")\n        if img.get(\"region_id\") not in ref: issues.append(f\"unknown_region:\
+    \ {img.get('region_id')}\")\n        if img.get(\"cloud_cover_pct\",0)>cloud_max: issues.append(f\"\
+    excessive_cloud: {img.get('cloud_cover_pct')}%>{cloud_max}%\")\n        try:\n            b=datetime.strptime(img[\"\
+    before_date\"],\"%Y-%m-%d\"); a_d=datetime.strptime(img[\"after_date\"],\"%Y-%m-%d\")\n          \
+    \  if (a_d-b).days<min_days: issues.append(f\"insufficient_days: {(a_d-b).days}<{min_days}\")\n  \
+    \      except: issues.append(\"invalid_dates\")\n        if issues: errors.append({\"region_id\":img.get(\"\
+    region_id\",\"?\"),\"issues\":issues})\n        else: valid.append(img)\n    result={\"valid\":valid,\"\
+    errors\":errors,\"total_valid\":len(valid),\"total_rejected\":len(errors)}\n    (art/\"validate_source_contract_artifact.json\"\
+    ).write_text(json.dumps(result,indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"validate_source_contract_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"valid\":len(valid),\"rejected\":len(errors),\"errors\"\
+    :errors},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_stage_raw_artifacts.py: "#!/usr/bin/env python3\n\"\"\"Stage: join validated image pairs with region\
+    \ GeoJSON properties.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    geojson=ingested[\"regions\"]; ref=ingested[\"reference\"]\n    region_geom={f[\"properties\"\
+    ][\"region_id\"]:f for f in geojson[\"features\"]}\n    staged=[]\n    for img in validated[\"valid\"\
+    ]:\n        rid=img[\"region_id\"]; r=ref.get(rid,{}); g=region_geom.get(rid,{})\n        staged.append({**img,\"\
+    region_name\":r.get(\"region_name\",\"?\"),\"region_type\":r.get(\"region_type\",\"?\"),\n       \
+    \                \"area_ha\":float(r.get(\"area_ha\",0)),\"protection\":r.get(\"protection_status\"\
+    ,\"?\"),\n                       \"priority\":r.get(\"monitoring_priority\",\"?\"),\"geometry_type\"\
+    :g.get(\"geometry\",{}).get(\"type\",\"?\")})\n    (art/\"stage_raw_artifacts_artifact.json\").write_text(json.dumps({\"\
+    staged\":staged,\"total\":len(staged)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"stage_raw_artifacts_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"staged\":len(staged),\"errors\":[]},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_normalize_records.py: "#!/usr/bin/env python3\n\"\"\"Normalize: compute NDVI change, change magnitude,\
+    \ and classify change type.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom\
+    \ pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    fx=json.loads(a.fixture.read_text(encoding=\"utf-8\")); thresh=fx.get(\"\
+    change_thresholds\",{})\n    sig=thresh.get(\"ndvi_decrease_significant\",0.15); sev=thresh.get(\"\
+    ndvi_decrease_severe\",0.30)\n    staged=json.loads((art/\"stage_raw_artifacts_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    normalized=[]\n    for s in staged[\"staged\"]:\n        diff=round(s[\"ndvi_after\"\
+    ]-s[\"ndvi_before\"],3); abs_diff=abs(diff)\n        if diff<-sev: change=\"severe_decrease\"\n  \
+    \      elif diff<-sig: change=\"significant_decrease\"\n        elif diff>sig: change=\"significant_increase\"\
+    \n        elif abs_diff<0.02: change=\"no_change\"\n        else: change=\"minor_change\"\n      \
+    \  pct=round(abs_diff/max(s[\"ndvi_before\"],0.01)*100,1)\n        normalized.append({**s,\"ndvi_change\"\
+    :diff,\"abs_ndvi_change\":abs_diff,\"change_type\":change,\"change_pct\":pct})\n    (art/\"normalize_records_artifact.json\"\
+    ).write_text(json.dumps({\"normalized\":normalized,\"total\":len(normalized)},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    (art/\"normalize_records_status.json\").write_text(json.dumps({\"success\":True,\"normalized\"\
+    :len(normalized),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\":\
+    \ main()\n"
+  05_extract_visual_text_features.py: "#!/usr/bin/env python3\n\"\"\"Extract visual/text features: classify\
+    \ severity based on change magnitude and region priority.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    norm=json.loads((art/\"normalize_records_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    visual=[]\n    for n in norm[\"normalized\"]:\n        ch=n[\"\
+    change_type\"]; pri=n[\"priority\"]\n        if ch==\"severe_decrease\" and pri in (\"critical\",\"\
+    high\"): alert=\"critical_alert\"\n        elif ch in (\"severe_decrease\",\"significant_decrease\"\
+    ): alert=\"warning\"\n        elif ch==\"significant_increase\" and pri==\"critical\": alert=\"warning\"\
+    \n        else: alert=\"info\"\n        visual.append({\"region_id\":n[\"region_id\"],\"region_name\"\
+    :n[\"region_name\"],\"change_type\":ch,\n                       \"ndvi_change\":n[\"ndvi_change\"\
+    ],\"priority\":pri,\"alert_level\":alert,\n                       \"recommendation\":\"Immediate field\
+    \ investigation\" if alert==\"critical_alert\" else (\"Monitor closely\" if alert==\"warning\" else\
+    \ \"Routine monitoring\")})\n    (art/\"extract_visual_text_features_artifact.json\").write_text(json.dumps({\"\
+    visual\":visual,\"total\":len(visual)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"extract_visual_text_features_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"extracted\":len(visual),\"errors\":[]},indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  06_join_reference_metadata.py: "#!/usr/bin/env python3\n\"\"\"Join reference metadata: flag protection\
+    \ status and area concerns.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom\
+    \ pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    visual=json.loads((art/\"extract_visual_text_features_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    norm=json.loads((art/\"normalize_records_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    nmap={n[\"region_id\"]:n for n in norm[\"normalized\"]}\n    joined=[]\n    for v in\
+    \ visual[\"visual\"]:\n        n=nmap.get(v[\"region_id\"],{})\n        joined.append({**v,\"area_ha\"\
+    :n.get(\"area_ha\",0),\"protection\":n.get(\"protection\",\"?\"),\n                       \"region_type\"\
+    :n.get(\"region_type\",\"?\"),\"cloud_cover_pct\":n.get(\"cloud_cover_pct\",0),\n                \
+    \       \"resolution_m\":n.get(\"resolution_m\",10)})\n    (art/\"join_reference_metadata_artifact.json\"\
+    ).write_text(json.dumps({\"joined\":joined,\"total\":len(joined)},indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    (art/\"join_reference_metadata_status.json\").write_text(json.dumps({\"success\":True,\"joined\"\
+    :len(joined),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  07_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish: change report CSV + alert summary + audit\
+    \ manifest.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib import\
+    \ Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    p.add_argument(\"--execution-time\",type=str,default=None);\
+    \ a=p.parse_args(); art=a.workspace/\"artifacts\"\n    et=a.execution_time or \"2026-07-20T12:00:00Z\"\
+    ; fx=json.loads(a.fixture.read_text(encoding=\"utf-8\"))\n    joined=json.loads((art/\"join_reference_metadata_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    val=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    summary={\"total\":joined[\"total\"]+val[\"total_rejected\"\
+    ],\"valid\":joined[\"total\"],\"rejected\":val[\"total_rejected\"],\n             \"critical_alert\"\
+    :sum(1 for j in joined[\"joined\"] if j[\"alert_level\"]==\"critical_alert\"),\n             \"warning\"\
+    :sum(1 for j in joined[\"joined\"] if j[\"alert_level\"]==\"warning\"),\n             \"info\":sum(1\
+    \ for j in joined[\"joined\"] if j[\"alert_level\"]==\"info\")}\n    manifest={\"checkpoint_id\":f\"\
+    ckpt_sat_change_{et[:10].replace('-','_')}\",\"checkpoint_time\":et,\n              \"pipeline_id\"\
+    :fx[\"pipeline_id\"],\"summary\":summary,\n              \"output_files\":[\"satellite_change_report.csv\"\
+    ,\"audit_manifest.json\"],\"status\":\"completed\"}\n    (art/\"audit_manifest.json\").write_text(json.dumps(manifest,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    csv_rel=\"satellite_change_report.csv\"\n    with (art/csv_rel).open(\"\
+    w\",encoding=\"utf-8\",newline=\"\") as f:\n        w=csv.DictWriter(f,fieldnames=[\"region_id\",\"\
+    region_name\",\"region_type\",\"protection\",\"priority\",\"ndvi_change\",\"change_type\",\"alert_level\"\
+    ,\"recommendation\",\"area_ha\"])\n        w.writeheader()\n        for j in joined[\"joined\"]: w.writerow({k:j.get(k,\"\
+    \") for k in w.fieldnames})\n    (art/\"publish_outputs_artifact.json\").write_text(json.dumps({\"\
+    manifest\":manifest,\"csv\":csv_rel},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"publish_outputs_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"csv_exported\":csv_rel,\"summary\":summary,\"errors\"\
+    :[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: satellite-change-report-assembler-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"change_thresholds\": {\n    \"cloud_cover_max_pct\": 30.0,\n    \"min_days_between\"\
+    : 1,\n    \"ndvi_decrease_severe\": 0.3,\n    \"ndvi_decrease_significant\": 0.15\n  },\n  \"input_modalities\"\
+    : [\n    \"image\",\n    \"geojson\",\n    \"table\"\n  ],\n  \"inputs\": {\n    \"images\": \"satellite_images.json\"\
+    ,\n    \"reference\": \"region_reference.csv\",\n    \"regions\": \"regions.geojson\"\n  },\n  \"\
+    pipeline_id\": \"satellite_change_report_assembler\",\n  \"sample_media\": {\n    \"image\": \"sample_image.png\"\
+    \n  },\n  \"systems\": [\n    \"satellite imagery bucket\",\n    \"change monitoring dashboard\"\n\
+    \  ]\n}\n"
+  fixture-0001: 'region_id,region_name,region_type,area_ha,protection_status,monitoring_priority
+
+    RGN-AMZ-01,Amazonas Norte,rainforest,50000,protected,high
+
+    RGN-AMZ-02,Amazonas Sul,rainforest,35000,protected,high
+
+    RGN-BOR-01,Borneo Lowlands,rainforest,28000,unprotected,critical
+
+    RGN-BOR-02,Borneo Uplands,rainforest,15000,protected,medium
+
+    RGN-WET-01,Pantanal Wetlands,wetland,45000,protected,medium
+
+    RGN-URB-01,Sao Paulo Fringe,urban_fringe,8000,unprotected,high
+
+    '
+  fixture-0002: "{\n  \"type\": \"FeatureCollection\",\n  \"features\": [\n    {\"type\": \"Feature\"\
+    , \"properties\": {\"region_id\": \"RGN-AMZ-01\", \"name\": \"Amazonas Norte\"}, \"geometry\": {\"\
+    type\": \"Polygon\", \"coordinates\": [[[-60.0, -3.0], [-59.0, -3.0], [-59.0, -2.0], [-60.0, -2.0],\
+    \ [-60.0, -3.0]]]}},\n    {\"type\": \"Feature\", \"properties\": {\"region_id\": \"RGN-AMZ-02\",\
+    \ \"name\": \"Amazonas Sul\"}, \"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[[-60.0, -4.0],\
+    \ [-59.0, -4.0], [-59.0, -3.0], [-60.0, -3.0], [-60.0, -4.0]]]}},\n    {\"type\": \"Feature\", \"\
+    properties\": {\"region_id\": \"RGN-BOR-01\", \"name\": \"Borneo Lowlands\"}, \"geometry\": {\"type\"\
+    : \"Polygon\", \"coordinates\": [[[114.0, 1.0], [115.0, 1.0], [115.0, 2.0], [114.0, 2.0], [114.0,\
+    \ 1.0]]]}},\n    {\"type\": \"Feature\", \"properties\": {\"region_id\": \"RGN-WET-01\", \"name\"\
+    : \"Pantanal Wetlands\"}, \"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[[-57.0, -18.0],\
+    \ [-56.0, -18.0], [-56.0, -17.0], [-57.0, -17.0], [-57.0, -18.0]]]}},\n    {\"type\": \"Feature\"\
+    , \"properties\": {\"region_id\": \"RGN-URB-01\", \"name\": \"Sao Paulo Fringe\"}, \"geometry\": {\"\
+    type\": \"Polygon\", \"coordinates\": [[[-46.8, -23.7], [-46.6, -23.7], [-46.6, -23.5], [-46.8, -23.5],\
+    \ [-46.8, -23.7]]]}}\n  ]\n}\n"
+  fixture-0004: "[\n  {\"region_id\": \"RGN-AMZ-01\", \"before_date\": \"2026-06-01\", \"after_date\"\
+    : \"2026-07-15\", \"ndvi_before\": 0.72, \"ndvi_after\": 0.58, \"cloud_cover_pct\": 5.0, \"resolution_m\"\
+    : 10, \"sensor\": \"Sentinel-2\"},\n  {\"region_id\": \"RGN-AMZ-02\", \"before_date\": \"2026-06-01\"\
+    , \"after_date\": \"2026-07-15\", \"ndvi_before\": 0.85, \"ndvi_after\": 0.82, \"cloud_cover_pct\"\
+    : 12.0, \"resolution_m\": 10, \"sensor\": \"Sentinel-2\"},\n  {\"region_id\": \"RGN-BOR-01\", \"before_date\"\
+    : \"2026-05-15\", \"after_date\": \"2026-07-20\", \"ndvi_before\": 0.65, \"ndvi_after\": 0.30, \"\
+    cloud_cover_pct\": 3.0, \"resolution_m\": 10, \"sensor\": \"Sentinel-2\"},\n  {\"region_id\": \"RGN-BOR-02\"\
+    , \"before_date\": \"2026-05-15\", \"after_date\": \"2026-05-15\", \"ndvi_before\": 0.55, \"ndvi_after\"\
+    : 0.55, \"cloud_cover_pct\": 45.0, \"resolution_m\": 10, \"sensor\": \"Sentinel-2\"},\n  {\"region_id\"\
+    : \"RGN-WET-01\", \"before_date\": \"2026-04-01\", \"after_date\": \"2026-07-15\", \"ndvi_before\"\
+    : 0.90, \"ndvi_after\": 0.88, \"cloud_cover_pct\": 8.0, \"resolution_m\": 10, \"sensor\": \"Sentinel-2\"\
+    },\n  {\"region_id\": \"RGN-URB-01\", \"before_date\": \"2026-06-01\", \"after_date\": \"2026-07-15\"\
+    , \"ndvi_before\": 0.40, \"ndvi_after\": 0.15, \"cloud_cover_pct\": 2.0, \"resolution_m\": 10, \"\
+    sensor\": \"Sentinel-2\"}\n]\n"
+binaryData:
+  fixture-0003: iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGUlEQVR42mNI0V/ynxLMMGrAqAGjBgwXAwDUVDYfyOZ4ZQAAAABJRU5ErkJggg==

@@ -1,0 +1,382 @@
+ir_version: 0.1.0
+composition_id: executive_sales_dashboard
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:executive_sales_dashboard
+  split: main
+  pipeline_id: executive_sales_dashboard
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/20_executive_sales_dashboard.txt
+  description_sha256: 9f7261849c3a1062495222387be4ad8df75a2c1e37b9177974fce4edb9e6b7d0
+  internal_spec_path: source/internal_specs/main_40/20_executive_sales_dashboard.json
+  internal_spec_sha256: 81c906241531acd119983b33e2510954132abc8bb3842710ecc9577ead2a5abf
+requirement:
+  name: Executive Sales Dashboard
+  purpose: Wait for sales data readiness, load CSV, and generate dashboard report.
+  domain: sales
+  execution_model: batch
+  topology: sensor_gated
+  information_sufficiency: high
+  notes:
+  - Sensor-gated dashboard pipeline.
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: sales_db
+  type: database
+  name: Sales Database
+  identifier: sales_db
+  access_mode: read
+  authentication: secret
+  mock_strategy: fixture
+- system_id: source_fs
+  type: filesystem
+  name: Filesystem
+  identifier: /data
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: wait_for_sales_aggregation
+  name: Wait for sales data
+  category: Sensor
+  capability: Poll database for sales aggregation readiness.
+  source_step_refs:
+  - wait_for_sales_aggregation
+  evidence:
+  - source: description
+    text: Wait for sales aggregation.
+  inputs:
+  - db_resource
+  outputs:
+  - readiness_decision
+  - sensor_status
+  external_system_refs:
+  - sales_db
+  preconditions:
+  - DB accessible.
+  effects:
+  - Readiness decision emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Sensor gates the pipeline.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: load_sales_csv
+  name: Load sales CSV
+  category: Extractor
+  capability: Validate and load sales data CSV.
+  source_step_refs:
+  - load_sales_csv
+  evidence:
+  - source: description
+    text: Load sales CSV.
+  inputs:
+  - sales_csv
+  outputs:
+  - validated_dataset
+  - validated_data
+  - validation_status
+  external_system_refs:
+  - source_fs
+  preconditions:
+  - CSV available.
+  effects:
+  - Validated dataset emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Loads and validates CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: generate_dashboard
+  name: Generate dashboard
+  category: ReportGenerator
+  capability: Generate dashboard report from validated data.
+  source_step_refs:
+  - generate_dashboard
+  evidence:
+  - source: description
+    text: Generate dashboard.
+  inputs:
+  - validated_dataset
+  outputs:
+  - dashboard_report
+  - render_status
+  external_system_refs: []
+  preconditions:
+  - Validated data available.
+  effects:
+  - Dashboard report emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Generates dashboard report.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: wait_for_sales_aggregation
+    to: load_sales_csv
+  - from: load_sales_csv
+    to: generate_dashboard
+  parallel_groups: []
+  branches: []
+  gates:
+  - gate_id: sales_data_ready
+    sensor_intent: wait_for_sales_aggregation
+    condition: data_ready == true
+    gated_intents:
+    - load_sales_csv
+    - generate_dashboard
+artifacts:
+- artifact_id: db_resource
+  name: DB resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - wait_for_sales_aggregation
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/db.json
+  external_system_ref: sales_db
+- artifact_id: readiness_decision
+  name: Readiness decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: decision
+  producer: wait_for_sales_aggregation
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: sensor_status
+  name: Sensor status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: wait_for_sales_aggregation
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: sales_csv
+  name: Sales CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - load_sales_csv
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/sales.csv
+  external_system_ref: source_fs
+- artifact_id: validated_dataset
+  name: Validated dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/tab.schema.json
+  role: intermediate
+  producer: load_sales_csv
+  consumers:
+  - generate_dashboard
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validated_data
+  name: Validated data obj
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: load_sales_csv
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validation_status
+  name: Validation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: load_sales_csv
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: dashboard_report
+  name: Dashboard report
+  kind: artifact
+  data_type: text
+  media_type: text/plain
+  role: output
+  producer: generate_dashboard
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: render_status
+  name: Render status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: generate_dashboard
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: wait_for_sales_aggregation
+  service_id: sql_query_readiness_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: database
+    artifact_id: db_resource
+  output_bindings:
+  - port: readiness_decision
+    artifact_id: readiness_decision
+  - port: query_status
+    artifact_id: sensor_status
+  parameter_bindings:
+    sql_query: SELECT COUNT(*) FROM sales_aggregation WHERE date = CURRENT_DATE
+    success_condition: row_count > 0
+  secret_bindings: []
+  rationale: Polls for sales data readiness.
+  confidence: explicit
+- intent_id: load_sales_csv
+  service_id: csv_tabular_schema_validating_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_file
+    artifact_id: sales_csv
+  output_bindings:
+  - port: validated_dataset
+    artifact_id: validated_dataset
+  - port: validated_data_object
+    artifact_id: validated_data
+  - port: validation_status
+    artifact_id: validation_status
+  parameter_bindings:
+    output_path: /workspace/artifacts/validated.json
+    has_header: true
+  secret_bindings: []
+  rationale: Loads and validates sales CSV.
+  confidence: explicit
+- intent_id: generate_dashboard
+  service_id: tabular_dashboard_report_generator
+  service_version: 1.0.0
+  input_bindings:
+  - port: validated_dataset
+    artifact_id: validated_dataset
+  output_bindings:
+  - port: dashboard_report
+    artifact_id: dashboard_report
+  - port: render_status
+    artifact_id: render_status
+  parameter_bindings:
+    dashboard_spec:
+      title: Sales Dashboard
+    output_format: html
+    output_path: /workspace/artifacts/dashboard.html
+  secret_bindings: []
+  rationale: Generates executive dashboard.
+  confidence: explicit
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock sales data and dashboard.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All three source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Three exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports, parameters, types, and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Sensor-gated Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Sales dashboard scenario executes
+- gate: G6
+  expected_status: pass
+  checks:
+  - Dashboard report invariants hold
+source_step_accounting:
+- source_step_ref: wait_for_sales_aggregation
+  disposition: service
+  intent_ids:
+  - wait_for_sales_aggregation
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: load_sales_csv
+  disposition: service
+  intent_ids:
+  - load_sales_csv
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: generate_dashboard
+  disposition: service
+  intent_ids:
+  - generate_dashboard
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

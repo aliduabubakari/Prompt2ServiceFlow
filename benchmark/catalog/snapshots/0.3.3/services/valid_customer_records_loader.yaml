@@ -1,0 +1,98 @@
+schema_version: 0.1.0
+service_id: valid_customer_records_loader
+version: 1.0.0
+display_name: Valid Customer Records Loader
+category: Loader
+capability:
+  summary: Loads quality-approved customer records into the customer warehouse.
+  operations:
+  - Loads quality-approved customer records into the customer warehouse.
+  keywords:
+  - valid
+  - customer
+  - records
+  - loader
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: valid_records
+    description: Reviewed valid records value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: customer_warehouse
+    description: Reviewed customer warehouse value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: valid_load_status
+    description: Reviewed valid load status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: target_table
+    description: Configuration for target table.
+    type: string
+    required: true
+  - name: write_mode
+    description: Configuration for write mode.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: valid-customer-records-loader
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.2
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.valid_customer_records_loader
+  implementation_ref: services/implementations/valid_customer_records_loader
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-03:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 03 descriptions; bindings retain inference confidence.

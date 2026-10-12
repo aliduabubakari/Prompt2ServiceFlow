@@ -1,0 +1,33 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:hospital_occupancy_window_forecast_prep
+bindings:
+- intent_id: ingest_primary_source
+  service_id: api_table_primary_source_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_secondary_source
+  service_id: api_table_secondary_source_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_reference_source
+  service_id: api_table_reference_source_ingestor
+  service_version: 1.0.0
+- intent_id: validate_source_contracts
+  service_id: api_table_multi_source_contract_validator
+  service_version: 1.0.0
+- intent_id: normalize_sources
+  service_id: api_table_multi_source_normalizer
+  service_version: 1.0.0
+- intent_id: fuse_sources
+  service_id: api_table_source_fusion_reconciler
+  service_version: 1.0.0
+- intent_id: align_time_index
+  service_id: timeseries_index_alignment_transformer
+  service_version: 1.0.0
+- intent_id: fill_small_gaps
+  service_id: timeseries_gap_fill_quality_transformer
+  service_version: 1.0.0
+- intent_id: detect_window_anomalies
+  service_id: timeseries_window_anomaly_detector
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: timeseries_output_bundle_publisher
+  service_version: 1.0.0

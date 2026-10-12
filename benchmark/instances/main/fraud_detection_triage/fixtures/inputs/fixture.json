@@ -1,0 +1,28 @@
+{
+  "pipeline_id": "fraud_detection_triage",
+  "input_modalities": ["csv"],
+  "systems": [
+    "email notification service"
+  ],
+  "scenarios": {
+    "high_risk_manual_review": {
+      "fixture_file": "transactions_high_risk.csv",
+      "description": "Transactions with a crypto_exchange high-amount entry triggering manual review",
+      "expected_route": "manual_review",
+      "risk_threshold": 0.8
+    },
+    "low_risk_auto_approve": {
+      "fixture_file": "transactions_low_risk.csv",
+      "description": "Low-value grocery/coffee transactions all passing auto-approval",
+      "expected_route": "auto_approve",
+      "risk_threshold": 0.8
+    }
+  },
+  "risk_model": {
+    "profile": "deterministic_rule_based_v1",
+    "high_risk_categories": ["crypto_exchange", "money_transfer", "gambling", "prepaid_card"],
+    "high_amount_threshold": 5000.0,
+    "category_weight": 0.4,
+    "amount_weight_max": 0.6
+  }
+}

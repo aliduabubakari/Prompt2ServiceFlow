@@ -1,0 +1,226 @@
+schema_version: 0.1.0
+service_id: checksum_manifest_object_storage_file_sync
+version: 1.0.0
+display_name: Checksum-manifest remote file sync to object storage
+category: Extractor
+capability:
+  summary: Synchronizes a configured set of remote files from an HTTP/HTTPS/FTP-style
+    repository to S3-compatible object storage by reading a checksum manifest, selecting
+    files by template/type, verifying checksums, skipping unchanged objects when configured,
+    and emitting object references plus sync status.
+  operations:
+  - Resolve a remote base URL or file repository resource.
+  - Read a checksum manifest such as CHECKSUMS from the remote repository or supplied
+    manifest path.
+  - Construct expected remote file names from a filename template and configured type
+    values.
+  - Compare selected files and checksums with existing object-storage metadata when
+    skip_unchanged is enabled.
+  keywords:
+  - remote file download
+  - checksum manifest
+  - md5 verification
+  - object storage
+  - s3 compatible
+  - file sync
+  - versioned files
+  - genomics
+  limitations:
+  - Does not schedule polling, retries, or dependency edges.
+  - Does not infer file naming conventions; caller must provide a filename template
+    and type list.
+  - Only verifies checksums exposed by the configured manifest format and checksum
+    algorithm.
+  - Does not transform file contents.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: remote_file_repository
+    description: Remote HTTP/HTTPS/FTP-compatible repository containing the checksum
+      manifest and selected files.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://remote_file_repository_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  - name: object_storage_destination
+    description: S3-compatible object storage resource used as the landing destination
+      for synchronized files.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://object_storage_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: synced_object_references
+    description: References to object-storage objects written, confirmed current,
+      or skipped as unchanged.
+    channel: artifact
+    data_type: array
+    media_type: application/json
+    schema_ref: schema://synced_object_references/v1
+    required: true
+    cardinality: many
+    sensitivity: internal
+  - name: downloaded_file_references
+    description: References to downloaded local or intermediate file artifacts when
+      retained for downstream inspection or mock execution.
+    channel: artifact
+    data_type: array
+    media_type: application/json
+    schema_ref: schema://downloaded_file_references/v1
+    required: true
+    cardinality: many
+    sensitivity: public
+  - name: sync_status
+    description: Observable status containing selected files, checksum outcomes, upload/skipped
+      counts, destination prefix, and errors.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://checksum_manifest_file_sync_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: remote_base_url
+    description: Base URL of the remote repository, for example http://ftp.ensembl.org/pub/current_tsv/homo_sapiens.
+    type: string
+    required: true
+    pattern: ^(https?|ftp)://.+
+  - name: checksum_manifest_name
+    description: Manifest filename or relative path, for example CHECKSUMS.
+    type: string
+    required: true
+  - name: filename_template
+    description: Template used to construct selected filenames, containing placeholders
+      such as {version} and {type}.
+    type: string
+    required: true
+  - name: file_types
+    description: List of logical file type values to substitute into filename_template,
+      such as canonical, ena, entrez, refseq, and uniprot.
+    type: array
+    required: true
+  - name: destination_prefix
+    description: Object-storage prefix where synchronized files are written, for example
+      raw/landing/ensembl/.
+    type: string
+    required: true
+  - name: checksum_algorithm
+    description: Checksum algorithm declared by the manifest.
+    type: string
+    required: false
+    enum:
+    - md5
+    - sha256
+  - name: skip_unchanged
+    description: Whether to skip upload when destination object metadata or prior
+      status shows the same checksum/version.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: remote_file_sync_url_contract
+  type: precondition
+  applies_to: parameter
+  target: remote_base_url
+  description: Remote base URL must be an HTTP, HTTPS, or FTP URL.
+  expression: remote_base_url matches '^(https?|ftp)://.+'
+- contract_id: remote_file_sync_selection_contract
+  type: precondition
+  applies_to: service
+  target: checksum_manifest_object_storage_file_sync
+  description: At least one file type must be configured and the filename template
+    must include a type placeholder or otherwise deterministically identify all selected
+    files.
+  expression: length(file_types) > 0 and (filename_template contains '{type}' or length(file_types)
+    == 1)
+- contract_id: synced_object_references_schema
+  type: json_schema
+  applies_to: output
+  target: synced_object_references
+  description: Each synced object reference reports logical type, source file, destination
+    URI, checksum, and action taken.
+  schema_ref: schema://synced_object_references/v1
+  expression: '{"type":"array","minItems":1,"items":{"type":"object","required":["file_type","source_filename","destination_uri","action","checksum_verified"],"properties":{"file_type":{"type":"string"},"source_filename":{"type":"string"},"destination_uri":{"type":"string"},"checksum":{"type":["string","null"]},"checksum_algorithm":{"type":["string","null"]},"checksum_verified":{"type":"boolean"},"action":{"type":"string","enum":["uploaded","skipped_unchanged","failed"]}}}}'
+- contract_id: checksum_manifest_file_sync_status_schema
+  type: json_schema
+  applies_to: output
+  target: sync_status
+  description: Status exposes file selection, verification, and object-storage write
+    effects.
+  schema_ref: schema://checksum_manifest_file_sync_status/v1
+  expression: '{"type":"object","required":["success","files_selected","files_uploaded","files_skipped","checksum_failures","destination_prefix"],"properties":{"success":{"type":"boolean"},"files_selected":{"type":"integer","minimum":0},"files_uploaded":{"type":"integer","minimum":0},"files_skipped":{"type":"integer","minimum":0},"checksum_failures":{"type":"integer","minimum":0},"destination_prefix":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: remote_file_sync_effect_contract
+  type: effect
+  applies_to: service
+  target: checksum_manifest_object_storage_file_sync
+  description: On success, every selected file is either uploaded with verified checksum
+    or explicitly skipped as unchanged, and sync_status.success is true.
+  expression: sync_status.success == true implies all(ref.action in ['uploaded','skipped_unchanged']
+    and ref.checksum_verified == true for ref in synced_object_references)
+invocation:
+  type: argo_workflow_template
+  template_name: checksum-manifest-object-storage-file-sync-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.checksum_manifest_object_storage_file_sync
+  implementation_ref: services/implementations/checksum_manifest_object_storage_file_sync
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - http://*
+  - https://*
+  - ftp://*
+  - s3://*
+  - object-storage://*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - public
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Object-storage credentials must not be emitted in logs or status.
+  - Only explicitly configured destination prefixes should be writable.
+  - Checksum diagnostics should include filenames and checksums, not credential material.
+  idempotency_notes: Retry safety depends on stable checksum manifest contents and
+    deterministic destination object naming. With skip_unchanged and checksum metadata
+    enabled, repeated invocations converge to the same object set.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:etl_import_ensembl#file
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No registry service covers remote multi-file download, checksum-manifest
+    verification, new-version detection, and S3-compatible landing-zone upload as
+    one observable reusable capability.'
+  - 'Evidence status: explicit.'

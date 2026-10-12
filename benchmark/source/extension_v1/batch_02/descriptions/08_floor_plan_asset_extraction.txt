@@ -1,0 +1,106 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__floor_plan_asset_extraction.py
+- Name: Floor Plan Asset Extraction
+- Purpose: Extract room and asset evidence from floor-plan documents for a facilities registry.
+- Execution model: bounded batch
+- Extension track: image_document_multimodal
+- Topology pattern: fan_out_fan_in
+- Complexity band: complex
+- Business domain: Public Sector/Geospatial
+- Input modalities: pdf, image, geojson
+- Output modalities: json, geojson, table
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- floor-plan PDF
+- room annotation image
+- building boundary GeoJSON
+
+External Systems:
+- facilities drawing archive (fixture-backed; no production system is contacted)
+- asset registry (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_source_batch -> validate_source_contract
+  - validate_source_contract -> normalize_partition_a
+  - normalize_partition_a -> fuse_partitions
+  - validate_source_contract -> normalize_partition_b
+  - normalize_partition_b -> fuse_partitions
+  - validate_source_contract -> normalize_partition_c
+  - normalize_partition_c -> fuse_partitions
+  - fuse_partitions -> extract_visual_text_features
+  - extract_visual_text_features -> join_reference_metadata
+  - join_reference_metadata -> assess_multimodal_quality
+  - assess_multimodal_quality -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_source_batch - Ingest Source Batch
+  - Objective: Ingest all bounded inputs for building floor-plan asset inventory.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_source_contract - Validate Source Contract
+  - Objective: Validate contracts, identifiers, and modality assumptions for building floor-plan asset inventory.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. normalize_partition_a - Normalize Partition A
+  - Objective: Normalize the first partition or modality for building floor-plan asset inventory.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. normalize_partition_b - Normalize Partition B
+  - Objective: Normalize the second partition or modality for building floor-plan asset inventory.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. normalize_partition_c - Normalize Partition C
+  - Objective: Normalize the third partition or modality for building floor-plan asset inventory.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. fuse_partitions - Fuse Partitions
+  - Objective: Fuse normalized partitions into a unified building floor-plan asset inventory representation.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. extract_visual_text_features - Extract Visual Text Features
+  - Objective: Extract OCR text, visual metadata, or layout features from building floor-plan asset inventory.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+8. join_reference_metadata - Join Reference Metadata
+  - Objective: Join building floor-plan asset inventory features with reference metadata.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+9. assess_multimodal_quality - Assess Multimodal Quality
+  - Objective: Assess visual, document, and metadata quality for building floor-plan asset inventory.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+10. publish_outputs - Publish Outputs
+  - Objective: Publish the fused building floor-plan asset inventory outputs and completion status.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

@@ -1,0 +1,64 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_stream_batch_fraud_bridge
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.3
+candidate_sets:
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_multi_resource_readiness_sensor_candidates
+  source_step_refs:
+  - wait_for_stream_checkpoint
+  service_ids:
+  - multi_resource_readiness_sensor
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_fraud_source_loader_candidates
+  source_step_refs:
+  - load_stream_events
+  - load_batch_settlements
+  - load_account_history
+  service_ids:
+  - fraud_source_loader
+  - temporary_resource_cleanup
+  - http_json_request_extractor
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_transaction_context_joiner_candidates
+  source_step_refs:
+  - join_transaction_context
+  service_ids:
+  - transaction_context_joiner
+  - http_json_request_extractor
+  - tabular_dataset_database_loader
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_transaction_fraud_risk_scorer_candidates
+  source_step_refs:
+  - score_fraud_risk
+  service_ids:
+  - transaction_fraud_risk_scorer
+  - tabular_dataset_database_loader
+  - bi_dashboard_refresh_trigger
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_fraud_risk_action_router_candidates
+  source_step_refs:
+  - route_risk_action
+  service_ids:
+  - fraud_risk_action_router
+  - bi_dashboard_refresh_trigger
+  - parquet_tabular_data_profiler
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_fraud_monitoring_table_updater_candidates
+  source_step_refs:
+  - update_monitoring_table
+  service_ids:
+  - fraud_monitoring_table_updater
+  - parquet_tabular_data_profiler
+  - bulk_email_campaign_sender
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_review_case_opener_candidates
+  source_step_refs:
+  - open_investigation_case
+  service_ids:
+  - review_case_opener
+  - bulk_email_campaign_sender
+  - file_location_availability_sensor
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_risk_metric_publisher_candidates
+  source_step_refs:
+  - publish_risk_metrics
+  service_ids:
+  - risk_metric_publisher
+  - file_location_availability_sensor
+  - reviewed_domain_adapter

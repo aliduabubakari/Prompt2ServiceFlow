@@ -1,0 +1,25 @@
+batch_version: 0.1.0
+batch_id: batch_03
+target_size: 5
+strategy: Cover remaining topologies (sensor_gated, fan_out_fan_in) and diverse
+  domains (urban_planning, finance, retail) with progressively broader patterns.
+pipelines:
+  - benchmark_id: main:medical_facility_accessibility_v1
+    status: local_complete
+    rationale: Linear pipeline with geocoding and CSV export in urban-planning domain.
+  - benchmark_id: main:file_arrival_watcher
+    status: local_complete
+    rationale: Sensor-gated topology with file availability sensor, schema validation,
+      and PostgreSQL loading.
+  - benchmark_id: main:regulatory_report_router
+    status: local_complete
+    rationale: Branch-merge financial compliance router with account-type decision
+      and regulatory report generation.
+  - benchmark_id: main:portfolio_rebalancing_dag
+    status: local_complete
+    rationale: Large fan-out/fan-in financial DAG with holdings extraction, metrics,
+      rebalancing calculation, and trade order CSV export.
+  - benchmark_id: main:retail_inventory_reconciliation
+    status: local_complete
+    rationale: Fan-out/fan-in retail reconciliation across multiple warehouses
+      with discrepancy detection and PDF reporting.

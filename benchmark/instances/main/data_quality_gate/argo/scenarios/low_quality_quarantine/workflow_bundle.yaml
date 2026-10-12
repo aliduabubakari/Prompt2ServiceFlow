@@ -1,0 +1,367 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-quality-gate-low-quality-quarantine-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_customer_csv.py: "#!/usr/bin/env python3\n\"\"\"Profile a customer CSV and emit ingest metadata.\"\
+    \"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport csv\nimport json\nimport shutil\n\
+    from pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    args = parser.parse_args()\n\n    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True,\
+    \ exist_ok=True)\n    dataset_path = artifacts / \"customers.csv\"\n    shutil.copyfile(args.fixture,\
+    \ dataset_path)\n    with dataset_path.open(encoding=\"utf-8\", newline=\"\") as handle:\n       \
+    \ reader = csv.DictReader(handle)\n        rows = list(reader)\n        columns = reader.fieldnames\
+    \ or []\n    metadata = {\n        \"source_uri\": str(dataset_path),\n        \"record_count\": len(rows),\n\
+    \        \"columns\": columns,\n        \"parse_status\": \"success\",\n    }\n    (artifacts / \"\
+    ingested_data_object.json\").write_text(\n        json.dumps(metadata, indent=2) + \"\\n\", encoding=\"\
+    utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  02_assess_customer_quality.py: "#!/usr/bin/env python3\n\"\"\"Compute deterministic completeness and\
+    \ validity quality metrics.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport\
+    \ csv\nimport json\nfrom pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--threshold\"\
+    , type=float, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace / \"\
+    artifacts\"\n    metadata = json.loads((artifacts / \"ingested_data_object.json\").read_text(encoding=\"\
+    utf-8\"))\n    with Path(metadata[\"source_uri\"]).open(encoding=\"utf-8\", newline=\"\") as handle:\n\
+    \        rows = list(csv.DictReader(handle))\n    cells = [value.strip() for row in rows for value\
+    \ in row.values()]\n    completeness = 100.0 * sum(bool(value) for value in cells) / len(cells)\n\
+    \    valid_ids = sum(bool(row[\"customer_id\"].strip()) for row in rows)\n    valid_emails = sum(\"\
+    @\" in row[\"email\"] and \".\" in row[\"email\"].split(\"@\")[-1] for row in rows)\n    validity\
+    \ = 100.0 * (valid_ids + valid_emails) / (2 * len(rows))\n    overall = round((completeness + validity)\
+    \ / 2, 2)\n    passed = overall >= args.threshold\n    decision = {\n        \"completeness_score\"\
+    : round(completeness, 2),\n        \"validity_score\": round(validity, 2),\n        \"overall_score\"\
+    : overall,\n        \"pass_threshold\": args.threshold,\n        \"passed\": passed,\n        \"route\"\
+    : \"production\" if passed else \"quarantine\",\n        \"record_count\": len(rows),\n    }\n   \
+    \ (artifacts / \"quality_decision.json\").write_text(\n        json.dumps(decision, indent=2) + \"\
+    \\n\", encoding=\"utf-8\"\n    )\n    (artifacts / \"quality_route.txt\").write_text(decision[\"route\"\
+    ], encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  03_load_production_data.py: "#!/usr/bin/env python3\n\"\"\"Filesystem-backed mock of the production\
+    \ database loader.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport csv\nimport\
+    \ json\nfrom pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \n    artifacts = args.workspace / \"artifacts\"\n    metadata = json.loads((artifacts / \"ingested_data_object.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    with Path(metadata[\"source_uri\"]).open(encoding=\"utf-8\"\
+    , newline=\"\") as handle:\n        rows = list(csv.DictReader(handle))\n    database = args.workspace\
+    \ / \"mock_database\"\n    database.mkdir(parents=True, exist_ok=True)\n    (database / \"customers.json\"\
+    ).write_text(json.dumps(rows, indent=2) + \"\\n\", encoding=\"utf-8\")\n    status = {\n        \"\
+    success\": True,\n        \"target_table\": \"customers\",\n        \"rows_read\": len(rows),\n  \
+    \      \"rows_written\": len(rows),\n        \"write_mode\": \"upsert\",\n        \"errors\": [],\n\
+    \    }\n    (artifacts / \"production_load_status.json\").write_text(\n        json.dumps(status,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  04_quarantine_customer_data.py: "#!/usr/bin/env python3\n\"\"\"Copy rejected customer data into a filesystem-backed\
+    \ quarantine zone.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nimport\
+    \ shutil\nfrom pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \n    artifacts = args.workspace / \"artifacts\"\n    metadata = json.loads((artifacts / \"ingested_data_object.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    quarantine = args.workspace / \"quarantine\"\n    quarantine.mkdir(parents=True,\
+    \ exist_ok=True)\n    destination = quarantine / \"customers.csv\"\n    shutil.copyfile(metadata[\"\
+    source_uri\"], destination)\n    status = {\n        \"success\": True,\n        \"action\": \"copy\"\
+    ,\n        \"destination_uri\": str(destination),\n        \"records_quarantined\": metadata[\"record_count\"\
+    ],\n        \"reason\": \"Quality score below 95\",\n        \"errors\": [],\n    }\n    (artifacts\
+    \ / \"quarantine_status.json\").write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"\
+    utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  05_notify_data_stewards.py: "#!/usr/bin/env python3\n\"\"\"Record a deterministic mock email delivery\
+    \ receipt.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib\
+    \ import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\n    status = {\n     \
+    \   \"sent\": True,\n        \"recipients\": [\"data-stewards@company.com\"],\n        \"subject\"\
+    : \"Data Quality Alert - Customer Data\",\n        \"message_id\": \"mock-data-quality-alert-001\"\
+    ,\n        \"errors\": [],\n    }\n    artifacts = args.workspace / \"artifacts\"\n    (artifacts\
+    \ / \"notification_status.json\").write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"\
+    utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  06_cleanup_temporary_resources.py: "#!/usr/bin/env python3\n\"\"\"Remove the explicitly scoped temporary\
+    \ workspace directory.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\n\
+    import shutil\nfrom pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \n    target = args.workspace / \"tmp\"\n    existed = target.exists()\n    if existed:\n        shutil.rmtree(target)\n\
+    \    status = {\n        \"success\": True,\n        \"targets_processed\": 1,\n        \"targets_deleted\"\
+    : 1 if existed else 0,\n        \"missing_targets\": [] if existed else [str(target)],\n        \"\
+    errors\": [],\n    }\n    artifacts = args.workspace / \"artifacts\"\n    (artifacts / \"cleanup_status.json\"\
+    ).write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__\
+    \ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-quality-gate-low-quality-quarantine-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: 'customer_id,name,email,country
+
+    C001,Ada Mensah,ada@example.com,Ghana
+
+    C002,Erik Olsen,erik@example.com,Norway
+
+    C003,Maya Singh,maya@example.com,India
+
+    '
+  fixture-0001: 'customer_id,name,email,country
+
+    C101,Noah Kim,noah.example.com,South Korea
+
+    ,Lina Costa,lina@example.com,Brazil
+
+    C103,,invalid-email,
+
+    '
+  fixture-0002: "{\n  \"driver\": \"filesystem-mock\",\n  \"target\": \"artifacts/notification_status.json\"\
+    \n}\n"
+  fixture-0003: "{\n  \"driver\": \"filesystem-mock\",\n  \"target\": \"mock_database/customers.json\"\
+    \n}\n"
+  fixture-0004: "{\n  \"driver\": \"filesystem-mock\",\n  \"target\": \"quarantine/customers.csv\"\n}\n"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: data-quality-gate-low-quality-quarantine-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: data-quality-gate-low-quality-quarantine
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: low-quality-quarantine
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: fixture-file
+      value: customers_low_quality.csv
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: data-quality-gate-low-quality-quarantine-scripts
+  - name: fixtures
+    configMap:
+      name: data-quality-gate-low-quality-quarantine-fixtures
+      items:
+      - key: fixture-0000
+        path: customers_high_quality.csv
+      - key: fixture-0001
+        path: customers_low_quality.csv
+      - key: fixture-0002
+        path: email_service.json
+      - key: fixture-0003
+        path: production_database.json
+      - key: fixture-0004
+        path: quarantine_destination.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-customer-csv
+        template: run-ingest-customer-csv
+      - name: assess-customer-quality
+        template: run-assess-customer-quality
+        depends: ingest-customer-csv.Succeeded
+      - name: load-production-data
+        template: run-load-production-data
+        depends: assess-customer-quality.Succeeded
+        when: '{{tasks.assess-customer-quality.outputs.parameters.route}} == production'
+      - name: quarantine-customer-data
+        template: run-quarantine-customer-data
+        depends: assess-customer-quality.Succeeded
+        when: '{{tasks.assess-customer-quality.outputs.parameters.route}} == quarantine'
+      - name: notify-data-stewards
+        template: run-notify-data-stewards
+        depends: quarantine-customer-data.Succeeded
+        when: '{{tasks.assess-customer-quality.outputs.parameters.route}} == quarantine'
+      - name: cleanup-temporary-resources
+        template: run-cleanup-temporary-resources
+        depends: (load-production-data.Succeeded || notify-data-stewards.Succeeded)
+  - name: run-ingest-customer-csv
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_customer_csv
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_ingest_customer_csv.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-assess-customer-quality
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: assess_customer_quality
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_assess_customer_quality.py
+      - --workspace
+      - /workspace
+      - --threshold
+      - '95'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    outputs:
+      parameters:
+      - name: route
+        valueFrom:
+          path: /workspace/artifacts/quality_route.txt
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-load-production-data
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: load_production_data
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_load_production_data.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-quarantine-customer-data
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: quarantine_customer_data
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_quarantine_customer_data.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-notify-data-stewards
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: notify_data_stewards
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_notify_data_stewards.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-cleanup-temporary-resources
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: cleanup_temporary_resources
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/06_cleanup_temporary_resources.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError

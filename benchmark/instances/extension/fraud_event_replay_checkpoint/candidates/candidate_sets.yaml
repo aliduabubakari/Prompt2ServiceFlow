@@ -1,0 +1,86 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:fraud_event_replay_checkpoint
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.4
+candidate_sets:
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_event_batch_ingestor_candidates
+  source_step_refs:
+  - ingest_source_batch
+  service_ids:
+  - checkpoint_event_batch_ingestor
+  - reviewed_domain_adapter
+  - bounded_window_checkpoint_validator
+  - event_record_cleaner
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_event_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contract
+  service_ids:
+  - checkpoint_event_contract_validator
+  - bounded_window_checkpoint_validator
+  - event_record_cleaner
+  - external_workflow_completion_sensor
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_manifest_loader_candidates
+  source_step_refs:
+  - load_previous_checkpoint
+  service_ids:
+  - checkpoint_manifest_loader
+  - event_record_cleaner
+  - external_workflow_completion_sensor
+  - iot_anomaly_feature_calculator
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_state_transition_applier_candidates
+  source_step_refs:
+  - apply_batch_to_checkpoint
+  service_ids:
+  - checkpoint_state_transition_applier
+  - external_workflow_completion_sensor
+  - iot_anomaly_feature_calculator
+  - dataset_quarantine_zone_writer
+- candidate_set_id: extension_fraud_event_replay_checkpoint_late_event_quarantine_writer_candidates
+  source_step_refs:
+  - quarantine_late_or_invalid_records
+  service_ids:
+  - late_event_quarantine_writer
+  - iot_anomaly_feature_calculator
+  - dataset_quarantine_zone_writer
+  - reviewed_domain_adapter
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_event_policy_risk_decider_candidates
+  source_step_refs:
+  - evaluate_policy_or_risk
+  service_ids:
+  - checkpoint_event_policy_risk_decider
+  - dataset_quarantine_zone_writer
+  - reviewed_domain_adapter
+  - bounded_window_checkpoint_validator
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_approved_record_router_candidates
+  source_step_refs:
+  - route_approved_records
+  service_ids:
+  - checkpoint_approved_record_router
+  - reviewed_domain_adapter
+  - bounded_window_checkpoint_validator
+  - event_record_cleaner
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_exception_review_router_candidates
+  source_step_refs:
+  - route_exception_records
+  service_ids:
+  - checkpoint_exception_review_router
+  - bounded_window_checkpoint_validator
+  - event_record_cleaner
+  - external_workflow_completion_sensor
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_route_outcome_merger_candidates
+  source_step_refs:
+  - merge_route_outcomes
+  service_ids:
+  - checkpoint_route_outcome_merger
+  - event_record_cleaner
+  - external_workflow_completion_sensor
+  - iot_anomaly_feature_calculator
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_output_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - checkpoint_output_bundle_publisher
+  - external_workflow_completion_sensor
+  - iot_anomaly_feature_calculator
+  - dataset_quarantine_zone_writer

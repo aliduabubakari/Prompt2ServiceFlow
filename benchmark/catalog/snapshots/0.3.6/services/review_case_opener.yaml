@@ -1,0 +1,100 @@
+schema_version: 0.1.0
+service_id: review_case_opener
+version: 1.0.0
+display_name: Review Case Opener
+category: Publisher
+capability:
+  summary: Opens review cases for unresolved business records in a case-management system.
+  operations:
+  - Opens review cases for unresolved business records in a case-management system.
+  keywords:
+  - review
+  - case
+  - opener
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: review_records
+    description: Reviewed review records value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: case_system
+    description: Reviewed case system value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: review_cases
+    description: Reviewed review cases value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: case_status
+    description: Reviewed case status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: case_type
+    description: Configuration for case type.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: review-case-opener
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.3
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.review_case_opener
+  implementation_ref: services/implementations/review_case_opener
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-04:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 04 descriptions; bindings retain inference confidence.

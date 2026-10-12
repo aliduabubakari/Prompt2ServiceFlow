@@ -1,0 +1,51 @@
+candidate_label_version: 0.1.0
+benchmark_id: validation:val_financial_risk_stress_testing
+candidate_sets:
+- candidate_set_id: validation_val_financial_risk_stress_testing_financial_dataset_extractor_candidates
+  required_service_id: financial_dataset_extractor
+  labels:
+    financial_dataset_extractor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    temporary_resource_cleanup: generic_escape_hatch
+- candidate_set_id: validation_val_financial_risk_stress_testing_portfolio_stress_runner_candidates
+  required_service_id: portfolio_stress_runner
+  labels:
+    portfolio_stress_runner: gold
+    temporary_resource_cleanup: semantic_mismatch
+    http_json_request_extractor: generic_escape_hatch
+- candidate_set_id: validation_val_financial_risk_stress_testing_stress_result_aggregator_candidates
+  required_service_id: stress_result_aggregator
+  labels:
+    stress_result_aggregator: gold
+    http_json_request_extractor: semantic_mismatch
+    tabular_dataset_database_loader: generic_escape_hatch
+- candidate_set_id: validation_val_financial_risk_stress_testing_capital_threshold_validator_candidates
+  required_service_id: capital_threshold_validator
+  labels:
+    capital_threshold_validator: gold
+    tabular_dataset_database_loader: semantic_mismatch
+    bi_dashboard_refresh_trigger: generic_escape_hatch
+- candidate_set_id: validation_val_financial_risk_stress_testing_risk_validation_route_decider_candidates
+  required_service_id: risk_validation_route_decider
+  labels:
+    risk_validation_route_decider: gold
+    bi_dashboard_refresh_trigger: semantic_mismatch
+    parquet_tabular_data_profiler: generic_escape_hatch
+- candidate_set_id: validation_val_financial_risk_stress_testing_regulatory_report_writer_candidates
+  required_service_id: regulatory_report_writer
+  labels:
+    regulatory_report_writer: gold
+    parquet_tabular_data_profiler: semantic_mismatch
+    bulk_email_campaign_sender: generic_escape_hatch
+- candidate_set_id: validation_val_financial_risk_stress_testing_review_case_opener_candidates
+  required_service_id: review_case_opener
+  labels:
+    review_case_opener: gold
+    bulk_email_campaign_sender: semantic_mismatch
+    file_location_availability_sensor: generic_escape_hatch
+- candidate_set_id: validation_val_financial_risk_stress_testing_model_input_archive_publisher_candidates
+  required_service_id: model_input_archive_publisher
+  labels:
+    model_input_archive_publisher: gold
+    file_location_availability_sensor: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch

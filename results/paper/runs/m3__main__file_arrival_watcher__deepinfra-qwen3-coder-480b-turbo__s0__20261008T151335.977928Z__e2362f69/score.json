@@ -1,0 +1,242 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-08T15:14:14.279435+00:00",
+  "instance": "benchmark/instances/main/file_arrival_watcher",
+  "workspace": "experiments/workspaces/main/file_arrival_watcher",
+  "submission": "results/paper/runs/m3__main__file_arrival_watcher__deepinfra-qwen3-coder-480b-turbo__s0__20261008T151335.977928Z__e2362f69/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G4",
+    "g6_assert_status": "pass",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": null,
+    "wiring_applicable": false,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": null
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-08T15:14:13.045230+00:00",
+    "workspace": "experiments/workspaces/main/file_arrival_watcher",
+    "submission": "results/paper/runs/m3__main__file_arrival_watcher__deepinfra-qwen3-coder-480b-turbo__s0__20261008T151335.977928Z__e2362f69/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G4",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "pass",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": []
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "pass",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": []
+      },
+      {
+        "gate": "G4",
+        "status": "fail",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": [
+          {
+            "code": "G4_NETWORK_POLICY",
+            "message": "wait_for_file_intent: network-forbidden intent binds service with optional access"
+          }
+        ]
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "synthetic-generator-v2-synthetic-sensor-gat-bf7da7e2-scripts",
+              "scenario": "base",
+              "data_size_bytes": 6688,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "synthetic-generator-v2-synthetic-sensor-gat-bf7da7e2-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 715,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "synthetic-generator-v2-synthetic-sensor-gat-13ba0050-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 6688,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "synthetic-generator-v2-synthetic-sensor-gat-13ba0050-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 715,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "wait_for_file_intent",
+                "validate_schema_intent",
+                "load_db_intent"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 3,
+      "submission_intents": 3,
+      "gold_intents": 3,
+      "mapping": {
+        "load_db_intent": "load_db",
+        "validate_schema_intent": "validate_schema",
+        "wait_for_file_intent": "wait_for_file"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 3
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 2,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 3,
+      "total": 3,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 3,
+    "correct": 3,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "load_db",
+        "gold_service": "database_csv_snapshot_importer",
+        "submission_intent": "load_db_intent",
+        "submission_service": "database_csv_snapshot_importer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "validate_schema",
+        "gold_service": "csv_tabular_schema_validating_loader",
+        "submission_intent": "validate_schema_intent",
+        "submission_service": "csv_tabular_schema_validating_loader",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "wait_for_file",
+        "gold_service": "file_location_availability_sensor",
+        "submission_intent": "wait_for_file_intent",
+        "submission_service": "file_location_availability_sensor",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "status": "not_applicable",
+    "reason": "gold and submission contain no producer-consumer wiring pairs",
+    "applicable": false,
+    "precision": null,
+    "recall": null,
+    "f1": null,
+    "true_positives": 0,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [],
+        "status": "pass"
+      }
+    ],
+    "assertions_total": 0,
+    "assertions_passed": 0,
+    "pass_rate": null,
+    "overall_status": "pass"
+  }
+}

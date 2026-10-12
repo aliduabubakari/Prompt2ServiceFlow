@@ -1,0 +1,151 @@
+schema_version: 0.1.0
+service_id: parquet_customer_data_clean_standardizer
+version: 1.0.0
+display_name: Parquet Customer Data Clean Standardizer
+category: Transformer
+capability:
+  summary: Cleans and standardizes customer records in a Parquet dataset according
+    to configured rules and writes cleaned Parquet with status.
+  operations:
+  - Read raw customer Parquet data.
+  - Apply configured null handling, type casting, string normalization, deduplication,
+    and standardization rules.
+  - Validate required customer columns when configured.
+  - Write cleaned customer Parquet and emit transform status.
+  keywords:
+  - customer data
+  - parquet
+  - cleaning
+  - standardization
+  - data quality
+  - null handling
+  limitations:
+  - Does not compute quality scores or derived features.
+  - Exact cleaning rules must be provided by caller configuration or implementation
+    defaults.
+  - Does not load data into external databases.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: raw_customer_parquet
+    description: Raw customer Parquet dataset.
+    channel: artifact
+    data_type: parquet
+    media_type: application/vnd.apache.parquet
+    schema_ref: schema://customer_parquet_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  outputs:
+  - name: cleaned_customer_parquet
+    description: Cleaned and standardized customer Parquet dataset.
+    channel: artifact
+    data_type: parquet
+    media_type: application/vnd.apache.parquet
+    schema_ref: schema://cleaned_customer_parquet_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: cleaning_status
+    description: Observable cleaning status with rows read/written, columns produced,
+      and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://customer_cleaning_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: cleaning_rules
+    description: Declarative cleaning and standardization rules for customer fields.
+    type: object
+    required: true
+  - name: required_columns
+    description: Optional list of columns that must exist before cleaning.
+    type: array
+    required: false
+  - name: output_path
+    description: Deterministic output path for cleaned Parquet.
+    type: string
+    required: true
+  secrets: []
+contracts:
+- contract_id: customer_cleaner_input_readable
+  type: precondition
+  applies_to: input
+  target: raw_customer_parquet
+  description: Input must be readable and parseable as Parquet.
+  expression: readable(raw_customer_parquet) and parquet_parseable(raw_customer_parquet)
+- contract_id: customer_cleaning_rules_required
+  type: precondition
+  applies_to: parameter
+  target: cleaning_rules
+  description: Cleaning rules must be supplied for deterministic non-trivial cleaning
+    behavior.
+  expression: cleaning_rules != null and length(keys(cleaning_rules)) > 0
+- contract_id: customer_cleaning_status_schema
+  type: json_schema
+  applies_to: output
+  target: cleaning_status
+  description: Cleaning status exposes transformation outcome.
+  schema_ref: schema://customer_cleaning_status/v1
+  expression: '{"type":"object","required":["success","rows_read","rows_written","output_uri"],"properties":{"success":{"type":"boolean"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"columns_produced":{"type":"array","items":{"type":"string"}},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: customer_cleaner_effect
+  type: effect
+  applies_to: service
+  target: parquet_customer_data_clean_standardizer
+  description: On success, cleaned Parquet exists and row counts are reported.
+  expression: cleaning_status.success == true implies exists(cleaned_customer_parquet)
+invocation:
+  type: argo_workflow_template
+  template_name: parquet-customer-data-clean-standardizer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.parquet_customer_data_clean_standardizer
+  implementation_ref: services/implementations/parquet_customer_data_clean_standardizer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - pii
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw customer fields.
+  - Cleaning rules should be reviewed by workflow binding for intended customer-data
+    semantics.
+  idempotency_notes: Same raw Parquet and cleaning_rules produce the same cleaned
+    dataset.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:customer_dq_scoring_pipeline#clean_data
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing document cleaner and CSV null cleanser do not satisfy customer
+    Parquet cleaning and standardization requirements.'
+  - 'Evidence status: strongly_inferred.'

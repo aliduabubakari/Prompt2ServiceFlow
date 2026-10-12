@@ -1,0 +1,171 @@
+schema_version: 0.1.0
+service_id: structured_json_to_csv_exporter
+version: 1.0.0
+display_name: Structured JSON to CSV Exporter
+category: Transformer
+capability:
+  summary: Reads structured or reconciled tabular JSON and exports selected row fields
+    to a deterministic CSV artifact with observable export status.
+  operations:
+  - Read a structured tabular JSON artifact.
+  - Validate row and column metadata.
+  - Select and order output columns according to caller configuration or input metadata.
+  - Write a CSV artifact and emit export counts and diagnostics.
+  keywords:
+  - json
+  - csv export
+  - tabular data
+  - format conversion
+  - enriched dataset
+  limitations:
+  - Does not perform entity reconciliation.
+  - Does not call external systems.
+  - Does not validate procurement-specific business rules beyond configured schema/columns.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: structured_json
+    description: Structured or reconciled tabular JSON artifact to export.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://reconciled_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: csv_file
+    description: CSV artifact exported from structured JSON rows.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://csv_file_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: export_status
+    description: Observable export status including rows read/written, columns exported,
+      output URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://json_to_csv_export_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: output_filename
+    description: Deterministic output CSV filename or path.
+    type: string
+    required: true
+  - name: dataset_id
+    description: Logical dataset identifier used for metadata validation or output
+      annotation when present.
+    type: string
+    required: false
+  - name: columns
+    description: Optional ordered list of output columns; when omitted, service uses
+      input column order plus configured reconciliation columns.
+    type: array
+    required: false
+  - name: include_header
+    description: Whether to include a header row in the CSV output.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  secrets: []
+contracts:
+- contract_id: json_csv_export_input_schema
+  type: json_schema
+  applies_to: input
+  target: structured_json
+  description: Input JSON must contain rows and column metadata suitable for CSV serialization.
+  schema_ref: schema://reconciled_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}}}}'
+- contract_id: json_csv_export_columns_contract
+  type: precondition
+  applies_to: parameter
+  target: columns
+  description: When explicit columns are supplied, each requested column must be present
+    in the input column metadata or row objects.
+  expression: columns == null or all(c in structured_json.columns or any(c in keys(r)
+    for r in structured_json.rows) for c in columns)
+- contract_id: json_to_csv_export_status_schema
+  type: json_schema
+  applies_to: output
+  target: export_status
+  description: Status exposes CSV export outcome for workflow validation.
+  schema_ref: schema://json_to_csv_export_status/v1
+  expression: '{"type":"object","required":["success","rows_read","rows_written","output_uri"],"properties":{"success":{"type":"boolean"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"columns_exported":{"type":"array","items":{"type":"string"}},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: json_csv_export_effect
+  type: effect
+  applies_to: service
+  target: structured_json_to_csv_exporter
+  description: On success, the CSV artifact exists and rows_written equals the number
+    of input rows serialized.
+  expression: export_status.success == true implies exists(csv_file) and export_status.rows_written
+    == export_status.rows_read
+invocation:
+  type: argo_workflow_template
+  template_name: structured-json-to-csv-exporter-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.structured_json_to_csv_exporter
+  implementation_ref: services/implementations/structured_json_to_csv_exporter
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full enriched supplier rows; status should expose counts and column
+    names only.
+  - Host filesystem paths and Docker auto-remove/TTY settings are runtime binding
+    concerns.
+  idempotency_notes: Same structured JSON input and export parameters produce the
+    same CSV output.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:environmental_monitoring_network_v1#save_environmental_dataset
+  - main:medical_facility_accessibility_v1#save_accessibility_data
+  - main:multilingual_product_review_analysis_v1#save_enriched_reviews
+  - main:procurement_supplier_validation_v1#save_validated_suppliers
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service exports a structured/reconciled JSON
+    table artifact to CSV; existing CSV writer is specific to tabular query-result
+    schema.'
+  - 'Evidence status: explicit.'

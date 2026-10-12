@@ -1,0 +1,62 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:iot_device_snapshot_transition
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.5
+candidate_sets:
+- candidate_set_id: extension_iot_device_snapshot_transition_iot_device_event_batch_ingestor_candidates
+  source_step_refs:
+  - ingest_primary_source
+  service_ids:
+  - iot_device_event_batch_ingestor
+  - checkpoint_position_only_loader
+  - checkpoint_event_sort_deduplicator
+  - append_only_event_archiver
+- candidate_set_id: extension_iot_device_snapshot_transition_iot_device_registry_table_ingestor_candidates
+  source_step_refs:
+  - ingest_secondary_source
+  service_ids:
+  - iot_device_registry_table_ingestor
+  - checkpoint_event_sort_deduplicator
+  - append_only_event_archiver
+  - generic_queue_metric_counter
+- candidate_set_id: extension_iot_device_snapshot_transition_device_snapshot_checkpoint_loader_candidates
+  source_step_refs:
+  - ingest_reference_source
+  service_ids:
+  - device_snapshot_checkpoint_loader
+  - append_only_event_archiver
+  - generic_queue_metric_counter
+  - audit_log_redaction_only_filter
+- candidate_set_id: extension_iot_device_snapshot_transition_iot_snapshot_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contracts
+  service_ids:
+  - iot_snapshot_contract_validator
+  - generic_queue_metric_counter
+  - audit_log_redaction_only_filter
+  - reviewed_domain_adapter
+- candidate_set_id: extension_iot_device_snapshot_transition_iot_device_event_snapshot_normalizer_candidates
+  source_step_refs:
+  - normalize_sources
+  service_ids:
+  - iot_device_event_snapshot_normalizer
+  - audit_log_redaction_only_filter
+  - reviewed_domain_adapter
+  - checkpoint_position_only_loader
+- candidate_set_id: extension_iot_device_snapshot_transition_device_snapshot_state_transition_reconciler_candidates
+  source_step_refs:
+  - fuse_sources
+  service_ids:
+  - device_snapshot_state_transition_reconciler
+  - reviewed_domain_adapter
+  - checkpoint_position_only_loader
+  - checkpoint_event_sort_deduplicator
+- candidate_set_id: extension_iot_device_snapshot_transition_checkpoint_output_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - checkpoint_output_bundle_publisher
+  - checkpoint_position_only_loader
+  - checkpoint_event_sort_deduplicator
+  - append_only_event_archiver

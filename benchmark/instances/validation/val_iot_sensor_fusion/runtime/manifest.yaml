@@ -1,0 +1,62 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_iot_sensor_fusion
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: collect_temperature_feed
+  script: scripts/01_collect_temperature_feed.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: collect_vibration_feed
+  script: scripts/02_collect_vibration_feed.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: collect_pressure_feed
+  script: scripts/03_collect_pressure_feed.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: align_sensor_windows
+  script: scripts/04_align_sensor_windows.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - collect_temperature_feed
+  - collect_vibration_feed
+  - collect_pressure_feed
+- intent_id: compute_anomaly_features
+  script: scripts/05_compute_anomaly_features.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - align_sensor_windows
+- intent_id: write_fused_dataset
+  script: scripts/06_write_fused_dataset.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - compute_anomaly_features
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pipeline-execution-dag-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Pipeline execution DAG mock.\"\"\"\nfrom __future__ import\
+    \ annotations\nimport argparse, csv, json, shutil\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"--step\",type=str,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    st={\"\
+    success\":True,\"errors\":[]}\n    if a.step==\"load\":\n        fixture=Path(a.workspace)/\"../fixtures/data.csv\"\
+    \n        dest=art/\"data.csv\"; shutil.copyfile(fixture,dest) if fixture.is_file() else dest.write_text(\"\
+    id\\n1\\n2\\n3\\n\",encoding=\"utf-8\")\n        with dest.open(encoding=\"utf-8\",newline=\"\") as\
+    \ f: r=csv.DictReader(f); rows=list(r); cols=r.fieldnames or []\n        (art/\"formatted_json.json\"\
+    ).write_text(json.dumps({\"columns\":cols,\"rows\":rows},indent=2)+\"\\n\",encoding=\"utf-8\")\n \
+    \       (art/\"format_status.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    elif a.step==\"reconcile\":\n        (art/\"reconciled_json.json\").write_text(json.dumps({\"\
+    columns\":[\"id\",\"name\"],\"rows\":[{\"id\":1,\"name\":\"A\"}]},indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n        (art/\"reconciliation_status.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    elif a.step==\"weather\":\n        (art/\"weather_json.json\").write_text(json.dumps({\"\
+    columns\":[\"id\",\"temp\"],\"rows\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\n        (art/\"weather_status.json\"\
+    ).write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\")\n    elif a.step==\"extend\":\n \
+    \       (art/\"extended_json.json\").write_text(json.dumps({\"columns\":[\"id\",\"risk\"],\"rows\"\
+    :[]},indent=2)+\"\\n\",encoding=\"utf-8\")\n        (art/\"extension_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    elif a.step==\"save\":\n        (art/\"output.csv\").write_text(\"\
+    id,risk\\n\",encoding=\"utf-8\")\n        (art/\"export_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pipeline-execution-dag-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: 'id,name,latitude,longitude,date
+
+    1,Station A,40.7128,-74.0060,2024-01-15
+
+    2,Station B,37.7749,-122.4194,2024-01-15
+
+    3,Station C,39.7392,-104.9903,2024-01-15'
+  fixture-0001: "{\n  \"pipeline_id\": \"pipeline_execution_dag\",\n  \"inputs\": {\n    \"reconciliation\"\
+    : \"reconciliation.json\",\n    \"weather_api\": \"weather_api.json\",\n    \"data\": \"data.csv\"\
+    \n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n  ],\n  \"systems\": [\n    \"system_a\"\
+    ,\n    \"system_b\"\n  ]\n}"
+  fixture-0002: '{"driver":"filesystem-mock"}'
+  fixture-0003: '{"driver":"filesystem-mock"}'

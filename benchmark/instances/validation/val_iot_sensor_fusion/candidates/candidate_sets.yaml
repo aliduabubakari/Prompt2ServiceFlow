@@ -1,0 +1,36 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_iot_sensor_fusion
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.2
+candidate_sets:
+- candidate_set_id: validation_val_iot_sensor_fusion_iot_broker_sensor_feed_collector_candidates
+  source_step_refs:
+  - collect_temperature_feed
+  - collect_vibration_feed
+  - collect_pressure_feed
+  service_ids:
+  - iot_broker_sensor_feed_collector
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_iot_sensor_fusion_sensor_window_alignment_fuser_candidates
+  source_step_refs:
+  - align_sensor_windows
+  service_ids:
+  - sensor_window_alignment_fuser
+  - temporary_resource_cleanup
+  - csv_to_structured_json_standardizer
+- candidate_set_id: validation_val_iot_sensor_fusion_iot_anomaly_feature_calculator_candidates
+  source_step_refs:
+  - compute_anomaly_features
+  service_ids:
+  - iot_anomaly_feature_calculator
+  - csv_to_structured_json_standardizer
+  - tabular_dataset_database_loader
+- candidate_set_id: validation_val_iot_sensor_fusion_timeseries_fused_dataset_writer_candidates
+  source_step_refs:
+  - write_fused_dataset
+  service_ids:
+  - timeseries_fused_dataset_writer
+  - tabular_dataset_database_loader
+  - http_json_request_extractor

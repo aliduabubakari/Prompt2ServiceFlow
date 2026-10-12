@@ -1,0 +1,25 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:airvisual_pipeline_lat_long_v1
+mappings:
+- intent_id: fetch_airvisual_data
+  inputs:
+    api_key_config: api_key_config
+    duplicate_check_database: postgres_database_resource
+  outputs:
+    response_json_file: raw_airvisual_response
+    extraction_status: extraction_status
+- intent_id: validate_airvisual_response
+  inputs:
+    response_json_file: raw_airvisual_response
+  outputs:
+    validated_airvisual_observation: validated_airvisual_observation
+    validation_result: validation_result
+- intent_id: load_airvisual_dimensional_model
+  inputs:
+    airvisual_observation_json: validated_airvisual_observation
+    pollution_mapping_config: pollution_mapping_config
+    weather_mapping_config: weather_mapping_config
+    postgres_database: postgres_database_resource
+  outputs:
+    loaded_tables: loaded_tables
+    load_status: dimensional_load_status

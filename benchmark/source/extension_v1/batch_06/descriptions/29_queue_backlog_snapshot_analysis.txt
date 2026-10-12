@@ -1,0 +1,76 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__queue_backlog_snapshot_analysis.py
+- Name: Queue Backlog Snapshot Analysis
+- Purpose: Analyze a finite queue backlog snapshot and identify priority capacity risks.
+- Execution model: bounded batch
+- Extension track: event_checkpoint_windowed_batch
+- Topology pattern: windowed_batch
+- Complexity band: simple
+- Business domain: AI Platform Operations
+- Input modalities: json, table
+- Output modalities: table, alert_digest
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- queue snapshot JSON
+- worker capacity table
+- service priority table
+
+External Systems:
+- queue telemetry archive (fixture-backed; no production system is contacted)
+- operations dashboard staging (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_bounded_events -> validate_checkpoint_inputs
+  - validate_checkpoint_inputs -> sort_and_deduplicate_records
+  - sort_and_deduplicate_records -> build_analysis_windows
+  - build_analysis_windows -> compute_window_metrics
+  - compute_window_metrics -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_bounded_events - Ingest Bounded Events
+  - Objective: Ingest a finite event, log, sensor, or snapshot batch for queue backlog snapshot analysis.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_checkpoint_inputs - Validate Checkpoint Inputs
+  - Objective: Validate batch boundaries, checkpoint references, and required identifiers for queue backlog snapshot analysis.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. sort_and_deduplicate_records - Sort And Deduplicate Records
+  - Objective: Sort and deduplicate records before window or checkpoint processing for queue backlog snapshot analysis.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. build_analysis_windows - Build Analysis Windows
+  - Objective: Build deterministic windows, sessions, or snapshot intervals for queue backlog snapshot analysis.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. compute_window_metrics - Compute Window Metrics
+  - Objective: Compute metrics, state transitions, or anomaly features for queue backlog snapshot analysis.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. publish_outputs - Publish Outputs
+  - Objective: Publish the bounded-window queue backlog snapshot analysis outputs and checkpoint manifest.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

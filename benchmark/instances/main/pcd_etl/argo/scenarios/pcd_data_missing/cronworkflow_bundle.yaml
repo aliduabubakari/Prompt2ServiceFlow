@@ -1,0 +1,866 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pcd-etl-pcd-data-missing-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Deterministic PCD extraction and processing mock.\"\"\"\n\n\
+    from __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib import Path\n\n\n\
+    SENSOR_STEPS = {\"check_pcd_sftp_folder\", \"check_pcd_shared_folder\"}\nFINAL_STEPS = {\"pcd_file_upload\"\
+    , \"etl_notification\"}\n\n\ndef boolean(value: str) -> bool:\n    return value.lower() in {\"1\"\
+    , \"true\", \"yes\"}\n\n\ndef write_json(path: Path, document: object) -> None:\n    path.write_text(json.dumps(document,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--step\"\
+    , required=True)\n    parser.add_argument(\"--available\", type=boolean, default=True)\n    args =\
+    \ parser.parse_args()\n    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True,\
+    \ exist_ok=True)\n    step = args.step\n\n    if step in SENSOR_STEPS:\n        write_json(\n    \
+    \        artifacts / f\"{step}_decision.json\",\n            {\"available\": args.available, \"success\"\
+    : True},\n        )\n        write_json(\n            artifacts / f\"{step}_status.json\",\n     \
+    \       {\"success\": True, \"errors\": [], \"checked\": True},\n        )\n        if step == \"\
+    check_pcd_shared_folder\":\n            (artifacts / \"pcd_data_available.txt\").write_text(\n   \
+    \             str(args.available).lower(), encoding=\"utf-8\"\n            )\n    elif step == \"\
+    pcd_file_upload\":\n        write_json(\n            artifacts / \"pcd_file_upload_result.json\",\n\
+    \            {\"job_name\": \"pcd-file-upload-001\", \"namespace\": \"pcd\"},\n        )\n       \
+    \ write_json(\n            artifacts / \"pcd_file_upload_status.json\",\n            {\"success\"\
+    : True, \"errors\": [], \"condition\": \"Complete\"},\n        )\n    elif step == \"etl_notification\"\
+    :\n        write_json(\n            artifacts / \"etl_notification_status.json\",\n            {\"\
+    sent\": True, \"success\": True, \"recipient_count\": 1},\n        )\n    elif step not in FINAL_STEPS:\n\
+    \        write_json(\n            artifacts / f\"{step}_result.json\",\n            {\n          \
+    \      \"dataset\": step,\n                \"record_count\": 2,\n                \"records\": [{\"\
+    id\": 1}, {\"id\": 2}],\n            },\n        )\n        write_json(\n            artifacts / f\"\
+    {step}_status.json\",\n            {\"success\": True, \"errors\": [], \"http_status\": 200},\n  \
+    \      )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pcd-etl-pcd-data-missing-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock","base_url":"https://pcd.example.test"}
+
+    '
+  fixture-0001: '{"driver":"filesystem-mock"}'
+  fixture-0002: '{"driver":"filesystem-mock"}'
+  fixture-0003: '{"driver":"filesystem-mock"}'
+  fixture-0004: '{"driver":"filesystem-mock","cluster":"pcd-jobs"}
+
+    '
+  fixture-0005: '{}
+
+    '
+  fixture-0006: "apiVersion: batch/v1\nkind: Job\nmetadata:\n  name: pcd-file-upload\nspec:\n  template:\n\
+    \    spec:\n      restartPolicy: Never\n      containers:\n        - name: processor\n          image:\
+    \ example.invalid/pcd-processor:fixture\n"
+  fixture-0007: '{"driver":"filesystem-mock","location_type":"sftp","path":"/data/pcd"}
+
+    '
+  fixture-0008: '{"driver":"filesystem-mock","location_type":"filesystem","path":"/data/pcd"}
+
+    '
+  fixture-0009: '{"columns":["id"],"rows":[]}
+
+    '
+---
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: pcd-etl-pcd-data-missing
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: pcd-data-available
+        value: 'True'
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: pcd-etl-pcd-data-missing-scripts
+    - name: fixtures
+      configMap:
+        name: pcd-etl-pcd-data-missing-fixtures
+        items:
+        - key: fixture-0000
+          path: api.json
+        - key: fixture-0001
+          path: db.json
+        - key: fixture-0002
+          path: email.json
+        - key: fixture-0003
+          path: ext.json
+        - key: fixture-0004
+          path: kubernetes.json
+        - key: fixture-0005
+          path: obj.json
+        - key: fixture-0006
+          path: pcd_job.yaml
+        - key: fixture-0007
+          path: sftp.json
+        - key: fixture-0008
+          path: shared_folder.json
+        - key: fixture-0009
+          path: table.json
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: check-pcd-sftp-folder
+          template: run-check-pcd-sftp-folder
+        - name: check-pcd-shared-folder
+          template: run-check-pcd-shared-folder
+          depends: check-pcd-sftp-folder.Succeeded
+        - name: financial-expense
+          template: run-financial-expense
+          depends: check-pcd-shared-folder.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: upcc-financial-reporting
+          template: run-upcc-financial-reporting
+          depends: check-pcd-shared-folder.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: chc-financial-reporting
+          template: run-chc-financial-reporting
+          depends: check-pcd-shared-folder.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: pcn-financial-reporting
+          template: run-pcn-financial-reporting
+          depends: check-pcd-shared-folder.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: nppcc-financial-reporting
+          template: run-nppcc-financial-reporting
+          depends: check-pcd-shared-folder.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: fiscal-year-reporting-dates
+          template: run-fiscal-year-reporting-dates
+          depends: check-pcd-shared-folder.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: upcc-primary-care-patient-services
+          template: run-upcc-primary-care-patient-services
+          depends: check-pcd-shared-folder.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: chc-primary-care-patient-services
+          template: run-chc-primary-care-patient-services
+          depends: check-pcd-shared-folder.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: practitioner-role-mapping
+          template: run-practitioner-role-mapping
+          depends: check-pcd-shared-folder.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: status-tracker
+          template: run-status-tracker
+          depends: check-pcd-shared-folder.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: hr-records
+          template: run-hr-records
+          depends: status-tracker.Succeeded && financial-expense.Succeeded && upcc-financial-reporting.Succeeded
+            && chc-financial-reporting.Succeeded && pcn-financial-reporting.Succeeded && nppcc-financial-reporting.Succeeded
+            && fiscal-year-reporting-dates.Succeeded && upcc-primary-care-patient-services.Succeeded &&
+            chc-primary-care-patient-services.Succeeded && practitioner-role-mapping.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: provincial-risk-tracking
+          template: run-provincial-risk-tracking
+          depends: status-tracker.Succeeded && financial-expense.Succeeded && upcc-financial-reporting.Succeeded
+            && chc-financial-reporting.Succeeded && pcn-financial-reporting.Succeeded && nppcc-financial-reporting.Succeeded
+            && fiscal-year-reporting-dates.Succeeded && upcc-primary-care-patient-services.Succeeded &&
+            chc-primary-care-patient-services.Succeeded && practitioner-role-mapping.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: decision-log
+          template: run-decision-log
+          depends: status-tracker.Succeeded && financial-expense.Succeeded && upcc-financial-reporting.Succeeded
+            && chc-financial-reporting.Succeeded && pcn-financial-reporting.Succeeded && nppcc-financial-reporting.Succeeded
+            && fiscal-year-reporting-dates.Succeeded && upcc-primary-care-patient-services.Succeeded &&
+            chc-primary-care-patient-services.Succeeded && practitioner-role-mapping.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: ha-hierarchy
+          template: run-ha-hierarchy
+          depends: status-tracker.Succeeded && financial-expense.Succeeded && upcc-financial-reporting.Succeeded
+            && chc-financial-reporting.Succeeded && pcn-financial-reporting.Succeeded && nppcc-financial-reporting.Succeeded
+            && fiscal-year-reporting-dates.Succeeded && upcc-primary-care-patient-services.Succeeded &&
+            chc-primary-care-patient-services.Succeeded && practitioner-role-mapping.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: uppc-budget
+          template: run-uppc-budget
+          depends: status-tracker.Succeeded && financial-expense.Succeeded && upcc-financial-reporting.Succeeded
+            && chc-financial-reporting.Succeeded && pcn-financial-reporting.Succeeded && nppcc-financial-reporting.Succeeded
+            && fiscal-year-reporting-dates.Succeeded && upcc-primary-care-patient-services.Succeeded &&
+            chc-primary-care-patient-services.Succeeded && practitioner-role-mapping.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: chc-budget
+          template: run-chc-budget
+          depends: status-tracker.Succeeded && financial-expense.Succeeded && upcc-financial-reporting.Succeeded
+            && chc-financial-reporting.Succeeded && pcn-financial-reporting.Succeeded && nppcc-financial-reporting.Succeeded
+            && fiscal-year-reporting-dates.Succeeded && upcc-primary-care-patient-services.Succeeded &&
+            chc-primary-care-patient-services.Succeeded && practitioner-role-mapping.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: pcn-budget
+          template: run-pcn-budget
+          depends: status-tracker.Succeeded && financial-expense.Succeeded && upcc-financial-reporting.Succeeded
+            && chc-financial-reporting.Succeeded && pcn-financial-reporting.Succeeded && nppcc-financial-reporting.Succeeded
+            && fiscal-year-reporting-dates.Succeeded && upcc-primary-care-patient-services.Succeeded &&
+            chc-primary-care-patient-services.Succeeded && practitioner-role-mapping.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: nppcc-budget
+          template: run-nppcc-budget
+          depends: status-tracker.Succeeded && financial-expense.Succeeded && upcc-financial-reporting.Succeeded
+            && chc-financial-reporting.Succeeded && pcn-financial-reporting.Succeeded && nppcc-financial-reporting.Succeeded
+            && fiscal-year-reporting-dates.Succeeded && upcc-primary-care-patient-services.Succeeded &&
+            chc-primary-care-patient-services.Succeeded && practitioner-role-mapping.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: pcd-file-upload
+          template: run-pcd-file-upload
+          depends: provincial-risk-tracking.Succeeded && decision-log.Succeeded && ha-hierarchy.Succeeded
+            && hr-records.Succeeded && uppc-budget.Succeeded && chc-budget.Succeeded && pcn-budget.Succeeded
+            && nppcc-budget.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+        - name: etl-notification
+          template: run-etl-notification
+          depends: pcd-file-upload.Succeeded
+          when: '{{tasks.check-pcd-shared-folder.outputs.parameters.available}} == true'
+    - name: run-check-pcd-sftp-folder
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: check_pcd_sftp_folder
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - check_pcd_sftp_folder
+        - --available
+        - '{{workflow.parameters.pcd-data-available}}'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-check-pcd-shared-folder
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: check_pcd_shared_folder
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - check_pcd_shared_folder
+        - --available
+        - '{{workflow.parameters.pcd-data-available}}'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      outputs:
+        parameters:
+        - name: available
+          valueFrom:
+            path: /workspace/artifacts/pcd_data_available.txt
+    - name: run-financial-expense
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: financial_expense
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - financial_expense
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-upcc-financial-reporting
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: upcc_financial_reporting
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - upcc_financial_reporting
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-chc-financial-reporting
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: chc_financial_reporting
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - chc_financial_reporting
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-pcn-financial-reporting
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: pcn_financial_reporting
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - pcn_financial_reporting
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-nppcc-financial-reporting
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: nppcc_financial_reporting
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - nppcc_financial_reporting
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-fiscal-year-reporting-dates
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: fiscal_year_reporting_dates
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - fiscal_year_reporting_dates
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-upcc-primary-care-patient-services
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: upcc_primary_care_patient_services
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - upcc_primary_care_patient_services
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-chc-primary-care-patient-services
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: chc_primary_care_patient_services
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - chc_primary_care_patient_services
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-practitioner-role-mapping
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: practitioner_role_mapping
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - practitioner_role_mapping
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-status-tracker
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: status_tracker
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - status_tracker
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-hr-records
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: hr_records
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - hr_records
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-provincial-risk-tracking
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: provincial_risk_tracking
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - provincial_risk_tracking
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-decision-log
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: decision_log
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - decision_log
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-ha-hierarchy
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: ha_hierarchy
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - ha_hierarchy
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-uppc-budget
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: uppc_budget
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - uppc_budget
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-chc-budget
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: chc_budget
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - chc_budget
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-pcn-budget
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: pcn_budget
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - pcn_budget
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-nppcc-budget
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: nppcc_budget
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - nppcc_budget
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-pcd-file-upload
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: pcd_file_upload
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - pcd_file_upload
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-etl-notification
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: etl_notification
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - etl_notification
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

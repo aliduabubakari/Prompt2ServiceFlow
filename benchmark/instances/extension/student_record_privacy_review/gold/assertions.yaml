@@ -1,0 +1,38 @@
+assertions_version: 0.1.0
+pipeline_id: student_record_privacy_review
+scenarios:
+- scenario: nominal
+  assertions:
+  - assertion_id: ingest_count
+    type: json_path_equals
+    path: artifacts/ingest_source_batch_status.json
+    json_path: records
+    expected: 6
+  - assertion_id: has_approved
+    type: json_path_gte
+    path: artifacts/evaluate_policy_or_risk_status.json
+    json_path: approved
+    minimum: 1
+  - assertion_id: has_exceptions
+    type: json_path_gte
+    path: artifacts/evaluate_policy_or_risk_status.json
+    json_path: exceptions
+    minimum: 2
+  - assertion_id: merge_total
+    type: json_path_gte
+    path: artifacts/merge_route_outcomes_status.json
+    json_path: merged
+    minimum: 4
+  - assertion_id: publish_succeeds
+    type: json_path_equals
+    path: artifacts/publish_outputs_status.json
+    json_path: success
+    expected: true
+  - assertion_id: csv_exists
+    type: file_exists
+    path: artifacts/privacy_review_report.csv
+  - assertion_id: manifest_completed
+    type: json_path_equals
+    path: artifacts/audit_manifest.json
+    json_path: status
+    expected: completed

@@ -1,0 +1,213 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: regulatory-report-router-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: regulatory-report-router
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: international-fatca
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: fixture-file
+      value: transactions_international.csv
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: regulatory-report-router-scripts
+  - name: fixtures
+    configMap:
+      name: regulatory-report-router-fixtures
+      items:
+      - key: fixture-0000
+        path: archive_destination.json
+      - key: fixture-0001
+        path: transactions_domestic.csv
+      - key: fixture-0002
+        path: transactions_international.csv
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: read-csv
+        template: run-read-csv
+      - name: account-check
+        template: run-account-check
+        depends: read-csv.Succeeded
+      - name: route-to-fatca
+        template: run-route-to-fatca
+        depends: account-check.Succeeded
+        when: '{{tasks.account-check.outputs.parameters.route}} == fatca'
+      - name: route-to-irs
+        template: run-route-to-irs
+        depends: account-check.Succeeded
+        when: '{{tasks.account-check.outputs.parameters.route}} == irs'
+      - name: archive-reports
+        template: run-archive-reports
+        depends: (route-to-fatca.Succeeded || route-to-irs.Succeeded)
+  - name: run-read-csv
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: read_csv
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_read_csv.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-account-check
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: account_check
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_account_check.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    outputs:
+      parameters:
+      - name: route
+        valueFrom:
+          path: /workspace/artifacts/route.txt
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-route-to-fatca
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: route_to_fatca
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_route_to_fatca.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-route-to-irs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: route_to_irs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_route_to_irs.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-archive-reports
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: archive_reports
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_archive_reports.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError

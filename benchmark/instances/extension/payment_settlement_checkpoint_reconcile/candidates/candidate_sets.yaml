@@ -1,0 +1,62 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:payment_settlement_checkpoint_reconcile
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.5
+candidate_sets:
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_settlement_event_batch_ingestor_candidates
+  source_step_refs:
+  - ingest_primary_source
+  service_ids:
+  - settlement_event_batch_ingestor
+  - checkpoint_position_only_loader
+  - checkpoint_event_sort_deduplicator
+  - append_only_event_archiver
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_bank_statement_table_ingestor_candidates
+  source_step_refs:
+  - ingest_secondary_source
+  service_ids:
+  - bank_statement_table_ingestor
+  - checkpoint_event_sort_deduplicator
+  - append_only_event_archiver
+  - generic_queue_metric_counter
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_settlement_checkpoint_loader_candidates
+  source_step_refs:
+  - ingest_reference_source
+  service_ids:
+  - settlement_checkpoint_loader
+  - append_only_event_archiver
+  - generic_queue_metric_counter
+  - audit_log_redaction_only_filter
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_settlement_reconciliation_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contracts
+  service_ids:
+  - settlement_reconciliation_contract_validator
+  - generic_queue_metric_counter
+  - audit_log_redaction_only_filter
+  - reviewed_domain_adapter
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_settlement_record_normalizer_candidates
+  source_step_refs:
+  - normalize_sources
+  service_ids:
+  - settlement_record_normalizer
+  - audit_log_redaction_only_filter
+  - reviewed_domain_adapter
+  - checkpoint_position_only_loader
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_settlement_checkpoint_reconciler_candidates
+  source_step_refs:
+  - fuse_sources
+  service_ids:
+  - settlement_checkpoint_reconciler
+  - reviewed_domain_adapter
+  - checkpoint_position_only_loader
+  - checkpoint_event_sort_deduplicator
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_settlement_exception_checkpoint_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - settlement_exception_checkpoint_publisher
+  - checkpoint_position_only_loader
+  - checkpoint_event_sort_deduplicator
+  - append_only_event_archiver

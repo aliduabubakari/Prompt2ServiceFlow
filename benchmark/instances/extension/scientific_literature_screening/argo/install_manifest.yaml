@@ -1,0 +1,212 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scientific-literature-screening-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_source_batch.py: "#!/usr/bin/env python3\n\"\"\"Ingest articles JSON, eligibility criteria,\
+    \ and reviewer profiles.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom\
+    \ pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True)\n    p.add_argument(\"--fixture\",type=Path,required=True); p.add_argument(\"\
+    --execution-time\",type=str,default=None)\n    a=p.parse_args(); r=a.workspace; art=r/\"artifacts\"\
+    ; art.mkdir(parents=True,exist_ok=True)\n    fx=json.loads(a.fixture.read_text(encoding=\"utf-8\"\
+    )); fd=a.fixture.parent\n    articles=json.loads((fd/fx[\"inputs\"][\"articles\"]).read_text(encoding=\"\
+    utf-8\"))\n    criteria=json.loads((fd/fx[\"inputs\"][\"criteria\"]).read_text(encoding=\"utf-8\"\
+    ))\n    reviewers={}\n    with (fd/fx[\"inputs\"][\"reviewers\"]).open(encoding=\"utf-8\",newline=\"\
+    \") as f:\n        for row in csv.DictReader(f): reviewers[row[\"reviewer_id\"]]=row\n    (art/\"\
+    ingest_source_batch_artifact.json\").write_text(json.dumps({\"articles\":articles,\"criteria\":criteria,\"\
+    reviewers\":reviewers,\"total\":len(articles),\"ingested_at\":a.execution_time},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\n    (art/\"ingest_source_batch_status.json\").write_text(json.dumps({\"success\"\
+    :True,\"articles\":len(articles),\"reviewers\":len(reviewers),\"errors\":[]},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+  02_validate_source_contract.py: "#!/usr/bin/env python3\n\"\"\"Validate: required fields, year range,\
+    \ study type, abstract length.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    articles,criteria=ingested[\"articles\"],ingested[\"criteria\"\
+    ]\n    excluded=set(criteria[\"excluded_study_types\"]); max_age=criteria[\"max_article_age_years\"\
+    ]\n    cur=criteria[\"current_year\"]; min_words=criteria[\"min_abstract_words\"]; req_full=criteria[\"\
+    require_full_text\"]\n    req_kw=set(criteria[\"required_keywords\"]); required={\"article_id\",\"\
+    title\",\"year\",\"study_type\"}\n    errors=[]; valid=[]\n    for article in articles:\n        issues=[]\n\
+    \        if required-set(article.keys()): issues.append(f\"missing_fields: {required-set(article.keys())}\"\
+    )\n        if article.get(\"study_type\") in excluded: issues.append(f\"excluded_study_type: {article.get('study_type')}\"\
+    )\n        if cur-article.get(\"year\",cur)>max_age: issues.append(f\"too_old: {article.get('year')}\"\
+    )\n        if article.get(\"abstract_word_count\",0)<min_words: issues.append(f\"abstract_too_short:\
+    \ {article.get('abstract_word_count')}<{min_words}\")\n        if req_full and not article.get(\"\
+    has_full_text\"): issues.append(\"full_text_missing\")\n        kw_match=bool(set(article.get(\"keywords\"\
+    ,[]))&req_kw)\n        if not kw_match: issues.append(\"no_matching_keywords\")\n        if issues:\
+    \ errors.append({\"article_id\":article.get(\"article_id\",\"?\"),\"issues\":issues})\n        else:\
+    \ valid.append(article)\n    result={\"valid\":valid,\"errors\":errors,\"total_valid\":len(valid),\"\
+    total_rejected\":len(errors)}\n    (art/\"validate_source_contract_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"validate_source_contract_status.json\").write_text(json.dumps({\"\
+    success\":True,\"valid\":len(valid),\"rejected\":len(errors),\"errors\":errors},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_normalize_partition_a.py: "#!/usr/bin/env python3\n\"\"\"Normalize A: article metadata \u2014 title,\
+    \ journal, year, study type, author count.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    norm=[]\n    for article in validated[\"valid\"]:\n        norm.append({\"\
+    article_id\":article[\"article_id\"],\"title\":article[\"title\"],\"journal\":article[\"journal\"\
+    ],\n                     \"year\":article[\"year\"],\"study_type\":article[\"study_type\"],\"author_count\"\
+    :len(article.get(\"authors\",[]))})\n    (art/\"normalize_partition_a_artifact.json\").write_text(json.dumps({\"\
+    partition\":\"A\",\"records\":norm,\"total\":len(norm)},indent=2)+\"\\n\",encoding=\"utf-8\")\n  \
+    \  (art/\"normalize_partition_a_status.json\").write_text(json.dumps({\"success\":True,\"normalized\"\
+    :len(norm),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_normalize_partition_b.py: "#!/usr/bin/env python3\n\"\"\"Normalize B: keyword matching score against\
+    \ eligibility criteria.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    req_kw=set(ingested[\"criteria\"][\"required_keywords\"]); norm=[]\n    for article\
+    \ in validated[\"valid\"]:\n        art_kw=set(article.get(\"keywords\",[])); matched=art_kw&req_kw\n\
+    \        norm.append({\"article_id\":article[\"article_id\"],\"matched_keywords\":sorted(matched),\"\
+    keyword_match_count\":len(matched)})\n    (art/\"normalize_partition_b_artifact.json\").write_text(json.dumps({\"\
+    partition\":\"B\",\"records\":norm,\"total\":len(norm)},indent=2)+\"\\n\",encoding=\"utf-8\")\n  \
+    \  (art/\"normalize_partition_b_status.json\").write_text(json.dumps({\"success\":True,\"normalized\"\
+    :len(norm),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  05_normalize_partition_c.py: "#!/usr/bin/env python3\n\"\"\"Normalize C: reviewer matching \u2014 find\
+    \ eligible reviewers per article.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    reviewers=ingested[\"reviewers\"]; norm=[]\n    for article\
+    \ in validated[\"valid\"]:\n        art_kw=set(k.lower() for k in article.get(\"keywords\",[]))\n\
+    \        matches=[]\n        for rid,rev in reviewers.items():\n            rev_exp=set(rev[\"expertise_keywords\"\
+    ].lower().split())\n            if art_kw&rev_exp and rev[\"availability\"]==\"available\":\n    \
+    \            matches.append({\"reviewer_id\":rid,\"name\":rev[\"reviewer_name\"],\"max_articles\"\
+    :int(rev[\"max_articles\"])})\n        norm.append({\"article_id\":article[\"article_id\"],\"eligible_reviewers\"\
+    :matches,\"reviewer_count\":len(matches)})\n    (art/\"normalize_partition_c_artifact.json\").write_text(json.dumps({\"\
+    partition\":\"C\",\"records\":norm,\"total\":len(norm)},indent=2)+\"\\n\",encoding=\"utf-8\")\n  \
+    \  (art/\"normalize_partition_c_status.json\").write_text(json.dumps({\"success\":True,\"normalized\"\
+    :len(norm),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  06_fuse_partitions.py: "#!/usr/bin/env python3\n\"\"\"Fuse: merge A+B+C partitions.\"\"\"\nfrom __future__\
+    \ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"\n    pa=json.loads((art/\"normalize_partition_a_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    pb=json.loads((art/\"normalize_partition_b_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    pc=json.loads((art/\"normalize_partition_c_artifact.json\").read_text(encoding=\"utf-8\"\
+    ))\n    am={r[\"article_id\"]:r for r in pa[\"records\"]}; bm={r[\"article_id\"]:r for r in pb[\"\
+    records\"]}\n    cm={r[\"article_id\"]:r for r in pc[\"records\"]}; fused=[]\n    for aid in am: fused.append({**am[aid],**bm[aid],**cm[aid]})\n\
+    \    (art/\"fuse_partitions_artifact.json\").write_text(json.dumps({\"fused\":fused,\"total\":len(fused)},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"fuse_partitions_status.json\").write_text(json.dumps({\"success\"\
+    :True,\"fused\":len(fused),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\"\
+    : main()\n"
+  07_extract_or_parse_text.py: "#!/usr/bin/env python3\n\"\"\"Extract text: classify article by text completeness\
+    \ and flag full-text availability.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    fused=json.loads((art/\"fuse_partitions_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    articles_lookup={a[\"article_id\"]:a for a in ingested[\"articles\"]}\n    extracted=[]\n\
+    \    for f in fused[\"fused\"]:\n        orig=articles_lookup.get(f[\"article_id\"],{})\n        extracted.append({**f,\"\
+    has_full_text\":orig.get(\"has_full_text\",False),\n                          \"abstract_complete\"\
+    :orig.get(\"abstract_word_count\",0)>=100})\n    (art/\"extract_or_parse_text_artifact.json\").write_text(json.dumps({\"\
+    extracted\":extracted,\"total\":len(extracted)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"\
+    extract_or_parse_text_status.json\").write_text(json.dumps({\"success\":True,\"extracted\":len(extracted),\"\
+    errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  08_chunk_documents.py: "#!/usr/bin/env python3\n\"\"\"Chunk documents: estimate reading time and assign\
+    \ article complexity.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    extracted=json.loads((art/\"extract_or_parse_text_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    chunked=[]\n    for e in extracted[\"extracted\"]:\n        wc=e.get(\"abstract_word_count\"\
+    ,250) if \"abstract_word_count\" in str(e) else 250\n        chunked.append({**e,\"estimated_reading_min\"\
+    :round(wc/200,1),\"complexity\":\"high\" if wc>250 else (\"medium\" if wc>150 else \"low\")})\n  \
+    \  (art/\"chunk_documents_artifact.json\").write_text(json.dumps({\"chunked\":chunked,\"total\":len(chunked)},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"chunk_documents_status.json\").write_text(json.dumps({\"success\"\
+    :True,\"chunked\":len(chunked),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"\
+    __main__\": main()\n"
+  09_generate_embeddings.py: "#!/usr/bin/env python3\n\"\"\"Generate embeddings: assign relevance score\
+    \ based on keyword match strength.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    chunked=json.loads((art/\"chunk_documents_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    embedded=[]\n    for c in chunked[\"chunked\"]:\n        kc=c.get(\"keyword_match_count\"\
+    ,0)\n        relevance=round(min(kc/3,1.0)*100,1)\n        embedded.append({**c,\"relevance_score\"\
+    :relevance,\"screening_decision\":\"include\" if relevance>=33 else \"exclude\"})\n    (art/\"generate_embeddings_artifact.json\"\
+    ).write_text(json.dumps({\"embedded\":embedded,\"total\":len(embedded)},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    (art/\"generate_embeddings_status.json\").write_text(json.dumps({\"success\":True,\"\
+    embedded\":len(embedded),\"include\":sum(1 for e in embedded if e[\"screening_decision\"]==\"include\"\
+    ),\"exclude\":sum(1 for e in embedded if e[\"screening_decision\"]==\"exclude\"),\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  10_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish: screening report CSV + review assignments\
+    \ + audit manifest.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    p.add_argument(\"--execution-time\",type=str,default=None);\
+    \ a=p.parse_args(); art=a.workspace/\"artifacts\"\n    et=a.execution_time or \"2026-07-20T12:00:00Z\"\
+    ; fx=json.loads(a.fixture.read_text(encoding=\"utf-8\"))\n    embedded=json.loads((art/\"generate_embeddings_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    val=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    summary={\"total\":len(embedded[\"embedded\"])+val[\"total_rejected\"\
+    ],\"screened\":len(embedded[\"embedded\"]),\n             \"rejected\":val[\"total_rejected\"],\"\
+    included\":sum(1 for e in embedded[\"embedded\"] if e[\"screening_decision\"]==\"include\"),\n   \
+    \          \"excluded\":sum(1 for e in embedded[\"embedded\"] if e[\"screening_decision\"]==\"exclude\"\
+    )}\n    manifest={\"checkpoint_id\":f\"ckpt_lit_screen_{et[:10].replace('-','_')}\",\"checkpoint_time\"\
+    :et,\n              \"pipeline_id\":fx[\"pipeline_id\"],\"summary\":summary,\"output_files\":[\"screening_report.csv\"\
+    ,\"audit_manifest.json\"],\"status\":\"completed\"}\n    (art/\"audit_manifest.json\").write_text(json.dumps(manifest,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    csv_rel=\"screening_report.csv\"\n    with (art/csv_rel).open(\"w\"\
+    ,encoding=\"utf-8\",newline=\"\") as f:\n        w=csv.DictWriter(f,fieldnames=[\"article_id\",\"\
+    title\",\"journal\",\"year\",\"study_type\",\"keyword_match_count\",\"relevance_score\",\"screening_decision\"\
+    ,\"reviewer_count\"],extrasaction='ignore')\n        w.writeheader()\n        for e in embedded[\"\
+    embedded\"]: w.writerow(e)\n    (art/\"publish_outputs_artifact.json\").write_text(json.dumps({\"\
+    manifest\":manifest,\"csv\":csv_rel},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"publish_outputs_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"csv_exported\":csv_rel,\"summary\":summary,\"errors\"\
+    :[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scientific-literature-screening-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "[\n  {\"article_id\": \"ART-001\", \"title\": \"Deep Learning for Protein Folding Prediction\"\
+    , \"journal\": \"Nature Biotechnology\", \"year\": 2026, \"authors\": [\"Smith J\", \"Chen L\"], \"\
+    keywords\": [\"deep learning\", \"protein\", \"AlphaFold\"], \"abstract_word_count\": 250, \"has_full_text\"\
+    : true, \"study_type\": \"RCT\"},\n  {\"article_id\": \"ART-002\", \"title\": \"A Survey of CRISPR\
+    \ Applications\", \"journal\": \"Cell\", \"year\": 2025, \"authors\": [\"Park S\", \"Kim H\"], \"\
+    keywords\": [\"CRISPR\", \"gene editing\", \"review\"], \"abstract_word_count\": 180, \"has_full_text\"\
+    : true, \"study_type\": \"review\"},\n  {\"article_id\": \"ART-003\", \"title\": \"Statistical Methods\
+    \ in Genomics\", \"journal\": \"Bioinformatics\", \"year\": 2024, \"authors\": [\"Wang X\"], \"keywords\"\
+    : [\"statistics\", \"genomics\"], \"abstract_word_count\": 120, \"has_full_text\": false, \"study_type\"\
+    : \"methods\"},\n  {\"article_id\": \"ART-004\", \"title\": \"Clinical Trial: mRNA Vaccine Efficacy\"\
+    , \"journal\": \"NEJM\", \"year\": 2026, \"authors\": [\"Garcia M\", \"Taylor R\", \"Lee K\"], \"\
+    keywords\": [\"mRNA\", \"vaccine\", \"clinical trial\"], \"abstract_word_count\": 300, \"has_full_text\"\
+    : true, \"study_type\": \"RCT\"},\n  {\"article_id\": \"ART-005\", \"title\": \"Opinion: Future of\
+    \ AI in Drug Discovery\", \"journal\": \"Trends in Pharmacological Sciences\", \"year\": 2026, \"\
+    authors\": [\"Brown A\"], \"keywords\": [\"AI\", \"drug discovery\", \"opinion\"], \"abstract_word_count\"\
+    : 90, \"has_full_text\": false, \"study_type\": \"opinion\"}\n]\n"
+  fixture-0001: "{\n  \"criteria_id\": \"SLR-2026-Q3\",\n  \"description\": \"Systematic literature review\
+    \ screening criteria for protein engineering\",\n  \"required_keywords\": [\"protein\", \"deep learning\"\
+    , \"CRISPR\", \"mRNA\"],\n  \"excluded_study_types\": [\"opinion\"],\n  \"min_abstract_words\": 100,\n\
+    \  \"require_full_text\": true,\n  \"max_article_age_years\": 3,\n  \"current_year\": 2026,\n  \"\
+    min_authors\": 1\n}\n"
+  fixture-0002: "{\n  \"input_modalities\": [\n    \"pdf\",\n    \"text\",\n    \"json\"\n  ],\n  \"inputs\"\
+    : {\n    \"articles\": \"articles.json\",\n    \"criteria\": \"eligibility_criteria.json\",\n    \"\
+    reviewers\": \"reviewer_profiles.csv\"\n  },\n  \"pipeline_id\": \"scientific_literature_screening\"\
+    ,\n  \"sample_media\": {\n    \"pdf\": \"sample_document.pdf\"\n  },\n  \"systems\": [\n    \"literature\
+    \ database\",\n    \"reviewer assignment system\"\n  ]\n}\n"
+  fixture-0003: 'reviewer_id,reviewer_name,expertise_keywords,max_articles,availability,email
+
+    REV-001,Dr. Anna Mueller,protein engineering,5,available,anna.m@research.org
+
+    REV-002,Dr. James Okonkwo,CRISPR gene editing,3,available,james.o@research.org
+
+    REV-003,Dr. Sarah Chen,deep learning bioinformatics,4,busy,sarah.c@research.org
+
+    '
+  fixture-0004: "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages\
+    \ /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]\
+    \ /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n4 0 obj\n<< /Length 103 >>\n\
+    stream\nBT /F1 12 Tf 50 740 Td (ServiceComposeBench-ETL sample: scientific_literature_screening:nominal)\
+    \ Tj ET\nendstream\nendobj\n5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n\
+    xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000241\
+    \ 00000 n \n0000000394 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n464\n%%EOF\n"

@@ -1,0 +1,216 @@
+schema_version: 0.1.0
+service_id: geospatial_nearest_distance_column_extender
+version: 1.0.0
+display_name: Geospatial Nearest Distance Column Extender
+category: Transformer
+capability:
+  summary: Adds a configured nearest-distance column to tabular JSON records by calculating
+    distances from record latitude/longitude coordinates to features in a supplied
+    GeoJSON target layer.
+  operations:
+  - Read geocoded or structured tabular JSON records.
+  - Read a GeoJSON FeatureCollection target layer such as stops, zones, or service
+    areas.
+  - Validate configured latitude and longitude columns.
+  - Calculate nearest geometry distance per record and write an enriched tabular JSON
+    artifact.
+  keywords:
+  - geospatial
+  - nearest distance
+  - geojson
+  - latitude
+  - longitude
+  - column extension
+  - accessibility
+  limitations:
+  - Does not geocode addresses; input rows must already contain coordinate columns.
+  - Does not fetch external geospatial layers; target GeoJSON must be supplied as
+    an artifact.
+  - Distance formula/projection behavior must be selected by parameters or implementation
+    defaults.
+  - Does not manage workflow retries, mounts, container networks, or dependency ordering.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_tabular_json
+    description: Structured tabular JSON containing coordinate columns for each source
+      record.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://geocoded_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: target_layer_geojson
+    description: GeoJSON FeatureCollection containing target points, lines, or polygons
+      to measure nearest distance to.
+    channel: artifact
+    data_type: json
+    media_type: application/geo+json
+    schema_ref: schema://geojson_feature_collection/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  outputs:
+  - name: extended_tabular_json
+    description: Tabular JSON with the configured distance output column appended
+      to each eligible row.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://geospatial_extended_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: distance_status
+    description: Observable status with row counts, target feature count, output column,
+      unit, output URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://geospatial_nearest_distance_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: lat_column
+    description: Input column containing latitude values in decimal degrees.
+    type: string
+    required: true
+  - name: lon_column
+    description: Input column containing longitude values in decimal degrees.
+    type: string
+    required: true
+  - name: target_layer
+    description: Logical label for the target geospatial layer being measured.
+    type: string
+    required: true
+  - name: output_column
+    description: Name of the distance column to append to output rows.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: distance_unit
+    description: Unit for emitted distance values.
+    type: string
+    required: false
+    enum:
+    - meters
+    - kilometers
+  - name: distance_method
+    description: Distance calculation mode, such as geodesic or projected.
+    type: string
+    required: false
+    enum:
+    - geodesic
+    - projected
+  - name: output_path
+    description: Deterministic output artifact path or name for the extended JSON.
+    type: string
+    required: true
+  secrets: []
+contracts:
+- contract_id: geospatial_distance_input_tabular_contract
+  type: json_schema
+  applies_to: input
+  target: source_tabular_json
+  description: Input tabular JSON must contain rows, columns, and configured latitude/longitude
+    columns.
+  schema_ref: schema://geocoded_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0}}}
+    and lat_column in source_tabular_json.columns and lon_column in source_tabular_json.columns'
+- contract_id: geospatial_distance_geojson_contract
+  type: json_schema
+  applies_to: input
+  target: target_layer_geojson
+  description: Target layer must be a GeoJSON FeatureCollection with at least one
+    feature.
+  schema_ref: schema://geojson_feature_collection/v1
+  expression: '{"type":"object","required":["type","features"],"properties":{"type":{"const":"FeatureCollection"},"features":{"type":"array","minItems":1}}}'
+- contract_id: geospatial_distance_output_column_contract
+  type: precondition
+  applies_to: parameter
+  target: output_column
+  description: Output distance column must be a valid identifier-like column name.
+  expression: output_column matches '^[A-Za-z_][A-Za-z0-9_]*$'
+- contract_id: geospatial_extended_tabular_json_schema
+  type: json_schema
+  applies_to: output
+  target: extended_tabular_json
+  description: Output remains tabular JSON and includes the configured distance output
+    column.
+  schema_ref: schema://geospatial_extended_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0},"geospatial_extension":{"type":"object"}}}'
+- contract_id: geospatial_nearest_distance_status_schema
+  type: json_schema
+  applies_to: output
+  target: distance_status
+  description: Status exposes nearest-distance computation effect for deterministic
+    validation.
+  schema_ref: schema://geospatial_nearest_distance_status/v1
+  expression: '{"type":"object","required":["success","target_layer","output_column","rows_processed","distances_computed","target_feature_count","output_uri"],"properties":{"success":{"type":"boolean"},"target_layer":{"type":"string"},"output_column":{"type":"string"},"rows_processed":{"type":"integer","minimum":0},"distances_computed":{"type":"integer","minimum":0},"target_feature_count":{"type":"integer","minimum":0},"distance_unit":{"type":["string","null"]},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: geospatial_nearest_distance_effect
+  type: effect
+  applies_to: service
+  target: geospatial_nearest_distance_column_extender
+  description: On success, an extended JSON artifact exists and the configured output
+    column is present in output metadata.
+  expression: distance_status.success == true implies exists(extended_tabular_json)
+    and output_column in extended_tabular_json.columns
+invocation:
+  type: argo_workflow_template
+  template_name: geospatial-nearest-distance-column-extender-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.geospatial_nearest_distance_column_extender
+  implementation_ref: services/implementations/geospatial_nearest_distance_column_extender
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - public
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full facility records or full GeoJSON contents; emit counts and bounded
+    diagnostics.
+  - Coordinate columns may reveal sensitive facility locations depending on dataset;
+    bind sensitivity appropriately.
+  - Projection/distance method should be explicit when precise geospatial semantics
+    matter.
+  idempotency_notes: Same tabular input, GeoJSON target layer, coordinate columns,
+    and distance parameters produce the same distance values.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:medical_facility_accessibility_v1#calc_distance_public_transport
+  - main:medical_facility_accessibility_v1#calc_distance_residential
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Both distance-calculation steps require the same reusable geospatial
+    column-extension capability with different layer artifacts and output columns.'
+  - 'Evidence status: strongly_inferred.'

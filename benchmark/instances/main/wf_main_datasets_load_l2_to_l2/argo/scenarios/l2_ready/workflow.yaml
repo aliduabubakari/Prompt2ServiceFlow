@@ -1,0 +1,346 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: wf-main-datasets-load-l2-to-l2-l2-ready-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: wf-main-datasets-load-l2-to-l2-l2-ready
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: l2-ready
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: l2-ready
+      value: 'True'
+    - name: run-label
+      value: batch-001
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: wf-main-datasets-load-l2-to-l2-l2-ready-scripts
+  - name: fixtures
+    configMap:
+      name: wf-main-datasets-load-l2-to-l2-l2-ready-fixtures
+      items:
+      - key: fixture-0000
+        path: db.json
+      - key: fixture-0001
+        path: email.json
+      - key: fixture-0002
+        path: ext_wf.json
+      - key: fixture-0003
+        path: sap.json
+      - key: fixture-0004
+        path: segmentation_table.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: wait-for-l2-full-load
+        template: run-wait-for-l2-full-load
+      - name: get-load-id
+        template: run-get-load-id
+        depends: wait-for-l2-full-load.Succeeded
+        when: '{{tasks.wait-for-l2-full-load.outputs.parameters.ready}} == true'
+      - name: workflow-registration
+        template: run-workflow-registration
+        depends: get-load-id.Succeeded
+        when: '{{tasks.wait-for-l2-full-load.outputs.parameters.ready}} == true'
+      - name: wait-for-success-end
+        template: run-wait-for-success-end
+        depends: workflow-registration.Succeeded
+        when: '{{tasks.wait-for-l2-full-load.outputs.parameters.ready}} == true'
+      - name: run-sys-kill-all-session-pg
+        template: run-run-sys-kill-all-session-pg
+        depends: wait-for-success-end.Succeeded
+        when: '{{tasks.wait-for-l2-full-load.outputs.parameters.ready}} == true'
+      - name: run-wf-data-preparation-for-reports
+        template: run-run-wf-data-preparation-for-reports
+        depends: run-sys-kill-all-session-pg.Succeeded
+        when: '{{tasks.wait-for-l2-full-load.outputs.parameters.ready}} == true'
+      - name: load-ds-client-segmentation
+        template: run-load-ds-client-segmentation
+        depends: run-sys-kill-all-session-pg.Succeeded
+        when: '{{tasks.wait-for-l2-full-load.outputs.parameters.ready}} == true'
+      - name: send-flg-to-sap
+        template: run-send-flg-to-sap
+        depends: load-ds-client-segmentation.Succeeded
+        when: '{{tasks.wait-for-l2-full-load.outputs.parameters.ready}} == true'
+      - name: end
+        template: run-end
+        depends: run-wf-data-preparation-for-reports.Succeeded && send-flg-to-sap.Succeeded
+        when: '{{tasks.wait-for-l2-full-load.outputs.parameters.ready}} == true'
+  - name: run-wait-for-l2-full-load
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: wait_for_l2_full_load
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - wait_l2
+      - --l2-ready
+      - '{{workflow.parameters.l2-ready}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    outputs:
+      parameters:
+      - name: ready
+        valueFrom:
+          path: /workspace/artifacts/l2_ready.txt
+  - name: run-get-load-id
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: get_load_id
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - load_id
+      - --run-label
+      - '{{workflow.parameters.run-label}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-workflow-registration
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: workflow_registration
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - register
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-wait-for-success-end
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: wait_for_success_end
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - wait_success
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-run-sys-kill-all-session-pg
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: run_sys_kill_all_session_pg
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - kill
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-run-wf-data-preparation-for-reports
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: run_wf_data_preparation_for_reports
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - dataprep
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-load-ds-client-segmentation
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: load_ds_client_segmentation
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - segment
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-send-flg-to-sap
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: send_flg_to_sap
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - flag
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-end
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: end
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - end
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

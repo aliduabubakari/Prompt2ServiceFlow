@@ -1,0 +1,66 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_stream_batch_fraud_bridge
+mappings:
+- intent_id: wait_for_stream_checkpoint
+  inputs:
+    resource_group: fraud_sources
+  outputs:
+    readiness_decision: checkpoint_ready
+    readiness_status: checkpoint_status
+- intent_id: load_stream_events
+  inputs:
+    fraud_source: fraud_sources
+  outputs:
+    fraud_dataset: stream_events
+    load_status: stream_load_status
+- intent_id: load_batch_settlements
+  inputs:
+    fraud_source: fraud_sources
+  outputs:
+    fraud_dataset: settlement_records
+    load_status: settlement_load_status
+- intent_id: load_account_history
+  inputs:
+    fraud_source: fraud_sources
+  outputs:
+    fraud_dataset: account_history
+    load_status: account_history_status
+- intent_id: join_transaction_context
+  inputs:
+    stream_events: stream_events
+    settlement_records: settlement_records
+    account_history: account_history
+  outputs:
+    transaction_context: transaction_context
+    join_status: context_join_status
+- intent_id: score_fraud_risk
+  inputs:
+    transaction_context: transaction_context
+  outputs:
+    risk_scores: risk_scores
+    scoring_status: risk_scoring_status
+- intent_id: route_risk_action
+  inputs:
+    risk_scores: risk_scores
+  outputs:
+    risk_action: risk_action
+    routing_status: risk_route_status
+- intent_id: update_monitoring_table
+  inputs:
+    risk_scores: risk_scores
+    monitoring_store: monitoring_store
+  outputs:
+    monitoring_status: monitoring_status
+- intent_id: open_investigation_case
+  inputs:
+    review_records: risk_scores
+    case_system: case_management_system
+  outputs:
+    review_cases: investigation_cases
+    case_status: investigation_case_status
+- intent_id: publish_risk_metrics
+  inputs:
+    monitoring_status: monitoring_status
+  outputs:
+    risk_metrics: risk_metrics
+    metric_status: metric_status

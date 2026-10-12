@@ -1,0 +1,104 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__hospital_occupancy_window_forecast_prep.py
+- Name: Hospital Occupancy Window Forecast Prep
+- Purpose: Prepare aligned occupancy windows and operational context for forecast evaluation.
+- Execution model: bounded batch
+- Extension track: time_series_sensor_window
+- Topology pattern: fan_in
+- Complexity band: complex
+- Business domain: Healthcare/Public Health
+- Input modalities: time_series, json, table
+- Output modalities: table, feature_manifest
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- bed occupancy time series
+- admissions JSON snapshot
+- department lookup table
+
+External Systems:
+- hospital operations bucket (fixture-backed; no production system is contacted)
+- forecast feature store (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_primary_source -> validate_source_contracts
+  - ingest_secondary_source -> validate_source_contracts
+  - ingest_reference_source -> validate_source_contracts
+  - validate_source_contracts -> normalize_sources
+  - normalize_sources -> fuse_sources
+  - fuse_sources -> align_time_index
+  - align_time_index -> fill_small_gaps
+  - fill_small_gaps -> detect_window_anomalies
+  - detect_window_anomalies -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_primary_source - Ingest Primary Source
+  - Objective: Ingest the primary source for hospital occupancy forecast windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. ingest_secondary_source - Ingest Secondary Source
+  - Objective: Ingest the secondary source for hospital occupancy forecast windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. ingest_reference_source - Ingest Reference Source
+  - Objective: Ingest reference data needed to interpret hospital occupancy forecast windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. validate_source_contracts - Validate Source Contracts
+  - Objective: Validate schemas, identities, and freshness constraints across all hospital occupancy forecast windows sources.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. normalize_sources - Normalize Sources
+  - Objective: Normalize source-specific fields into a shared representation for hospital occupancy forecast windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. fuse_sources - Fuse Sources
+  - Objective: Fuse normalized sources into a coherent hospital occupancy forecast windows artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. align_time_index - Align Time Index
+  - Objective: Align timestamps, station/device identities, and calendar boundaries for hospital occupancy forecast windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+8. fill_small_gaps - Fill Small Gaps
+  - Objective: Fill or flag small temporal gaps in hospital occupancy forecast windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+9. detect_window_anomalies - Detect Window Anomalies
+  - Objective: Detect anomalies or threshold breaches in hospital occupancy forecast windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+10. publish_outputs - Publish Outputs
+  - Objective: Publish the prepared hospital occupancy forecast windows outputs and completion status.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

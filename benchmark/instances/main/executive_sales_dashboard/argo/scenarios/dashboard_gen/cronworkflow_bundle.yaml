@@ -1,0 +1,197 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: executive-sales-dashboard-dashboard-gen-scripts
+  namespace: prompt2serviceflow
+data:
+  01_wait.py: "#!/usr/bin/env python3\n\"\"\"Mock SQL readiness sensor.\"\"\"\nfrom __future__ import\
+    \ annotations\nimport argparse, json\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    (art/\"readiness_decision.json\").write_text(json.dumps({\"\
+    ready\":True,\"success\":True},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"sensor_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif\
+    \ __name__==\"__main__\": main()\n"
+  02_load.py: "#!/usr/bin/env python3\n\"\"\"Mock load sales CSV.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, csv, json, shutil\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    dest=art/\"\
+    sales.csv\"; shutil.copyfile(a.fixture,dest)\n    with dest.open(encoding=\"utf-8\",newline=\"\")\
+    \ as f:\n        r=csv.DictReader(f); rows=list(r); cols=r.fieldnames or []\n    ds={\"columns\":cols,\"\
+    rows\":rows}\n    (art/\"validated_dataset.json\").write_text(json.dumps(ds,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    (art/\"validated_data.json\").write_text(json.dumps({\"rows\":len(rows),\"success\"\
+    :True},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"validation_status.json\").write_text(json.dumps({\"\
+    success\":True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_dashboard.py: "#!/usr/bin/env python3\n\"\"\"Mock generate dashboard.\"\"\"\nfrom __future__ import\
+    \ annotations\nimport argparse, json\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"\n    (art/\"dashboard.html\").write_text(\"<html><h1>Sales Dashboard</h1><p>Executive\
+    \ Summary</p></html>\",encoding=\"utf-8\")\n    (art/\"render_status.json\").write_text(json.dumps({\"\
+    success\":True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: executive-sales-dashboard-dashboard-gen-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock","engine":"postgresql"}'
+  fixture-0001: "{\n  \"pipeline_id\": \"executive_sales_dashboard\",\n  \"inputs\": {\n    \"db\": \"\
+    db.json\",\n    \"sales\": \"sales.csv\"\n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\
+    \n  ],\n  \"systems\": [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"
+  fixture-0002: 'date,product,sales_amount
+
+    2024-01-15,Widget A,15000
+
+    2024-01-15,Widget B,23000
+
+    2024-01-15,Widget C,9750'
+---
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: executive-sales-dashboard-dashboard-gen
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: fixture-file
+        value: sales.csv
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: executive-sales-dashboard-dashboard-gen-scripts
+    - name: fixtures
+      configMap:
+        name: executive-sales-dashboard-dashboard-gen-fixtures
+        items:
+        - key: fixture-0000
+          path: db.json
+        - key: fixture-0001
+          path: fixture.json
+        - key: fixture-0002
+          path: sales.csv
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: wait-for-sales-aggregation
+          template: run-wait-for-sales-aggregation
+        - name: load-sales-csv
+          template: run-load-sales-csv
+          depends: wait-for-sales-aggregation.Succeeded
+        - name: generate-dashboard
+          template: run-generate-dashboard
+          depends: load-sales-csv.Succeeded
+    - name: run-wait-for-sales-aggregation
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: wait_for_sales_aggregation
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_wait.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-load-sales-csv
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: load_sales_csv
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_load.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-generate-dashboard
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: generate_dashboard
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_dashboard.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError

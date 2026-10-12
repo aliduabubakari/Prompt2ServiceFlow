@@ -1,0 +1,15 @@
+assertions_version: 0.1.0
+pipeline_id: portfolio_rebalancing_dag
+scenarios:
+  - scenario: five_brokerage_accounts
+    assertions:
+      - {assertion_id: fetch_1_ok, type: json_path_equals, path: artifacts/extraction_status_1.json, json_path: success, expected: true}
+      - {assertion_id: fetch_2_ok, type: json_path_equals, path: artifacts/extraction_status_2.json, json_path: success, expected: true}
+      - {assertion_id: fetch_3_ok, type: json_path_equals, path: artifacts/extraction_status_3.json, json_path: success, expected: true}
+      - {assertion_id: fetch_4_ok, type: json_path_equals, path: artifacts/extraction_status_4.json, json_path: success, expected: true}
+      - {assertion_id: fetch_5_ok, type: json_path_equals, path: artifacts/extraction_status_5.json, json_path: success, expected: true}
+      - {assertion_id: analyze_1_ok, type: json_path_equals, path: artifacts/analysis_status_1.json, json_path: success, expected: true}
+      - {assertion_id: analyze_5_ok, type: json_path_equals, path: artifacts/analysis_status_5.json, json_path: success, expected: true}
+      - {assertion_id: rebalance_ok, type: json_path_equals, path: artifacts/rebalance_status.json, json_path: success, expected: true}
+      - {assertion_id: export_ok, type: json_path_equals, path: artifacts/export_status.json, json_path: success, expected: true}
+      - {assertion_id: trade_orders_exists, type: file_exists, path: artifacts/trade_orders.csv}

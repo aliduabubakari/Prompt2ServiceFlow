@@ -1,0 +1,255 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-08T22:42:38.675340+00:00",
+  "instance": "benchmark/instances/main/healthcare_claims_etl",
+  "workspace": "experiments/workspaces/main/healthcare_claims_etl",
+  "submission": "results/paper/runs/m5__main__healthcare_claims_etl__deepinfra-deepseek-v4-1-flash__s1__20261008T223943.795796Z__fc5a17d0/agent_workspace/submission",
+  "summary": {
+    "public_gates_status": "pass",
+    "first_failing_gate": null,
+    "g6_assert_status": "pass",
+    "full_pass_g0_g6": true,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": null
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-08T22:42:37.385948+00:00",
+    "workspace": "experiments/workspaces/main/healthcare_claims_etl",
+    "submission": "results/paper/runs/m5__main__healthcare_claims_etl__deepinfra-deepseek-v4-1-flash__s1__20261008T223943.795796Z__fc5a17d0/agent_workspace/submission",
+    "overall_status": "pass",
+    "first_failing_gate": null,
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "pass",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": []
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "pass",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": []
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "healthcare-claims-processing-etl-scripts",
+              "scenario": "base",
+              "data_size_bytes": 11059,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "healthcare-claims-processing-etl-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 947,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "healthcare-claims-processing-etl-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 11059,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "healthcare-claims-processing-etl-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 947,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "extract_claims",
+                "extract_providers",
+                "transform_join",
+                "load_warehouse",
+                "refresh_bi"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 5,
+      "submission_intents": 5,
+      "gold_intents": 5,
+      "mapping": {
+        "extract_claims": "extract_claims",
+        "extract_providers": "extract_providers",
+        "load_warehouse": "load_warehouse",
+        "refresh_bi": "refresh_bi",
+        "transform_join": "transform_join"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 5
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 4,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 5,
+      "total": 5,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 5,
+    "correct": 5,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "extract_claims",
+        "gold_service": "delimited_file_tabular_dataset_loader",
+        "submission_intent": "extract_claims",
+        "submission_service": "delimited_file_tabular_dataset_loader",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "extract_providers",
+        "gold_service": "delimited_file_tabular_dataset_loader",
+        "submission_intent": "extract_providers",
+        "submission_service": "delimited_file_tabular_dataset_loader",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "load_warehouse",
+        "gold_service": "multi_table_analytics_warehouse_loader",
+        "submission_intent": "load_warehouse",
+        "submission_service": "multi_table_analytics_warehouse_loader",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "refresh_bi",
+        "gold_service": "bi_dashboard_refresh_trigger",
+        "submission_intent": "refresh_bi",
+        "submission_service": "bi_dashboard_refresh_trigger",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "transform_join",
+        "gold_service": "healthcare_claims_provider_join_anonymize_risk_builder",
+        "submission_intent": "transform_join",
+        "submission_service": "healthcare_claims_provider_join_anonymize_risk_builder",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 3,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [],
+        "status": "pass"
+      }
+    ],
+    "assertions_total": 0,
+    "assertions_passed": 0,
+    "pass_rate": null,
+    "overall_status": "pass"
+  }
+}

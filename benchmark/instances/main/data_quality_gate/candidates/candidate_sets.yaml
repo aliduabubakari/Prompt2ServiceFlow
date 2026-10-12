@@ -1,0 +1,60 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:data_quality_gate
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+  - candidate_set_id: main_data_quality_gate_csv_artifact_profile_ingestor_candidates
+    source_step_refs: [ingest_csv]
+    service_ids:
+      - csv_artifact_profile_ingestor
+      - csv_tabular_schema_validating_loader
+      - customer_segment_csv_loader
+      - delimited_file_tabular_dataset_loader
+      - csv_to_structured_json_standardizer
+      - reviewed_domain_adapter
+  - candidate_set_id: main_data_quality_gate_tabular_quality_score_gate_candidates
+    source_step_refs: [quality_check]
+    service_ids:
+      - tabular_quality_score_gate
+      - parquet_customer_quality_score_calculator
+      - airvisual_json_response_validator
+      - document_feature_validation_quality_check
+      - content_toxicity_route_decider
+      - reviewed_python_udf_transformer
+  - candidate_set_id: main_data_quality_gate_tabular_dataset_database_loader_candidates
+    source_step_refs: [production_load]
+    service_ids:
+      - tabular_dataset_database_loader
+      - postgres_parameterized_sql_executor
+      - database_csv_snapshot_importer
+      - multi_table_analytics_warehouse_loader
+      - air_quality_dimensional_postgres_loader
+      - legacy_database_table_loader
+  - candidate_set_id: main_data_quality_gate_dataset_quarantine_zone_writer_candidates
+    source_step_refs: [quarantine_and_alert]
+    service_ids:
+      - dataset_quarantine_zone_writer
+      - temporary_resource_cleanup
+      - report_artifact_object_storage_archiver
+      - file_location_availability_sensor
+      - tabular_dataset_database_loader
+      - legacy_database_table_loader
+  - candidate_set_id: main_data_quality_gate_email_notification_sender_candidates
+    source_step_refs: [send_alert_email]
+    service_ids:
+      - email_notification_sender
+      - email_attachment_notification_sender
+      - status_context_email_summary_notifier
+      - aqi_threshold_email_alert_notifier
+      - bulk_email_campaign_sender
+      - slack_notification_sender
+  - candidate_set_id: main_data_quality_gate_temporary_resource_cleanup_candidates
+    source_step_refs: [cleanup]
+    service_ids:
+      - temporary_resource_cleanup
+      - filesystem_retention_cleanup_with_lock
+      - redis_key_cleanup
+      - database_expired_session_cleanup
+      - airflow_metadata_retention_cleaner
+      - dataset_quarantine_zone_writer

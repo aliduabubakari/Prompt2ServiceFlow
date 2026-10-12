@@ -1,0 +1,298 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-05T23:15:04.856808+00:00",
+  "instance": "benchmark/instances/main/test_dbx_aws_dag_reuse",
+  "workspace": "experiments/workspaces/main/test_dbx_aws_dag_reuse",
+  "submission": "results/paper/runs/m5__main__test_dbx_aws_dag_reuse__sintef-qwen3-8-27b-nvfp4__s2__20261005T230757.349863Z__fcf7baa9/agent_workspace/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G1",
+    "g6_assert_status": "pass",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 0.9333333333333333,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": null,
+    "wiring_applicable": false,
+    "alignment_edit_distance": 1,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": null
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-05T23:15:03.475068+00:00",
+    "workspace": "experiments/workspaces/main/test_dbx_aws_dag_reuse",
+    "submission": "results/paper/runs/m5__main__test_dbx_aws_dag_reuse__sintef-qwen3-8-27b-nvfp4__s2__20261005T230757.349863Z__fcf7baa9/agent_workspace/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G1",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "fail",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'backup_strategy_decision' names consumer 'it_dummy_3', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'backup_strategy_decision' names consumer 'it_spark_jar_2', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "pass",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": []
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "test-dbx-aws-dag-reuse-composition-scripts",
+              "scenario": "base",
+              "data_size_bytes": 16339,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "test-dbx-aws-dag-reuse-composition-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 267,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "test-dbx-aws-dag-reuse-composition-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 16339,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "test-dbx-aws-dag-reuse-composition-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 267,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "it_start",
+                "it_spark_jar",
+                "it_dummy_1",
+                "it_branch",
+                "it_spark_jar_2",
+                "it_dummy_2",
+                "it_dummy_3",
+                "it_end"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 8,
+      "submission_intents": 8,
+      "gold_intents": 8,
+      "mapping": {
+        "it_branch": "branch_task",
+        "it_dummy_1": "dummy_task_1",
+        "it_dummy_2": "dummy_task_2",
+        "it_dummy_3": "dummy_task_3",
+        "it_end": "end_task",
+        "it_spark_jar": "spark_jar_task",
+        "it_spark_jar_2": "spark_jar_task_2",
+        "it_start": "start_task"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 8
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 0.875,
+      "f1": 0.9333333333333333,
+      "true_positives": 7,
+      "false_positives": 0,
+      "false_negatives": 1
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 1,
+    "source_step_coverage": {
+      "covered": 8,
+      "total": 8,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 8,
+    "correct": 8,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "branch_task",
+        "gold_service": "execution_date_backup_strategy_decider",
+        "submission_intent": "it_branch",
+        "submission_service": "execution_date_backup_strategy_decider",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "dummy_task_1",
+        "gold_service": "temporary_resource_cleanup",
+        "submission_intent": "it_dummy_1",
+        "submission_service": "temporary_resource_cleanup",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "dummy_task_2",
+        "gold_service": "temporary_resource_cleanup",
+        "submission_intent": "it_dummy_2",
+        "submission_service": "temporary_resource_cleanup",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "dummy_task_3",
+        "gold_service": "temporary_resource_cleanup",
+        "submission_intent": "it_dummy_3",
+        "submission_service": "temporary_resource_cleanup",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "end_task",
+        "gold_service": "temporary_resource_cleanup",
+        "submission_intent": "it_end",
+        "submission_service": "temporary_resource_cleanup",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "spark_jar_task",
+        "gold_service": "databricks_notebook_run_executor",
+        "submission_intent": "it_spark_jar",
+        "submission_service": "databricks_notebook_run_executor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "spark_jar_task_2",
+        "gold_service": "databricks_notebook_run_executor",
+        "submission_intent": "it_spark_jar_2",
+        "submission_service": "databricks_notebook_run_executor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "start_task",
+        "gold_service": "workflow_load_id_generator",
+        "submission_intent": "it_start",
+        "submission_service": "workflow_load_id_generator",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "status": "not_applicable",
+    "reason": "gold and submission contain no producer-consumer wiring pairs",
+    "applicable": false,
+    "precision": null,
+    "recall": null,
+    "f1": null,
+    "true_positives": 0,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [],
+        "status": "pass"
+      }
+    ],
+    "assertions_total": 0,
+    "assertions_passed": 0,
+    "pass_rate": null,
+    "overall_status": "pass"
+  }
+}

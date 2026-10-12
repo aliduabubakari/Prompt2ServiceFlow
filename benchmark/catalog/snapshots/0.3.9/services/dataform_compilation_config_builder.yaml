@@ -1,0 +1,152 @@
+schema_version: 0.1.0
+service_id: dataform_compilation_config_builder
+version: 1.0.0
+display_name: Dataform Compilation Config Builder
+category: Transformer
+capability:
+  summary: Builds a Google Cloud Dataform compilation-result request body from runtime
+    parameters such as description, logical date, and git commitish, emitting a deterministic
+    configuration object and build status.
+  operations:
+  - Read runtime description and logical-date parameters.
+  - Validate that the git commitish is present.
+  - Construct a Dataform compilation configuration object with git_commitish and dynamic
+    compilation variables.
+  - Emit the configuration and a status object for workflow validation.
+  keywords:
+  - dataform
+  - compilation config
+  - parameter parsing
+  - dynamic variables
+  - request body
+  - transformer
+  limitations:
+  - Does not call Google Cloud Dataform.
+  - Does not validate whether the git commitish exists in the repository.
+  - Does not manage scheduling, retries, or dependency ordering.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: description_param
+    description: Runtime job description or trigger-supplied description value to
+      inject into the Dataform compilation variables.
+    channel: parameter
+    data_type: string
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: logical_date
+    description: Workflow logical date or execution date to inject into the Dataform
+      compilation variables.
+    channel: parameter
+    data_type: string
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: compilation_config
+    description: Dataform compilation-result request configuration including git commitish
+      and dynamic variables.
+    channel: parameter
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://dataform_compilation_config/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: build_status
+    description: Observable status describing whether compilation configuration construction
+      succeeded.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://dataform_config_build_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: git_commitish
+    description: Git branch, tag, or commitish to compile in the Dataform repository.
+    type: string
+    required: true
+  secrets: []
+contracts:
+- contract_id: dataform_config_git_commitish_non_empty
+  type: precondition
+  applies_to: parameter
+  target: git_commitish
+  description: Git commitish must be non-empty.
+  expression: length(trim(git_commitish)) > 0
+- contract_id: dataform_compilation_config_schema
+  type: json_schema
+  applies_to: output
+  target: compilation_config
+  description: Compilation configuration contains a git commitish and optional code
+    compilation variables.
+  schema_ref: schema://dataform_compilation_config/v1
+  expression: '{"type":"object","required":["git_commitish","code_compilation_config"],"properties":{"git_commitish":{"type":"string","minLength":1},"code_compilation_config":{"type":"object","properties":{"vars":{"type":"object","additionalProperties":{"type":["string","number","boolean","null"]}}},"additionalProperties":true}}}'
+- contract_id: dataform_config_build_status_schema
+  type: json_schema
+  applies_to: output
+  target: build_status
+  description: Status exposes deterministic configuration build outcome.
+  schema_ref: schema://dataform_config_build_status/v1
+  expression: '{"type":"object","required":["success","git_commitish","variables_produced"],"properties":{"success":{"type":"boolean"},"git_commitish":{"type":"string"},"variables_produced":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: dataform_config_builder_effect
+  type: effect
+  applies_to: service
+  target: dataform_compilation_config_builder
+  description: On success, the emitted compilation_config.git_commitish equals the
+    configured git_commitish and build_status.success is true.
+  expression: build_status.success == true implies compilation_config.git_commitish
+    == git_commitish
+invocation:
+  type: argo_workflow_template
+  template_name: dataform-compilation-config-builder-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.dataform_compilation_config_builder
+  implementation_ref: services/implementations/dataform_compilation_config_builder
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Avoid logging sensitive dynamic variable values if callers add them to the compilation
+    variables.
+  idempotency_notes: Same input parameters and git_commitish produce the same compilation
+    configuration.
+  default_timeout_seconds: 60
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:data-transformation-pipeline#parse_input_params
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The registry has no generic Dataform compilation-config builder. This
+    service captures the reusable artifact boundary before the Dataform API call.'
+  - 'Evidence status: strongly_inferred.'

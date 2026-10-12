@@ -1,0 +1,2385 @@
+{
+  "catalog_version": "0.3.1",
+  "pipelines": [
+    {
+      "pipeline_id": "crop_disease_image_triage",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "extension_crop_disease_image_triage_multimodal_source_bundle_ingestor_candidates",
+          "required_service_id": "multimodal_source_bundle_ingestor",
+          "source_step_refs": [
+            "ingest_source_batch"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_bundle_ingestor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_crop_disease_image_triage_multimodal_source_contract_validator_candidates",
+          "required_service_id": "multimodal_source_contract_validator",
+          "source_step_refs": [
+            "validate_source_contract"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_contract_validator",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_crop_disease_image_triage_multimodal_policy_risk_decider_candidates",
+          "required_service_id": "multimodal_policy_risk_decider",
+          "source_step_refs": [
+            "evaluate_policy_or_risk"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_policy_risk_decider",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_crop_disease_image_triage_approved_multimodal_record_router_candidates",
+          "required_service_id": "approved_multimodal_record_router",
+          "source_step_refs": [
+            "route_approved_records"
+          ],
+          "candidates": [
+            {
+              "service_id": "approved_multimodal_record_router",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_crop_disease_image_triage_exception_multimodal_review_router_candidates",
+          "required_service_id": "exception_multimodal_review_router",
+          "source_step_refs": [
+            "route_exception_records"
+          ],
+          "candidates": [
+            {
+              "service_id": "exception_multimodal_review_router",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_crop_disease_image_triage_multimodal_route_outcome_merger_candidates",
+          "required_service_id": "multimodal_route_outcome_merger",
+          "source_step_refs": [
+            "merge_route_outcomes"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_route_outcome_merger",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "generic_escape_hatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_crop_disease_image_triage_multimodal_output_bundle_publisher_candidates",
+          "required_service_id": "multimodal_output_bundle_publisher",
+          "source_step_refs": [
+            "publish_outputs"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_output_bundle_publisher",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": []
+    },
+    {
+      "pipeline_id": "document_image_compliance_packet",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "extension_document_image_compliance_packet_multimodal_source_bundle_ingestor_candidates",
+          "required_service_id": "multimodal_source_bundle_ingestor",
+          "source_step_refs": [
+            "ingest_source_batch"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_bundle_ingestor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_document_image_compliance_packet_multimodal_source_contract_validator_candidates",
+          "required_service_id": "multimodal_source_contract_validator",
+          "source_step_refs": [
+            "validate_source_contract"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_contract_validator",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_document_image_compliance_packet_multimodal_partition_a_normalizer_candidates",
+          "required_service_id": "multimodal_partition_a_normalizer",
+          "source_step_refs": [
+            "normalize_partition_a"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_partition_a_normalizer",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_document_image_compliance_packet_multimodal_partition_b_normalizer_candidates",
+          "required_service_id": "multimodal_partition_b_normalizer",
+          "source_step_refs": [
+            "normalize_partition_b"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_partition_b_normalizer",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_document_image_compliance_packet_multimodal_partition_c_normalizer_candidates",
+          "required_service_id": "multimodal_partition_c_normalizer",
+          "source_step_refs": [
+            "normalize_partition_c"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_partition_c_normalizer",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_document_image_compliance_packet_multimodal_partition_fusion_aggregator_candidates",
+          "required_service_id": "multimodal_partition_fusion_aggregator",
+          "source_step_refs": [
+            "fuse_partitions"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_partition_fusion_aggregator",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "generic_escape_hatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_document_image_compliance_packet_multimodal_output_bundle_publisher_candidates",
+          "required_service_id": "multimodal_output_bundle_publisher",
+          "source_step_refs": [
+            "publish_outputs"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_output_bundle_publisher",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": []
+    },
+    {
+      "pipeline_id": "floor_plan_asset_extraction",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "extension_floor_plan_asset_extraction_multimodal_source_bundle_ingestor_candidates",
+          "required_service_id": "multimodal_source_bundle_ingestor",
+          "source_step_refs": [
+            "ingest_source_batch"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_bundle_ingestor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_floor_plan_asset_extraction_multimodal_source_contract_validator_candidates",
+          "required_service_id": "multimodal_source_contract_validator",
+          "source_step_refs": [
+            "validate_source_contract"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_contract_validator",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_floor_plan_asset_extraction_multimodal_partition_a_normalizer_candidates",
+          "required_service_id": "multimodal_partition_a_normalizer",
+          "source_step_refs": [
+            "normalize_partition_a"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_partition_a_normalizer",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_floor_plan_asset_extraction_multimodal_partition_b_normalizer_candidates",
+          "required_service_id": "multimodal_partition_b_normalizer",
+          "source_step_refs": [
+            "normalize_partition_b"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_partition_b_normalizer",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_floor_plan_asset_extraction_multimodal_partition_c_normalizer_candidates",
+          "required_service_id": "multimodal_partition_c_normalizer",
+          "source_step_refs": [
+            "normalize_partition_c"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_partition_c_normalizer",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_floor_plan_asset_extraction_multimodal_partition_fusion_aggregator_candidates",
+          "required_service_id": "multimodal_partition_fusion_aggregator",
+          "source_step_refs": [
+            "fuse_partitions"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_partition_fusion_aggregator",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "generic_escape_hatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_floor_plan_asset_extraction_visual_document_feature_extractor_candidates",
+          "required_service_id": "visual_document_feature_extractor",
+          "source_step_refs": [
+            "extract_visual_text_features"
+          ],
+          "candidates": [
+            {
+              "service_id": "visual_document_feature_extractor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_floor_plan_asset_extraction_multimodal_reference_metadata_joiner_candidates",
+          "required_service_id": "multimodal_reference_metadata_joiner",
+          "source_step_refs": [
+            "join_reference_metadata"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_reference_metadata_joiner",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_floor_plan_asset_extraction_multimodal_quality_assessor_candidates",
+          "required_service_id": "multimodal_quality_assessor",
+          "source_step_refs": [
+            "assess_multimodal_quality"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_quality_assessor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_floor_plan_asset_extraction_multimodal_output_bundle_publisher_candidates",
+          "required_service_id": "multimodal_output_bundle_publisher",
+          "source_step_refs": [
+            "publish_outputs"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_output_bundle_publisher",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": []
+    },
+    {
+      "pipeline_id": "handwritten_form_digitization",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "extension_handwritten_form_digitization_multimodal_source_bundle_ingestor_candidates",
+          "required_service_id": "multimodal_source_bundle_ingestor",
+          "source_step_refs": [
+            "ingest_source_batch"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_bundle_ingestor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_handwritten_form_digitization_multimodal_source_contract_validator_candidates",
+          "required_service_id": "multimodal_source_contract_validator",
+          "source_step_refs": [
+            "validate_source_contract"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_contract_validator",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_handwritten_form_digitization_multimodal_raw_artifact_stager_candidates",
+          "required_service_id": "multimodal_raw_artifact_stager",
+          "source_step_refs": [
+            "stage_raw_artifacts"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_raw_artifact_stager",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_handwritten_form_digitization_multimodal_record_normalizer_candidates",
+          "required_service_id": "multimodal_record_normalizer",
+          "source_step_refs": [
+            "normalize_records"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_record_normalizer",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_handwritten_form_digitization_visual_document_feature_extractor_candidates",
+          "required_service_id": "visual_document_feature_extractor",
+          "source_step_refs": [
+            "extract_visual_text_features"
+          ],
+          "candidates": [
+            {
+              "service_id": "visual_document_feature_extractor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_handwritten_form_digitization_multimodal_reference_metadata_joiner_candidates",
+          "required_service_id": "multimodal_reference_metadata_joiner",
+          "source_step_refs": [
+            "join_reference_metadata"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_reference_metadata_joiner",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "generic_escape_hatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_handwritten_form_digitization_multimodal_output_bundle_publisher_candidates",
+          "required_service_id": "multimodal_output_bundle_publisher",
+          "source_step_refs": [
+            "publish_outputs"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_output_bundle_publisher",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": []
+    },
+    {
+      "pipeline_id": "identity_document_redaction",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "extension_identity_document_redaction_multimodal_source_bundle_ingestor_candidates",
+          "required_service_id": "multimodal_source_bundle_ingestor",
+          "source_step_refs": [
+            "ingest_source_batch"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_bundle_ingestor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_identity_document_redaction_multimodal_source_contract_validator_candidates",
+          "required_service_id": "multimodal_source_contract_validator",
+          "source_step_refs": [
+            "validate_source_contract"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_contract_validator",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_identity_document_redaction_visual_document_feature_extractor_candidates",
+          "required_service_id": "visual_document_feature_extractor",
+          "source_step_refs": [
+            "extract_visual_text_features"
+          ],
+          "candidates": [
+            {
+              "service_id": "visual_document_feature_extractor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_identity_document_redaction_multimodal_reference_metadata_joiner_candidates",
+          "required_service_id": "multimodal_reference_metadata_joiner",
+          "source_step_refs": [
+            "join_reference_metadata"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_reference_metadata_joiner",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_identity_document_redaction_multimodal_quality_assessor_candidates",
+          "required_service_id": "multimodal_quality_assessor",
+          "source_step_refs": [
+            "assess_multimodal_quality"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_quality_assessor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_identity_document_redaction_multimodal_policy_risk_decider_candidates",
+          "required_service_id": "multimodal_policy_risk_decider",
+          "source_step_refs": [
+            "evaluate_policy_or_risk"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_policy_risk_decider",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "generic_escape_hatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_identity_document_redaction_approved_multimodal_record_router_candidates",
+          "required_service_id": "approved_multimodal_record_router",
+          "source_step_refs": [
+            "route_approved_records"
+          ],
+          "candidates": [
+            {
+              "service_id": "approved_multimodal_record_router",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_identity_document_redaction_exception_multimodal_review_router_candidates",
+          "required_service_id": "exception_multimodal_review_router",
+          "source_step_refs": [
+            "route_exception_records"
+          ],
+          "candidates": [
+            {
+              "service_id": "exception_multimodal_review_router",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_identity_document_redaction_multimodal_route_outcome_merger_candidates",
+          "required_service_id": "multimodal_route_outcome_merger",
+          "source_step_refs": [
+            "merge_route_outcomes"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_route_outcome_merger",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_identity_document_redaction_multimodal_output_bundle_publisher_candidates",
+          "required_service_id": "multimodal_output_bundle_publisher",
+          "source_step_refs": [
+            "publish_outputs"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_output_bundle_publisher",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": []
+    },
+    {
+      "pipeline_id": "medical_image_metadata_quality_check",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "extension_medical_image_metadata_quality_check_multimodal_source_bundle_ingestor_candidates",
+          "required_service_id": "multimodal_source_bundle_ingestor",
+          "source_step_refs": [
+            "ingest_source_batch"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_bundle_ingestor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_medical_image_metadata_quality_check_multimodal_source_contract_validator_candidates",
+          "required_service_id": "multimodal_source_contract_validator",
+          "source_step_refs": [
+            "validate_source_contract"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_contract_validator",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_medical_image_metadata_quality_check_multimodal_raw_artifact_stager_candidates",
+          "required_service_id": "multimodal_raw_artifact_stager",
+          "source_step_refs": [
+            "stage_raw_artifacts"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_raw_artifact_stager",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_medical_image_metadata_quality_check_multimodal_record_normalizer_candidates",
+          "required_service_id": "multimodal_record_normalizer",
+          "source_step_refs": [
+            "normalize_records"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_record_normalizer",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_medical_image_metadata_quality_check_multimodal_output_bundle_publisher_candidates",
+          "required_service_id": "multimodal_output_bundle_publisher",
+          "source_step_refs": [
+            "publish_outputs"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_output_bundle_publisher",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": []
+    },
+    {
+      "pipeline_id": "product_image_listing_enrichment",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "extension_product_image_listing_enrichment_multimodal_source_bundle_ingestor_candidates",
+          "required_service_id": "multimodal_source_bundle_ingestor",
+          "source_step_refs": [
+            "ingest_source_batch"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_bundle_ingestor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_product_image_listing_enrichment_multimodal_source_contract_validator_candidates",
+          "required_service_id": "multimodal_source_contract_validator",
+          "source_step_refs": [
+            "validate_source_contract"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_contract_validator",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_product_image_listing_enrichment_multimodal_branch_feature_extractor_candidates",
+          "required_service_id": "multimodal_branch_feature_extractor",
+          "source_step_refs": [
+            "extract_branch_features"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_branch_feature_extractor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_product_image_listing_enrichment_multimodal_context_enricher_candidates",
+          "required_service_id": "multimodal_context_enricher",
+          "source_step_refs": [
+            "enrich_branch_context"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_context_enricher",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_product_image_listing_enrichment_multimodal_branch_quality_scorer_candidates",
+          "required_service_id": "multimodal_branch_quality_scorer",
+          "source_step_refs": [
+            "score_branch_quality"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_branch_quality_scorer",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_product_image_listing_enrichment_multimodal_branch_output_merger_candidates",
+          "required_service_id": "multimodal_branch_output_merger",
+          "source_step_refs": [
+            "merge_branch_outputs"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_branch_output_merger",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "generic_escape_hatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_product_image_listing_enrichment_multimodal_output_bundle_publisher_candidates",
+          "required_service_id": "multimodal_output_bundle_publisher",
+          "source_step_refs": [
+            "publish_outputs"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_output_bundle_publisher",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": []
+    },
+    {
+      "pipeline_id": "satellite_change_report_assembler",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "extension_satellite_change_report_assembler_multimodal_source_bundle_ingestor_candidates",
+          "required_service_id": "multimodal_source_bundle_ingestor",
+          "source_step_refs": [
+            "ingest_source_batch"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_bundle_ingestor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_satellite_change_report_assembler_multimodal_source_contract_validator_candidates",
+          "required_service_id": "multimodal_source_contract_validator",
+          "source_step_refs": [
+            "validate_source_contract"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_contract_validator",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_satellite_change_report_assembler_multimodal_raw_artifact_stager_candidates",
+          "required_service_id": "multimodal_raw_artifact_stager",
+          "source_step_refs": [
+            "stage_raw_artifacts"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_raw_artifact_stager",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_satellite_change_report_assembler_multimodal_record_normalizer_candidates",
+          "required_service_id": "multimodal_record_normalizer",
+          "source_step_refs": [
+            "normalize_records"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_record_normalizer",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_satellite_change_report_assembler_visual_document_feature_extractor_candidates",
+          "required_service_id": "visual_document_feature_extractor",
+          "source_step_refs": [
+            "extract_visual_text_features"
+          ],
+          "candidates": [
+            {
+              "service_id": "visual_document_feature_extractor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_satellite_change_report_assembler_multimodal_reference_metadata_joiner_candidates",
+          "required_service_id": "multimodal_reference_metadata_joiner",
+          "source_step_refs": [
+            "join_reference_metadata"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_reference_metadata_joiner",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "generic_escape_hatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_satellite_change_report_assembler_multimodal_output_bundle_publisher_candidates",
+          "required_service_id": "multimodal_output_bundle_publisher",
+          "source_step_refs": [
+            "publish_outputs"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_output_bundle_publisher",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": []
+    },
+    {
+      "pipeline_id": "scanned_claim_packet_extraction",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "extension_scanned_claim_packet_extraction_multimodal_source_bundle_ingestor_candidates",
+          "required_service_id": "multimodal_source_bundle_ingestor",
+          "source_step_refs": [
+            "ingest_source_batch"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_bundle_ingestor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_scanned_claim_packet_extraction_multimodal_source_contract_validator_candidates",
+          "required_service_id": "multimodal_source_contract_validator",
+          "source_step_refs": [
+            "validate_source_contract"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_contract_validator",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_scanned_claim_packet_extraction_multimodal_branch_feature_extractor_candidates",
+          "required_service_id": "multimodal_branch_feature_extractor",
+          "source_step_refs": [
+            "extract_branch_features"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_branch_feature_extractor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_scanned_claim_packet_extraction_multimodal_context_enricher_candidates",
+          "required_service_id": "multimodal_context_enricher",
+          "source_step_refs": [
+            "enrich_branch_context"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_context_enricher",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_scanned_claim_packet_extraction_multimodal_branch_quality_scorer_candidates",
+          "required_service_id": "multimodal_branch_quality_scorer",
+          "source_step_refs": [
+            "score_branch_quality"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_branch_quality_scorer",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_scanned_claim_packet_extraction_multimodal_branch_output_merger_candidates",
+          "required_service_id": "multimodal_branch_output_merger",
+          "source_step_refs": [
+            "merge_branch_outputs"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_branch_output_merger",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "generic_escape_hatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_scanned_claim_packet_extraction_visual_document_feature_extractor_candidates",
+          "required_service_id": "visual_document_feature_extractor",
+          "source_step_refs": [
+            "extract_visual_text_features"
+          ],
+          "candidates": [
+            {
+              "service_id": "visual_document_feature_extractor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_scanned_claim_packet_extraction_multimodal_reference_metadata_joiner_candidates",
+          "required_service_id": "multimodal_reference_metadata_joiner",
+          "source_step_refs": [
+            "join_reference_metadata"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_reference_metadata_joiner",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_scanned_claim_packet_extraction_multimodal_quality_assessor_candidates",
+          "required_service_id": "multimodal_quality_assessor",
+          "source_step_refs": [
+            "assess_multimodal_quality"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_quality_assessor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_scanned_claim_packet_extraction_multimodal_output_bundle_publisher_candidates",
+          "required_service_id": "multimodal_output_bundle_publisher",
+          "source_step_refs": [
+            "publish_outputs"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_output_bundle_publisher",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": []
+    },
+    {
+      "pipeline_id": "shipping_document_ocr_reconciliation",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "extension_shipping_document_ocr_reconciliation_multimodal_primary_source_ingestor_candidates",
+          "required_service_id": "multimodal_primary_source_ingestor",
+          "source_step_refs": [
+            "ingest_primary_source"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_primary_source_ingestor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_shipping_document_ocr_reconciliation_multimodal_secondary_source_ingestor_candidates",
+          "required_service_id": "multimodal_secondary_source_ingestor",
+          "source_step_refs": [
+            "ingest_secondary_source"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_secondary_source_ingestor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_shipping_document_ocr_reconciliation_multimodal_reference_source_ingestor_candidates",
+          "required_service_id": "multimodal_reference_source_ingestor",
+          "source_step_refs": [
+            "ingest_reference_source"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_reference_source_ingestor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_shipping_document_ocr_reconciliation_multimodal_multi_source_contract_validator_candidates",
+          "required_service_id": "multimodal_multi_source_contract_validator",
+          "source_step_refs": [
+            "validate_source_contracts"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_multi_source_contract_validator",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_shipping_document_ocr_reconciliation_multimodal_multi_source_normalizer_candidates",
+          "required_service_id": "multimodal_multi_source_normalizer",
+          "source_step_refs": [
+            "normalize_sources"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_multi_source_normalizer",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_shipping_document_ocr_reconciliation_multimodal_source_fusion_reconciler_candidates",
+          "required_service_id": "multimodal_source_fusion_reconciler",
+          "source_step_refs": [
+            "fuse_sources"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_source_fusion_reconciler",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "generic_escape_hatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_shipping_document_ocr_reconciliation_visual_document_feature_extractor_candidates",
+          "required_service_id": "visual_document_feature_extractor",
+          "source_step_refs": [
+            "extract_visual_text_features"
+          ],
+          "candidates": [
+            {
+              "service_id": "visual_document_feature_extractor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_shipping_document_ocr_reconciliation_multimodal_reference_metadata_joiner_candidates",
+          "required_service_id": "multimodal_reference_metadata_joiner",
+          "source_step_refs": [
+            "join_reference_metadata"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_reference_metadata_joiner",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "document_feature_validation_quality_check",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_shipping_document_ocr_reconciliation_multimodal_quality_assessor_candidates",
+          "required_service_id": "multimodal_quality_assessor",
+          "source_step_refs": [
+            "assess_multimodal_quality"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_quality_assessor",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "image_cdn_batch_downloader",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "extension_shipping_document_ocr_reconciliation_multimodal_output_bundle_publisher_candidates",
+          "required_service_id": "multimodal_output_bundle_publisher",
+          "source_step_refs": [
+            "publish_outputs"
+          ],
+          "candidates": [
+            {
+              "service_id": "multimodal_output_bundle_publisher",
+              "label": "gold",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "csv_to_structured_json_standardizer",
+              "label": "semantic_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "json_field_projection_transformer",
+              "label": "contract_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            },
+            {
+              "service_id": "dataset_quarantine_zone_writer",
+              "label": "format_mismatch",
+              "rationale": "Reviewed candidate relationship for Extension-50 Batch 01."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": []
+    }
+  ]
+}

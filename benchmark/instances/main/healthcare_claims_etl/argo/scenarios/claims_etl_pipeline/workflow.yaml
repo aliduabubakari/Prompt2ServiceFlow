@@ -1,0 +1,213 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: healthcare-claims-etl-claims-etl-pipeline-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: healthcare-claims-etl-claims-etl-pipeline
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: claims-etl-pipeline
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: claims-fixture
+      value: claims.csv
+    - name: providers-fixture
+      value: providers.csv
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: healthcare-claims-etl-claims-etl-pipeline-scripts
+  - name: fixtures
+    configMap:
+      name: healthcare-claims-etl-claims-etl-pipeline-fixtures
+      items:
+      - key: fixture-0000
+        path: bi_service.json
+      - key: fixture-0001
+        path: claims.csv
+      - key: fixture-0002
+        path: fixture.json
+      - key: fixture-0003
+        path: providers.csv
+      - key: fixture-0004
+        path: warehouse_resource.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: extract-claims
+        template: run-extract-claims
+      - name: extract-providers
+        template: run-extract-providers
+      - name: transform-join
+        template: run-transform-join
+        depends: extract-claims.Succeeded && extract-providers.Succeeded
+      - name: load-warehouse
+        template: run-load-warehouse
+        depends: transform-join.Succeeded
+      - name: refresh-bi
+        template: run-refresh-bi
+        depends: transform-join.Succeeded
+  - name: run-extract-claims
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: extract_claims
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_extract_claims.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.claims-fixture}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-extract-providers
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: extract_providers
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_extract_providers.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.providers-fixture}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-transform-join
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: transform_join
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_transform_join.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-load-warehouse
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: load_warehouse
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_load_warehouse.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-refresh-bi
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: refresh_bi
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_refresh_bi.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError

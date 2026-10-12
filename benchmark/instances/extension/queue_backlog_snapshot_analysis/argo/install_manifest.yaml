@@ -1,0 +1,167 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: queue-backlog-snapshot-analysis-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_bounded_events.py: "#!/usr/bin/env python3\n\"\"\"Ingest queue messages JSONL and service\
+    \ registry CSV.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True)\n\
+    \    p.add_argument(\"--fixture\",type=Path,required=True); p.add_argument(\"--execution-time\",type=str,default=None)\n\
+    \    a=p.parse_args(); r=a.workspace; art=r/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n\
+    \    fx=json.loads(a.fixture.read_text(encoding=\"utf-8\")); fd=a.fixture.parent\n    msgs=[]\n  \
+    \  with (fd/fx[\"inputs\"][\"messages\"]).open(encoding=\"utf-8\") as f:\n        for i,line in enumerate(f,1):\n\
+    \            line=line.strip()\n            if line:\n                m=json.loads(line); m[\"_line\"\
+    ]=i; msgs.append(m)\n    services={}\n    with (fd/fx[\"inputs\"][\"services\"]).open(encoding=\"\
+    utf-8\",newline=\"\") as f:\n        for row in csv.DictReader(f): services[row[\"service_name\"]]=row\n\
+    \    result={\"messages\":msgs,\"services\":services,\"total\":len(msgs),\"ingested_at\":a.execution_time}\n\
+    \    (art/\"ingest_bounded_events_artifact.json\").write_text(json.dumps(result,indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\n    (art/\"ingest_bounded_events_status.json\").write_text(json.dumps({\"success\"\
+    :True,\"messages\":len(msgs),\"services\":len(services),\"errors\":[]},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+  02_validate_checkpoint_inputs.py: "#!/usr/bin/env python3\n\"\"\"Validate: required fields, service\
+    \ existence, priority validity, retry limits.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_bounded_events_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    msgs,services=ingested[\"messages\"],ingested[\"services\"]\n\
+    \    required={\"message_id\",\"queue_name\",\"priority\",\"enqueued_at\"}; valid_p={\"critical\"\
+    ,\"high\",\"medium\",\"low\"}\n    errors=[]; valid=[]\n    for m in msgs:\n        issues=[]\n  \
+    \      if required-set(m.keys()): issues.append(f\"missing_fields: {required-set(m.keys())}\")\n \
+    \       if m.get(\"queue_name\") not in services: issues.append(f\"unknown_queue: {m.get('queue_name')}\"\
+    )\n        if m.get(\"priority\") not in valid_p: issues.append(f\"invalid_priority: {m.get('priority')}\"\
+    )\n        svc=services.get(m.get(\"queue_name\",\"\"),{})\n        max_retry=int(svc.get(\"max_retry_count\"\
+    ,5))\n        if m.get(\"retry_count\",0)>max_retry: issues.append(f\"retry_exceeded: {m['retry_count']}>{max_retry}\"\
+    )\n        if issues: errors.append({\"message_id\":m.get(\"message_id\",\"?\"),\"issues\":issues})\n\
+    \        else: valid.append(m)\n    result={\"valid\":valid,\"errors\":errors,\"total_valid\":len(valid),\"\
+    total_rejected\":len(errors)}\n    (art/\"validate_checkpoint_inputs_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"validate_checkpoint_inputs_status.json\").write_text(json.dumps({\"\
+    success\":True,\"valid\":len(valid),\"rejected\":len(errors),\"errors\":errors},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_sort_and_deduplicate_records.py: "#!/usr/bin/env python3\n\"\"\"Sort by enqueue time, deduplicate\
+    \ by message_id.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import\
+    \ Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    validated=json.loads((art/\"validate_checkpoint_inputs_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    msgs=validated[\"valid\"]; msgs.sort(key=lambda m:(m.get(\"enqueued_at\",\"\"),m.get(\"\
+    message_id\",\"\")))\n    seen=set(); deduped=[]; dups=[]\n    for m in msgs:\n        mid=m.get(\"\
+    message_id\",\"\")\n        if mid in seen: dups.append(mid)\n        else: seen.add(mid); deduped.append(m)\n\
+    \    result={\"events\":deduped,\"total_before\":len(msgs),\"total_after\":len(deduped),\"duplicates_removed\"\
+    :len(dups)}\n    (art/\"sort_and_deduplicate_records_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"sort_and_deduplicate_records_status.json\").write_text(json.dumps({\"\
+    success\":True,\"deduped\":len(deduped),\"dups\":len(dups),\"errors\":[]},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_build_analysis_windows.py: "#!/usr/bin/env python3\n\"\"\"Build analysis windows: group messages\
+    \ by queue + fixed time windows.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from datetime import datetime, timedelta\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"\n    fx=json.loads(a.fixture.read_text(encoding=\"\
+    utf-8\")); wm=fx.get(\"window_size_minutes\",10)\n    sorted_d=json.loads((art/\"sort_and_deduplicate_records_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    events=sorted_d[\"events\"]\n    queues={}\n    for e in events:\
+    \ queues.setdefault(e[\"queue_name\"],[]).append(e)\n    windows=[]\n    batch_start=datetime.fromisoformat(fx[\"\
+    batch_window_start\"].replace(\"Z\",\"+00:00\"))\n    batch_end=datetime.fromisoformat(fx[\"batch_window_end\"\
+    ].replace(\"Z\",\"+00:00\"))\n    for qname,qevents in queues.items():\n        ws=batch_start; wi=0\n\
+    \        while ws<batch_end:\n            we=ws+timedelta(minutes=wm)\n            win_events=[e for\
+    \ e in qevents if ws<=datetime.fromisoformat(e[\"enqueued_at\"].replace(\"Z\",\"+00:00\"))<we]\n \
+    \           if win_events:\n                windows.append({\"queue_name\":qname,\"window_index\"\
+    :wi,\"window_start\":ws.isoformat()+\"Z\",\"window_end\":we.isoformat()+\"Z\",\"events\":win_events,\"\
+    event_count\":len(win_events)})\n            ws=we; wi+=1\n    result={\"windows\":windows,\"total_windows\"\
+    :len(windows)}\n    (art/\"build_analysis_windows_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"build_analysis_windows_status.json\").write_text(json.dumps({\"\
+    success\":True,\"windows\":len(windows),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"\
+    __main__\": main()\n"
+  05_compute_window_metrics.py: "#!/usr/bin/env python3\n\"\"\"Compute window metrics: backlog depth,\
+    \ capacity risk, retry pressure.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_bounded_events_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    windows=json.loads((art/\"build_analysis_windows_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    fx=json.loads(a.fixture.read_text(encoding=\"utf-8\")); cap_thresh=fx.get(\"\
+    capacity_threshold_pct\",80)\n    services=ingested[\"services\"]; metrics=[]\n    for w in windows[\"\
+    windows\"]:\n        svc=services.get(w[\"queue_name\"],{})\n        max_depth=int(svc.get(\"max_queue_depth\"\
+    ,100)); total_retries=sum(e.get(\"retry_count\",0) for e in w[\"events\"])\n        cap_pct=round(w[\"\
+    event_count\"]/max_depth*100,1); at_risk=cap_pct>=cap_thresh\n        metrics.append({\"queue_name\"\
+    :w[\"queue_name\"],\"window_index\":w[\"window_index\"],\"window_start\":w[\"window_start\"],\n  \
+    \                      \"event_count\":w[\"event_count\"],\"max_depth\":max_depth,\"capacity_pct\"\
+    :cap_pct,\n                        \"capacity_at_risk\":at_risk,\"total_retries\":total_retries,\n\
+    \                        \"avg_payload_kb\":round(sum(e.get(\"payload_size_kb\",0) for e in w[\"events\"\
+    ])/max(w[\"event_count\"],1),1)})\n    summary={\"total_windows\":len(metrics),\"total_events\":sum(m[\"\
+    event_count\"] for m in metrics),\n             \"windows_at_risk\":sum(1 for m in metrics if m[\"\
+    capacity_at_risk\"])}\n    result={\"per_window_metrics\":metrics,\"summary\":summary}\n    (art/\"\
+    compute_window_metrics_artifact.json\").write_text(json.dumps(result,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    (art/\"compute_window_metrics_status.json\").write_text(json.dumps({\"success\":True,\"\
+    windows\":len(metrics),\"at_risk\":summary[\"windows_at_risk\"],\"errors\":[]},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+  06_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish: backlog report CSV + capacity alert +\
+    \ audit manifest.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    p.add_argument(\"--execution-time\",type=str,default=None);\
+    \ a=p.parse_args(); art=a.workspace/\"artifacts\"\n    et=a.execution_time or \"2026-07-20T09:00:00Z\"\
+    ; fx=json.loads(a.fixture.read_text(encoding=\"utf-8\"))\n    metrics=json.loads((art/\"compute_window_metrics_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    val=json.loads((art/\"validate_checkpoint_inputs_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    summary={\"total\":metrics[\"summary\"][\"total_windows\"],\"\
+    events\":metrics[\"summary\"][\"total_events\"],\n             \"rejected\":val[\"total_rejected\"\
+    ],\"at_risk\":metrics[\"summary\"][\"windows_at_risk\"]}\n    manifest={\"checkpoint_id\":f\"ckpt_queue_{et[:10].replace('-','_')}\"\
+    ,\"checkpoint_time\":et,\n              \"pipeline_id\":fx[\"pipeline_id\"],\"summary\":summary,\"\
+    output_files\":[\"queue_backlog_report.csv\",\"audit_manifest.json\"],\"status\":\"completed\"}\n\
+    \    (art/\"audit_manifest.json\").write_text(json.dumps(manifest,indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    csv_rel=\"queue_backlog_report.csv\"\n    with (art/csv_rel).open(\"w\",encoding=\"utf-8\"\
+    ,newline=\"\") as f:\n        w=csv.DictWriter(f,fieldnames=[\"queue_name\",\"window_start\",\"event_count\"\
+    ,\"max_depth\",\"capacity_pct\",\"capacity_at_risk\",\"total_retries\",\"avg_payload_kb\"],extrasaction='ignore')\n\
+    \        w.writeheader()\n        for m in metrics[\"per_window_metrics\"]: w.writerow(m)\n    (art/\"\
+    publish_outputs_artifact.json\").write_text(json.dumps({\"manifest\":manifest,\"csv\":csv_rel},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"publish_outputs_status.json\").write_text(json.dumps({\"success\"\
+    :True,\"csv\":csv_rel,\"summary\":summary,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif\
+    \ __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: queue-backlog-snapshot-analysis-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"pipeline_id\": \"queue_backlog_snapshot_analysis\",\n  \"inputs\": {\"messages\"\
+    : \"queue_messages.jsonl\", \"services\": \"service_registry.csv\"},\n  \"input_modalities\": [\"\
+    json\", \"table\"],\n  \"systems\": [\"message queue system\", \"capacity monitoring dashboard\"],\n\
+    \  \"batch_window_start\": \"2026-07-20T08:00:00Z\",\n  \"batch_window_end\": \"2026-07-20T09:00:00Z\"\
+    ,\n  \"window_size_minutes\": 10,\n  \"capacity_threshold_pct\": 80\n}\n"
+  fixture-0001: '{"message_id": "MSG-001", "queue_name": "model-serving", "priority": "high", "enqueued_at":
+    "2026-07-20T08:00:00Z", "payload_size_kb": 15, "retry_count": 0, "service": "model-serving"}
+
+    {"message_id": "MSG-002", "queue_name": "model-serving", "priority": "high", "enqueued_at": "2026-07-20T08:05:00Z",
+    "payload_size_kb": 22, "retry_count": 1, "service": "model-serving"}
+
+    {"message_id": "MSG-003", "queue_name": "model-serving", "priority": "medium", "enqueued_at": "2026-07-20T08:10:00Z",
+    "payload_size_kb": 8, "retry_count": 0, "service": "model-serving"}
+
+    {"message_id": "MSG-003", "queue_name": "model-serving", "priority": "medium", "enqueued_at": "2026-07-20T08:10:00Z",
+    "payload_size_kb": 8, "retry_count": 0, "service": "model-serving"}
+
+    {"message_id": "MSG-004", "queue_name": "model-training", "priority": "low", "enqueued_at": "2026-07-20T08:00:00Z",
+    "payload_size_kb": 500, "retry_count": 0, "service": "model-training"}
+
+    {"message_id": "MSG-005", "queue_name": "model-training", "priority": "low", "enqueued_at": "2026-07-20T08:15:00Z",
+    "payload_size_kb": 350, "retry_count": 0, "service": "model-training"}
+
+    {"message_id": "MSG-006", "queue_name": "vector-index", "priority": "critical", "enqueued_at": "2026-07-20T08:05:00Z",
+    "payload_size_kb": 45, "retry_count": 3, "service": "vector-index"}
+
+    {"message_id": "MSG-007", "queue_name": "vector-index", "priority": "medium", "enqueued_at": "2026-07-20T08:12:00Z",
+    "payload_size_kb": 30, "retry_count": 0, "service": "vector-index"}
+
+    '
+  fixture-0002: 'service_name,max_queue_depth,max_retry_count,critical_latency_ms,owner_team
+
+    model-serving,100,2,500,ML-Engineering
+
+    model-training,20,1,3600000,ML-Engineering
+
+    vector-index,50,3,200,Search-Infra
+
+    '

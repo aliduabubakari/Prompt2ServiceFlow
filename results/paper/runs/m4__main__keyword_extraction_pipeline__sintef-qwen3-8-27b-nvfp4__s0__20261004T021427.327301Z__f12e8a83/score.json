@@ -1,0 +1,305 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-04T02:38:05.018415+00:00",
+  "instance": "benchmark/instances/main/keyword_extraction_pipeline",
+  "workspace": "experiments/workspaces/main/keyword_extraction_pipeline",
+  "submission": "results/paper/runs/m4__main__keyword_extraction_pipeline__sintef-qwen3-8-27b-nvfp4__s0__20261004T021427.327301Z__f12e8a83/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G2",
+    "g6_assert_status": "pass",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 0.9090909090909091,
+    "binding_top1_accuracy": 0.3333333333333333,
+    "binding_version_accuracy": null,
+    "wiring_f1": 0.8,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 1,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": null
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-04T02:38:03.758191+00:00",
+    "workspace": "experiments/workspaces/main/keyword_extraction_pipeline",
+    "submission": "results/paper/runs/m4__main__keyword_extraction_pipeline__sintef-qwen3-8-27b-nvfp4__s0__20261004T021427.327301Z__f12e8a83/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G2",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "pass",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": []
+      },
+      {
+        "gate": "G2",
+        "status": "fail",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": [
+          {
+            "code": "G2_UNRESOLVED_SERVICE",
+            "message": "unresolved service document_text_cleaner:1.0.0 in the workspace catalog"
+          },
+          {
+            "code": "G2_UNRESOLVED_SERVICE",
+            "message": "unresolved service keyword_feature_extractor:1.0.0 in the workspace catalog"
+          },
+          {
+            "code": "G2_UNRESOLVED_SERVICE",
+            "message": "unresolved service data_quality_validator:1.0.0 in the workspace catalog"
+          },
+          {
+            "code": "G2_UNRESOLVED_SERVICE",
+            "message": "unresolved service pipeline_report_generator:1.0.0 in the workspace catalog"
+          }
+        ]
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_UNKNOWN_OUTPUT_PORT",
+            "message": "generate_documents_intent: unknown output port 'raw_documents_parquet'"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "generate_documents_intent: required output port 'document_parquet' is not bound"
+          },
+          {
+            "code": "G3_UNKNOWN_INPUT_PORT",
+            "message": "explore_data_intent: unknown input port 'raw_documents_parquet'"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "explore_data_intent: output 'profile_report' expects object, got text"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "explore_data_intent: required input port 'document_parquet' is not bound"
+          },
+          {
+            "code": "G3_UNKNOWN_PARAMETER",
+            "message": "explore_data_intent: unknown parameter 'input_path'"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "keyword-extraction-pipeline-scripts",
+              "scenario": "base",
+              "data_size_bytes": 12508,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "keyword-extraction-pipeline-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 242,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "keyword-extraction-pipeline-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 12508,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "keyword-extraction-pipeline-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 242,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "generate_documents_intent",
+                "explore_data_intent",
+                "clean_data_intent",
+                "extract_features_intent",
+                "validate_data_intent",
+                "save_and_report_intent"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 6,
+      "submission_intents": 6,
+      "gold_intents": 6,
+      "mapping": {
+        "clean_data_intent": "clean_data",
+        "explore_data_intent": "explore_data",
+        "extract_features_intent": "extract_features",
+        "generate_documents_intent": "generate_documents",
+        "save_and_report_intent": "save_and_report",
+        "validate_data_intent": "validate_data"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 6
+    },
+    "edge": {
+      "precision": 0.8333333333333334,
+      "recall": 1.0,
+      "f1": 0.9090909090909091,
+      "true_positives": 5,
+      "false_positives": 1,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 1,
+    "source_step_coverage": {
+      "covered": 6,
+      "total": 6,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 0.3333333333333333,
+    "aligned_accuracy": 0.3333333333333333,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 6,
+    "correct": 2,
+    "confusion_by_label": {
+      "invented_service": 4
+    },
+    "rates": {
+      "invented_service": 0.6666666666666666,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "clean_data",
+        "gold_service": "parquet_document_clean_standardizer",
+        "submission_intent": "clean_data_intent",
+        "submission_service": "document_text_cleaner",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "explore_data",
+        "gold_service": "parquet_document_data_profiler",
+        "submission_intent": "explore_data_intent",
+        "submission_service": "parquet_document_data_profiler",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "extract_features",
+        "gold_service": "document_keyword_feature_extractor",
+        "submission_intent": "extract_features_intent",
+        "submission_service": "keyword_feature_extractor",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "generate_documents",
+        "gold_service": "synthetic_document_parquet_generator",
+        "submission_intent": "generate_documents_intent",
+        "submission_service": "synthetic_document_parquet_generator",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "save_and_report",
+        "gold_service": "structured_json_to_csv_exporter",
+        "submission_intent": "save_and_report_intent",
+        "submission_service": "pipeline_report_generator",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "validate_data",
+        "gold_service": "document_feature_validation_quality_check",
+        "submission_intent": "validate_data_intent",
+        "submission_service": "data_quality_validator",
+        "outcome": "invented_service"
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 0.6666666666666666,
+    "recall": 1.0,
+    "f1": 0.8,
+    "applicable": true,
+    "true_positives": 4,
+    "false_positives": 2,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [],
+        "status": "pass"
+      }
+    ],
+    "assertions_total": 0,
+    "assertions_passed": 0,
+    "pass_rate": null,
+    "overall_status": "pass"
+  }
+}

@@ -1,0 +1,45 @@
+assertions_version: 0.1.0
+pipeline_id: multi_channel_marketing_campaign
+scenarios:
+  - scenario: multi_channel_campaign
+    assertions:
+      - assertion_id: segments_loaded
+        type: json_path_equals
+        path: artifacts/load_status.json
+        json_path: success
+        expected: true
+      - assertion_id: six_customers_loaded
+        type: json_path_equals
+        path: artifacts/load_status.json
+        json_path: rows_loaded
+        expected: 6
+      - assertion_id: email_campaign_sent
+        type: json_path_equals
+        path: artifacts/email_campaign_results.json
+        json_path: campaign_sent
+        expected: true
+      - assertion_id: email_premium_recipients
+        type: json_path_equals
+        path: artifacts/email_campaign_results.json
+        json_path: recipients_targeted
+        expected: 2
+      - assertion_id: sms_campaign_sent
+        type: json_path_equals
+        path: artifacts/sms_campaign_results.json
+        json_path: campaign_sent
+        expected: true
+      - assertion_id: sms_regular_recipients
+        type: json_path_equals
+        path: artifacts/sms_campaign_results.json
+        json_path: recipients_targeted
+        expected: 2
+      - assertion_id: push_campaign_sent
+        type: json_path_equals
+        path: artifacts/push_notification_campaign_results.json
+        json_path: campaign_sent
+        expected: true
+      - assertion_id: push_new_recipients
+        type: json_path_equals
+        path: artifacts/push_notification_campaign_results.json
+        json_path: recipients_targeted
+        expected: 2

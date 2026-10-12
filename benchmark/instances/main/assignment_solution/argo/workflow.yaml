@@ -1,0 +1,166 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: assignment-solution-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: assignment-solution
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: run
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters: []
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: assignment-solution-scripts
+  - name: fixtures
+    configMap:
+      name: assignment-solution-fixtures
+      items:
+      - key: fixture-0000
+        path: db.json
+      - key: fixture-0001
+        path: fixture.json
+      - key: fixture-0002
+        path: http.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: get-user
+        template: run-get-user
+      - name: process-user
+        template: run-process-user
+        depends: get-user.Succeeded
+      - name: create-table
+        template: run-create-table
+        depends: process-user.Succeeded
+      - name: insert-data
+        template: run-insert-data
+        depends: create-table.Succeeded
+  - name: run-get-user
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: get_user
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - get
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-process-user
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: process_user
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - process
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-create-table
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: create_table
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - create
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-insert-data
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: insert_data
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - insert
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

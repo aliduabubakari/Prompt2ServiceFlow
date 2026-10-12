@@ -1,0 +1,927 @@
+ir_version: 0.1.0
+composition_id: scanned_claim_packet_extraction
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.0
+  sha256: 85d824a0e3d5ffa8b613735c7b28ca1147094499e6bde2c1474b3c8aa3414aee
+source:
+  dataset_id: prompt2serviceflow_extension_sources
+  dataset_version: extension_v1
+  benchmark_id: extension:scanned_claim_packet_extraction
+  split: extension
+  pipeline_id: scanned_claim_packet_extraction
+  description_path: source/extension_v1/batch_01/descriptions/03_scanned_claim_packet_extraction.txt
+  description_sha256: 93e3640727aaf0c028f7e1e6af8ef6a3ca38bebedf3198026029e0327dbb0469
+  internal_spec_path: source/extension_v1/batch_01/specs/03_scanned_claim_packet_extraction.json
+  internal_spec_sha256: 69f8bbeb2c1e3f6ba6264cfb72e96a85abf8e176dea9abd24544d41edfcae84a
+requirement:
+  name: Scanned Claim Packet Extraction
+  purpose: Extract structured fields and review evidence from scanned claim packets.
+  domain: Finance/Risk
+  execution_model: batch
+  topology: fan_out
+  information_sufficiency: high
+  notes:
+  - Extension-50 Batch 01 synthetic source.
+  - Event and external-system behavior is represented as bounded fixture-backed batch execution.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: claims_document_bucket
+  type: object_storage
+  name: claims document bucket
+  identifier: synthetic://extension-v1/scanned_claim_packet_extraction/1
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+- system_id: review_queue
+  type: other
+  name: review queue
+  identifier: synthetic://extension-v1/scanned_claim_packet_extraction/2
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_source_batch
+  name: Ingest Source Batch
+  category: Extractor
+  capability: Ingest the bounded input batch for scanned insurance claim packet.
+  source_step_refs:
+  - ingest_source_batch
+  evidence:
+  - source: internal_spec
+    text: Ingest the bounded input batch for scanned insurance claim packet.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_source_batch_artifact
+  - ingest_source_batch_status
+  external_system_refs: &id001
+  - claims_document_bucket
+  - review_queue
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_source_batch_artifact, ingest_source_batch_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: validate_source_contract
+  name: Validate Source Contract
+  category: QualityCheck
+  capability: Validate file/API contracts and required identifiers for scanned insurance claim packet.
+  source_step_refs:
+  - validate_source_contract
+  evidence:
+  - source: internal_spec
+    text: Validate file/API contracts and required identifiers for scanned insurance claim packet.
+  inputs:
+  - ingest_source_batch_artifact
+  outputs:
+  - validate_source_contract_artifact
+  - validate_source_contract_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces validate_source_contract_artifact, validate_source_contract_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: extract_branch_features
+  name: Extract Branch Features
+  category: Extractor
+  capability: Extract core features or text fields for scanned insurance claim packet.
+  source_step_refs:
+  - extract_branch_features
+  evidence:
+  - source: internal_spec
+    text: Extract core features or text fields for scanned insurance claim packet.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - extract_branch_features_artifact
+  - extract_branch_features_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces extract_branch_features_artifact, extract_branch_features_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: enrich_branch_context
+  name: Enrich Branch Context
+  category: Integrator
+  capability: Enrich scanned insurance claim packet with reference metadata.
+  source_step_refs:
+  - enrich_branch_context
+  evidence:
+  - source: internal_spec
+    text: Enrich scanned insurance claim packet with reference metadata.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - enrich_branch_context_artifact
+  - enrich_branch_context_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces enrich_branch_context_artifact, enrich_branch_context_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: score_branch_quality
+  name: Score Branch Quality
+  category: ScoringService
+  capability: Score quality, risk, or confidence signals for scanned insurance claim packet.
+  source_step_refs:
+  - score_branch_quality
+  evidence:
+  - source: internal_spec
+    text: Score quality, risk, or confidence signals for scanned insurance claim packet.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - score_branch_quality_artifact
+  - score_branch_quality_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces score_branch_quality_artifact, score_branch_quality_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: merge_branch_outputs
+  name: Merge Branch Outputs
+  category: Aggregator
+  capability: Merge parallel branch outputs for scanned insurance claim packet.
+  source_step_refs:
+  - merge_branch_outputs
+  evidence:
+  - source: internal_spec
+    text: Merge parallel branch outputs for scanned insurance claim packet.
+  inputs:
+  - extract_branch_features_artifact
+  - enrich_branch_context_artifact
+  - score_branch_quality_artifact
+  outputs:
+  - merge_branch_outputs_artifact
+  - merge_branch_outputs_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces merge_branch_outputs_artifact, merge_branch_outputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: extract_visual_text_features
+  name: Extract Visual Text Features
+  category: Extractor
+  capability: Extract OCR text, visual metadata, or layout features from scanned insurance claim packet.
+  source_step_refs:
+  - extract_visual_text_features
+  evidence:
+  - source: internal_spec
+    text: Extract OCR text, visual metadata, or layout features from scanned insurance claim packet.
+  inputs:
+  - merge_branch_outputs_artifact
+  outputs:
+  - extract_visual_text_features_artifact
+  - extract_visual_text_features_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces extract_visual_text_features_artifact, extract_visual_text_features_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: join_reference_metadata
+  name: Join Reference Metadata
+  category: Integrator
+  capability: Join scanned insurance claim packet features with reference metadata.
+  source_step_refs:
+  - join_reference_metadata
+  evidence:
+  - source: internal_spec
+    text: Join scanned insurance claim packet features with reference metadata.
+  inputs:
+  - extract_visual_text_features_artifact
+  outputs:
+  - join_reference_metadata_artifact
+  - join_reference_metadata_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces join_reference_metadata_artifact, join_reference_metadata_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: assess_multimodal_quality
+  name: Assess Multimodal Quality
+  category: QualityCheck
+  capability: Assess visual, document, and metadata quality for scanned insurance claim packet.
+  source_step_refs:
+  - assess_multimodal_quality
+  evidence:
+  - source: internal_spec
+    text: Assess visual, document, and metadata quality for scanned insurance claim packet.
+  inputs:
+  - join_reference_metadata_artifact
+  outputs:
+  - assess_multimodal_quality_artifact
+  - assess_multimodal_quality_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces assess_multimodal_quality_artifact, assess_multimodal_quality_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: publish_outputs
+  name: Publish Outputs
+  category: Publisher
+  capability: Publish merged scanned insurance claim packet outputs and completion status.
+  source_step_refs:
+  - publish_outputs
+  evidence:
+  - source: internal_spec
+    text: Publish merged scanned insurance claim packet outputs and completion status.
+  inputs:
+  - assess_multimodal_quality_artifact
+  outputs:
+  - publish_outputs_artifact
+  - publish_outputs_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces publish_outputs_artifact, publish_outputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+source_step_accounting:
+- source_step_ref: ingest_source_batch
+  disposition: service
+  intent_ids:
+  - ingest_source_batch
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: validate_source_contract
+  disposition: service
+  intent_ids:
+  - validate_source_contract
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: extract_branch_features
+  disposition: service
+  intent_ids:
+  - extract_branch_features
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: enrich_branch_context
+  disposition: service
+  intent_ids:
+  - enrich_branch_context
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: score_branch_quality
+  disposition: service
+  intent_ids:
+  - score_branch_quality
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: merge_branch_outputs
+  disposition: service
+  intent_ids:
+  - merge_branch_outputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: extract_visual_text_features
+  disposition: service
+  intent_ids:
+  - extract_visual_text_features
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: join_reference_metadata
+  disposition: service
+  intent_ids:
+  - join_reference_metadata
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: assess_multimodal_quality
+  disposition: service
+  intent_ids:
+  - assess_multimodal_quality
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: publish_outputs
+  disposition: service
+  intent_ids:
+  - publish_outputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+control_flow:
+  edges:
+  - from: ingest_source_batch
+    to: validate_source_contract
+  - from: validate_source_contract
+    to: extract_branch_features
+  - from: extract_branch_features
+    to: merge_branch_outputs
+  - from: validate_source_contract
+    to: enrich_branch_context
+  - from: enrich_branch_context
+    to: merge_branch_outputs
+  - from: validate_source_contract
+    to: score_branch_quality
+  - from: score_branch_quality
+    to: merge_branch_outputs
+  - from: merge_branch_outputs
+    to: extract_visual_text_features
+  - from: extract_visual_text_features
+    to: join_reference_metadata
+  - from: join_reference_metadata
+    to: assess_multimodal_quality
+  - from: assess_multimodal_quality
+    to: publish_outputs
+  parallel_groups:
+  - group_id: parallel_feature_branches
+    intent_ids:
+    - extract_branch_features
+    - enrich_branch_context
+    - score_branch_quality
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: source_bundle
+  name: Source Bundle
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - ingest_source_batch
+  sensitivity: internal
+  persistence: workflow
+  fixture_ref: fixtures/inputs/fixture.json
+- artifact_id: ingest_source_batch_artifact
+  name: Ingest Source Batch Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_source_batch
+  consumers:
+  - validate_source_contract
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_source_batch_status
+  name: Ingest Source Batch Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_source_batch
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: validate_source_contract_artifact
+  name: Validate Source Contract Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: validate_source_contract
+  consumers:
+  - extract_branch_features
+  - enrich_branch_context
+  - score_branch_quality
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validate_source_contract_status
+  name: Validate Source Contract Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: validate_source_contract
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: extract_branch_features_artifact
+  name: Extract Branch Features Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: extract_branch_features
+  consumers:
+  - merge_branch_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: extract_branch_features_status
+  name: Extract Branch Features Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: extract_branch_features
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: enrich_branch_context_artifact
+  name: Enrich Branch Context Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: enrich_branch_context
+  consumers:
+  - merge_branch_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: enrich_branch_context_status
+  name: Enrich Branch Context Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: enrich_branch_context
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: score_branch_quality_artifact
+  name: Score Branch Quality Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: score_branch_quality
+  consumers:
+  - merge_branch_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: score_branch_quality_status
+  name: Score Branch Quality Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: score_branch_quality
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: merge_branch_outputs_artifact
+  name: Merge Branch Outputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: merge_branch_outputs
+  consumers:
+  - extract_visual_text_features
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: merge_branch_outputs_status
+  name: Merge Branch Outputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: merge_branch_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: extract_visual_text_features_artifact
+  name: Extract Visual Text Features Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: extract_visual_text_features
+  consumers:
+  - join_reference_metadata
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: extract_visual_text_features_status
+  name: Extract Visual Text Features Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: extract_visual_text_features
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: join_reference_metadata_artifact
+  name: Join Reference Metadata Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: join_reference_metadata
+  consumers:
+  - assess_multimodal_quality
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: join_reference_metadata_status
+  name: Join Reference Metadata Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: join_reference_metadata
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: assess_multimodal_quality_artifact
+  name: Assess Multimodal Quality Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: assess_multimodal_quality
+  consumers:
+  - publish_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: assess_multimodal_quality_status
+  name: Assess Multimodal Quality Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: assess_multimodal_quality
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: publish_outputs_artifact
+  name: Publish Outputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: output
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publish_outputs_status
+  name: Publish Outputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+bindings:
+- intent_id: ingest_source_batch
+  service_id: multimodal_source_bundle_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_source_batch_artifact
+  - port: execution_report
+    artifact_id: ingest_source_batch_status
+  parameter_bindings:
+    operation_profile: ingest_source_batch
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: validate_source_contract
+  service_id: multimodal_source_contract_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: ingest_source_batch_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: validate_source_contract_artifact
+  - port: execution_report
+    artifact_id: validate_source_contract_status
+  parameter_bindings:
+    operation_profile: validate_source_contract
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: extract_branch_features
+  service_id: multimodal_branch_feature_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: extract_branch_features_artifact
+  - port: execution_report
+    artifact_id: extract_branch_features_status
+  parameter_bindings:
+    operation_profile: extract_branch_features
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: enrich_branch_context
+  service_id: multimodal_context_enricher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: enrich_branch_context_artifact
+  - port: execution_report
+    artifact_id: enrich_branch_context_status
+  parameter_bindings:
+    operation_profile: enrich_branch_context
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: score_branch_quality
+  service_id: multimodal_branch_quality_scorer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: score_branch_quality_artifact
+  - port: execution_report
+    artifact_id: score_branch_quality_status
+  parameter_bindings:
+    operation_profile: score_branch_quality
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: merge_branch_outputs
+  service_id: multimodal_branch_output_merger
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: extract_branch_features_artifact
+  - port: input_artifacts
+    artifact_id: enrich_branch_context_artifact
+  - port: input_artifacts
+    artifact_id: score_branch_quality_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: merge_branch_outputs_artifact
+  - port: execution_report
+    artifact_id: merge_branch_outputs_status
+  parameter_bindings:
+    operation_profile: merge_branch_outputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: extract_visual_text_features
+  service_id: visual_document_feature_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: merge_branch_outputs_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: extract_visual_text_features_artifact
+  - port: execution_report
+    artifact_id: extract_visual_text_features_status
+  parameter_bindings:
+    operation_profile: extract_visual_text_features
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: join_reference_metadata
+  service_id: multimodal_reference_metadata_joiner
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: extract_visual_text_features_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: join_reference_metadata_artifact
+  - port: execution_report
+    artifact_id: join_reference_metadata_status
+  parameter_bindings:
+    operation_profile: join_reference_metadata
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: assess_multimodal_quality
+  service_id: multimodal_quality_assessor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: join_reference_metadata_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: assess_multimodal_quality_artifact
+  - port: execution_report
+    artifact_id: assess_multimodal_quality_status
+  parameter_bindings:
+    operation_profile: assess_multimodal_quality
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: publish_outputs
+  service_id: multimodal_output_bundle_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: assess_multimodal_quality_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: publish_outputs_artifact
+  - port: execution_report
+    artifact_id: publish_outputs_status
+  parameter_bindings:
+    operation_profile: publish_outputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - public
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Batch 01 mocks do not contact production image, document, or review systems.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 reviewed Batch 01 validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 reviewed Batch 01 validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 reviewed Batch 01 validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 reviewed Batch 01 validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 reviewed Batch 01 validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 reviewed Batch 01 validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 reviewed Batch 01 validation.

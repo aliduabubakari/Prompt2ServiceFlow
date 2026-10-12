@@ -1,0 +1,2034 @@
+[
+  {
+    "pipeline_id": "medical_image_metadata_quality_check",
+    "name": "Medical Image Metadata Quality Check",
+    "track": "image_document_multimodal",
+    "domain": "Healthcare/Public Health",
+    "topology": "linear",
+    "complexity": "simple",
+    "subject": "medical image study metadata",
+    "input_modalities": [
+      "image",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "json",
+      "table",
+      "status"
+    ],
+    "primary_inputs": [
+      "DICOM image folder",
+      "study manifest JSON",
+      "patient scheduling CSV"
+    ],
+    "external_systems": [
+      "imaging object store",
+      "metadata registry"
+    ],
+    "scenario": "Prepare fixture-backed radiology image metadata for downstream quality monitoring without contacting a production PACS.",
+    "global_number": 1,
+    "batch": 1,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_01/descriptions/01_medical_image_metadata_quality_check.txt",
+    "spec_path": "batch_01/specs/01_medical_image_metadata_quality_check.json",
+    "step_count": 5,
+    "edge_count": 4,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "satellite_change_report_assembler",
+    "name": "Satellite Change Report Assembler",
+    "track": "image_document_multimodal",
+    "domain": "Environmental/Energy",
+    "topology": "staged",
+    "complexity": "medium",
+    "subject": "satellite image change evidence",
+    "input_modalities": [
+      "image",
+      "geojson",
+      "table"
+    ],
+    "output_modalities": [
+      "pdf",
+      "geojson",
+      "table"
+    ],
+    "primary_inputs": [
+      "before imagery tiles",
+      "after imagery tiles",
+      "region boundary GeoJSON",
+      "inspection registry CSV"
+    ],
+    "external_systems": [
+      "geospatial object store",
+      "inspection report archive"
+    ],
+    "scenario": "Build a bounded batch change report from paired satellite images and region metadata.",
+    "global_number": 2,
+    "batch": 1,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_01/descriptions/02_satellite_change_report_assembler.txt",
+    "spec_path": "batch_01/specs/02_satellite_change_report_assembler.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "scanned_claim_packet_extraction",
+    "name": "Scanned Claim Packet Extraction",
+    "track": "image_document_multimodal",
+    "domain": "Finance/Risk",
+    "topology": "fan_out",
+    "complexity": "complex",
+    "subject": "scanned insurance claim packet",
+    "input_modalities": [
+      "pdf",
+      "image",
+      "table"
+    ],
+    "output_modalities": [
+      "json",
+      "table",
+      "review_packet"
+    ],
+    "primary_inputs": [
+      "scanned claim PDF",
+      "claim image attachments",
+      "policyholder CSV"
+    ],
+    "external_systems": [
+      "claims document bucket",
+      "review queue"
+    ],
+    "scenario": "Extract structured fields and review evidence from scanned claim packets.",
+    "global_number": 3,
+    "batch": 1,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_01/descriptions/03_scanned_claim_packet_extraction.txt",
+    "spec_path": "batch_01/specs/03_scanned_claim_packet_extraction.json",
+    "step_count": 10,
+    "edge_count": 11,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "product_image_listing_enrichment",
+    "name": "Product Image Listing Enrichment",
+    "track": "image_document_multimodal",
+    "domain": "Retail/E-commerce",
+    "topology": "fan_out",
+    "complexity": "medium",
+    "subject": "product image and listing metadata",
+    "input_modalities": [
+      "image",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "json",
+      "table"
+    ],
+    "primary_inputs": [
+      "product image folder",
+      "listing JSON export",
+      "category taxonomy CSV"
+    ],
+    "external_systems": [
+      "catalog object store",
+      "marketplace staging API"
+    ],
+    "scenario": "Enrich product listings with image-derived quality and attribute signals.",
+    "global_number": 4,
+    "batch": 1,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_01/descriptions/04_product_image_listing_enrichment.txt",
+    "spec_path": "batch_01/specs/04_product_image_listing_enrichment.json",
+    "step_count": 7,
+    "edge_count": 8,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "identity_document_redaction",
+    "name": "Identity Document Redaction",
+    "track": "image_document_multimodal",
+    "domain": "Legal/Compliance",
+    "topology": "branch_gate",
+    "complexity": "complex",
+    "subject": "identity document evidence",
+    "input_modalities": [
+      "image",
+      "pdf",
+      "json"
+    ],
+    "output_modalities": [
+      "redacted_pdf",
+      "json",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "identity document scan",
+      "case metadata JSON",
+      "redaction policy JSON"
+    ],
+    "external_systems": [
+      "secure evidence bucket",
+      "manual review queue"
+    ],
+    "scenario": "Detect sensitive fields in identity evidence, redact approved copies, and route uncertain cases.",
+    "global_number": 5,
+    "batch": 1,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_01/descriptions/05_identity_document_redaction.txt",
+    "spec_path": "batch_01/specs/05_identity_document_redaction.json",
+    "step_count": 10,
+    "edge_count": 10,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "handwritten_form_digitization",
+    "name": "Handwritten Form Digitization",
+    "track": "image_document_multimodal",
+    "domain": "Public Sector/Geospatial",
+    "topology": "staged",
+    "complexity": "medium",
+    "subject": "handwritten public-service form",
+    "input_modalities": [
+      "image",
+      "pdf",
+      "table"
+    ],
+    "output_modalities": [
+      "json",
+      "table",
+      "review_packet"
+    ],
+    "primary_inputs": [
+      "form scan images",
+      "form template PDF",
+      "office routing CSV"
+    ],
+    "external_systems": [
+      "forms intake bucket",
+      "casework staging table"
+    ],
+    "scenario": "Convert handwritten intake forms into structured case records with confidence checks.",
+    "global_number": 6,
+    "batch": 2,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_02/descriptions/06_handwritten_form_digitization.txt",
+    "spec_path": "batch_02/specs/06_handwritten_form_digitization.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "shipping_document_ocr_reconciliation",
+    "name": "Shipping Document OCR Reconciliation",
+    "track": "image_document_multimodal",
+    "domain": "Supply Chain/Manufacturing",
+    "topology": "fan_in",
+    "complexity": "complex",
+    "subject": "shipping document OCR evidence",
+    "input_modalities": [
+      "pdf",
+      "image",
+      "table",
+      "json"
+    ],
+    "output_modalities": [
+      "table",
+      "json",
+      "exception_report"
+    ],
+    "primary_inputs": [
+      "bill of lading PDF",
+      "container photo set",
+      "shipment manifest CSV",
+      "carrier API snapshot"
+    ],
+    "external_systems": [
+      "logistics document store",
+      "exception management queue"
+    ],
+    "scenario": "Reconcile OCR-derived shipping details with manifests and carrier snapshots.",
+    "global_number": 7,
+    "batch": 2,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_02/descriptions/07_shipping_document_ocr_reconciliation.txt",
+    "spec_path": "batch_02/specs/07_shipping_document_ocr_reconciliation.json",
+    "step_count": 10,
+    "edge_count": 9,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "floor_plan_asset_extraction",
+    "name": "Floor Plan Asset Extraction",
+    "track": "image_document_multimodal",
+    "domain": "Public Sector/Geospatial",
+    "topology": "fan_out_fan_in",
+    "complexity": "complex",
+    "subject": "building floor-plan asset inventory",
+    "input_modalities": [
+      "pdf",
+      "image",
+      "geojson"
+    ],
+    "output_modalities": [
+      "json",
+      "geojson",
+      "table"
+    ],
+    "primary_inputs": [
+      "floor-plan PDF",
+      "room annotation image",
+      "building boundary GeoJSON"
+    ],
+    "external_systems": [
+      "facilities drawing archive",
+      "asset registry"
+    ],
+    "scenario": "Extract room and asset evidence from floor-plan documents for a facilities registry.",
+    "global_number": 8,
+    "batch": 2,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_02/descriptions/08_floor_plan_asset_extraction.txt",
+    "spec_path": "batch_02/specs/08_floor_plan_asset_extraction.json",
+    "step_count": 10,
+    "edge_count": 11,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "crop_disease_image_triage",
+    "name": "Crop Disease Image Triage",
+    "track": "image_document_multimodal",
+    "domain": "Environmental/Energy",
+    "topology": "branch_gate",
+    "complexity": "simple",
+    "subject": "crop disease image triage",
+    "input_modalities": [
+      "image",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "json",
+      "status"
+    ],
+    "primary_inputs": [
+      "field image upload",
+      "farm metadata JSON",
+      "crop registry CSV"
+    ],
+    "external_systems": [
+      "agronomy intake bucket",
+      "extension officer notification endpoint"
+    ],
+    "scenario": "Prepare crop image evidence and route likely disease cases for expert review.",
+    "global_number": 9,
+    "batch": 2,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_02/descriptions/09_crop_disease_image_triage.txt",
+    "spec_path": "batch_02/specs/09_crop_disease_image_triage.json",
+    "step_count": 7,
+    "edge_count": 7,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "document_image_compliance_packet",
+    "name": "Document Image Compliance Packet",
+    "track": "image_document_multimodal",
+    "domain": "Legal/Compliance",
+    "topology": "fan_out_fan_in",
+    "complexity": "medium",
+    "subject": "document image compliance packet",
+    "input_modalities": [
+      "pdf",
+      "image",
+      "text"
+    ],
+    "output_modalities": [
+      "review_packet",
+      "audit_log",
+      "json"
+    ],
+    "primary_inputs": [
+      "signed document PDF",
+      "supporting image evidence",
+      "policy checklist markdown"
+    ],
+    "external_systems": [
+      "compliance evidence store",
+      "auditor review queue"
+    ],
+    "scenario": "Assemble a compliance review packet from document images and policy checklist evidence.",
+    "global_number": 10,
+    "batch": 2,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_02/descriptions/10_document_image_compliance_packet.txt",
+    "spec_path": "batch_02/specs/10_document_image_compliance_packet.json",
+    "step_count": 7,
+    "edge_count": 8,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "crm_sales_enrichment_fusion",
+    "name": "CRM Sales Enrichment Fusion",
+    "track": "api_json_table_fusion",
+    "domain": "Marketing/Customer Operations",
+    "topology": "fan_in",
+    "complexity": "medium",
+    "subject": "CRM and sales enrichment records",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "json"
+    ],
+    "primary_inputs": [
+      "CRM account API snapshot",
+      "daily sales CSV",
+      "territory lookup table"
+    ],
+    "external_systems": [
+      "CRM API fixture",
+      "sales warehouse staging area"
+    ],
+    "scenario": "Join CRM account attributes with tabular sales measures for campaign planning.",
+    "global_number": 11,
+    "batch": 3,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_03/descriptions/11_crm_sales_enrichment_fusion.txt",
+    "spec_path": "batch_03/specs/11_crm_sales_enrichment_fusion.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "payment_ledger_reconciliation",
+    "name": "Payment Ledger Reconciliation",
+    "track": "api_json_table_fusion",
+    "domain": "Finance/Risk",
+    "topology": "branch_gate",
+    "complexity": "complex",
+    "subject": "payment API and ledger reconciliation",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "exception_report",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "payment provider JSON export",
+      "general ledger CSV",
+      "merchant registry table"
+    ],
+    "external_systems": [
+      "payment API fixture",
+      "finance exception queue"
+    ],
+    "scenario": "Reconcile payment provider events against ledger postings and branch unresolved mismatches.",
+    "global_number": 12,
+    "batch": 3,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_03/descriptions/12_payment_ledger_reconciliation.txt",
+    "spec_path": "batch_03/specs/12_payment_ledger_reconciliation.json",
+    "step_count": 10,
+    "edge_count": 10,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "weather_sales_feature_builder",
+    "name": "Weather Sales Feature Builder",
+    "track": "api_json_table_fusion",
+    "domain": "Retail/E-commerce",
+    "topology": "staged",
+    "complexity": "simple",
+    "subject": "weather and store-sales features",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "feature_manifest"
+    ],
+    "primary_inputs": [
+      "weather API JSON snapshot",
+      "store sales CSV",
+      "store location table"
+    ],
+    "external_systems": [
+      "weather API fixture",
+      "feature staging bucket"
+    ],
+    "scenario": "Build weather-aware sales features from bounded API and table inputs.",
+    "global_number": 13,
+    "batch": 3,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_03/descriptions/13_weather_sales_feature_builder.txt",
+    "spec_path": "batch_03/specs/13_weather_sales_feature_builder.json",
+    "step_count": 5,
+    "edge_count": 4,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "ehr_operations_fusion",
+    "name": "EHR Operations Fusion",
+    "track": "api_json_table_fusion",
+    "domain": "Healthcare/Public Health",
+    "topology": "fan_in",
+    "complexity": "complex",
+    "subject": "EHR API and operations dashboard records",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "json",
+      "status"
+    ],
+    "primary_inputs": [
+      "EHR encounter JSON export",
+      "bed operations CSV",
+      "department lookup table"
+    ],
+    "external_systems": [
+      "EHR API fixture",
+      "operations warehouse"
+    ],
+    "scenario": "Fuse encounter payloads with operational tables to prepare a de-identified command-center dataset.",
+    "global_number": 14,
+    "batch": 3,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_03/descriptions/14_ehr_operations_fusion.txt",
+    "spec_path": "batch_03/specs/14_ehr_operations_fusion.json",
+    "step_count": 10,
+    "edge_count": 9,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "supplier_risk_api_table_fusion",
+    "name": "Supplier Risk API Table Fusion",
+    "track": "api_json_table_fusion",
+    "domain": "Supply Chain/Manufacturing",
+    "topology": "fan_in",
+    "complexity": "medium",
+    "subject": "supplier risk API and procurement table",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "risk_report"
+    ],
+    "primary_inputs": [
+      "supplier risk API JSON",
+      "purchase order CSV",
+      "supplier master table"
+    ],
+    "external_systems": [
+      "risk intelligence API fixture",
+      "procurement staging bucket"
+    ],
+    "scenario": "Combine supplier risk indicators with procurement volume for exception prioritization.",
+    "global_number": 15,
+    "batch": 3,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_03/descriptions/15_supplier_risk_api_table_fusion.txt",
+    "spec_path": "batch_03/specs/15_supplier_risk_api_table_fusion.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "support_profile_context_join",
+    "name": "Support Profile Context Join",
+    "track": "api_json_table_fusion",
+    "domain": "Marketing/Customer Operations",
+    "topology": "fan_in",
+    "complexity": "medium",
+    "subject": "support ticket and customer profile context",
+    "input_modalities": [
+      "json",
+      "table",
+      "text"
+    ],
+    "output_modalities": [
+      "table",
+      "json"
+    ],
+    "primary_inputs": [
+      "support ticket API export",
+      "customer profile CSV",
+      "subscription plan lookup"
+    ],
+    "external_systems": [
+      "support API fixture",
+      "customer analytics bucket"
+    ],
+    "scenario": "Join nested support-ticket payloads with customer profile tables for routing context.",
+    "global_number": 16,
+    "batch": 4,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_04/descriptions/16_support_profile_context_join.txt",
+    "spec_path": "batch_04/specs/16_support_profile_context_join.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "building_energy_window_aggregation",
+    "name": "Building Energy Window Aggregation",
+    "track": "time_series_sensor_window",
+    "domain": "Environmental/Energy",
+    "topology": "windowed_batch",
+    "complexity": "simple",
+    "subject": "building energy meter windows",
+    "input_modalities": [
+      "time_series",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "feature_manifest"
+    ],
+    "primary_inputs": [
+      "meter reading CSV",
+      "building metadata table"
+    ],
+    "external_systems": [
+      "meter data bucket",
+      "energy analytics staging area"
+    ],
+    "scenario": "Aggregate bounded building energy readings into hourly and daily windows.",
+    "global_number": 17,
+    "batch": 4,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_04/descriptions/17_building_energy_window_aggregation.txt",
+    "spec_path": "batch_04/specs/17_building_energy_window_aggregation.json",
+    "step_count": 6,
+    "edge_count": 5,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "environmental_sensor_anomaly_batch",
+    "name": "Environmental Sensor Anomaly Batch",
+    "track": "time_series_sensor_window",
+    "domain": "Environmental/Energy",
+    "topology": "windowed_batch",
+    "complexity": "medium",
+    "subject": "environmental sensor anomaly windows",
+    "input_modalities": [
+      "time_series",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "alert_digest"
+    ],
+    "primary_inputs": [
+      "sensor telemetry JSONL",
+      "station metadata CSV",
+      "threshold policy JSON"
+    ],
+    "external_systems": [
+      "sensor data lake",
+      "alert digest bucket"
+    ],
+    "scenario": "Detect anomalies from finite environmental sensor windows with station-aware thresholds.",
+    "global_number": 18,
+    "batch": 4,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_04/descriptions/18_environmental_sensor_anomaly_batch.txt",
+    "spec_path": "batch_04/specs/18_environmental_sensor_anomaly_batch.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "manufacturing_telemetry_quality_scoring",
+    "name": "Manufacturing Telemetry Quality Scoring",
+    "track": "time_series_sensor_window",
+    "domain": "Supply Chain/Manufacturing",
+    "topology": "fan_out",
+    "complexity": "medium",
+    "subject": "manufacturing telemetry quality windows",
+    "input_modalities": [
+      "time_series",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "quality_report"
+    ],
+    "primary_inputs": [
+      "machine telemetry CSV",
+      "production batch table",
+      "quality threshold table"
+    ],
+    "external_systems": [
+      "factory telemetry bucket",
+      "quality dashboard staging"
+    ],
+    "scenario": "Score finite machine telemetry windows for missingness, drift, and production-batch consistency.",
+    "global_number": 19,
+    "batch": 4,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_04/descriptions/19_manufacturing_telemetry_quality_scoring.txt",
+    "spec_path": "batch_04/specs/19_manufacturing_telemetry_quality_scoring.json",
+    "step_count": 7,
+    "edge_count": 8,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "hospital_occupancy_window_forecast_prep",
+    "name": "Hospital Occupancy Window Forecast Prep",
+    "track": "time_series_sensor_window",
+    "domain": "Healthcare/Public Health",
+    "topology": "fan_in",
+    "complexity": "complex",
+    "subject": "hospital occupancy forecast windows",
+    "input_modalities": [
+      "time_series",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "feature_manifest"
+    ],
+    "primary_inputs": [
+      "bed occupancy time series",
+      "admissions JSON snapshot",
+      "department lookup table"
+    ],
+    "external_systems": [
+      "hospital operations bucket",
+      "forecast feature store"
+    ],
+    "scenario": "Prepare aligned occupancy windows and operational context for forecast evaluation.",
+    "global_number": 20,
+    "batch": 4,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_04/descriptions/20_hospital_occupancy_window_forecast_prep.txt",
+    "spec_path": "batch_04/specs/20_hospital_occupancy_window_forecast_prep.json",
+    "step_count": 10,
+    "edge_count": 9,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "observability_metrics_incident_digest",
+    "name": "Observability Metrics Incident Digest",
+    "track": "time_series_sensor_window",
+    "domain": "AI Platform Operations",
+    "topology": "windowed_batch",
+    "complexity": "medium",
+    "subject": "observability metric incident windows",
+    "input_modalities": [
+      "time_series",
+      "json",
+      "text"
+    ],
+    "output_modalities": [
+      "alert_digest",
+      "json",
+      "table"
+    ],
+    "primary_inputs": [
+      "metrics JSONL export",
+      "incident ticket CSV",
+      "service catalog JSON"
+    ],
+    "external_systems": [
+      "observability export bucket",
+      "incident digest store"
+    ],
+    "scenario": "Summarize finite observability windows and attach incident context for operators.",
+    "global_number": 21,
+    "batch": 5,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_05/descriptions/21_observability_metrics_incident_digest.txt",
+    "spec_path": "batch_05/specs/21_observability_metrics_incident_digest.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "climate_station_gap_fill_alignment",
+    "name": "Climate Station Gap Fill Alignment",
+    "track": "time_series_sensor_window",
+    "domain": "Environmental/Energy",
+    "topology": "fan_in",
+    "complexity": "simple",
+    "subject": "climate station aligned observations",
+    "input_modalities": [
+      "time_series",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "quality_report"
+    ],
+    "primary_inputs": [
+      "station readings CSV",
+      "station metadata CSV",
+      "calendar table"
+    ],
+    "external_systems": [
+      "climate data bucket",
+      "prepared observation archive"
+    ],
+    "scenario": "Align climate station readings to a calendar grid and flag small gaps for imputation.",
+    "global_number": 22,
+    "batch": 5,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_05/descriptions/22_climate_station_gap_fill_alignment.txt",
+    "spec_path": "batch_05/specs/22_climate_station_gap_fill_alignment.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "clickstream_session_window_batch",
+    "name": "Clickstream Session Window Batch",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "Retail/E-commerce",
+    "topology": "windowed_batch",
+    "complexity": "simple",
+    "subject": "clickstream session windows",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "checkpoint_manifest"
+    ],
+    "primary_inputs": [
+      "bounded clickstream JSONL",
+      "user consent table",
+      "previous checkpoint manifest"
+    ],
+    "external_systems": [
+      "event export bucket",
+      "analytics staging bucket"
+    ],
+    "scenario": "Sessionize a finite clickstream export and produce a checkpointed batch output.",
+    "global_number": 23,
+    "batch": 5,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_05/descriptions/23_clickstream_session_window_batch.txt",
+    "spec_path": "batch_05/specs/23_clickstream_session_window_batch.json",
+    "step_count": 6,
+    "edge_count": 5,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "fraud_event_replay_checkpoint",
+    "name": "Fraud Event Replay Checkpoint",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "Finance/Risk",
+    "topology": "branch_gate",
+    "complexity": "complex",
+    "subject": "fraud event replay checkpoint",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "exception_report",
+      "checkpoint_manifest",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "bounded transaction event log",
+      "merchant table",
+      "prior replay checkpoint"
+    ],
+    "external_systems": [
+      "fraud event archive",
+      "investigation queue"
+    ],
+    "scenario": "Replay a finite fraud-event batch from checkpoint and route high-risk exceptions.",
+    "global_number": 24,
+    "batch": 5,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_05/descriptions/24_fraud_event_replay_checkpoint.txt",
+    "spec_path": "batch_05/specs/24_fraud_event_replay_checkpoint.json",
+    "step_count": 10,
+    "edge_count": 10,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "log_window_alert_digest",
+    "name": "Log Window Alert Digest",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "AI Platform Operations",
+    "topology": "windowed_batch",
+    "complexity": "medium",
+    "subject": "application log alert windows",
+    "input_modalities": [
+      "text",
+      "jsonl"
+    ],
+    "output_modalities": [
+      "alert_digest",
+      "json"
+    ],
+    "primary_inputs": [
+      "bounded application log export",
+      "service ownership JSON",
+      "alert rule table"
+    ],
+    "external_systems": [
+      "log archive bucket",
+      "alert digest store"
+    ],
+    "scenario": "Create a digest of alert-worthy events from finite log windows.",
+    "global_number": 25,
+    "batch": 5,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_05/descriptions/25_log_window_alert_digest.txt",
+    "spec_path": "batch_05/specs/25_log_window_alert_digest.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "iot_device_snapshot_transition",
+    "name": "IoT Device Snapshot Transition",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "Environmental/Energy",
+    "topology": "fan_in",
+    "complexity": "medium",
+    "subject": "IoT device snapshot transitions",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "checkpoint_manifest"
+    ],
+    "primary_inputs": [
+      "device event JSONL",
+      "device registry CSV",
+      "previous snapshot table"
+    ],
+    "external_systems": [
+      "IoT export bucket",
+      "device state archive"
+    ],
+    "scenario": "Apply a finite device-event batch to a previous snapshot and publish the new state.",
+    "global_number": 26,
+    "batch": 6,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_06/descriptions/26_iot_device_snapshot_transition.txt",
+    "spec_path": "batch_06/specs/26_iot_device_snapshot_transition.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "payment_settlement_checkpoint_reconcile",
+    "name": "Payment Settlement Checkpoint Reconcile",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "Finance/Risk",
+    "topology": "fan_in",
+    "complexity": "medium",
+    "subject": "payment settlement checkpoint reconciliation",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "exception_report",
+      "checkpoint_manifest"
+    ],
+    "primary_inputs": [
+      "settlement event batch",
+      "bank statement CSV",
+      "previous settlement checkpoint"
+    ],
+    "external_systems": [
+      "settlement archive",
+      "finance review queue"
+    ],
+    "scenario": "Reconcile a bounded settlement-event batch against bank statements and update the checkpoint.",
+    "global_number": 27,
+    "batch": 6,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_06/descriptions/27_payment_settlement_checkpoint_reconcile.txt",
+    "spec_path": "batch_06/specs/27_payment_settlement_checkpoint_reconcile.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "notification_delivery_checkpoint_audit",
+    "name": "Notification Delivery Checkpoint Audit",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "Marketing/Customer Operations",
+    "topology": "windowed_batch",
+    "complexity": "simple",
+    "subject": "notification delivery checkpoint audit",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "audit_log",
+      "table",
+      "checkpoint_manifest"
+    ],
+    "primary_inputs": [
+      "notification delivery events",
+      "campaign audience CSV",
+      "prior delivery checkpoint"
+    ],
+    "external_systems": [
+      "messaging export bucket",
+      "campaign audit store"
+    ],
+    "scenario": "Audit finite notification delivery events against an audience table and checkpoint progress.",
+    "global_number": 28,
+    "batch": 6,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_06/descriptions/28_notification_delivery_checkpoint_audit.txt",
+    "spec_path": "batch_06/specs/28_notification_delivery_checkpoint_audit.json",
+    "step_count": 6,
+    "edge_count": 5,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "queue_backlog_snapshot_analysis",
+    "name": "Queue Backlog Snapshot Analysis",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "AI Platform Operations",
+    "topology": "windowed_batch",
+    "complexity": "simple",
+    "subject": "queue backlog snapshot analysis",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "alert_digest"
+    ],
+    "primary_inputs": [
+      "queue snapshot JSON",
+      "worker capacity table",
+      "service priority table"
+    ],
+    "external_systems": [
+      "queue telemetry archive",
+      "operations dashboard staging"
+    ],
+    "scenario": "Analyze a finite queue backlog snapshot and identify priority capacity risks.",
+    "global_number": 29,
+    "batch": 6,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_06/descriptions/29_queue_backlog_snapshot_analysis.txt",
+    "spec_path": "batch_06/specs/29_queue_backlog_snapshot_analysis.json",
+    "step_count": 6,
+    "edge_count": 5,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "late_record_replay_quarantine",
+    "name": "Late Record Replay Quarantine",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "Legal/Compliance",
+    "topology": "branch_gate",
+    "complexity": "complex",
+    "subject": "late record replay quarantine",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "quarantine_report",
+      "checkpoint_manifest",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "late-arriving record batch",
+      "retention policy table",
+      "prior processing checkpoint"
+    ],
+    "external_systems": [
+      "records archive",
+      "compliance review queue"
+    ],
+    "scenario": "Replay late-arriving records against a checkpoint and quarantine policy-sensitive records.",
+    "global_number": 30,
+    "batch": 6,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_06/descriptions/30_late_record_replay_quarantine.txt",
+    "spec_path": "batch_06/specs/30_late_record_replay_quarantine.json",
+    "step_count": 10,
+    "edge_count": 10,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "clinical_note_phi_review_packet",
+    "name": "Clinical Note PHI Review Packet",
+    "track": "policy_privacy_human_review",
+    "domain": "Healthcare/Public Health",
+    "topology": "branch_gate",
+    "complexity": "complex",
+    "subject": "clinical note PHI review evidence",
+    "input_modalities": [
+      "text",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "redacted_text",
+      "review_packet",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "clinical note text export",
+      "encounter metadata JSON",
+      "PHI policy table"
+    ],
+    "external_systems": [
+      "secure note archive",
+      "privacy review queue"
+    ],
+    "scenario": "Detect PHI, redact deterministic fields, and route ambiguous clinical notes for human review.",
+    "global_number": 31,
+    "batch": 7,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_07/descriptions/31_clinical_note_phi_review_packet.txt",
+    "spec_path": "batch_07/specs/31_clinical_note_phi_review_packet.json",
+    "step_count": 10,
+    "edge_count": 10,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "financial_transaction_escalation_review",
+    "name": "Financial Transaction Escalation Review",
+    "track": "policy_privacy_human_review",
+    "domain": "Finance/Risk",
+    "topology": "branch_gate",
+    "complexity": "complex",
+    "subject": "financial transaction escalation review",
+    "input_modalities": [
+      "table",
+      "json"
+    ],
+    "output_modalities": [
+      "review_packet",
+      "audit_log",
+      "status"
+    ],
+    "primary_inputs": [
+      "transaction CSV",
+      "account-risk JSON",
+      "escalation policy table"
+    ],
+    "external_systems": [
+      "case management queue",
+      "audit evidence bucket"
+    ],
+    "scenario": "Apply policy thresholds to transaction records and escalate risky cases with evidence.",
+    "global_number": 32,
+    "batch": 7,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_07/descriptions/32_financial_transaction_escalation_review.txt",
+    "spec_path": "batch_07/specs/32_financial_transaction_escalation_review.json",
+    "step_count": 10,
+    "edge_count": 10,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "student_record_privacy_review",
+    "name": "Student Record Privacy Review",
+    "track": "policy_privacy_human_review",
+    "domain": "Education/Research",
+    "topology": "branch_gate",
+    "complexity": "medium",
+    "subject": "student record privacy review",
+    "input_modalities": [
+      "table",
+      "text",
+      "json"
+    ],
+    "output_modalities": [
+      "redacted_table",
+      "review_packet",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "student record CSV",
+      "consent statement text",
+      "privacy policy JSON"
+    ],
+    "external_systems": [
+      "student data vault",
+      "data steward review queue"
+    ],
+    "scenario": "Redact student records for research release and route exceptions to a data steward.",
+    "global_number": 33,
+    "batch": 7,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_07/descriptions/33_student_record_privacy_review.txt",
+    "spec_path": "batch_07/specs/33_student_record_privacy_review.json",
+    "step_count": 7,
+    "edge_count": 7,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "access_entitlement_recertification",
+    "name": "Access Entitlement Recertification",
+    "track": "policy_privacy_human_review",
+    "domain": "AI Platform Operations",
+    "topology": "fan_in",
+    "complexity": "very_complex",
+    "subject": "access entitlement recertification",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "review_packet",
+      "audit_log",
+      "status"
+    ],
+    "primary_inputs": [
+      "identity provider export",
+      "resource entitlement CSV",
+      "manager directory JSON"
+    ],
+    "external_systems": [
+      "identity governance fixture",
+      "manager approval queue"
+    ],
+    "scenario": "Fuse identity and resource entitlement records, route recertification decisions, and preserve an audit trail.",
+    "global_number": 34,
+    "batch": 7,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_07/descriptions/34_access_entitlement_recertification.txt",
+    "spec_path": "batch_07/specs/34_access_entitlement_recertification.json",
+    "step_count": 13,
+    "edge_count": 12,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "supplier_compliance_evidence_review",
+    "name": "Supplier Compliance Evidence Review",
+    "track": "policy_privacy_human_review",
+    "domain": "Supply Chain/Manufacturing",
+    "topology": "fan_in",
+    "complexity": "complex",
+    "subject": "supplier compliance evidence review",
+    "input_modalities": [
+      "pdf",
+      "table",
+      "json"
+    ],
+    "output_modalities": [
+      "review_packet",
+      "risk_report",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "supplier certificate PDF",
+      "supplier master CSV",
+      "compliance policy JSON"
+    ],
+    "external_systems": [
+      "supplier evidence store",
+      "compliance review queue"
+    ],
+    "scenario": "Prepare supplier evidence packets, verify policy coverage, and route gaps for review.",
+    "global_number": 35,
+    "batch": 7,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_07/descriptions/35_supplier_compliance_evidence_review.txt",
+    "spec_path": "batch_07/specs/35_supplier_compliance_evidence_review.json",
+    "step_count": 10,
+    "edge_count": 9,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "disaster_response_data_fusion",
+    "name": "Disaster Response Data Fusion",
+    "track": "complex_mixed_domain",
+    "domain": "Public Sector/Geospatial",
+    "topology": "fan_out_fan_in",
+    "complexity": "very_complex",
+    "subject": "disaster response operational picture",
+    "input_modalities": [
+      "image",
+      "geojson",
+      "json",
+      "table",
+      "text"
+    ],
+    "output_modalities": [
+      "geojson",
+      "briefing_packet",
+      "alert_digest"
+    ],
+    "primary_inputs": [
+      "damage imagery",
+      "shelter status JSON",
+      "road closure CSV",
+      "incident notes text"
+    ],
+    "external_systems": [
+      "emergency data lake",
+      "operations briefing channel"
+    ],
+    "scenario": "Fuse multimodal disaster-response evidence into an auditable operational picture.",
+    "global_number": 36,
+    "batch": 8,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_08/descriptions/36_disaster_response_data_fusion.txt",
+    "spec_path": "batch_08/specs/36_disaster_response_data_fusion.json",
+    "step_count": 13,
+    "edge_count": 14,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "smart_city_incident_routing",
+    "name": "Smart City Incident Routing",
+    "track": "complex_mixed_domain",
+    "domain": "Public Sector/Geospatial",
+    "topology": "fan_out_fan_in",
+    "complexity": "complex",
+    "subject": "smart-city incident routing context",
+    "input_modalities": [
+      "json",
+      "image",
+      "time_series",
+      "table"
+    ],
+    "output_modalities": [
+      "work_order",
+      "geojson",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "citizen report JSON",
+      "street image attachment",
+      "sensor window CSV",
+      "asset registry table"
+    ],
+    "external_systems": [
+      "municipal service queue",
+      "asset management staging"
+    ],
+    "scenario": "Combine report, image, sensor, and asset evidence to route municipal incidents.",
+    "global_number": 37,
+    "batch": 8,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_08/descriptions/37_smart_city_incident_routing.txt",
+    "spec_path": "batch_08/specs/37_smart_city_incident_routing.json",
+    "step_count": 10,
+    "edge_count": 11,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "supply_chain_disruption_triage",
+    "name": "Supply Chain Disruption Triage",
+    "track": "complex_mixed_domain",
+    "domain": "Supply Chain/Manufacturing",
+    "topology": "fan_out_fan_in",
+    "complexity": "complex",
+    "subject": "supply-chain disruption triage",
+    "input_modalities": [
+      "json",
+      "table",
+      "text"
+    ],
+    "output_modalities": [
+      "risk_report",
+      "review_packet",
+      "notification"
+    ],
+    "primary_inputs": [
+      "shipment status JSON",
+      "supplier capacity CSV",
+      "news alert text"
+    ],
+    "external_systems": [
+      "control tower staging",
+      "procurement notification queue"
+    ],
+    "scenario": "Fuse shipment, supplier, and external alert evidence to prioritize disruption responses.",
+    "global_number": 38,
+    "batch": 8,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_08/descriptions/38_supply_chain_disruption_triage.txt",
+    "spec_path": "batch_08/specs/38_supply_chain_disruption_triage.json",
+    "step_count": 10,
+    "edge_count": 11,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "research_data_lake_publication_gate",
+    "name": "Research Data Lake Publication Gate",
+    "track": "complex_mixed_domain",
+    "domain": "Science/Biotechnology",
+    "topology": "branch_gate",
+    "complexity": "very_complex",
+    "subject": "research data lake publication package",
+    "input_modalities": [
+      "table",
+      "json",
+      "pdf",
+      "text"
+    ],
+    "output_modalities": [
+      "publication_manifest",
+      "review_packet",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "experiment dataset CSV",
+      "metadata JSON",
+      "protocol PDF",
+      "license statement text"
+    ],
+    "external_systems": [
+      "research data lake",
+      "publication approval queue"
+    ],
+    "scenario": "Validate research data packages, enforce publication policy, and route approval exceptions.",
+    "global_number": 39,
+    "batch": 8,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_08/descriptions/39_research_data_lake_publication_gate.txt",
+    "spec_path": "batch_08/specs/39_research_data_lake_publication_gate.json",
+    "step_count": 13,
+    "edge_count": 13,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "public_benefits_case_review_notification",
+    "name": "Public Benefits Case Review Notification",
+    "track": "complex_mixed_domain",
+    "domain": "Public Sector/Geospatial",
+    "topology": "branch_gate",
+    "complexity": "complex",
+    "subject": "public-benefits case review notification",
+    "input_modalities": [
+      "table",
+      "json",
+      "pdf",
+      "text"
+    ],
+    "output_modalities": [
+      "review_packet",
+      "notification",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "benefits application CSV",
+      "eligibility rule JSON",
+      "supporting document PDF",
+      "case note text"
+    ],
+    "external_systems": [
+      "case review queue",
+      "applicant notification endpoint"
+    ],
+    "scenario": "Prepare eligibility review packets and notification records from mixed case evidence.",
+    "global_number": 40,
+    "batch": 8,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_08/descriptions/40_public_benefits_case_review_notification.txt",
+    "spec_path": "batch_08/specs/40_public_benefits_case_review_notification.json",
+    "step_count": 10,
+    "edge_count": 10,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "pdf_policy_corpus_ingestion",
+    "name": "PDF Policy Corpus Ingestion",
+    "track": "ai_llm_nlp",
+    "domain": "Legal/Compliance",
+    "topology": "staged",
+    "complexity": "very_complex",
+    "subject": "PDF policy corpus vector index",
+    "input_modalities": [
+      "pdf",
+      "text",
+      "json"
+    ],
+    "output_modalities": [
+      "vector_index",
+      "manifest",
+      "quality_report"
+    ],
+    "primary_inputs": [
+      "policy PDF folder",
+      "policy metadata JSON",
+      "chunking configuration"
+    ],
+    "external_systems": [
+      "document corpus bucket",
+      "vector index staging"
+    ],
+    "scenario": "Load policy PDFs, extract text, chunk content, embed chunks, and publish an index manifest.",
+    "global_number": 41,
+    "batch": 9,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_09/descriptions/41_pdf_policy_corpus_ingestion.txt",
+    "spec_path": "batch_09/specs/41_pdf_policy_corpus_ingestion.json",
+    "step_count": 13,
+    "edge_count": 12,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "contract_clause_risk_extraction",
+    "name": "Contract Clause Risk Extraction",
+    "track": "ai_llm_nlp",
+    "domain": "Legal/Compliance",
+    "topology": "branch_gate",
+    "complexity": "very_complex",
+    "subject": "contract clause risk extraction",
+    "input_modalities": [
+      "pdf",
+      "text",
+      "json"
+    ],
+    "output_modalities": [
+      "json",
+      "review_packet",
+      "risk_report"
+    ],
+    "primary_inputs": [
+      "contract PDF bundle",
+      "clause taxonomy JSON",
+      "risk policy table"
+    ],
+    "external_systems": [
+      "contract archive",
+      "legal review queue"
+    ],
+    "scenario": "Extract contract clauses, classify risk, and route high-risk or low-confidence clauses for review.",
+    "global_number": 42,
+    "batch": 9,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_09/descriptions/42_contract_clause_risk_extraction.txt",
+    "spec_path": "batch_09/specs/42_contract_clause_risk_extraction.json",
+    "step_count": 13,
+    "edge_count": 13,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "clinical_note_deidentification_summary",
+    "name": "Clinical Note De-identification Summary",
+    "track": "ai_llm_nlp",
+    "domain": "Healthcare/Public Health",
+    "topology": "branch_gate",
+    "complexity": "very_complex",
+    "subject": "clinical note de-identification and summary",
+    "input_modalities": [
+      "text",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "redacted_text",
+      "summary",
+      "review_packet"
+    ],
+    "primary_inputs": [
+      "clinical note text",
+      "encounter metadata JSON",
+      "de-identification policy table"
+    ],
+    "external_systems": [
+      "secure note bucket",
+      "clinical reviewer queue"
+    ],
+    "scenario": "De-identify clinical notes, summarize safe content, and route uncertain PHI cases.",
+    "global_number": 43,
+    "batch": 9,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_09/descriptions/43_clinical_note_deidentification_summary.txt",
+    "spec_path": "batch_09/specs/43_clinical_note_deidentification_summary.json",
+    "step_count": 13,
+    "edge_count": 13,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "scientific_literature_screening",
+    "name": "Scientific Literature Screening",
+    "track": "ai_llm_nlp",
+    "domain": "Science/Biotechnology",
+    "topology": "fan_out_fan_in",
+    "complexity": "complex",
+    "subject": "scientific literature screening packet",
+    "input_modalities": [
+      "pdf",
+      "text",
+      "json"
+    ],
+    "output_modalities": [
+      "table",
+      "review_packet",
+      "summary"
+    ],
+    "primary_inputs": [
+      "article PDF bundle",
+      "screening criteria JSON",
+      "reviewer roster table"
+    ],
+    "external_systems": [
+      "literature corpus bucket",
+      "review management queue"
+    ],
+    "scenario": "Screen article PDFs against eligibility criteria and create reviewer packets.",
+    "global_number": 44,
+    "batch": 9,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_09/descriptions/44_scientific_literature_screening.txt",
+    "spec_path": "batch_09/specs/44_scientific_literature_screening.json",
+    "step_count": 10,
+    "edge_count": 11,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "support_ticket_semantic_routing",
+    "name": "Support Ticket Semantic Routing",
+    "track": "ai_llm_nlp",
+    "domain": "Marketing/Customer Operations",
+    "topology": "branch_gate",
+    "complexity": "very_complex",
+    "subject": "support ticket semantic routing",
+    "input_modalities": [
+      "text",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "routing_decision",
+      "summary",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "ticket text export",
+      "customer metadata JSON",
+      "team routing table"
+    ],
+    "external_systems": [
+      "support ticket queue",
+      "knowledge-base index fixture"
+    ],
+    "scenario": "Embed support tickets, retrieve policy context, classify intent, and route tickets.",
+    "global_number": 45,
+    "batch": 9,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_09/descriptions/45_support_ticket_semantic_routing.txt",
+    "spec_path": "batch_09/specs/45_support_ticket_semantic_routing.json",
+    "step_count": 13,
+    "edge_count": 13,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "multimodal_product_listing_ai_enrichment",
+    "name": "Multimodal Product Listing AI Enrichment",
+    "track": "ai_llm_nlp",
+    "domain": "Retail/E-commerce",
+    "topology": "fan_out_fan_in",
+    "complexity": "complex",
+    "subject": "multimodal product listing AI enrichment",
+    "input_modalities": [
+      "image",
+      "text",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "listing_summary",
+      "json",
+      "quality_report"
+    ],
+    "primary_inputs": [
+      "product images",
+      "seller description text",
+      "category taxonomy JSON",
+      "attribute table"
+    ],
+    "external_systems": [
+      "catalog media bucket",
+      "listing enrichment staging"
+    ],
+    "scenario": "Combine product images and text to extract attributes and generate listing summaries.",
+    "global_number": 46,
+    "batch": 10,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_10/descriptions/46_multimodal_product_listing_ai_enrichment.txt",
+    "spec_path": "batch_10/specs/46_multimodal_product_listing_ai_enrichment.json",
+    "step_count": 10,
+    "edge_count": 11,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "invoice_pdf_extraction_reconciliation",
+    "name": "Invoice PDF Extraction Reconciliation",
+    "track": "ai_llm_nlp",
+    "domain": "Finance/Risk",
+    "topology": "fan_in",
+    "complexity": "complex",
+    "subject": "invoice PDF extraction and reconciliation",
+    "input_modalities": [
+      "pdf",
+      "table",
+      "json"
+    ],
+    "output_modalities": [
+      "table",
+      "exception_report",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "invoice PDF bundle",
+      "purchase order CSV",
+      "vendor registry JSON"
+    ],
+    "external_systems": [
+      "invoice document store",
+      "accounts payable review queue"
+    ],
+    "scenario": "Extract invoice fields from PDFs and reconcile them with purchase orders.",
+    "global_number": 47,
+    "batch": 10,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_10/descriptions/47_invoice_pdf_extraction_reconciliation.txt",
+    "spec_path": "batch_10/specs/47_invoice_pdf_extraction_reconciliation.json",
+    "step_count": 10,
+    "edge_count": 9,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "rag_answer_pack_builder",
+    "name": "RAG Answer Pack Builder",
+    "track": "ai_llm_nlp",
+    "domain": "AI Platform Operations",
+    "topology": "fan_out_fan_in",
+    "complexity": "very_complex",
+    "subject": "retrieval augmented answer pack",
+    "input_modalities": [
+      "pdf",
+      "text",
+      "json"
+    ],
+    "output_modalities": [
+      "vector_index",
+      "answer_pack",
+      "evaluation_report"
+    ],
+    "primary_inputs": [
+      "source document folder",
+      "test question JSON",
+      "retrieval configuration"
+    ],
+    "external_systems": [
+      "document corpus bucket",
+      "vector index fixture",
+      "answer evaluation store"
+    ],
+    "scenario": "Build a small RAG index, run retrieval test queries, and generate grounded answer packs.",
+    "global_number": 48,
+    "batch": 10,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_10/descriptions/48_rag_answer_pack_builder.txt",
+    "spec_path": "batch_10/specs/48_rag_answer_pack_builder.json",
+    "step_count": 13,
+    "edge_count": 14,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "compliance_evidence_summarizer",
+    "name": "Compliance Evidence Summarizer",
+    "track": "ai_llm_nlp",
+    "domain": "Legal/Compliance",
+    "topology": "fan_in",
+    "complexity": "very_complex",
+    "subject": "compliance evidence summary",
+    "input_modalities": [
+      "pdf",
+      "text",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "summary",
+      "control_mapping",
+      "review_packet"
+    ],
+    "primary_inputs": [
+      "evidence document bundle",
+      "control framework JSON",
+      "audit request table"
+    ],
+    "external_systems": [
+      "audit evidence store",
+      "compliance review queue"
+    ],
+    "scenario": "Retrieve relevant evidence, map it to controls, summarize findings, and route gaps.",
+    "global_number": 49,
+    "batch": 10,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_10/descriptions/49_compliance_evidence_summarizer.txt",
+    "spec_path": "batch_10/specs/49_compliance_evidence_summarizer.json",
+    "step_count": 13,
+    "edge_count": 12,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "meeting_transcript_action_extraction",
+    "name": "Meeting Transcript Action Extraction",
+    "track": "ai_llm_nlp",
+    "domain": "Education/Research",
+    "topology": "staged",
+    "complexity": "very_complex",
+    "subject": "meeting transcript decisions and actions",
+    "input_modalities": [
+      "text",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "action_register",
+      "summary",
+      "notification"
+    ],
+    "primary_inputs": [
+      "meeting transcript text",
+      "participant roster CSV",
+      "project metadata JSON"
+    ],
+    "external_systems": [
+      "collaboration archive",
+      "task notification staging"
+    ],
+    "scenario": "Segment meeting transcripts, extract decisions and actions, assign owners, and publish follow-up records.",
+    "global_number": 50,
+    "batch": 10,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_10/descriptions/50_meeting_transcript_action_extraction.txt",
+    "spec_path": "batch_10/specs/50_meeting_transcript_action_extraction.json",
+    "step_count": 13,
+    "edge_count": 12,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 0
+  }
+]

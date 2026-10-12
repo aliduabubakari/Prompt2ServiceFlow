@@ -1,0 +1,725 @@
+ir_version: 0.1.0
+composition_id: etl_import_mondo
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:etl_import_mondo
+  split: main
+  pipeline_id: etl_import_mondo
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/10_etl_import_mondo.txt
+  description_sha256: 8f53b63d7840dc5c970686edafa744271d3a38a9ce6844d0a18df7ce33a18ad5
+  internal_spec_path: source/internal_specs/main_40/10_etl_import_mondo.json
+  internal_spec_sha256: 4adeab9188b601008b7d143a2fd5c1a24a240730f522aa178664c36d087a9deb
+requirement:
+  name: ETL Import Mondo
+  purpose: Validate params, download Mondo ontology, normalize, load to DB, notify.
+  domain: bioinformatics
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes:
+  - Six-step Mondo ontology ETL.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: github_releases
+  type: http_api
+  name: GitHub Mondo releases
+  identifier: https://github.com/monarch-initiative/mondo/releases
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: object_storage
+  type: object_storage
+  name: Mondo data lake
+  identifier: s3://cqgc-app-datalake
+  access_mode: read_write
+  authentication: secret
+  mock_strategy: fixture
+- system_id: spark_execution
+  type: cloud_service
+  name: Spark execution context
+  identifier: ETL
+  access_mode: invoke
+  authentication: managed_identity
+  mock_strategy: fixture
+- system_id: elasticsearch
+  type: database
+  name: Mondo Elasticsearch cluster
+  identifier: mondo
+  access_mode: read_write
+  authentication: secret
+  mock_strategy: fixture
+- system_id: slack
+  type: messaging
+  name: Mondo Slack notifications
+  identifier: mondo-etl
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: params_validate
+  name: Validate params
+  category: QualityCheck
+  capability: Validate runtime parameters.
+  source_step_refs:
+  - params_validate
+  evidence:
+  - source: description
+    text: Validate params.
+  inputs:
+  - param_source
+  outputs:
+  - validation_decision
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Validation decision emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Validates config.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: download_mondo_terms
+  name: Download Mondo
+  category: Extractor
+  capability: Synchronize a newer Mondo release asset into object storage.
+  source_step_refs:
+  - download_mondo_terms
+  evidence:
+  - source: description
+    text: Download Mondo terms.
+  inputs:
+  - github_repository
+  - object_storage_destination
+  outputs:
+  - mondo_asset
+  - mondo_asset_metadata
+  - download_status
+  external_system_refs:
+  - github_releases
+  - object_storage
+  preconditions: []
+  effects:
+  - Mondo data downloaded.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source discovers a GitHub release, downloads its OBO asset, and stores
+    it in S3.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: normalized_mondo_terms
+  name: Normalize terms
+  category: Transformer
+  capability: Run the configured Spark class to normalize Mondo object-storage inputs.
+  source_step_refs:
+  - normalized_mondo_terms
+  evidence:
+  - source: description
+    text: Normalize Mondo terms.
+  inputs:
+  - mondo_source_objects
+  - mondo_asset_metadata
+  - object_storage_destination
+  - spark_execution_context
+  outputs:
+  - normalized_dataset
+  - normalize_status
+  external_system_refs:
+  - object_storage
+  - spark_execution
+  preconditions: []
+  effects:
+  - Normalized data emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source is a Spark object-storage dataset transformation.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: index_mondo_terms
+  name: Load to DB
+  category: Loader
+  capability: Run the configured Spark indexer to load normalized Mondo terms into Elasticsearch.
+  source_step_refs:
+  - index_mondo_terms
+  evidence:
+  - source: description
+    text: Load to DB.
+  inputs:
+  - normalized_dataset
+  - mondo_index_template
+  - mondo_asset_metadata
+  - elasticsearch_cluster
+  - spark_execution_context
+  outputs:
+  - mondo_index_reference
+  - load_status
+  external_system_refs:
+  - elasticsearch
+  - spark_execution
+  preconditions: []
+  effects:
+  - Data loaded to DB.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly runs a Spark Elasticsearch indexing class.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: publish_mondo
+  name: Notify via email
+  category: Publisher
+  capability: Promote the indexed Mondo version through the configured Elasticsearch publication mode.
+  source_step_refs:
+  - publish_mondo
+  evidence:
+  - source: description
+    text: Notify.
+  inputs:
+  - mondo_index_reference
+  - mondo_asset_metadata
+  - elasticsearch_cluster
+  outputs:
+  - published_mondo_index
+  - publish_status
+  external_system_refs:
+  - elasticsearch
+  preconditions: []
+  effects:
+  - Notification sent.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source publishes the indexed Mondo version; it is not an email step.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: slack
+  name: Slack notification
+  category: Notifier
+  capability: Send a Slack completion message with the published Mondo index context.
+  source_step_refs:
+  - slack
+  evidence:
+  - source: description
+    text: Send Slack.
+  inputs:
+  - slack_resource
+  - published_mondo_index
+  outputs:
+  - slack_notification_status
+  external_system_refs:
+  - slack
+  preconditions: []
+  effects:
+  - Slack sent.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The final source step is a Slack notification.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: params_validate
+    to: download_mondo_terms
+  - from: download_mondo_terms
+    to: normalized_mondo_terms
+  - from: normalized_mondo_terms
+    to: index_mondo_terms
+  - from: index_mondo_terms
+    to: publish_mondo
+  - from: publish_mondo
+    to: slack
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: param_source
+  name: Runtime parameters
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - params_validate
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/params.json
+- artifact_id: validation_decision
+  name: Parameter validation decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  role: decision
+  producer: params_validate
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/validation.schema.json
+- artifact_id: github_repository
+  name: GitHub release repository
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - download_mondo_terms
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/github.json
+- artifact_id: object_storage_destination
+  name: Object storage destination
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - download_mondo_terms
+  - normalized_mondo_terms
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/object_storage.json
+- artifact_id: mondo_asset
+  name: Downloaded Mondo OBO asset
+  kind: artifact
+  data_type: binary
+  media_type: application/octet-stream
+  role: intermediate
+  producer: download_mondo_terms
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: mondo_asset_metadata
+  name: Mondo release asset metadata
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: download_mondo_terms
+  consumers:
+  - normalized_mondo_terms
+  - index_mondo_terms
+  - publish_mondo
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/asset_metadata.schema.json
+- artifact_id: download_status
+  name: Mondo asset synchronization status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: download_mondo_terms
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: mondo_source_objects
+  name: Mondo source object references
+  kind: artifact
+  data_type: array
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - normalized_mondo_terms
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/source_objects.json
+- artifact_id: spark_execution_context
+  name: Spark execution context
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - normalized_mondo_terms
+  - index_mondo_terms
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/spark.json
+- artifact_id: normalized_dataset
+  name: Normalized Mondo dataset
+  kind: artifact
+  data_type: directory
+  media_type: application/x-directory
+  role: intermediate
+  producer: normalized_mondo_terms
+  consumers:
+  - index_mondo_terms
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_status
+  name: Mondo normalization status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalized_mondo_terms
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: mondo_index_template
+  name: Mondo Elasticsearch index template
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - index_mondo_terms
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/index_template.json
+- artifact_id: elasticsearch_cluster
+  name: Elasticsearch cluster resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - index_mondo_terms
+  - publish_mondo
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/elasticsearch.json
+- artifact_id: mondo_index_reference
+  name: Loaded Mondo index reference
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: index_mondo_terms
+  consumers:
+  - publish_mondo
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/index_reference.schema.json
+- artifact_id: load_status
+  name: Mondo index load status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: index_mondo_terms
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: published_mondo_index
+  name: Published Mondo index
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: publish_mondo
+  consumers:
+  - slack
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/published_index.schema.json
+- artifact_id: publish_status
+  name: Mondo publish status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_mondo
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: slack_resource
+  name: Slack service resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - slack
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/slack.json
+- artifact_id: slack_notification_status
+  name: Slack notification status
+  kind: artifact
+  data_type: notification
+  media_type: application/json
+  role: status
+  producer: slack
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/notification.schema.json
+bindings:
+- intent_id: params_validate
+  service_id: runtime_parameter_allowed_values_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: runtime_parameters
+    artifact_id: param_source
+  output_bindings:
+  - port: validation_decision
+    artifact_id: validation_decision
+  parameter_bindings:
+    validation_rules:
+      required:
+      - color
+      allowed_values:
+        color:
+        - blue
+        - green
+  secret_bindings: []
+  rationale: Validates the publication color before any remote work.
+  confidence: explicit
+- intent_id: download_mondo_terms
+  service_id: github_release_asset_object_storage_sync
+  service_version: 1.0.0
+  input_bindings:
+  - port: github_release_repository
+    artifact_id: github_repository
+  - port: object_storage_destination
+    artifact_id: object_storage_destination
+  output_bindings:
+  - port: downloaded_asset
+    artifact_id: mondo_asset
+  - port: asset_metadata
+    artifact_id: mondo_asset_metadata
+  - port: sync_status
+    artifact_id: download_status
+  parameter_bindings:
+    repository_owner: monarch-initiative
+    repository_name: mondo
+    release_selector: latest
+    asset_name_pattern: mondo-base.obo
+    destination_prefix: raw/landing/mondo
+    skip_if_current: true
+  secret_bindings: []
+  rationale: Synchronizes the latest reviewed Mondo OBO release asset into the data lake.
+  confidence: explicit
+- intent_id: normalized_mondo_terms
+  service_id: spark_class_object_storage_dataset_transformer
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_objects
+    artifact_id: mondo_source_objects
+  - port: version_metadata
+    artifact_id: mondo_asset_metadata
+  - port: object_storage
+    artifact_id: object_storage_destination
+  - port: spark_execution_context
+    artifact_id: spark_execution_context
+  output_bindings:
+  - port: output_dataset
+    artifact_id: normalized_dataset
+  - port: transform_status
+    artifact_id: normalize_status
+  parameter_bindings:
+    spark_class: bio.ferlab.HPOMain
+    spark_config: config-etl-medium
+    output_uri: public/mondo_terms
+    app_name: mondo-normalization
+    application_args:
+      exclude_root: MONDO:0700096
+  secret_bindings: []
+  rationale: Runs the source Spark normalization class with the reviewed exclusion rule.
+  confidence: explicit
+- intent_id: index_mondo_terms
+  service_id: spark_elasticsearch_index_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_dataset
+    artifact_id: normalized_dataset
+  - port: index_template
+    artifact_id: mondo_index_template
+  - port: version_metadata
+    artifact_id: mondo_asset_metadata
+  - port: elasticsearch_cluster
+    artifact_id: elasticsearch_cluster
+  - port: spark_execution_context
+    artifact_id: spark_execution_context
+  output_bindings:
+  - port: index_reference
+    artifact_id: mondo_index_reference
+  - port: index_load_status
+    artifact_id: load_status
+  parameter_bindings:
+    spark_class: bio.ferlab.clin.etl.es.Indexer
+    spark_config: config-etl-singleton
+    index_name: mondo
+    index_type: mondo_terms
+    config_file: config/test.conf
+    write_mode: replace
+  secret_bindings: []
+  rationale: Loads the normalized directory through the reviewed Spark Elasticsearch indexer.
+  confidence: explicit
+- intent_id: publish_mondo
+  service_id: elasticsearch_index_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: index_reference
+    artifact_id: mondo_index_reference
+  - port: version_metadata
+    artifact_id: mondo_asset_metadata
+  - port: elasticsearch_cluster
+    artifact_id: elasticsearch_cluster
+  output_bindings:
+  - port: published_index
+    artifact_id: published_mondo_index
+  - port: publish_status
+    artifact_id: publish_status
+  parameter_bindings:
+    publication_mode: color_slot
+    alias_name: mondo
+    color: blue
+  secret_bindings: []
+  rationale: Promotes the loaded index through the requested blue/green publication slot.
+  confidence: explicit
+- intent_id: slack
+  service_id: slack_notification_sender
+  service_version: 1.0.0
+  input_bindings:
+  - port: slack_service
+    artifact_id: slack_resource
+  - port: message_context
+    artifact_id: published_mondo_index
+  output_bindings:
+  - port: notification_status
+    artifact_id: slack_notification_status
+  parameter_bindings:
+    channel: '#mondo-etl'
+    message_template: Mondo index {index_name} version {version} published.
+    username: prompt2serviceflow
+  secret_bindings: []
+  rationale: Sends a completion message grounded in the published index artifact.
+  confidence: explicit
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock Mondo ETL.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All six source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Six exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports, parameters, types, and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Linear Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Scenario executes
+- gate: G6
+  expected_status: pass
+  checks:
+  - Invariants hold
+source_step_accounting:
+- source_step_ref: params_validate
+  disposition: service
+  intent_ids:
+  - params_validate
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: download_mondo_terms
+  disposition: service
+  intent_ids:
+  - download_mondo_terms
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: normalized_mondo_terms
+  disposition: service
+  intent_ids:
+  - normalized_mondo_terms
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: index_mondo_terms
+  disposition: service
+  intent_ids:
+  - index_mondo_terms
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: publish_mondo
+  disposition: service
+  intent_ids:
+  - publish_mondo
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: slack
+  disposition: service
+  intent_ids:
+  - slack
+  rationale: The source step invokes the reviewed service intent or intents listed.

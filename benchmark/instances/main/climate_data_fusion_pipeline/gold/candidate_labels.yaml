@@ -1,0 +1,28 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:climate_data_fusion_pipeline
+candidate_sets:
+- candidate_set_id: main_climate_data_fusion_pipeline_weather_station_csv_source_extractor_candidates
+  required_service_id: weather_station_csv_source_extractor
+  labels:
+    weather_station_csv_source_extractor: gold
+    http_json_request_extractor: contract_mismatch
+    weather_station_csv_standard_normalizer: contract_mismatch
+    warehouse_inventory_csv_extractor: target_mismatch
+- candidate_set_id: main_climate_data_fusion_pipeline_weather_station_csv_standard_normalizer_candidates
+  required_service_id: weather_station_csv_standard_normalizer
+  labels:
+    weather_station_csv_standard_normalizer: gold
+    csv_to_structured_json_standardizer: format_mismatch
+    inventory_sku_csv_normalizer: semantic_mismatch
+    power_plant_csv_standardizer: semantic_mismatch
+    tabular_null_value_cleanser: missing_required_output
+    legacy_csv_schema_validator: deprecated_or_incompatible
+- candidate_set_id: main_climate_data_fusion_pipeline_weather_station_csv_parquet_fusion_aggregator_candidates
+  required_service_id: weather_station_csv_parquet_fusion_aggregator
+  labels:
+    weather_station_csv_parquet_fusion_aggregator: gold
+    weather_station_csv_standard_normalizer: target_mismatch
+    multi_region_revenue_report_aggregator: semantic_mismatch
+    multi_warehouse_inventory_discrepancy_reconciler: semantic_mismatch
+    structured_json_batch_to_csv_exporter: format_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch

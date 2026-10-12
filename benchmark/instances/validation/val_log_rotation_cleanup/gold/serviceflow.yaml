@@ -1,0 +1,293 @@
+ir_version: 0.1.0
+composition_id: val_log_rotation_cleanup
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.0
+  sha256: 06ea151c94fc25937ea217f18ad8ef4add356fcdf26510e0f4241e17ccc14849
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_log_rotation_cleanup
+  split: validation
+  pipeline_id: val_log_rotation_cleanup
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/02_val_log_rotation_cleanup.txt
+  description_sha256: 66a5d8a026eb8c526597ae0200068b59c91e9da349515ec381664628e66d2f75
+  internal_spec_path: source/internal_specs/validation_20/02_val_log_rotation_cleanup.json
+  internal_spec_sha256: 37ee5bd77633cab1f94497c7fd072a5bce227d6a1a48e1e6daa782f5a2ce3d17
+requirement:
+  name: Val Log Rotation Cleanup
+  purpose: Archive expired application logs before deleting local copies.
+  domain: validation_holdout
+  execution_model: batch
+  topology: linear
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: local_log_directory
+  type: filesystem
+  name: Local application log directory
+  identifier: local_log_directory
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: log_archive
+  type: object_storage
+  name: Object-storage log archive
+  identifier: log_archive
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: find_expired_logs
+  name: Find Expired Logs
+  category: Sensor
+  capability: Perform the reviewed find expired logs capability.
+  source_step_refs:
+  - find_expired_logs
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: find_expired_logs.'
+  inputs:
+  - log_location_resource
+  outputs:
+  - availability_decision
+  - availability_status
+  external_system_refs:
+  - local_log_directory
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared availability_decision, availability_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: archive_and_delete_logs
+  name: Archive And Delete Logs
+  category: Maintenance
+  capability: Perform the reviewed archive and delete logs capability.
+  source_step_refs:
+  - archive_and_delete_logs
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: archive_and_delete_logs.'
+  inputs:
+  - local_log_directory_resource
+  - log_archive_resource
+  outputs:
+  - archive_manifest
+  - cleanup_status
+  external_system_refs:
+  - local_log_directory
+  - log_archive
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared archive_manifest, cleanup_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: find_expired_logs
+  disposition: service
+  intent_ids:
+  - find_expired_logs
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: archive_and_delete_logs
+  disposition: service
+  intent_ids:
+  - archive_and_delete_logs
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: find_expired_logs
+    to: archive_and_delete_logs
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: log_location_resource
+  name: Log Location Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: local_log_directory
+- artifact_id: local_log_directory_resource
+  name: Local Log Directory Resource
+  kind: external_resource
+  data_type: directory
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: local_log_directory
+- artifact_id: log_archive_resource
+  name: Log Archive Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: log_archive
+- artifact_id: availability_decision
+  name: Availability Decision
+  kind: artifact
+  data_type: decision
+  role: output
+  producer: find_expired_logs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: availability_status
+  name: Availability Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: find_expired_logs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: archive_manifest
+  name: Archive Manifest
+  kind: artifact
+  data_type: object
+  role: output
+  producer: archive_and_delete_logs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: cleanup_status
+  name: Cleanup Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: archive_and_delete_logs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: find_expired_logs
+  service_id: file_location_availability_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: file_location_resource
+    artifact_id: log_location_resource
+  output_bindings:
+  - port: availability_decision
+    artifact_id: availability_decision
+  - port: check_status
+    artifact_id: availability_status
+  parameter_bindings:
+    location_type: filesystem
+    path: /var/log/app
+    availability_condition: contains_matching_files
+    filename_pattern: '*.log*'
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: archive_and_delete_logs
+  service_id: filesystem_log_archive_and_delete
+  service_version: 1.0.0
+  input_bindings:
+  - port: log_directory
+    artifact_id: local_log_directory_resource
+  - port: archive_destination
+    artifact_id: log_archive_resource
+  output_bindings:
+  - port: archive_manifest
+    artifact_id: archive_manifest
+  - port: cleanup_status
+    artifact_id: cleanup_status
+  parameter_bindings:
+    retention_days: 30
+    archive_prefix: logs/
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

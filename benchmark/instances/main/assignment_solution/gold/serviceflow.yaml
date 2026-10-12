@@ -1,0 +1,438 @@
+ir_version: 0.1.0
+composition_id: assignment_solution
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:assignment_solution
+  split: main
+  pipeline_id: assignment_solution
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/03_assignment_solution.txt
+  description_sha256: 44991d0db82aa17b54bdf91f285e57b7c0435f7fc9e261196aafa0911b127f6b
+  internal_spec_path: source/internal_specs/main_40/03_assignment_solution.json
+  internal_spec_sha256: ef4758726760e628e9862e24ed7d32f81cc7ac47b2f8d13ac0268826417d3bf5
+requirement:
+  name: Assignment Solution
+  purpose: Processing pipeline.
+  domain: data_platform
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes: []
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems: []
+service_intents:
+- intent_id: get_user
+  name: Get user
+  category: Extractor
+  capability: Fetch user data via HTTP.
+  source_step_refs:
+  - get_user
+  evidence:
+  - source: description
+    text: Get user data.
+  inputs: []
+  outputs:
+  - user_response
+  - user_status
+  external_system_refs: []
+  preconditions:
+  - Input data available.
+  effects:
+  - Output artifacts emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: HTTP extraction.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: process_user
+  name: Process user
+  category: Transformer
+  capability: Transform user data.
+  source_step_refs:
+  - process_user
+  evidence:
+  - source: description
+    text: Process user.
+  inputs:
+  - user_result
+  outputs:
+  - processed_data
+  - processed_obj
+  - process_status
+  external_system_refs: []
+  preconditions:
+  - Input data available.
+  effects:
+  - Output artifacts emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Python transform.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: create_table
+  name: Create table
+  category: Loader
+  capability: Execute CREATE TABLE SQL.
+  source_step_refs:
+  - create_table
+  evidence:
+  - source: description
+    text: Create table.
+  inputs:
+  - db_resource
+  outputs:
+  - create_result
+  - create_tbl_status
+  external_system_refs: []
+  preconditions:
+  - Input data available.
+  effects:
+  - Output artifacts emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: SQL execution.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: insert_data
+  name: Insert data
+  category: Loader
+  capability: Execute INSERT SQL.
+  source_step_refs:
+  - insert_data
+  evidence:
+  - source: description
+    text: Insert data.
+  inputs:
+  - db_resource
+  outputs:
+  - insert_result
+  - insert_status
+  external_system_refs: []
+  preconditions:
+  - Input data available.
+  effects:
+  - Output artifacts emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: SQL execution.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: get_user
+    to: process_user
+  - from: process_user
+    to: create_table
+  - from: create_table
+    to: insert_data
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: http_resource
+  name: HTTP resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/http.json
+- artifact_id: user_response
+  name: User response
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: get_user
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: user_result
+  name: User result
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: null
+  consumers:
+  - process_user
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: user_status
+  name: User status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: get_user
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: processed_data
+  name: Processed data
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: process_user
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: process_status
+  name: Process status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: process_user
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: db_resource
+  name: DB resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - create_table
+  - insert_data
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/db.json
+- artifact_id: create_result
+  name: Create result
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: create_table
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: create_tbl_status
+  name: Create table status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: create_table
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: insert_result
+  name: Insert result
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: output
+  producer: insert_data
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: insert_status
+  name: Insert status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: insert_data
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: processed_obj
+  name: Processed obj
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: status
+  producer: process_user
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: get_user
+  service_id: http_json_request_extractor
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: response_json
+    artifact_id: user_response
+  - port: extraction_status
+    artifact_id: user_status
+  parameter_bindings:
+    endpoint: /user/1
+    method: GET
+  secret_bindings: []
+  rationale: HTTP request.
+  confidence: explicit
+- intent_id: process_user
+  service_id: tabular_dataset_declarative_transformer
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_dataset
+    artifact_id: user_result
+  output_bindings:
+  - port: transformed_dataset
+    artifact_id: processed_data
+  - port: transformed_data_object
+    artifact_id: processed_obj
+  - port: transform_status
+    artifact_id: process_status
+  parameter_bindings:
+    transformation_rules:
+      rename_columns: true
+    output_path: /workspace/artifacts/processed.json
+  secret_bindings: []
+  rationale: Transform data.
+  confidence: explicit
+- intent_id: create_table
+  service_id: postgres_parameterized_sql_executor
+  service_version: 1.0.0
+  input_bindings:
+  - port: postgres_database
+    artifact_id: db_resource
+  output_bindings:
+  - port: affected_tables
+    artifact_id: create_result
+  - port: execution_status
+    artifact_id: create_tbl_status
+  parameter_bindings:
+    sql_statements: SELECT 1
+  secret_bindings: []
+  rationale: Create table.
+  confidence: explicit
+- intent_id: insert_data
+  service_id: postgres_parameterized_sql_executor
+  service_version: 1.0.0
+  input_bindings:
+  - port: postgres_database
+    artifact_id: db_resource
+  output_bindings:
+  - port: affected_tables
+    artifact_id: insert_result
+  - port: execution_status
+    artifact_id: insert_status
+  parameter_bindings:
+    sql_statements: SELECT 1
+  secret_bindings: []
+  rationale: Insert data.
+  confidence: explicit
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock execution.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All 4 source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - 4 exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports, parameters, types, and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Scenario executes
+- gate: G6
+  expected_status: pass
+  checks:
+  - Invariants hold
+source_step_accounting:
+- source_step_ref: get_user
+  disposition: service
+  intent_ids:
+  - get_user
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: process_user
+  disposition: service
+  intent_ids:
+  - process_user
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: create_table
+  disposition: service
+  intent_ids:
+  - create_table
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: insert_data
+  disposition: service
+  intent_ids:
+  - insert_data
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

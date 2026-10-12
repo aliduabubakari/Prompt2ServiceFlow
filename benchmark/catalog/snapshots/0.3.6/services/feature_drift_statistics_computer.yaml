@@ -1,0 +1,94 @@
+schema_version: 0.1.0
+service_id: feature_drift_statistics_computer
+version: 1.0.0
+display_name: Feature Drift Statistics Computer
+category: DataProfiler
+capability:
+  summary: Computes feature drift statistics for a refreshed feature table.
+  operations:
+  - Computes feature drift statistics for a refreshed feature table.
+  keywords:
+  - feature
+  - drift
+  - statistics
+  - computer
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: feature_table
+    description: Reviewed feature table value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: drift_report
+    description: Reviewed drift report value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: drift_status
+    description: Reviewed drift status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: baseline_window
+    description: Configuration for baseline window.
+    type: string
+    required: true
+  - name: drift_metrics
+    description: Configuration for drift metrics.
+    type: array
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: feature-drift-statistics-computer
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.2
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.feature_drift_statistics_computer
+  implementation_ref: services/implementations/feature_drift_statistics_computer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-03:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 03 descriptions; bindings retain inference confidence.

@@ -1,0 +1,303 @@
+{
+  "spec_version": "1.0",
+  "corpus": "Prompt2ServiceFlow Extension-50",
+  "corpus_version": "extension_v1",
+  "pipeline_id": "iot_device_snapshot_transition",
+  "pipeline_name": "IoT Device Snapshot Transition",
+  "source": {
+    "unique_key": null,
+    "repo": "prompt2serviceflow-extension-v1",
+    "file_path": "synthetic/iot_device_snapshot_transition.py",
+    "repo_url": null,
+    "detected_airflow_version": "2.x",
+    "sampled_version": null,
+    "sampled_commit": null,
+    "sampled_time": null,
+    "source_fingerprint_sha256": null,
+    "source_type": "synthetic_provenance_marked"
+  },
+  "summary": {
+    "purpose": "Apply a finite device-event batch to a previous snapshot and publish the new state.",
+    "business_domain": "Environmental/Energy",
+    "execution_model": "bounded_batch",
+    "topology_pattern": "fan_in",
+    "extension_track": "event_checkpoint_windowed_batch",
+    "complexity_band": "medium",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "checkpoint_manifest"
+    ],
+    "notes": "Synthetic Extension-50 source package. No hidden gold annotations are included."
+  },
+  "schedule": {
+    "schedule_type": "manual",
+    "schedule_expression": null,
+    "timezone": null,
+    "start_date": null,
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "ingest_primary_source",
+        "to": "validate_source_contracts"
+      },
+      {
+        "from": "ingest_secondary_source",
+        "to": "validate_source_contracts"
+      },
+      {
+        "from": "ingest_reference_source",
+        "to": "validate_source_contracts"
+      },
+      {
+        "from": "validate_source_contracts",
+        "to": "normalize_sources"
+      },
+      {
+        "from": "normalize_sources",
+        "to": "fuse_sources"
+      },
+      {
+        "from": "fuse_sources",
+        "to": "publish_outputs"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "group_id": "source_fanin",
+        "steps": [
+          "ingest_primary_source",
+          "ingest_secondary_source",
+          "ingest_reference_source"
+        ]
+      }
+    ],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "fixture_backed_system",
+      "name": "IoT export bucket",
+      "identifier": "synthetic://extension-v1/iot_device_snapshot_transition/1",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    },
+    {
+      "type": "fixture_backed_system",
+      "name": "device state archive",
+      "identifier": "synthetic://extension-v1/iot_device_snapshot_transition/2",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "source_bundle",
+        "description": "Fixture-backed source input bundle"
+      },
+      {
+        "identifier": "prepared_outputs",
+        "description": "Validated workflow output bundle"
+      },
+      {
+        "identifier": "audit_manifest",
+        "description": "Provenance, checksum, quality, and routing evidence"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": [],
+    "modalities": [
+      "jsonl",
+      "table"
+    ]
+  },
+  "steps": [
+    {
+      "step_id": "ingest_primary_source",
+      "name": "Ingest Primary Source",
+      "objective": "Ingest the primary source for IoT device snapshot transitions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "ingest_secondary_source",
+      "name": "Ingest Secondary Source",
+      "objective": "Ingest the secondary source for IoT device snapshot transitions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "ingest_reference_source",
+      "name": "Ingest Reference Source",
+      "objective": "Ingest reference data needed to interpret IoT device snapshot transitions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "validate_source_contracts",
+      "name": "Validate Source Contracts",
+      "objective": "Validate schemas, identities, and freshness constraints across all IoT device snapshot transitions sources.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "normalize_sources",
+      "name": "Normalize Sources",
+      "objective": "Normalize source-specific fields into a shared representation for IoT device snapshot transitions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "fuse_sources",
+      "name": "Fuse Sources",
+      "objective": "Fuse normalized sources into a coherent IoT device snapshot transitions artifact.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "publish_outputs",
+      "name": "Publish Outputs",
+      "objective": "Publish the prepared IoT device snapshot transitions outputs and completion status.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    }
+  ]
+}

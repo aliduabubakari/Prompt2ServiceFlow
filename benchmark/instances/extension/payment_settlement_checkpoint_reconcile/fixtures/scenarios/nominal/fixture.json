@@ -1,0 +1,10 @@
+{
+  "pipeline_id": "payment_settlement_checkpoint_reconcile",
+  "inputs": {"settlements": "settlement_events.jsonl", "statements": "bank_statements.csv"},
+  "input_modalities": ["jsonl", "table"],
+  "systems": ["settlement engine", "bank gateway"],
+  "reconciliation_rules": {
+    "amount_tolerance": 0.01,
+    "max_settlement_age_days": 5
+  }
+}

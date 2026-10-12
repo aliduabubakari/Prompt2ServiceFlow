@@ -1,0 +1,33 @@
+binding_gold_version: 0.1.0
+benchmark_id: validation:val_federated_partner_reconciliation
+bindings:
+- intent_id: wait_for_partner_extracts
+  service_id: multi_resource_readiness_sensor
+  service_version: 1.0.0
+- intent_id: ingest_partner_a
+  service_id: partner_feed_extractor
+  service_version: 1.0.0
+- intent_id: ingest_partner_b
+  service_id: partner_feed_extractor
+  service_version: 1.0.0
+- intent_id: ingest_partner_c
+  service_id: partner_feed_extractor
+  service_version: 1.0.0
+- intent_id: standardize_records
+  service_id: partner_record_standardizer
+  service_version: 1.0.0
+- intent_id: match_entities
+  service_id: federated_entity_matcher
+  service_version: 1.0.0
+- intent_id: route_discrepancies
+  service_id: discrepancy_route_decider
+  service_version: 1.0.0
+- intent_id: publish_clean_records
+  service_id: clean_partner_record_publisher
+  service_version: 1.0.0
+- intent_id: open_review_cases
+  service_id: review_case_opener
+  service_version: 1.0.0
+- intent_id: write_reconciliation_audit
+  service_id: audit_summary_writer
+  service_version: 1.0.0

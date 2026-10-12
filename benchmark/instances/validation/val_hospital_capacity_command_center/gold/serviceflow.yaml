@@ -1,0 +1,925 @@
+ir_version: 0.1.0
+composition_id: val_hospital_capacity_command_center
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.3
+  sha256: 0807f68e6a990b9818c6f954c7089ae99a57b570a33b9f9ce5e6e32ffda8a150
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_hospital_capacity_command_center
+  split: validation
+  pipeline_id: val_hospital_capacity_command_center
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/17_val_hospital_capacity_command_center.txt
+  description_sha256: 8d321976f2c51825f82fe79c0362aa570d2ab3e06c3ee8e487a76e44da7e9536
+  internal_spec_path: source/internal_specs/validation_20/17_val_hospital_capacity_command_center.json
+  internal_spec_sha256: 6ccb9c918fc97208baeb371b971aaee0100bcb6f4941a071b7732ddfbeec3f4b
+requirement:
+  name: Val Hospital Capacity Command Center
+  purpose: Wait for clinical census data, combine operational feeds, compute capacity risk, and route
+    capacity alerts.
+  domain: validation_holdout
+  execution_model: batch
+  topology: mixed
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: hospital_sources
+  type: database
+  name: Hospital operational sources
+  identifier: hospital_sources
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: alerting_service
+  type: http_api
+  name: Alerting service
+  identifier: alerting_service
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: wait_for_census_snapshot
+  name: Wait For Census Snapshot
+  category: Sensor
+  capability: Perform the reviewed wait for census snapshot capability.
+  source_step_refs:
+  - wait_for_census_snapshot
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: wait_for_census_snapshot.'
+  inputs:
+  - hospital_sources
+  outputs:
+  - census_ready
+  - census_ready_status
+  external_system_refs:
+  - hospital_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared census_ready, census_ready_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: extract_admissions
+  name: Extract Admissions
+  category: Extractor
+  capability: Perform the reviewed extract admissions capability.
+  source_step_refs:
+  - extract_admissions
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: extract_admissions.'
+  inputs:
+  - hospital_sources
+  outputs:
+  - admissions
+  - admissions_status
+  external_system_refs:
+  - hospital_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared admissions, admissions_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: extract_bed_status
+  name: Extract Bed Status
+  category: Extractor
+  capability: Perform the reviewed extract bed status capability.
+  source_step_refs:
+  - extract_bed_status
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: extract_bed_status.'
+  inputs:
+  - hospital_sources
+  outputs:
+  - bed_status
+  - bed_status_extract_status
+  external_system_refs:
+  - hospital_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared bed_status, bed_status_extract_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: extract_staffing_roster
+  name: Extract Staffing Roster
+  category: Extractor
+  capability: Perform the reviewed extract staffing roster capability.
+  source_step_refs:
+  - extract_staffing_roster
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: extract_staffing_roster.'
+  inputs:
+  - hospital_sources
+  outputs:
+  - staffing_roster
+  - staffing_status
+  external_system_refs:
+  - hospital_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared staffing_roster, staffing_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: extract_discharge_forecast
+  name: Extract Discharge Forecast
+  category: Extractor
+  capability: Perform the reviewed extract discharge forecast capability.
+  source_step_refs:
+  - extract_discharge_forecast
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: extract_discharge_forecast.'
+  inputs:
+  - hospital_sources
+  outputs:
+  - discharge_forecast
+  - forecast_status
+  external_system_refs:
+  - hospital_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared discharge_forecast, forecast_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: merge_operational_state
+  name: Merge Operational State
+  category: Integrator
+  capability: Perform the reviewed merge operational state capability.
+  source_step_refs:
+  - merge_operational_state
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: merge_operational_state.'
+  inputs:
+  - admissions
+  - bed_status
+  - staffing_roster
+  - discharge_forecast
+  outputs:
+  - operational_state
+  - operational_merge_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared operational_state, operational_merge_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: compute_capacity_risk
+  name: Compute Capacity Risk
+  category: ScoringService
+  capability: Perform the reviewed compute capacity risk capability.
+  source_step_refs:
+  - compute_capacity_risk
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: compute_capacity_risk.'
+  inputs:
+  - operational_state
+  outputs:
+  - risk_report
+  - capacity_risk_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared risk_report, capacity_risk_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: route_alert_level
+  name: Route Alert Level
+  category: DomainAdapter
+  capability: Perform the reviewed route alert level capability.
+  source_step_refs:
+  - route_alert_level
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: route_alert_level.'
+  inputs:
+  - risk_report
+  outputs:
+  - alert_route
+  - alert_route_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared alert_route, alert_route_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: publish_dashboard
+  name: Publish Dashboard
+  category: Publisher
+  capability: Perform the reviewed publish dashboard capability.
+  source_step_refs:
+  - publish_dashboard
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: publish_dashboard.'
+  inputs:
+  - risk_report
+  outputs:
+  - capacity_dashboard
+  - dashboard_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared capacity_dashboard, dashboard_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: send_escalation_alert
+  name: Send Escalation Alert
+  category: Notifier
+  capability: Perform the reviewed send escalation alert capability.
+  source_step_refs:
+  - send_escalation_alert
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: send_escalation_alert.'
+  inputs:
+  - risk_report
+  - alerting_service
+  outputs:
+  - alert_payload
+  - alert_status
+  external_system_refs:
+  - alerting_service
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared alert_payload, alert_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: wait_for_census_snapshot
+  disposition: service
+  intent_ids:
+  - wait_for_census_snapshot
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: extract_admissions
+  disposition: service
+  intent_ids:
+  - extract_admissions
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: extract_bed_status
+  disposition: service
+  intent_ids:
+  - extract_bed_status
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: extract_staffing_roster
+  disposition: service
+  intent_ids:
+  - extract_staffing_roster
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: extract_discharge_forecast
+  disposition: service
+  intent_ids:
+  - extract_discharge_forecast
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: merge_operational_state
+  disposition: service
+  intent_ids:
+  - merge_operational_state
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: compute_capacity_risk
+  disposition: service
+  intent_ids:
+  - compute_capacity_risk
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: route_alert_level
+  disposition: service
+  intent_ids:
+  - route_alert_level
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: publish_dashboard
+  disposition: service
+  intent_ids:
+  - publish_dashboard
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: send_escalation_alert
+  disposition: service
+  intent_ids:
+  - send_escalation_alert
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: wait_for_census_snapshot
+    to: extract_admissions
+  - from: wait_for_census_snapshot
+    to: extract_bed_status
+  - from: wait_for_census_snapshot
+    to: extract_staffing_roster
+  - from: wait_for_census_snapshot
+    to: extract_discharge_forecast
+  - from: extract_admissions
+    to: merge_operational_state
+  - from: extract_bed_status
+    to: merge_operational_state
+  - from: extract_staffing_roster
+    to: merge_operational_state
+  - from: extract_discharge_forecast
+    to: merge_operational_state
+  - from: merge_operational_state
+    to: compute_capacity_risk
+  - from: compute_capacity_risk
+    to: route_alert_level
+  - from: route_alert_level
+    to: publish_dashboard
+  - from: route_alert_level
+    to: send_escalation_alert
+  parallel_groups:
+  - group_id: hospital_feed_extraction
+    intent_ids:
+    - extract_admissions
+    - extract_bed_status
+    - extract_staffing_roster
+    - extract_discharge_forecast
+  branches:
+  - branch_id: capacity_alert_route
+    decision_intent: route_alert_level
+    decision_artifact: alert_route
+    cases:
+    - case_id: normal
+      condition: alert_route.level == normal
+      next_intents:
+      - publish_dashboard
+    - case_id: critical
+      condition: alert_route.level == critical
+      next_intents:
+      - send_escalation_alert
+  gates:
+  - gate_id: census_snapshot_gate
+    sensor_intent: wait_for_census_snapshot
+    condition: census_snapshot_ready == true
+    gated_intents:
+    - extract_admissions
+    - extract_bed_status
+    - extract_staffing_roster
+    - extract_discharge_forecast
+artifacts:
+- artifact_id: hospital_sources
+  name: Hospital Sources
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: hospital_sources
+- artifact_id: alerting_service
+  name: Alerting Service
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: alerting_service
+- artifact_id: census_ready
+  name: Census Ready
+  kind: artifact
+  data_type: json
+  role: output
+  producer: wait_for_census_snapshot
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: census_ready_status
+  name: Census Ready Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: wait_for_census_snapshot
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: admissions
+  name: Admissions
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: extract_admissions
+  consumers:
+  - merge_operational_state
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: admissions_status
+  name: Admissions Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: extract_admissions
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: bed_status
+  name: Bed Status
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: extract_bed_status
+  consumers:
+  - merge_operational_state
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: bed_status_extract_status
+  name: Bed Status Extract Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: extract_bed_status
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: staffing_roster
+  name: Staffing Roster
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: extract_staffing_roster
+  consumers:
+  - merge_operational_state
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: staffing_status
+  name: Staffing Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: extract_staffing_roster
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: discharge_forecast
+  name: Discharge Forecast
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: extract_discharge_forecast
+  consumers:
+  - merge_operational_state
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: forecast_status
+  name: Forecast Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: extract_discharge_forecast
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: operational_state
+  name: Operational State
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: merge_operational_state
+  consumers:
+  - compute_capacity_risk
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: operational_merge_status
+  name: Operational Merge Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: merge_operational_state
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: risk_report
+  name: Risk Report
+  kind: artifact
+  data_type: json
+  role: intermediate
+  producer: compute_capacity_risk
+  consumers:
+  - route_alert_level
+  - publish_dashboard
+  - send_escalation_alert
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: capacity_risk_status
+  name: Capacity Risk Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: compute_capacity_risk
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: alert_route
+  name: Alert Route
+  kind: artifact
+  data_type: json
+  role: output
+  producer: route_alert_level
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: alert_route_status
+  name: Alert Route Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: route_alert_level
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: capacity_dashboard
+  name: Capacity Dashboard
+  kind: artifact
+  data_type: json
+  role: output
+  producer: publish_dashboard
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: dashboard_status
+  name: Dashboard Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: publish_dashboard
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: alert_payload
+  name: Alert Payload
+  kind: artifact
+  data_type: json
+  role: output
+  producer: send_escalation_alert
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: alert_status
+  name: Alert Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: send_escalation_alert
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: wait_for_census_snapshot
+  service_id: multi_resource_readiness_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: resource_group
+    artifact_id: hospital_sources
+  output_bindings:
+  - port: readiness_decision
+    artifact_id: census_ready
+  - port: readiness_status
+    artifact_id: census_ready_status
+  parameter_bindings:
+    readiness_condition: census_snapshot_ready
+    minimum_ready_count: 1
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: extract_admissions
+  service_id: hospital_operational_feed_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: hospital_source
+    artifact_id: hospital_sources
+  output_bindings:
+  - port: operational_feed
+    artifact_id: admissions
+  - port: extraction_status
+    artifact_id: admissions_status
+  parameter_bindings:
+    feed_name: admissions
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: extract_bed_status
+  service_id: hospital_operational_feed_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: hospital_source
+    artifact_id: hospital_sources
+  output_bindings:
+  - port: operational_feed
+    artifact_id: bed_status
+  - port: extraction_status
+    artifact_id: bed_status_extract_status
+  parameter_bindings:
+    feed_name: bed_status
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: extract_staffing_roster
+  service_id: hospital_operational_feed_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: hospital_source
+    artifact_id: hospital_sources
+  output_bindings:
+  - port: operational_feed
+    artifact_id: staffing_roster
+  - port: extraction_status
+    artifact_id: staffing_status
+  parameter_bindings:
+    feed_name: staffing_roster
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: extract_discharge_forecast
+  service_id: hospital_operational_feed_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: hospital_source
+    artifact_id: hospital_sources
+  output_bindings:
+  - port: operational_feed
+    artifact_id: discharge_forecast
+  - port: extraction_status
+    artifact_id: forecast_status
+  parameter_bindings:
+    feed_name: discharge_forecast
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: merge_operational_state
+  service_id: hospital_operational_state_merger
+  service_version: 1.0.0
+  input_bindings:
+  - port: admissions
+    artifact_id: admissions
+  - port: bed_status
+    artifact_id: bed_status
+  - port: staffing_roster
+    artifact_id: staffing_roster
+  - port: discharge_forecast
+    artifact_id: discharge_forecast
+  output_bindings:
+  - port: operational_state
+    artifact_id: operational_state
+  - port: merge_status
+    artifact_id: operational_merge_status
+  parameter_bindings:
+    merge_key: hospital_unit
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: compute_capacity_risk
+  service_id: capacity_risk_calculator
+  service_version: 1.0.0
+  input_bindings:
+  - port: operational_state
+    artifact_id: operational_state
+  output_bindings:
+  - port: risk_report
+    artifact_id: risk_report
+  - port: risk_status
+    artifact_id: capacity_risk_status
+  parameter_bindings:
+    risk_profile: capacity_standard
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: route_alert_level
+  service_id: alert_level_route_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: risk_report
+    artifact_id: risk_report
+  output_bindings:
+  - port: alert_route
+    artifact_id: alert_route
+  - port: routing_status
+    artifact_id: alert_route_status
+  parameter_bindings:
+    critical_threshold: 0.8
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: publish_dashboard
+  service_id: capacity_dashboard_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: risk_report
+    artifact_id: risk_report
+  output_bindings:
+  - port: capacity_dashboard
+    artifact_id: capacity_dashboard
+  - port: dashboard_status
+    artifact_id: dashboard_status
+  parameter_bindings:
+    dashboard_name: capacity_command_center
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: send_escalation_alert
+  service_id: escalation_alert_sender
+  service_version: 1.0.0
+  input_bindings:
+  - port: risk_report
+    artifact_id: risk_report
+  - port: alerting_service
+    artifact_id: alerting_service
+  output_bindings:
+  - port: alert_payload
+    artifact_id: alert_payload
+  - port: alert_status
+    artifact_id: alert_status
+  parameter_bindings:
+    recipient_group: capacity_escalation
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

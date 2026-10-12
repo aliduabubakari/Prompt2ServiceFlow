@@ -1,0 +1,157 @@
+assertions_version: 0.1.0
+pipeline_id: clickstream_session_window_batch
+scenarios:
+- scenario: nominal
+  assertions:
+  # ---- Ingest ----
+  - assertion_id: ingest_succeeds
+    type: json_path_equals
+    path: artifacts/ingest_bounded_events_status.json
+    json_path: success
+    expected: true
+  - assertion_id: ingest_event_count
+    type: json_path_equals
+    path: artifacts/ingest_bounded_events_status.json
+    json_path: events_ingested
+    expected: 16
+
+  # ---- Validation ----
+  - assertion_id: validate_succeeds
+    type: json_path_equals
+    path: artifacts/validate_checkpoint_inputs_status.json
+    json_path: success
+    expected: true
+  - assertion_id: validate_rejected_count
+    type: json_path_equals
+    path: artifacts/validate_checkpoint_inputs_status.json
+    json_path: rejected
+    expected: 4
+  - assertion_id: validate_valid_count
+    type: json_path_equals
+    path: artifacts/validate_checkpoint_inputs_status.json
+    json_path: valid
+    expected: 12
+
+  # ---- Dedup ----
+  - assertion_id: dedup_succeeds
+    type: json_path_equals
+    path: artifacts/sort_and_deduplicate_records_status.json
+    json_path: success
+    expected: true
+  - assertion_id: dedup_removed_count
+    type: json_path_equals
+    path: artifacts/sort_and_deduplicate_records_status.json
+    json_path: duplicates_removed
+    expected: 1
+  - assertion_id: dedup_final_count
+    type: json_path_equals
+    path: artifacts/sort_and_deduplicate_records_status.json
+    json_path: sorted_and_deduped
+    expected: 11
+
+  # ---- Windows ----
+  - assertion_id: windows_succeed
+    type: json_path_equals
+    path: artifacts/build_analysis_windows_status.json
+    json_path: success
+    expected: true
+  - assertion_id: window_count
+    type: json_path_equals
+    path: artifacts/build_analysis_windows_status.json
+    json_path: windows_built
+    expected: 3
+
+  # ---- Metrics ----
+  - assertion_id: metrics_succeed
+    type: json_path_equals
+    path: artifacts/compute_window_metrics_status.json
+    json_path: success
+    expected: true
+  - assertion_id: metrics_total_windows
+    type: json_path_equals
+    path: artifacts/compute_window_metrics_artifact.json
+    json_path: summary.total_windows
+    expected: 3
+  - assertion_id: metrics_total_events
+    type: json_path_equals
+    path: artifacts/compute_window_metrics_artifact.json
+    json_path: summary.total_events
+    expected: 11
+  - assertion_id: metrics_conversion_windows
+    type: json_path_equals
+    path: artifacts/compute_window_metrics_artifact.json
+    json_path: summary.conversion_windows
+    expected: 2
+  - assertion_id: metrics_unique_users
+    type: json_path_equals
+    path: artifacts/compute_window_metrics_artifact.json
+    json_path: summary.unique_users
+    expected: 3
+
+  # ---- Publish ----
+  - assertion_id: publish_succeeds
+    type: json_path_equals
+    path: artifacts/publish_outputs_status.json
+    json_path: success
+    expected: true
+  - assertion_id: checkpoint_status_completed
+    type: json_path_equals
+    path: artifacts/checkpoint_manifest.json
+    json_path: status
+    expected: completed
+  - assertion_id: csv_exported
+    type: json_path_equals
+    path: artifacts/publish_outputs_status.json
+    json_path: csv_exported
+    expected: per_window_metrics.csv
+
+  # ---- Output files ----
+  - assertion_id: csv_file_exists
+    type: file_exists
+    path: artifacts/per_window_metrics.csv
+  - assertion_id: csv_has_rows
+    type: csv_row_count
+    path: artifacts/per_window_metrics.csv
+    minimum: 3
+
+  # ---- Data integrity: usr_D must not appear downstream ----
+  - assertion_id: no_revoked_user_in_windows
+    type: json_array_length
+    path: artifacts/compute_window_metrics_artifact.json
+    json_path: per_window_metrics[?(@.user_id=='usr_D')]
+    expected: 0
+
+- scenario: boundary
+  assertions:
+  # Ingest
+  - assertion_id: boundary_ingest_count
+    type: json_path_equals
+    path: artifacts/ingest_bounded_events_status.json
+    json_path: events_ingested
+    expected: 8
+
+  # Validation: no rejected events (no revoked users in boundary)
+  - assertion_id: boundary_rejected_zero
+    type: json_path_equals
+    path: artifacts/validate_checkpoint_inputs_status.json
+    json_path: rejected
+    expected: 0
+
+  # Dedup
+  - assertion_id: boundary_dedup_removed
+    type: json_path_equals
+    path: artifacts/sort_and_deduplicate_records_status.json
+    json_path: duplicates_removed
+    expected: 1
+
+  # Windows: 3 separate windows (cross-user session IDs NOT merged)
+  - assertion_id: boundary_window_count
+    type: json_path_equals
+    path: artifacts/build_analysis_windows_status.json
+    json_path: windows_built
+    expected: 3
+
+  # CSV output
+  - assertion_id: boundary_csv_exists
+    type: file_exists
+    path: artifacts/per_window_metrics.csv

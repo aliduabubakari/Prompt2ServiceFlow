@@ -1,0 +1,200 @@
+schema_version: 0.1.0
+service_id: kubernetes_job_template_executor
+version: 1.0.0
+display_name: Kubernetes Job Template Executor
+category: ExternalWorkflowAdapter
+capability:
+  summary: Submits a caller-supplied Kubernetes Job manifest or template to a bound
+    Kubernetes cluster, optionally waits for terminal completion, and emits job reference
+    plus execution status.
+  operations:
+  - Read and validate a Kubernetes Job template artifact or template path binding.
+  - Resolve the target Kubernetes cluster resource.
+  - Submit the rendered Job manifest with optional template parameters.
+  - Observe terminal job condition when wait_for_completion is enabled and emit status.
+  keywords:
+  - kubernetes
+  - job template
+  - batch job
+  - external workflow
+  - file processing
+  - job status
+  limitations:
+  - Does not define the container image or job business logic.
+  - Does not infer files produced or mutated by the job unless the template or workflow
+    binds output references.
+  - Repeated invocations may create duplicate jobs or repeat side effects depending
+    on template naming and job code.
+  - Does not manage workflow fan-in, retries, or scheduling.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: kubernetes_cluster
+    description: Kubernetes cluster or namespace resource used to create and observe
+      the Job.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://kubernetes_cluster_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: job_template
+    description: Kubernetes Job manifest/template artifact, such as a YAML template
+      referenced by workflow configuration.
+    channel: artifact
+    data_type: text
+    media_type: application/yaml
+    schema_ref: schema://kubernetes_job_template/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: input_artifacts
+    description: Optional artifact references made available to the submitted job.
+    channel: artifact
+    data_type: array
+    media_type: application/json
+    schema_ref: schema://artifact_references/v1
+    required: false
+    cardinality: many
+    sensitivity: phi
+  outputs:
+  - name: job_reference
+    description: Reference to the submitted Kubernetes Job, including namespace and
+      job name.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://kubernetes_job_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: job_status
+    description: Observable Kubernetes Job execution status, including submitted flag,
+      terminal condition, success flag, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://kubernetes_job_execution_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: template_parameters
+    description: Optional key/value values used to render the Job template.
+    type: object
+    required: false
+  - name: job_name_prefix
+    description: Optional deterministic prefix for the Kubernetes Job name.
+    type: string
+    required: false
+  - name: namespace
+    description: Kubernetes namespace for the Job when not fixed by the bound cluster
+      resource or manifest.
+    type: string
+    required: false
+  - name: wait_for_completion
+    description: Whether to wait until the Job reaches a terminal successful or failed
+      condition.
+    type: boolean
+    required: false
+  - name: expected_success_condition
+    description: Terminal condition treated as success.
+    type: string
+    required: false
+    enum:
+    - Complete
+  secrets:
+  - name: kubernetes_access_credentials
+    description: Credentials or service account binding required to create and observe
+      Jobs in the target cluster.
+    required: true
+contracts:
+- contract_id: kubernetes_job_template_readable_contract
+  type: precondition
+  applies_to: input
+  target: job_template
+  description: Job template must be readable and render to a Kubernetes Job manifest.
+  schema_ref: schema://kubernetes_job_template/v1
+  expression: readable(job_template) and renders_kind(job_template, 'Job')
+- contract_id: kubernetes_job_reference_schema
+  type: json_schema
+  applies_to: output
+  target: job_reference
+  description: Job reference identifies the submitted Kubernetes Job.
+  schema_ref: schema://kubernetes_job_reference/v1
+  expression: '{"type":"object","required":["job_name","namespace"],"properties":{"job_name":{"type":"string"},"namespace":{"type":"string"},"cluster_resource":{"type":["string","null"]},"uid":{"type":["string","null"]}}}'
+- contract_id: kubernetes_job_status_schema
+  type: json_schema
+  applies_to: output
+  target: job_status
+  description: Job status exposes submission and terminal outcome.
+  schema_ref: schema://kubernetes_job_execution_status/v1
+  expression: '{"type":"object","required":["success","submitted","job_name","namespace","terminal"],"properties":{"success":{"type":"boolean"},"submitted":{"type":"boolean"},"job_name":{"type":"string"},"namespace":{"type":"string"},"terminal":{"type":"boolean"},"condition":{"type":["string","null"]},"active":{"type":["integer","null"],"minimum":0},"succeeded":{"type":["integer","null"],"minimum":0},"failed":{"type":["integer","null"],"minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: kubernetes_job_execution_effect
+  type: effect
+  applies_to: service
+  target: kubernetes_job_template_executor
+  description: On success, a Kubernetes Job was submitted and, when waiting is enabled,
+    observed in the configured successful terminal condition.
+  expression: job_status.success == true implies job_status.submitted == true and
+    exists(job_reference.job_name)
+invocation:
+  type: argo_workflow_template
+  template_name: kubernetes-job-template-executor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.kubernetes_job_template_executor
+  implementation_ref: services/implementations/kubernetes_job_template_executor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - kubernetes://*
+  secret_access: required
+  retry_safe: false
+  idempotency: unknown
+  data_sensitivity:
+  - internal
+  - confidential
+  - pii
+  - phi
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit Kubernetes credentials, secrets, or pod environment secret values
+    in status artifacts.
+  - Bind only approved namespaces and job templates.
+  - Business semantics of the Job container remain outside this generic external-workflow
+    adapter unless modeled by a more specific service.
+  idempotency_notes: Retry behavior depends on Job template naming and the side effects
+    of the containerized workload.
+  default_timeout_seconds: 1800
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:pcd-etl#PCD_file_upload
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The registry lacks a reusable Kubernetes Job adapter. The active pipeline
+    provides only a variable-bound job template for file upload/processing, so a generic
+    template executor is the most honest reusable capability without inventing job
+    internals.'
+  - 'Evidence status: weakly_inferred.'

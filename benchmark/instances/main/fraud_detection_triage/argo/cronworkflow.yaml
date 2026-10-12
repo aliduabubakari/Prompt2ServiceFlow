@@ -1,0 +1,219 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: fraud-detection-triage
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: fixture-file
+        value: transactions_high_risk.csv
+      - name: execution-time
+        value: '2024-01-16T00:00:00Z'
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: fraud-detection-triage-scripts
+    - name: fixtures
+      configMap:
+        name: fraud-detection-triage-fixtures
+        items:
+        - key: fixture-0000
+          path: email_service.json
+        - key: fixture-0001
+          path: fixture.json
+        - key: fixture-0002
+          path: transactions_high_risk.csv
+        - key: fixture-0003
+          path: transactions_low_risk.csv
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: analyze-transactions
+          template: run-analyze-transactions
+        - name: route-transaction
+          template: run-route-transaction
+          depends: analyze-transactions.Succeeded
+        - name: route-to-manual-review
+          template: run-route-to-manual-review
+          depends: route-transaction.Succeeded
+          when: '{{tasks.route-transaction.outputs.parameters.route}} == manual_review'
+        - name: route-to-auto-approve
+          template: run-route-to-auto-approve
+          depends: route-transaction.Succeeded
+          when: '{{tasks.route-transaction.outputs.parameters.route}} == auto_approve'
+        - name: send-notification
+          template: run-send-notification
+          depends: (route-to-manual-review.Succeeded || route-to-auto-approve.Succeeded)
+    - name: run-analyze-transactions
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: analyze_transactions
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_analyze_transactions.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+        - --execution-time
+        - '{{workflow.parameters.execution-time}}'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-route-transaction
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: route_transaction
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_route_transaction.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      outputs:
+        parameters:
+        - name: route
+          valueFrom:
+            path: /workspace/artifacts/route.txt
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-route-to-manual-review
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: route_to_manual_review
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_route_to_manual_review.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-route-to-auto-approve
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: route_to_auto_approve
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_route_to_auto_approve.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-send-notification
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: send_notification
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/05_send_notification.py
+        - --workspace
+        - /workspace
+        - --execution-time
+        - '{{workflow.parameters.execution-time}}'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

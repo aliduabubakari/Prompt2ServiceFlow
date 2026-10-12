@@ -1,0 +1,68 @@
+schema_version: 0.1.0
+service_id: weather_station_csv_source_extractor
+version: 1.0.0
+display_name: Weather Station CSV Source Extractor
+category: Extractor
+capability:
+  summary: Retrieves a weather-station CSV file from an approved HTTP(S) or FTP endpoint and emits the raw CSV artifact with extraction status.
+  operations:
+    - Resolve and fetch one configured HTTP(S) or FTP CSV endpoint.
+    - Validate that the response is non-empty CSV rather than JSON or HTML.
+    - Write the raw CSV artifact and extraction diagnostics.
+  keywords: [climate, weather stations, csv, http, ftp, extraction]
+  limitations:
+    - Does not normalize agency-specific schemas.
+    - Does not merge sources or implement workflow retry policy.
+lifecycle: {status: active}
+interface:
+  inputs: []
+  outputs:
+    - {name: raw_station_csv, description: Raw weather-station CSV response, channel: artifact, data_type: csv, media_type: text/csv, schema_ref: schema://raw_weather_station_csv/v1, required: true, cardinality: one, sensitivity: public}
+    - {name: extraction_status, description: Source retrieval status and output URI, channel: artifact, data_type: status, media_type: application/json, schema_ref: schema://weather_station_csv_extraction_status/v1, required: true, cardinality: one, sensitivity: internal}
+  parameters:
+    - {name: endpoint, description: Absolute HTTP(S) or FTP CSV endpoint, type: string, required: true, pattern: '^(https?|ftp)://.+'}
+    - {name: agency_id, description: Logical meteorological agency identifier, type: string, required: true}
+    - {name: output_path, description: Deterministic raw CSV artifact path, type: string, required: true}
+    - {name: has_header, description: Whether the response has a CSV header, type: boolean, required: false}
+    - {name: delimiter, description: CSV delimiter, type: string, required: false, enum: [',', ';', '\t', '|']}
+  secrets: []
+contracts:
+  - {contract_id: endpoint_protocol, type: precondition, applies_to: parameter, target: endpoint, description: Endpoint must use HTTP(S) or FTP, expression: "endpoint matches '^(https?|ftp)://.+'"}
+  - {contract_id: csv_output, type: tabular_schema, applies_to: output, target: raw_station_csv, description: Output must be readable CSV, schema_ref: schema://raw_weather_station_csv/v1, expression: 'readable(raw_station_csv) and csv_parseable(raw_station_csv, delimiter, has_header)'}
+  - {contract_id: extraction_status_schema, type: json_schema, applies_to: output, target: extraction_status, description: Status records source retrieval, schema_ref: schema://weather_station_csv_extraction_status/v1, expression: '{"type":"object","required":["success","agency_id","resolved_url","rows_written","output_uri","errors"]}'}
+invocation:
+  type: argo_workflow_template
+  template_name: weather-station-csv-source-extractor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command: [python, -m, prompt2serviceflow_services.weather_station_csv_source_extractor]
+  implementation_ref: services/implementations/weather_station_csv_source_extractor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets: ['http://*', 'https://*', 'ftp://*']
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity: [public, internal]
+  resources: {cpu: 250m, memory: 256Mi, gpu: 0}
+  governance_notes: [Do not log complete station rows or credentials.]
+  idempotency_notes: GET/FTP retrieval is retry-safe when the upstream object is immutable.
+  default_timeout_seconds: 180
+compatibility:
+  runtime: {target: argo-workflows, minimum_version: 3.5.0}
+  supported_architectures: [amd64, arm64]
+  incompatible_services: []
+provenance:
+  origin: curated_extension
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-23T00:00:00+00:00'
+  review_status: candidate
+  source_refs:
+    - main:climate_data_fusion_pipeline#download_noaa
+    - main:climate_data_fusion_pipeline#download_ecmwf
+    - main:climate_data_fusion_pipeline#download_jma
+    - main:climate_data_fusion_pipeline#download_metoffice
+    - main:climate_data_fusion_pipeline#download_bom
+  notes:
+    - Curated 0.1.1 extension to close the explicit CSV/FTP acquisition gap identified during semantic hardening.

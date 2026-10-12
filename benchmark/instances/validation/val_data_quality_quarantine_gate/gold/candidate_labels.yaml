@@ -1,0 +1,33 @@
+candidate_label_version: 0.1.0
+benchmark_id: validation:val_data_quality_quarantine_gate
+candidate_sets:
+- candidate_set_id: validation_val_data_quality_quarantine_gate_customer_extract_profiler_candidates
+  required_service_id: customer_extract_profiler
+  labels:
+    customer_extract_profiler: gold
+    reviewed_domain_adapter: semantic_mismatch
+    temporary_resource_cleanup: generic_escape_hatch
+- candidate_set_id: validation_val_data_quality_quarantine_gate_customer_quality_rule_evaluator_candidates
+  required_service_id: customer_quality_rule_evaluator
+  labels:
+    customer_quality_rule_evaluator: gold
+    temporary_resource_cleanup: semantic_mismatch
+    csv_to_structured_json_standardizer: generic_escape_hatch
+- candidate_set_id: validation_val_data_quality_quarantine_gate_valid_customer_records_loader_candidates
+  required_service_id: valid_customer_records_loader
+  labels:
+    valid_customer_records_loader: gold
+    csv_to_structured_json_standardizer: semantic_mismatch
+    tabular_dataset_database_loader: generic_escape_hatch
+- candidate_set_id: validation_val_data_quality_quarantine_gate_invalid_customer_records_quarantine_publisher_candidates
+  required_service_id: invalid_customer_records_quarantine_publisher
+  labels:
+    invalid_customer_records_quarantine_publisher: gold
+    tabular_dataset_database_loader: semantic_mismatch
+    http_json_request_extractor: generic_escape_hatch
+- candidate_set_id: validation_val_data_quality_quarantine_gate_quality_audit_summary_writer_candidates
+  required_service_id: quality_audit_summary_writer
+  labels:
+    quality_audit_summary_writer: gold
+    http_json_request_extractor: semantic_mismatch
+    bi_dashboard_refresh_trigger: generic_escape_hatch

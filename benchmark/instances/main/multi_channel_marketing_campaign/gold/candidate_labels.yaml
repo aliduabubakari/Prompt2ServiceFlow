@@ -1,0 +1,39 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:multi_channel_marketing_campaign
+candidate_sets:
+- candidate_set_id: main_multi_channel_marketing_campaign_customer_segment_csv_loader_candidates
+  required_service_id: customer_segment_csv_loader
+  labels:
+    customer_segment_csv_loader: gold
+    csv_artifact_profile_ingestor: missing_required_output
+    csv_tabular_schema_validating_loader: contract_mismatch
+    delimited_file_tabular_dataset_loader: policy_incompatible
+    user_content_csv_scanner: semantic_mismatch
+    legacy_csv_schema_validator: deprecated_or_incompatible
+- candidate_set_id: main_multi_channel_marketing_campaign_bulk_email_campaign_sender_candidates
+  required_service_id: bulk_email_campaign_sender
+  labels:
+    bulk_email_campaign_sender: gold
+    email_notification_sender: missing_required_output
+    email_attachment_notification_sender: format_mismatch
+    status_context_email_summary_notifier: semantic_mismatch
+    bulk_sms_campaign_sender: target_mismatch
+    bulk_push_notification_campaign_sender: target_mismatch
+- candidate_set_id: main_multi_channel_marketing_campaign_bulk_sms_campaign_sender_candidates
+  required_service_id: bulk_sms_campaign_sender
+  labels:
+    bulk_sms_campaign_sender: gold
+    bulk_email_campaign_sender: target_mismatch
+    bulk_push_notification_campaign_sender: target_mismatch
+    http_api_request_artifact_extractor: semantic_mismatch
+    email_notification_sender: target_mismatch
+    open_network_http_json_requester: policy_incompatible
+- candidate_set_id: main_multi_channel_marketing_campaign_bulk_push_notification_campaign_sender_candidates
+  required_service_id: bulk_push_notification_campaign_sender
+  labels:
+    bulk_push_notification_campaign_sender: gold
+    bulk_sms_campaign_sender: target_mismatch
+    bulk_email_campaign_sender: target_mismatch
+    http_api_request_artifact_extractor: missing_required_output
+    safe_content_publication_publisher: semantic_mismatch
+    open_network_http_json_requester: policy_incompatible

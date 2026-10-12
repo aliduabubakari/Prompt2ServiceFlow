@@ -1,0 +1,179 @@
+schema_version: 0.1.0
+service_id: retention_cutoff_config_resolver
+version: 1.0.0
+display_name: Retention Cutoff Config Resolver
+category: Transformer
+capability:
+  summary: Resolves a retention age from runtime parameters and optional variable
+    fallback, validates it, computes a cutoff timestamp/date, and emits normalized
+    retention configuration plus status.
+  operations:
+  - Read runtime parameter values and optional variable values.
+  - 'Apply configured precedence: explicit parameter, variable fallback, then default
+    age.'
+  - Validate that resolved retention age is a non-negative integer.
+  - Compute cutoff timestamp or date from a reference time minus the resolved retention
+    age in days.
+  keywords:
+  - retention
+  - cutoff date
+  - configuration
+  - parameter resolution
+  - maintenance
+  limitations:
+  - Does not delete data or mutate external systems.
+  - Does not read scheduler configuration or implement retries.
+  - Variable lookup must be supplied by workflow binding; no Airflow variable store
+    is assumed.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: runtime_parameters
+    description: Runtime parameter object that may contain the retention age parameter.
+    channel: parameter
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://runtime_parameter_values/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: runtime_variables
+    description: Optional variable object containing fallback retention configuration
+      values.
+    channel: parameter
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://runtime_variable_values/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: retention_config
+    description: Normalized retention configuration including max_age_days, cutoff
+      timestamp/date, enable_delete, and print_deletes flags.
+    channel: parameter
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://retention_cutoff_config/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: config_status
+    description: Observable status for configuration resolution and validation.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://retention_cutoff_config_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: max_age_parameter_name
+    description: Name of the runtime parameter containing retention age in days.
+    type: string
+    required: true
+  - name: max_age_variable_name
+    description: Name of the optional variable containing fallback retention age in
+      days.
+    type: string
+    required: false
+  - name: default_max_age_days
+    description: Default retention age in days used when no parameter or variable
+      value is supplied.
+    type: integer
+    required: true
+    minimum: 0.0
+  - name: enable_delete
+    description: Whether downstream cleanup services should perform deletion rather
+      than dry-run behavior.
+    type: boolean
+    required: false
+  - name: print_deletes
+    description: Whether downstream cleanup services may include bounded deletion
+      diagnostics.
+    type: boolean
+    required: false
+  - name: reference_time
+    description: Reference timestamp for cutoff calculation; if omitted, the workflow
+      logical time may be used by binding.
+    type: string
+    required: false
+  secrets: []
+contracts:
+- contract_id: retention_age_non_negative
+  type: precondition
+  applies_to: service
+  target: retention_cutoff_config_resolver
+  description: Resolved retention age must be a non-negative integer number of days.
+  expression: resolved_max_age_days >= 0
+- contract_id: retention_config_schema
+  type: json_schema
+  applies_to: output
+  target: retention_config
+  description: Retention configuration exposes cutoff and deletion flags.
+  schema_ref: schema://retention_cutoff_config/v1
+  expression: '{"type":"object","required":["max_age_days","cutoff_timestamp","enable_delete","print_deletes"],"properties":{"max_age_days":{"type":"integer","minimum":0},"cutoff_timestamp":{"type":"string"},"cutoff_date":{"type":["string","null"]},"enable_delete":{"type":"boolean"},"print_deletes":{"type":"boolean"},"source":{"type":"string"}}}'
+- contract_id: retention_config_status_schema
+  type: json_schema
+  applies_to: output
+  target: config_status
+  description: Status exposes resolution source and validation outcome.
+  schema_ref: schema://retention_cutoff_config_status/v1
+  expression: '{"type":"object","required":["success","max_age_days","source"],"properties":{"success":{"type":"boolean"},"max_age_days":{"type":"integer","minimum":0},"source":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: retention_cutoff_effect
+  type: effect
+  applies_to: service
+  target: retention_cutoff_config_resolver
+  description: On success, retention_config.max_age_days equals the resolved age and
+    config_status.success is true.
+  expression: config_status.success == true implies retention_config.max_age_days
+    == config_status.max_age_days
+invocation:
+  type: argo_workflow_template
+  template_name: retention-cutoff-config-resolver-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.retention_cutoff_config_resolver
+  implementation_ref: services/implementations/retention_cutoff_config_resolver
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log sensitive variable values if callers include them in runtime_variables.
+  idempotency_notes: Same parameter/variable inputs and reference time produce the
+    same cutoff configuration.
+  default_timeout_seconds: 60
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:airflow_db_cleanup#print_configuration
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing parameter validator does not compute the cutoff date or normalize
+    deletion flags required by downstream cleanup tasks.'
+  - 'Evidence status: explicit.'

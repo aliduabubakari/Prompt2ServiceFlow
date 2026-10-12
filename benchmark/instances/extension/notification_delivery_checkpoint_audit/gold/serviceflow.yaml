@@ -1,0 +1,604 @@
+ir_version: 0.1.0
+composition_id: notification_delivery_checkpoint_audit
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.5
+  sha256: feedf88b282820fd203f7bea995a370bbc1eed9864f18e8987826c396394c85d
+source:
+  dataset_id: prompt2serviceflow_extension_sources
+  dataset_version: extension_v1
+  benchmark_id: extension:notification_delivery_checkpoint_audit
+  split: extension
+  pipeline_id: notification_delivery_checkpoint_audit
+  description_path: source/extension_v1/batch_06/descriptions/28_notification_delivery_checkpoint_audit.txt
+  description_sha256: 1241f872e2ada86e91744848476f78c5d3e5cdfb479ae64dd905cea3a5a884a3
+  internal_spec_path: source/extension_v1/batch_06/specs/28_notification_delivery_checkpoint_audit.json
+  internal_spec_sha256: 6b7e7af57697d06b4e35f6b3d425c31251f072a35235e86cc693d9ca423d4842
+requirement:
+  name: Notification Delivery Checkpoint Audit
+  purpose: Audit finite notification delivery events against an audience table and checkpoint progress.
+  domain: Marketing/Customer Operations
+  execution_model: batch
+  topology: sensor_gated
+  information_sufficiency: high
+  notes:
+  - Extension-50 Batch 01 synthetic source.
+  - Event and external-system behavior is represented as bounded fixture-backed batch execution.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: messaging_export_bucket
+  type: object_storage
+  name: messaging export bucket
+  identifier: synthetic://extension-v1/notification_delivery_checkpoint_audit/1
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+- system_id: campaign_audit_store
+  type: object_storage
+  name: campaign audit store
+  identifier: synthetic://extension-v1/notification_delivery_checkpoint_audit/2
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_bounded_events
+  name: Ingest Bounded Events
+  category: Extractor
+  capability: Ingest a finite event, log, sensor, or snapshot batch for notification delivery checkpoint
+    audit.
+  source_step_refs:
+  - ingest_bounded_events
+  evidence:
+  - source: internal_spec
+    text: Ingest a finite event, log, sensor, or snapshot batch for notification delivery checkpoint audit.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_bounded_events_artifact
+  - ingest_bounded_events_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_bounded_events_artifact, ingest_bounded_events_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: validate_checkpoint_inputs
+  name: Validate Checkpoint Inputs
+  category: QualityCheck
+  capability: Validate batch boundaries, checkpoint references, and required identifiers for notification
+    delivery checkpoint audit.
+  source_step_refs:
+  - validate_checkpoint_inputs
+  evidence:
+  - source: internal_spec
+    text: Validate batch boundaries, checkpoint references, and required identifiers for notification
+      delivery checkpoint audit.
+  inputs:
+  - ingest_bounded_events_artifact
+  outputs:
+  - validate_checkpoint_inputs_artifact
+  - validate_checkpoint_inputs_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces validate_checkpoint_inputs_artifact, validate_checkpoint_inputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: sort_and_deduplicate_records
+  name: Sort And Deduplicate Records
+  category: Transformer
+  capability: Sort and deduplicate records before window or checkpoint processing for notification delivery
+    checkpoint audit.
+  source_step_refs:
+  - sort_and_deduplicate_records
+  evidence:
+  - source: internal_spec
+    text: Sort and deduplicate records before window or checkpoint processing for notification delivery
+      checkpoint audit.
+  inputs:
+  - validate_checkpoint_inputs_artifact
+  outputs:
+  - sort_and_deduplicate_records_artifact
+  - sort_and_deduplicate_records_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces sort_and_deduplicate_records_artifact, sort_and_deduplicate_records_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: build_analysis_windows
+  name: Build Analysis Windows
+  category: Transformer
+  capability: Build deterministic windows, sessions, or snapshot intervals for notification delivery checkpoint
+    audit.
+  source_step_refs:
+  - build_analysis_windows
+  evidence:
+  - source: internal_spec
+    text: Build deterministic windows, sessions, or snapshot intervals for notification delivery checkpoint
+      audit.
+  inputs:
+  - sort_and_deduplicate_records_artifact
+  outputs:
+  - build_analysis_windows_artifact
+  - build_analysis_windows_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces build_analysis_windows_artifact, build_analysis_windows_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: compute_window_metrics
+  name: Compute Window Metrics
+  category: Aggregator
+  capability: Compute metrics, state transitions, or anomaly features for notification delivery checkpoint
+    audit.
+  source_step_refs:
+  - compute_window_metrics
+  evidence:
+  - source: internal_spec
+    text: Compute metrics, state transitions, or anomaly features for notification delivery checkpoint
+      audit.
+  inputs:
+  - build_analysis_windows_artifact
+  outputs:
+  - compute_window_metrics_artifact
+  - compute_window_metrics_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces compute_window_metrics_artifact, compute_window_metrics_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: publish_outputs
+  name: Publish Outputs
+  category: Publisher
+  capability: Publish the bounded-window notification delivery checkpoint audit outputs and checkpoint
+    manifest.
+  source_step_refs:
+  - publish_outputs
+  evidence:
+  - source: internal_spec
+    text: Publish the bounded-window notification delivery checkpoint audit outputs and checkpoint manifest.
+  inputs:
+  - compute_window_metrics_artifact
+  outputs:
+  - publish_outputs_artifact
+  - publish_outputs_status
+  external_system_refs:
+  - messaging_export_bucket
+  - campaign_audit_store
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces publish_outputs_artifact, publish_outputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+source_step_accounting:
+- source_step_ref: ingest_bounded_events
+  disposition: service
+  intent_ids:
+  - ingest_bounded_events
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: validate_checkpoint_inputs
+  disposition: service
+  intent_ids:
+  - validate_checkpoint_inputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: sort_and_deduplicate_records
+  disposition: service
+  intent_ids:
+  - sort_and_deduplicate_records
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: build_analysis_windows
+  disposition: service
+  intent_ids:
+  - build_analysis_windows
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: compute_window_metrics
+  disposition: service
+  intent_ids:
+  - compute_window_metrics
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: publish_outputs
+  disposition: service
+  intent_ids:
+  - publish_outputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+control_flow:
+  edges:
+  - from: ingest_bounded_events
+    to: validate_checkpoint_inputs
+  - from: validate_checkpoint_inputs
+    to: sort_and_deduplicate_records
+  - from: sort_and_deduplicate_records
+    to: build_analysis_windows
+  - from: build_analysis_windows
+    to: compute_window_metrics
+  - from: compute_window_metrics
+    to: publish_outputs
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: source_bundle
+  name: Source Bundle
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - ingest_bounded_events
+  sensitivity: internal
+  persistence: workflow
+  fixture_ref: fixtures/inputs/fixture.json
+- artifact_id: ingest_bounded_events_artifact
+  name: Ingest Bounded Events Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_bounded_events
+  consumers:
+  - validate_checkpoint_inputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_bounded_events_status
+  name: Ingest Bounded Events Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_bounded_events
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: validate_checkpoint_inputs_artifact
+  name: Validate Checkpoint Inputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: validate_checkpoint_inputs
+  consumers:
+  - sort_and_deduplicate_records
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validate_checkpoint_inputs_status
+  name: Validate Checkpoint Inputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: validate_checkpoint_inputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: sort_and_deduplicate_records_artifact
+  name: Sort And Deduplicate Records Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: sort_and_deduplicate_records
+  consumers:
+  - build_analysis_windows
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: sort_and_deduplicate_records_status
+  name: Sort And Deduplicate Records Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: sort_and_deduplicate_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: build_analysis_windows_artifact
+  name: Build Analysis Windows Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: build_analysis_windows
+  consumers:
+  - compute_window_metrics
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: build_analysis_windows_status
+  name: Build Analysis Windows Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: build_analysis_windows
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: compute_window_metrics_artifact
+  name: Compute Window Metrics Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: compute_window_metrics
+  consumers:
+  - publish_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: compute_window_metrics_status
+  name: Compute Window Metrics Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: compute_window_metrics
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: publish_outputs_artifact
+  name: Publish Outputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: output
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publish_outputs_status
+  name: Publish Outputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+bindings:
+- intent_id: ingest_bounded_events
+  service_id: notification_delivery_event_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_bounded_events_artifact
+  - port: execution_report
+    artifact_id: ingest_bounded_events_status
+  parameter_bindings:
+    operation_profile: ingest_bounded_events
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: validate_checkpoint_inputs
+  service_id: notification_delivery_checkpoint_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: ingest_bounded_events_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: validate_checkpoint_inputs_artifact
+  - port: execution_report
+    artifact_id: validate_checkpoint_inputs_status
+  parameter_bindings:
+    operation_profile: validate_checkpoint_inputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: sort_and_deduplicate_records
+  service_id: checkpoint_event_sort_deduplicator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_checkpoint_inputs_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: sort_and_deduplicate_records_artifact
+  - port: execution_report
+    artifact_id: sort_and_deduplicate_records_status
+  parameter_bindings:
+    operation_profile: sort_and_deduplicate_records
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: build_analysis_windows
+  service_id: checkpoint_window_builder
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: sort_and_deduplicate_records_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: build_analysis_windows_artifact
+  - port: execution_report
+    artifact_id: build_analysis_windows_status
+  parameter_bindings:
+    operation_profile: build_analysis_windows
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: compute_window_metrics
+  service_id: notification_delivery_audit_metric_computer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: build_analysis_windows_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: compute_window_metrics_artifact
+  - port: execution_report
+    artifact_id: compute_window_metrics_status
+  parameter_bindings:
+    operation_profile: compute_window_metrics
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: publish_outputs
+  service_id: checkpoint_audit_bundle_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: compute_window_metrics_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: publish_outputs_artifact
+  - port: execution_report
+    artifact_id: publish_outputs_status
+  parameter_bindings:
+    operation_profile: publish_outputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - public
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Batch 01 mocks do not contact production image, document, or review systems.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 reviewed Batch 01 validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 reviewed Batch 01 validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 reviewed Batch 01 validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 reviewed Batch 01 validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 reviewed Batch 01 validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 reviewed Batch 01 validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 reviewed Batch 01 validation.

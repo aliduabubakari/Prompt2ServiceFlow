@@ -1,0 +1,174 @@
+schema_version: 0.1.0
+service_id: status_context_email_summary_notifier
+version: 1.0.0
+display_name: Status Context Email Summary Notifier
+category: Notifier
+capability:
+  summary: Renders and sends an email summary using one or more upstream status/data-object
+    artifacts as context and emits delivery status for workflow validation.
+  operations:
+  - Read upstream load or processing status artifacts.
+  - Render a subject/body from caller-supplied templates and bounded status fields.
+  - Send the rendered message through a bound email service resource.
+  - Emit notification status and rendered summary metadata.
+  keywords:
+  - email
+  - etl summary
+  - status notification
+  - load status
+  - delivery status
+  limitations:
+  - Does not implement failure hooks, retries, or schedules.
+  - Repeated invocations may send duplicate emails unless provider idempotency is
+    configured.
+  - Does not attach large datasets; it summarizes bounded status fields only.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: summary_context
+    description: Upstream status or data-object artifact used to render the email
+      summary, such as database load completion status.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://notification_summary_context/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: email_service
+    description: External email or SMTP service used for delivery.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://email_service_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: notification_status
+    description: Observable email delivery status including sent flag, recipient count,
+      subject, and diagnostics.
+    channel: artifact
+    data_type: notification
+    media_type: application/json
+    schema_ref: schema://status_context_email_notification_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: rendered_summary
+    description: Bounded rendered summary metadata used for the email body, excluding
+      credentials and raw dataset contents.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://rendered_email_summary/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: to
+    description: Comma-separated or array-compatible recipient address list.
+    type: string
+    required: true
+  - name: subject
+    description: Email subject line after workflow binding renders variables.
+    type: string
+    required: true
+  - name: body_template
+    description: Template for rendering the email body from summary_context fields.
+    type: string
+    required: false
+  - name: max_context_fields
+    description: Maximum number of context fields to include in rendered_summary.
+    type: integer
+    required: false
+    minimum: 0.0
+  secrets: []
+contracts:
+- contract_id: status_email_recipient_contract
+  type: precondition
+  applies_to: parameter
+  target: to
+  description: At least one recipient address must be provided.
+  expression: count(parse_email_recipients(to)) > 0
+- contract_id: status_email_context_schema
+  type: json_schema
+  applies_to: input
+  target: summary_context
+  description: Summary context must be a JSON object containing at least one status,
+    count, or message field usable for bounded rendering.
+  schema_ref: schema://notification_summary_context/v1
+  expression: '{"type":"object","minProperties":1,"additionalProperties":true}'
+- contract_id: status_email_notification_status_schema
+  type: json_schema
+  applies_to: output
+  target: notification_status
+  description: Notification status exposes delivery attempt for validation.
+  schema_ref: schema://status_context_email_notification_status/v1
+  expression: '{"type":"object","required":["sent","recipients_count","subject","context_rendered"],"properties":{"sent":{"type":"boolean"},"recipients_count":{"type":"integer","minimum":0},"subject":{"type":"string"},"context_rendered":{"type":"boolean"},"message_id":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: status_email_effect
+  type: effect
+  applies_to: service
+  target: status_context_email_summary_notifier
+  description: On successful delivery attempt, a rendered summary exists and notification_status.sent
+    is true.
+  expression: notification_status.sent == true implies exists(rendered_summary) and
+    notification_status.context_rendered == true
+invocation:
+  type: argo_workflow_template
+  template_name: status-context-email-summary-notifier-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.status_context_email_summary_notifier
+  implementation_ref: services/implementations/status_context_email_summary_notifier
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - email://*
+  - smtp://*
+  - https://*
+  secret_access: optional
+  retry_safe: false
+  idempotency: non_idempotent
+  data_sensitivity:
+  - internal
+  - pii
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit SMTP credentials or raw email service configuration in outputs or
+    logs.
+  - Recipient addresses are personal/internal metadata.
+  - Only bounded status fields should be included in rendered summaries.
+  idempotency_notes: Retries can create duplicate emails unless the bound email provider
+    or workflow supplies an idempotency key.
+  default_timeout_seconds: 120
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:supply_chain_shipment_etl#send_summary_email
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The source notification consumes database load completion context,
+    which is a reusable status-summary email pattern not fully represented by the
+    existing context-free email sender.'
+  - 'Evidence status: explicit.'

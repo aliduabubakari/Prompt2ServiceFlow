@@ -1,0 +1,132 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: portfolio_rebalancing_dag
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: fetch_brokerage_holdings_1
+  script: scripts/01_fetch_holdings.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --brokerage
+  - BROKERAGE_001
+  - --num
+  - '1'
+  retries: 2
+- intent_id: fetch_brokerage_holdings_2
+  script: scripts/01_fetch_holdings.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --brokerage
+  - BROKERAGE_002
+  - --num
+  - '2'
+  retries: 2
+- intent_id: fetch_brokerage_holdings_3
+  script: scripts/01_fetch_holdings.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --brokerage
+  - BROKERAGE_003
+  - --num
+  - '3'
+  retries: 2
+- intent_id: fetch_brokerage_holdings_4
+  script: scripts/01_fetch_holdings.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --brokerage
+  - BROKERAGE_004
+  - --num
+  - '4'
+  retries: 2
+- intent_id: fetch_brokerage_holdings_5
+  script: scripts/01_fetch_holdings.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --brokerage
+  - BROKERAGE_005
+  - --num
+  - '5'
+  retries: 2
+- intent_id: analyze_portfolio_1
+  script: scripts/02_analyze_portfolio.py
+  dependencies:
+  - fetch_brokerage_holdings_1
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --num
+  - '1'
+  retries: 2
+- intent_id: analyze_portfolio_2
+  script: scripts/02_analyze_portfolio.py
+  dependencies:
+  - fetch_brokerage_holdings_2
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --num
+  - '2'
+  retries: 2
+- intent_id: analyze_portfolio_3
+  script: scripts/02_analyze_portfolio.py
+  dependencies:
+  - fetch_brokerage_holdings_3
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --num
+  - '3'
+  retries: 2
+- intent_id: analyze_portfolio_4
+  script: scripts/02_analyze_portfolio.py
+  dependencies:
+  - fetch_brokerage_holdings_4
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --num
+  - '4'
+  retries: 2
+- intent_id: analyze_portfolio_5
+  script: scripts/02_analyze_portfolio.py
+  dependencies:
+  - fetch_brokerage_holdings_5
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --num
+  - '5'
+  retries: 2
+- intent_id: aggregate_and_rebalance
+  script: scripts/03_aggregate_and_rebalance.py
+  dependencies:
+  - analyze_portfolio_1
+  - analyze_portfolio_2
+  - analyze_portfolio_3
+  - analyze_portfolio_4
+  - analyze_portfolio_5
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: generate_trade_orders
+  script: scripts/04_generate_trade_orders.py
+  dependencies:
+  - aggregate_and_rebalance
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+scenarios:
+- name: five_brokerage_accounts
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

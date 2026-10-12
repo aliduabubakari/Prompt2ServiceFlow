@@ -1,0 +1,42 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:pdf_policy_corpus_ingestion
+bindings:
+- intent_id: ingest_source_batch
+  service_id: policy_pdf_corpus_ingestor
+  service_version: 1.0.0
+- intent_id: validate_source_contract
+  service_id: policy_corpus_contract_validator
+  service_version: 1.0.0
+- intent_id: stage_raw_artifacts
+  service_id: ai_raw_artifact_stager
+  service_version: 1.0.0
+- intent_id: normalize_records
+  service_id: ai_record_metadata_normalizer
+  service_version: 1.0.0
+- intent_id: extract_or_parse_text
+  service_id: pdf_text_extraction_parser
+  service_version: 1.0.0
+- intent_id: chunk_documents
+  service_id: semantic_document_chunker
+  service_version: 1.0.0
+- intent_id: generate_embeddings
+  service_id: deterministic_text_embedding_generator
+  service_version: 1.0.0
+- intent_id: write_vector_index
+  service_id: fixture_vector_index_writer
+  service_version: 1.0.0
+- intent_id: retrieve_grounding_context
+  service_id: grounding_context_retriever
+  service_version: 1.0.0
+- intent_id: run_structured_extraction
+  service_id: policy_corpus_structured_extractor
+  service_version: 1.0.0
+- intent_id: score_confidence_and_policy
+  service_id: policy_corpus_confidence_scorer
+  service_version: 1.0.0
+- intent_id: create_human_review_packet
+  service_id: policy_corpus_review_packet_builder
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: policy_vector_index_manifest_publisher
+  service_version: 1.0.0

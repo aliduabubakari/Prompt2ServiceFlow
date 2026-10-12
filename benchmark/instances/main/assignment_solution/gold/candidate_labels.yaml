@@ -1,0 +1,30 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:assignment_solution
+candidate_sets:
+- candidate_set_id: main_assignment_solution_http_json_request_extractor_candidates
+  required_service_id: http_json_request_extractor
+  labels:
+    http_json_request_extractor: gold
+    http_api_request_artifact_extractor: missing_required_output
+    airvisual_nearest_city_json_extractor: target_mismatch
+    graphql_json_operation_executor: contract_mismatch
+    data_gouv_dataset_resource_downloader: semantic_mismatch
+    legacy_http_json_extractor: deprecated_or_incompatible
+- candidate_set_id: main_assignment_solution_tabular_dataset_declarative_transformer_candidates
+  required_service_id: tabular_dataset_declarative_transformer
+  labels:
+    tabular_dataset_declarative_transformer: gold
+    tabular_null_value_cleanser: semantic_mismatch
+    tabular_query_result_csv_writer: missing_required_output
+    shipment_data_standardization_enricher: target_mismatch
+    parquet_tabular_feature_engineer: format_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_assignment_solution_postgres_parameterized_sql_executor_candidates
+  required_service_id: postgres_parameterized_sql_executor
+  labels:
+    postgres_parameterized_sql_executor: gold
+    postgres_sql_file_executor: format_mismatch
+    postgres_readonly_query_result_extractor: contract_mismatch
+    tabular_dataset_database_loader: missing_required_output
+    hive_hql_script_executor: target_mismatch
+    unreviewed_postgres_sql_executor: policy_incompatible

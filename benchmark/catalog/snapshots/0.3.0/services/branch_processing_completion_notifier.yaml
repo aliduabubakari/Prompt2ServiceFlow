@@ -1,0 +1,184 @@
+schema_version: 0.1.0
+service_id: branch_processing_completion_notifier
+version: 1.0.0
+display_name: Branch Processing Completion Notifier
+category: Notifier
+capability:
+  summary: Builds and optionally sends a completion notification from one or more
+    branch-processing status artifacts, always emitting an observable notification
+    status.
+  operations:
+  - Read one or more branch status artifacts from a merge point.
+  - Render a completion notification summary using a caller-supplied template.
+  - Optionally send the notification through a bound email, Slack, webhook, or other
+    notification service when configured.
+  - Emit notification delivery or artifact-only status with branch status counts and
+    diagnostics.
+  keywords:
+  - completion notification
+  - branch merge
+  - workflow status
+  - notification
+  - processing complete
+  limitations:
+  - Does not implement workflow fan-in, trigger rules, retries, or failure hooks.
+  - External delivery requires an explicitly bound notification service and channel
+    configuration.
+  - Retries may duplicate external notifications unless provider idempotency is configured.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: branch_statuses
+    description: Manual-review and/or auto-approval branch status artifacts available
+      at the merge point.
+    channel: artifact
+    data_type: array
+    media_type: application/json
+    schema_ref: schema://branch_processing_statuses/v1
+    required: true
+    cardinality: many
+    sensitivity: internal
+  - name: notification_service
+    description: Optional external notification service resource used for real delivery
+      when delivery_mode is not artifact_only.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://notification_service_resource/v1
+    required: false
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: notification_status
+    description: Observable notification status including sent/skipped flag, delivery
+      mode, branch status count, and diagnostics.
+    channel: artifact
+    data_type: notification
+    media_type: application/json
+    schema_ref: schema://branch_completion_notification_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: notification_summary
+    description: Rendered bounded completion summary for downstream validation or
+      artifact-only notification mode.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://branch_completion_notification_summary/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: delivery_mode
+    description: Notification delivery mode.
+    type: string
+    required: true
+    enum:
+    - artifact_only
+    - email
+    - slack
+    - webhook
+  - name: recipient_selector
+    description: Configured recipient, channel, or destination selector appropriate
+      to the delivery mode.
+    type: object
+    required: false
+  - name: message_template
+    description: Template used to render the completion notification summary.
+    type: string
+    required: false
+  - name: idempotency_key
+    description: Optional idempotency key supplied to external notification providers
+      when supported.
+    type: string
+    required: false
+  secrets: []
+contracts:
+- contract_id: branch_completion_statuses_present
+  type: precondition
+  applies_to: input
+  target: branch_statuses
+  description: At least one branch status artifact must be supplied at the merge point.
+  expression: length(branch_statuses) > 0
+- contract_id: branch_completion_external_service_required
+  type: precondition
+  applies_to: service
+  target: branch_processing_completion_notifier
+  description: A notification service resource must be bound when real external delivery
+    is requested.
+  expression: delivery_mode == 'artifact_only' or exists(notification_service)
+- contract_id: branch_completion_notification_status_schema
+  type: json_schema
+  applies_to: output
+  target: notification_status
+  description: Notification status exposes completion notification effect for validation.
+  schema_ref: schema://branch_completion_notification_status/v1
+  expression: '{"type":"object","required":["success","delivery_mode","sent","branch_status_count"],"properties":{"success":{"type":"boolean"},"delivery_mode":{"type":"string"},"sent":{"type":"boolean"},"skipped_artifact_only":{"type":"boolean"},"branch_status_count":{"type":"integer","minimum":1},"provider_message_id":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: branch_completion_notification_effect
+  type: effect
+  applies_to: service
+  target: branch_processing_completion_notifier
+  description: In artifact-only mode the service must not send externally but must
+    emit a summary and status; in external modes it attempts delivery and reports
+    the result.
+  expression: delivery_mode == 'artifact_only' implies notification_status.sent ==
+    false and exists(notification_summary)
+invocation:
+  type: argo_workflow_template
+  template_name: branch-processing-completion-notifier-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.branch_processing_completion_notifier
+  implementation_ref: services/implementations/branch_processing_completion_notifier
+  mock_supported: true
+policies:
+  network_access: optional
+  allowed_network_targets:
+  - email://*
+  - smtp://*
+  - https://*
+  - slack://*
+  secret_access: optional
+  retry_safe: false
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit notification service credentials or raw transaction details in outputs.
+  - Workflow merge trigger rules, retries, and failure alerts remain orchestration-level
+    behavior.
+  - A delivery channel and recipient binding are required for real notification delivery.
+  idempotency_notes: Artifact-only mode is idempotent for stable inputs. External
+    delivery is retry-safe only when the provider and idempotency_key prevent duplicates.
+  default_timeout_seconds: 120
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:fraud_detection_triage#send_notification
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing email and Slack senders are channel-specific and require
+    a specified channel; the source only specifies a generic completion notification,
+    so a configurable reusable notifier is needed.'
+  - 'Evidence status: strongly_inferred.'

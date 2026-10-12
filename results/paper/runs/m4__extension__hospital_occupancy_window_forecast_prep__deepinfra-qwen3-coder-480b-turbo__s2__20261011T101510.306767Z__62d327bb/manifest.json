@@ -1,0 +1,209 @@
+{
+  "run_id": "m4__extension__hospital_occupancy_window_forecast_prep__deepinfra-qwen3-coder-480b-turbo__s2__20261011T101510.306767Z__62d327bb",
+  "batch_id": "ablations__deepinfra-qwen3-coder-480b-turbo__20261011T055725.548808Z__5e295670",
+  "sample_index": 2,
+  "ablation": {
+    "withhold_policies": true,
+    "strip_descriptor_fields": [
+      "lifecycle"
+    ],
+    "diagnostic_visibility": "gate_identity",
+    "id": "a2_no_policies"
+  },
+  "harness_version": "2.2.2",
+  "method": {
+    "id": "m4",
+    "name": "Contract-first ServiceFlowIR + repair"
+  },
+  "prompt_version": "2.1.0",
+  "runtime_compiler_version": "1.0.0",
+  "model": {
+    "model_id": "deepinfra-qwen3-coder-480b-turbo",
+    "model_name": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+    "base_url": "https://api.deepinfra.com/v1/openai",
+    "temperature": 0.2,
+    "top_p": 1.0,
+    "seed": 303,
+    "max_tokens": 16384,
+    "context_window": 262144
+  },
+  "instance": {
+    "id": "hospital_occupancy_window_forecast_prep",
+    "split": "extension",
+    "benchmark_id": "extension:hospital_occupancy_window_forecast_prep"
+  },
+  "catalog": {
+    "version": "0.3.3",
+    "pinned_catalog_yaml_sha256": "7a3b9d8cba722a9db65e6531a46956dbc2e40f4d9eed9da26643f3290d81b24d",
+    "sanitized_catalog_yaml_sha256": "1ed4d0fa47adb9357cae9dc9b135a2a388cb5554130058b898b0a83e49a734ff",
+    "descriptor_count": 284
+  },
+  "roster_sha256": "3ed5509009ae44983ff2fc95595ca45538cc38b6759bf9deecb72138e20a58d3",
+  "workspace_manifest_sha256": "b23534ca11b72dcaf31c2407a549331923257e6fb7d3bcc27bb0df17ee644f5c",
+  "freeze": {
+    "freeze_id": "freeze-2026-10-10.deepinfra.ablation.v24",
+    "status": "frozen",
+    "sha256": "01c18230138dc40d3ce53f713324871ec4c22192ac025097b006c3406818cfac"
+  },
+  "visible_input_policy": {
+    "method_view": [
+      "task.md",
+      "candidates/",
+      "catalog/",
+      "contracts/",
+      "schemas/",
+      "fixtures/"
+    ],
+    "workspace_manifest": "experiments/workspaces/extension/hospital_occupancy_window_forecast_prep/workspace.yaml"
+  },
+  "repair": {
+    "budget": 3,
+    "execution_feedback": true
+  },
+  "environment": {
+    "python": "3.12.3",
+    "platform": "macOS-15.6.1-arm64-arm-64bit",
+    "git_revision": "a0a9a18"
+  },
+  "started_at": "2026-10-11T10:15:10.307664+00:00",
+  "method_status": "completed",
+  "method_error": null,
+  "evaluation": {
+    "validation": {
+      "overall_status": "pass",
+      "first_failing_gate": null,
+      "gate_statuses": {
+        "G0": "pass",
+        "G1": "pass",
+        "G2": "pass",
+        "G3": "pass",
+        "G4": "pass",
+        "G5": "pass",
+        "G6-Exec": "pass"
+      }
+    },
+    "score_summary": {
+      "public_gates_status": "pass",
+      "first_failing_gate": null,
+      "g6_assert_status": "fail",
+      "full_pass_g0_g6": false,
+      "node_f1": 1.0,
+      "edge_f1": 1.0,
+      "binding_top1_accuracy": 1.0,
+      "binding_version_accuracy": null,
+      "wiring_f1": 1.0,
+      "wiring_applicable": true,
+      "alignment_edit_distance": 0,
+      "over_decomposition_rate": 0.0,
+      "under_decomposition_rate": 0.0,
+      "source_step_coverage": 1.0,
+      "g6_assert_pass_rate": 0.0
+    },
+    "repair_attempts": [
+      {
+        "attempt": 0,
+        "overall_status": "fail",
+        "first_failing_gate": "G3",
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "pass",
+          "G2": "pass",
+          "G3": "fail",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": true,
+        "repeated_state": false,
+        "synthetic": false
+      },
+      {
+        "attempt": 1,
+        "overall_status": "fail",
+        "first_failing_gate": "G3",
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "pass",
+          "G2": "pass",
+          "G3": "fail",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": true,
+        "repeated_state": false,
+        "synthetic": false
+      },
+      {
+        "attempt": 2,
+        "overall_status": "pass",
+        "first_failing_gate": null,
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "pass",
+          "G2": "pass",
+          "G3": "pass",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": true,
+        "repeated_state": false,
+        "synthetic": false
+      }
+    ]
+  },
+  "usage": {
+    "llm_calls": 3,
+    "prompt_tokens": 93472,
+    "completion_tokens": 22611,
+    "reasoning_tokens": 0,
+    "total_tokens": 116083,
+    "latency_s": 284.209,
+    "validator_calls": 3,
+    "evaluation_validator_calls": 2,
+    "cost_usd": 0.050653,
+    "per_stage": [
+      {
+        "stage": "m3_ir",
+        "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+        "usage": {
+          "prompt_tokens": 27511,
+          "completion_tokens": 6752,
+          "total_tokens": 34263,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 75.2,
+        "finish_reason": "stop",
+        "cost_usd": 0.015005
+      },
+      {
+        "stage": "m4_repair_1",
+        "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+        "usage": {
+          "prompt_tokens": 32344,
+          "completion_tokens": 7958,
+          "total_tokens": 40302,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 115.926,
+        "finish_reason": "stop",
+        "cost_usd": 0.017661
+      },
+      {
+        "stage": "m4_repair_2",
+        "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+        "usage": {
+          "prompt_tokens": 33617,
+          "completion_tokens": 7901,
+          "total_tokens": 41518,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 93.084,
+        "finish_reason": "stop",
+        "cost_usd": 0.017986
+      }
+    ]
+  },
+  "finished_at": "2026-10-11T10:20:10.376689+00:00"
+}

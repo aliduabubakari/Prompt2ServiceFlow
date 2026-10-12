@@ -1,0 +1,54 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:content_moderation_pipeline
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_content_moderation_pipeline_user_content_csv_scanner_candidates
+  source_step_refs:
+  - scan_csv
+  service_ids:
+  - user_content_csv_scanner
+  - csv_artifact_profile_ingestor
+  - customer_segment_csv_loader
+  - delimited_file_tabular_dataset_loader
+  - reviewed_domain_adapter
+- candidate_set_id: main_content_moderation_pipeline_content_toxicity_route_decider_candidates
+  source_step_refs:
+  - toxicity_check
+  service_ids:
+  - content_toxicity_route_decider
+  - fraud_risk_threshold_route_decider
+  - transaction_csv_fraud_risk_analyzer
+  - tabular_quality_score_gate
+  - tabular_text_sentiment_scorer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_content_moderation_pipeline_moderated_content_action_transformer_candidates
+  source_step_refs:
+  - remove_and_flag_content
+  service_ids:
+  - moderated_content_action_transformer
+  - dataset_quarantine_zone_writer
+  - fraud_manual_review_status_recorder
+  - safe_content_publication_publisher
+  - moderation_audit_log_entry_creator
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_content_moderation_pipeline_safe_content_publication_publisher_candidates
+  source_step_refs:
+  - publish_content
+  service_ids:
+  - safe_content_publication_publisher
+  - moderated_content_action_transformer
+  - bi_dashboard_refresh_trigger
+  - email_notification_sender
+  - reviewed_domain_adapter
+- candidate_set_id: main_content_moderation_pipeline_moderation_audit_log_entry_creator_candidates
+  source_step_refs:
+  - audit_log
+  service_ids:
+  - moderation_audit_log_entry_creator
+  - branch_processing_completion_notifier
+  - workflow_session_metadata_recorder
+  - postgres_parameterized_sql_executor
+  - moderated_content_action_transformer
+  - legacy_database_table_loader

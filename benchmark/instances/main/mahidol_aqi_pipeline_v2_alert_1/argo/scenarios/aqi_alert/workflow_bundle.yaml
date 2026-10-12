@@ -1,0 +1,114 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mahidol-aqi-pipeline-v2-alert-1-aqi-alert-scripts
+  namespace: prompt2serviceflow
+data:
+  01_alert.py: "#!/usr/bin/env python3\n\"\"\"Mock AQI threshold alert.\"\"\"\nfrom __future__ import\
+    \ annotations\nimport argparse, json\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    (art/\"alert_decision.json\").write_text(json.dumps({\"\
+    alert_sent\":True,\"success\":True},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"notification_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"sent\":True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mahidol-aqi-pipeline-v2-alert-1-aqi-alert-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"aqi": 85, "pm25": 42.5, "timestamp": "2026-06-01T08:00:00Z"}'
+  fixture-0001: 'smtp_server: smtp.gmail.com
+
+    smtp_port: 587'
+  fixture-0002: '{"driver":"filesystem-mock","target":"artifacts/alert_decision.json"}'
+  fixture-0003: "{\n  \"pipeline_id\": \"mahidol_aqi_pipeline_v2_alert_1\",\n  \"inputs\": {\n    \"email_service\"\
+    : \"email_service.json\",\n    \"recipients\": \"recipients.txt\",\n    \"aqi_data\": \"aqi_data.json\"\
+    ,\n    \"email_config\": \"email_config.txt\"\n  },\n  \"input_modalities\": [\n    \"json\",\n  \
+    \  \"table\"\n  ],\n  \"systems\": [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"
+  fixture-0004: 'alerts@example.com
+
+    admin@example.com'
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: mahidol-aqi-pipeline-v2-alert-1-aqi-alert-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: mahidol-aqi-pipeline-v2-alert-1-aqi-alert
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: aqi-alert
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters: []
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: mahidol-aqi-pipeline-v2-alert-1-aqi-alert-scripts
+  - name: fixtures
+    configMap:
+      name: mahidol-aqi-pipeline-v2-alert-1-aqi-alert-fixtures
+      items:
+      - key: fixture-0000
+        path: aqi_data.json
+      - key: fixture-0001
+        path: email_config.txt
+      - key: fixture-0002
+        path: email_service.json
+      - key: fixture-0003
+        path: fixture.json
+      - key: fixture-0004
+        path: recipients.txt
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: alert-email
+        template: run-alert-email
+  - name: run-alert-email
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: alert_email
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_alert.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

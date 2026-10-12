@@ -1,0 +1,18 @@
+binding_gold_version: 0.1.0
+benchmark_id: validation:val_customer_profile_refresh
+bindings:
+- intent_id: extract_crm_records
+  service_id: crm_api_record_extractor
+  service_version: 1.0.0
+- intent_id: normalize_profile_fields
+  service_id: customer_profile_field_normalizer
+  service_version: 1.0.0
+- intent_id: deduplicate_customers
+  service_id: customer_profile_deduplicator
+  service_version: 1.0.0
+- intent_id: load_profile_table
+  service_id: customer_profile_table_loader
+  service_version: 1.0.0
+- intent_id: emit_refresh_summary
+  service_id: profile_refresh_summary_emitter
+  service_version: 1.0.0

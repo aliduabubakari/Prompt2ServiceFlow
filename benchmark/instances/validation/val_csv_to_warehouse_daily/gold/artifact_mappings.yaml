@@ -1,0 +1,22 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_csv_to_warehouse_daily
+mappings:
+- intent_id: detect_daily_file
+  inputs:
+    file_location_resource: sftp_drop_zone_resource
+  outputs:
+    availability_decision: availability_decision
+    check_status: availability_status
+- intent_id: validate_columns
+  inputs:
+    csv_file: daily_sales_csv
+  outputs:
+    validated_dataset: validated_sales_frame
+    validated_data_object: validated_sales_metadata
+    validation_status: validation_status
+- intent_id: load_sales_table
+  inputs:
+    ingested_data_object: validated_sales_metadata
+    target_database: warehouse_resource
+  outputs:
+    load_status: sales_load_status

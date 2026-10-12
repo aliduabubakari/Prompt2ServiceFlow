@@ -1,0 +1,928 @@
+ir_version: 0.1.0
+composition_id: floor_plan_asset_extraction
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.1
+  sha256: a8497f3589304d2ff9cb5a734a99b5188d558fa6fdb55f153419458c117b302f
+source:
+  dataset_id: prompt2serviceflow_extension_sources
+  dataset_version: extension_v1
+  benchmark_id: extension:floor_plan_asset_extraction
+  split: extension
+  pipeline_id: floor_plan_asset_extraction
+  description_path: source/extension_v1/batch_02/descriptions/08_floor_plan_asset_extraction.txt
+  description_sha256: da62f6a53f0c92a738cfc4670559ac30ecdc03464e153d5fb4b770fe602e76c2
+  internal_spec_path: source/extension_v1/batch_02/specs/08_floor_plan_asset_extraction.json
+  internal_spec_sha256: f792d1b3efff2f6e0e69427e3ad346d60c52d7d6bd583a4f811b16ab4d74a479
+requirement:
+  name: Floor Plan Asset Extraction
+  purpose: Extract room and asset evidence from floor-plan documents for a facilities registry.
+  domain: Public Sector/Geospatial
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: high
+  notes:
+  - Extension-50 Batch 01 synthetic source.
+  - Event and external-system behavior is represented as bounded fixture-backed batch execution.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: facilities_drawing_archive
+  type: object_storage
+  name: facilities drawing archive
+  identifier: synthetic://extension-v1/floor_plan_asset_extraction/1
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+- system_id: asset_registry
+  type: object_storage
+  name: asset registry
+  identifier: synthetic://extension-v1/floor_plan_asset_extraction/2
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_source_batch
+  name: Ingest Source Batch
+  category: Extractor
+  capability: Ingest all bounded inputs for building floor-plan asset inventory.
+  source_step_refs:
+  - ingest_source_batch
+  evidence:
+  - source: internal_spec
+    text: Ingest all bounded inputs for building floor-plan asset inventory.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_source_batch_artifact
+  - ingest_source_batch_status
+  external_system_refs: &id001
+  - facilities_drawing_archive
+  - asset_registry
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_source_batch_artifact, ingest_source_batch_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: validate_source_contract
+  name: Validate Source Contract
+  category: QualityCheck
+  capability: Validate contracts, identifiers, and modality assumptions for building floor-plan asset
+    inventory.
+  source_step_refs:
+  - validate_source_contract
+  evidence:
+  - source: internal_spec
+    text: Validate contracts, identifiers, and modality assumptions for building floor-plan asset inventory.
+  inputs:
+  - ingest_source_batch_artifact
+  outputs:
+  - validate_source_contract_artifact
+  - validate_source_contract_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces validate_source_contract_artifact, validate_source_contract_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_partition_a
+  name: Normalize Partition A
+  category: Transformer
+  capability: Normalize the first partition or modality for building floor-plan asset inventory.
+  source_step_refs:
+  - normalize_partition_a
+  evidence:
+  - source: internal_spec
+    text: Normalize the first partition or modality for building floor-plan asset inventory.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - normalize_partition_a_artifact
+  - normalize_partition_a_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_partition_a_artifact, normalize_partition_a_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_partition_b
+  name: Normalize Partition B
+  category: Transformer
+  capability: Normalize the second partition or modality for building floor-plan asset inventory.
+  source_step_refs:
+  - normalize_partition_b
+  evidence:
+  - source: internal_spec
+    text: Normalize the second partition or modality for building floor-plan asset inventory.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - normalize_partition_b_artifact
+  - normalize_partition_b_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_partition_b_artifact, normalize_partition_b_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_partition_c
+  name: Normalize Partition C
+  category: Transformer
+  capability: Normalize the third partition or modality for building floor-plan asset inventory.
+  source_step_refs:
+  - normalize_partition_c
+  evidence:
+  - source: internal_spec
+    text: Normalize the third partition or modality for building floor-plan asset inventory.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - normalize_partition_c_artifact
+  - normalize_partition_c_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_partition_c_artifact, normalize_partition_c_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: fuse_partitions
+  name: Fuse Partitions
+  category: Aggregator
+  capability: Fuse normalized partitions into a unified building floor-plan asset inventory representation.
+  source_step_refs:
+  - fuse_partitions
+  evidence:
+  - source: internal_spec
+    text: Fuse normalized partitions into a unified building floor-plan asset inventory representation.
+  inputs:
+  - normalize_partition_a_artifact
+  - normalize_partition_b_artifact
+  - normalize_partition_c_artifact
+  outputs:
+  - fuse_partitions_artifact
+  - fuse_partitions_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces fuse_partitions_artifact, fuse_partitions_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: extract_visual_text_features
+  name: Extract Visual Text Features
+  category: Extractor
+  capability: Extract OCR text, visual metadata, or layout features from building floor-plan asset inventory.
+  source_step_refs:
+  - extract_visual_text_features
+  evidence:
+  - source: internal_spec
+    text: Extract OCR text, visual metadata, or layout features from building floor-plan asset inventory.
+  inputs:
+  - fuse_partitions_artifact
+  outputs:
+  - extract_visual_text_features_artifact
+  - extract_visual_text_features_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces extract_visual_text_features_artifact, extract_visual_text_features_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: join_reference_metadata
+  name: Join Reference Metadata
+  category: Integrator
+  capability: Join building floor-plan asset inventory features with reference metadata.
+  source_step_refs:
+  - join_reference_metadata
+  evidence:
+  - source: internal_spec
+    text: Join building floor-plan asset inventory features with reference metadata.
+  inputs:
+  - extract_visual_text_features_artifact
+  outputs:
+  - join_reference_metadata_artifact
+  - join_reference_metadata_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces join_reference_metadata_artifact, join_reference_metadata_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: assess_multimodal_quality
+  name: Assess Multimodal Quality
+  category: QualityCheck
+  capability: Assess visual, document, and metadata quality for building floor-plan asset inventory.
+  source_step_refs:
+  - assess_multimodal_quality
+  evidence:
+  - source: internal_spec
+    text: Assess visual, document, and metadata quality for building floor-plan asset inventory.
+  inputs:
+  - join_reference_metadata_artifact
+  outputs:
+  - assess_multimodal_quality_artifact
+  - assess_multimodal_quality_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces assess_multimodal_quality_artifact, assess_multimodal_quality_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: publish_outputs
+  name: Publish Outputs
+  category: Publisher
+  capability: Publish the fused building floor-plan asset inventory outputs and completion status.
+  source_step_refs:
+  - publish_outputs
+  evidence:
+  - source: internal_spec
+    text: Publish the fused building floor-plan asset inventory outputs and completion status.
+  inputs:
+  - assess_multimodal_quality_artifact
+  outputs:
+  - publish_outputs_artifact
+  - publish_outputs_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces publish_outputs_artifact, publish_outputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+source_step_accounting:
+- source_step_ref: ingest_source_batch
+  disposition: service
+  intent_ids:
+  - ingest_source_batch
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: validate_source_contract
+  disposition: service
+  intent_ids:
+  - validate_source_contract
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_partition_a
+  disposition: service
+  intent_ids:
+  - normalize_partition_a
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_partition_b
+  disposition: service
+  intent_ids:
+  - normalize_partition_b
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_partition_c
+  disposition: service
+  intent_ids:
+  - normalize_partition_c
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: fuse_partitions
+  disposition: service
+  intent_ids:
+  - fuse_partitions
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: extract_visual_text_features
+  disposition: service
+  intent_ids:
+  - extract_visual_text_features
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: join_reference_metadata
+  disposition: service
+  intent_ids:
+  - join_reference_metadata
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: assess_multimodal_quality
+  disposition: service
+  intent_ids:
+  - assess_multimodal_quality
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: publish_outputs
+  disposition: service
+  intent_ids:
+  - publish_outputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+control_flow:
+  edges:
+  - from: ingest_source_batch
+    to: validate_source_contract
+  - from: validate_source_contract
+    to: normalize_partition_a
+  - from: normalize_partition_a
+    to: fuse_partitions
+  - from: validate_source_contract
+    to: normalize_partition_b
+  - from: normalize_partition_b
+    to: fuse_partitions
+  - from: validate_source_contract
+    to: normalize_partition_c
+  - from: normalize_partition_c
+    to: fuse_partitions
+  - from: fuse_partitions
+    to: extract_visual_text_features
+  - from: extract_visual_text_features
+    to: join_reference_metadata
+  - from: join_reference_metadata
+    to: assess_multimodal_quality
+  - from: assess_multimodal_quality
+    to: publish_outputs
+  parallel_groups:
+  - group_id: parallel_feature_branches
+    intent_ids:
+    - normalize_partition_a
+    - normalize_partition_b
+    - normalize_partition_c
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: source_bundle
+  name: Source Bundle
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - ingest_source_batch
+  sensitivity: internal
+  persistence: workflow
+  fixture_ref: fixtures/inputs/fixture.json
+- artifact_id: ingest_source_batch_artifact
+  name: Ingest Source Batch Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_source_batch
+  consumers:
+  - validate_source_contract
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_source_batch_status
+  name: Ingest Source Batch Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_source_batch
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: validate_source_contract_artifact
+  name: Validate Source Contract Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: validate_source_contract
+  consumers:
+  - normalize_partition_a
+  - normalize_partition_b
+  - normalize_partition_c
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validate_source_contract_status
+  name: Validate Source Contract Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: validate_source_contract
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_partition_a_artifact
+  name: Normalize Partition A Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_partition_a
+  consumers:
+  - fuse_partitions
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_partition_a_status
+  name: Normalize Partition A Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_partition_a
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_partition_b_artifact
+  name: Normalize Partition B Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_partition_b
+  consumers:
+  - fuse_partitions
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_partition_b_status
+  name: Normalize Partition B Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_partition_b
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_partition_c_artifact
+  name: Normalize Partition C Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_partition_c
+  consumers:
+  - fuse_partitions
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_partition_c_status
+  name: Normalize Partition C Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_partition_c
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: fuse_partitions_artifact
+  name: Fuse Partitions Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: fuse_partitions
+  consumers:
+  - extract_visual_text_features
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: fuse_partitions_status
+  name: Fuse Partitions Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: fuse_partitions
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: extract_visual_text_features_artifact
+  name: Extract Visual Text Features Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: extract_visual_text_features
+  consumers:
+  - join_reference_metadata
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: extract_visual_text_features_status
+  name: Extract Visual Text Features Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: extract_visual_text_features
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: join_reference_metadata_artifact
+  name: Join Reference Metadata Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: join_reference_metadata
+  consumers:
+  - assess_multimodal_quality
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: join_reference_metadata_status
+  name: Join Reference Metadata Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: join_reference_metadata
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: assess_multimodal_quality_artifact
+  name: Assess Multimodal Quality Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: assess_multimodal_quality
+  consumers:
+  - publish_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: assess_multimodal_quality_status
+  name: Assess Multimodal Quality Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: assess_multimodal_quality
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: publish_outputs_artifact
+  name: Publish Outputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: output
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publish_outputs_status
+  name: Publish Outputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+bindings:
+- intent_id: ingest_source_batch
+  service_id: multimodal_source_bundle_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_source_batch_artifact
+  - port: execution_report
+    artifact_id: ingest_source_batch_status
+  parameter_bindings:
+    operation_profile: ingest_source_batch
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: validate_source_contract
+  service_id: multimodal_source_contract_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: ingest_source_batch_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: validate_source_contract_artifact
+  - port: execution_report
+    artifact_id: validate_source_contract_status
+  parameter_bindings:
+    operation_profile: validate_source_contract
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_partition_a
+  service_id: multimodal_partition_a_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_partition_a_artifact
+  - port: execution_report
+    artifact_id: normalize_partition_a_status
+  parameter_bindings:
+    operation_profile: normalize_partition_a
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_partition_b
+  service_id: multimodal_partition_b_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_partition_b_artifact
+  - port: execution_report
+    artifact_id: normalize_partition_b_status
+  parameter_bindings:
+    operation_profile: normalize_partition_b
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_partition_c
+  service_id: multimodal_partition_c_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_partition_c_artifact
+  - port: execution_report
+    artifact_id: normalize_partition_c_status
+  parameter_bindings:
+    operation_profile: normalize_partition_c
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: fuse_partitions
+  service_id: multimodal_partition_fusion_aggregator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: normalize_partition_a_artifact
+  - port: input_artifacts
+    artifact_id: normalize_partition_b_artifact
+  - port: input_artifacts
+    artifact_id: normalize_partition_c_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: fuse_partitions_artifact
+  - port: execution_report
+    artifact_id: fuse_partitions_status
+  parameter_bindings:
+    operation_profile: fuse_partitions
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: extract_visual_text_features
+  service_id: visual_document_feature_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: fuse_partitions_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: extract_visual_text_features_artifact
+  - port: execution_report
+    artifact_id: extract_visual_text_features_status
+  parameter_bindings:
+    operation_profile: extract_visual_text_features
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: join_reference_metadata
+  service_id: multimodal_reference_metadata_joiner
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: extract_visual_text_features_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: join_reference_metadata_artifact
+  - port: execution_report
+    artifact_id: join_reference_metadata_status
+  parameter_bindings:
+    operation_profile: join_reference_metadata
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: assess_multimodal_quality
+  service_id: multimodal_quality_assessor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: join_reference_metadata_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: assess_multimodal_quality_artifact
+  - port: execution_report
+    artifact_id: assess_multimodal_quality_status
+  parameter_bindings:
+    operation_profile: assess_multimodal_quality
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: publish_outputs
+  service_id: multimodal_output_bundle_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: assess_multimodal_quality_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: publish_outputs_artifact
+  - port: execution_report
+    artifact_id: publish_outputs_status
+  parameter_bindings:
+    operation_profile: publish_outputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - public
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Batch 01 mocks do not contact production image, document, or review systems.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 reviewed Batch 01 validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 reviewed Batch 01 validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 reviewed Batch 01 validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 reviewed Batch 01 validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 reviewed Batch 01 validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 reviewed Batch 01 validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 reviewed Batch 01 validation.

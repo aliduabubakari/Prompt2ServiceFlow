@@ -1,0 +1,550 @@
+ir_version: 0.1.0
+composition_id: keyword_extraction_pipeline
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:keyword_extraction_pipeline
+  split: main
+  pipeline_id: keyword_extraction_pipeline
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/23_keyword_extraction_pipeline.txt
+  description_sha256: 2c5a713829f0523a870ecc2465c4fe1b527b09624ecdf5be1725410002d1de08
+  internal_spec_path: source/internal_specs/main_40/23_keyword_extraction_pipeline.json
+  internal_spec_sha256: e58d8ff71eef7e52b2d87abaf536db901107f6b76bd6fa0e287a4507da2f026f
+requirement:
+  name: Keyword Extraction Pipeline
+  purpose: Generate synthetic documents, clean, extract keywords, validate, and export report.
+  domain: text_processing
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes:
+  - Six-step linear NLP pipeline for keyword extraction.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems: []
+service_intents:
+- intent_id: generate_documents
+  name: Generate documents
+  category: Extractor
+  capability: Generate synthetic document parquet.
+  source_step_refs:
+  - generate_documents
+  evidence:
+  - source: description
+    text: Generate synthetic documents.
+  inputs: []
+  outputs:
+  - doc_parquet
+  - gen_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Documents generated.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Generates synthetic data.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: explore_data
+  name: Explore data
+  category: DataProfiler
+  capability: Profile document parquet.
+  source_step_refs:
+  - explore_data
+  evidence:
+  - source: description
+    text: Profile data.
+  inputs:
+  - doc_parquet
+  outputs:
+  - profile_report
+  - profile_status
+  external_system_refs: []
+  preconditions:
+  - Data available.
+  effects:
+  - Profile emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Profiles data.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: clean_data
+  name: Clean data
+  category: Transformer
+  capability: Clean document parquet.
+  source_step_refs:
+  - clean_data
+  evidence:
+  - source: description
+    text: Clean data.
+  inputs:
+  - doc_parquet
+  outputs:
+  - cleaned_parquet
+  - clean_status
+  external_system_refs: []
+  preconditions:
+  - Data available.
+  effects:
+  - Cleaned data emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Cleans data.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: extract_features
+  name: Extract keywords
+  category: Transformer
+  capability: Extract keywords from documents.
+  source_step_refs:
+  - extract_features
+  evidence:
+  - source: description
+    text: Extract keywords.
+  inputs:
+  - cleaned_parquet
+  outputs:
+  - featured_parquet
+  - feature_status
+  external_system_refs: []
+  preconditions:
+  - Cleaned data available.
+  effects:
+  - Keywords extracted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Extracts keywords.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: validate_data
+  name: Validate features
+  category: QualityCheck
+  capability: Validate extracted keywords.
+  source_step_refs:
+  - validate_data
+  evidence:
+  - source: description
+    text: Validate features.
+  inputs:
+  - featured_parquet
+  outputs:
+  - validation_result
+  - validation_status
+  external_system_refs: []
+  preconditions:
+  - Featured data available.
+  effects:
+  - Validation result emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Validates keywords.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: save_and_report
+  name: Export report
+  category: ReportGenerator
+  capability: Export keywords to CSV report.
+  source_step_refs:
+  - save_and_report
+  evidence:
+  - source: description
+    text: Export report.
+  inputs:
+  - featured_json
+  outputs:
+  - report_csv
+  - report_status
+  external_system_refs: []
+  preconditions:
+  - Featured data available.
+  effects:
+  - CSV report exported.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Exports report.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: generate_documents
+    to: explore_data
+  - from: generate_documents
+    to: clean_data
+  - from: clean_data
+    to: extract_features
+  - from: extract_features
+    to: validate_data
+  - from: extract_features
+    to: save_and_report
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: doc_parquet
+  name: Document parquet
+  kind: artifact
+  data_type: parquet
+  media_type: application/octet-stream
+  role: intermediate
+  producer: generate_documents
+  consumers:
+  - explore_data
+  - clean_data
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: gen_status
+  name: Gen status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: generate_documents
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: profile_report
+  name: Profile report
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: explore_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: profile_status
+  name: Profile status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: explore_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: cleaned_parquet
+  name: Cleaned parquet
+  kind: artifact
+  data_type: parquet
+  media_type: application/octet-stream
+  role: intermediate
+  producer: clean_data
+  consumers:
+  - extract_features
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: clean_status
+  name: Clean status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: clean_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: featured_parquet
+  name: Featured parquet
+  kind: artifact
+  data_type: parquet
+  media_type: application/octet-stream
+  role: intermediate
+  producer: extract_features
+  consumers:
+  - validate_data
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: feature_status
+  name: Feature status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: extract_features
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validation_result
+  name: Validation result
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: validate_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validation_status
+  name: Validation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: validate_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: report_csv
+  name: Report CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: output
+  producer: save_and_report
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: report_status
+  name: Report status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: save_and_report
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: featured_json
+  name: Featured JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  role: intermediate
+  producer: null
+  consumers:
+  - save_and_report
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: generate_documents
+  service_id: synthetic_document_parquet_generator
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: document_parquet
+    artifact_id: doc_parquet
+  - port: generation_status
+    artifact_id: gen_status
+  parameter_bindings:
+    output_path: /workspace/artifacts/documents.parquet
+    record_count: 5
+  secret_bindings: []
+  rationale: Generates synthetic documents.
+  confidence: explicit
+- intent_id: explore_data
+  service_id: parquet_document_data_profiler
+  service_version: 1.0.0
+  input_bindings:
+  - port: document_parquet
+    artifact_id: doc_parquet
+  output_bindings:
+  - port: profile_report
+    artifact_id: profile_report
+  - port: profile_status
+    artifact_id: profile_status
+  parameter_bindings: {}
+  secret_bindings: []
+  rationale: Profiles documents.
+  confidence: explicit
+- intent_id: clean_data
+  service_id: parquet_document_clean_standardizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: raw_document_parquet
+    artifact_id: doc_parquet
+  output_bindings:
+  - port: cleaned_document_parquet
+    artifact_id: cleaned_parquet
+  - port: transform_status
+    artifact_id: clean_status
+  parameter_bindings:
+    text_column: content
+    output_path: /workspace/artifacts/cleaned.parquet
+  secret_bindings: []
+  rationale: Cleans documents.
+  confidence: explicit
+- intent_id: extract_features
+  service_id: document_keyword_feature_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: cleaned_document_parquet
+    artifact_id: cleaned_parquet
+  output_bindings:
+  - port: processed_document_parquet
+    artifact_id: featured_parquet
+  - port: feature_status
+    artifact_id: feature_status
+  parameter_bindings:
+    text_column: content
+    output_path: /workspace/artifacts/featured.parquet
+  secret_bindings: []
+  rationale: Extracts keywords.
+  confidence: explicit
+- intent_id: validate_data
+  service_id: document_feature_validation_quality_check
+  service_version: 1.0.0
+  input_bindings:
+  - port: processed_document_parquet
+    artifact_id: featured_parquet
+  output_bindings:
+  - port: validation_results
+    artifact_id: validation_result
+  - port: validation_status
+    artifact_id: validation_status
+  parameter_bindings:
+    validation_rules:
+      min_keywords: 1
+  secret_bindings: []
+  rationale: Validates keywords.
+  confidence: explicit
+- intent_id: save_and_report
+  service_id: structured_json_to_csv_exporter
+  service_version: 1.0.0
+  input_bindings:
+  - port: structured_json
+    artifact_id: featured_json
+  output_bindings:
+  - port: csv_file
+    artifact_id: report_csv
+  - port: export_status
+    artifact_id: report_status
+  parameter_bindings:
+    output_filename: keyword_report.csv
+    include_header: true
+  secret_bindings: []
+  rationale: Exports CSV report.
+  confidence: explicit
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - All data is synthetically generated and mocked.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All six source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Six exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports, parameters, types, and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Linear Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Single scenario executes all six steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - All keyword extraction and export invariants hold
+source_step_accounting:
+- source_step_ref: generate_documents
+  disposition: service
+  intent_ids:
+  - generate_documents
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: explore_data
+  disposition: service
+  intent_ids:
+  - explore_data
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: clean_data
+  disposition: service
+  intent_ids:
+  - clean_data
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: extract_features
+  disposition: service
+  intent_ids:
+  - extract_features
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: validate_data
+  disposition: service
+  intent_ids:
+  - validate_data
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: save_and_report
+  disposition: service
+  intent_ids:
+  - save_and_report
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

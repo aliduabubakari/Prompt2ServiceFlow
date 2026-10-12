@@ -1,0 +1,204 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: multilingual-product-review-analysis-v1-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: multilingual-product-review-analysis-v1
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: three-reviews
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: fixture-file
+      value: reviews.csv
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: multilingual-product-review-analysis-v1-scripts
+  - name: fixtures
+    configMap:
+      name: multilingual-product-review-analysis-v1-fixtures
+      items:
+      - key: fixture-0000
+        path: fixture.json
+      - key: fixture-0001
+        path: reviews.csv
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: load-and-modify-reviews
+        template: run-load-and-modify-reviews
+      - name: detect-language
+        template: run-detect-language
+        depends: load-and-modify-reviews.Succeeded
+      - name: analyze-sentiment
+        template: run-analyze-sentiment
+        depends: detect-language.Succeeded
+      - name: extract-features
+        template: run-extract-features
+        depends: analyze-sentiment.Succeeded
+      - name: save-enriched-reviews
+        template: run-save-enriched-reviews
+        depends: extract-features.Succeeded
+  - name: run-load-and-modify-reviews
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: load_and_modify_reviews
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_load_reviews.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-detect-language
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: detect_language
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_detect_language.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-analyze-sentiment
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: analyze_sentiment
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_analyze_sentiment.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-extract-features
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: extract_features
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_extract_features.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-save-enriched-reviews
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: save_enriched_reviews
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_save_reviews.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError

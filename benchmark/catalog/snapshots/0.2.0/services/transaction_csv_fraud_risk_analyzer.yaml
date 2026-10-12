@@ -1,0 +1,199 @@
+schema_version: 0.1.0
+service_id: transaction_csv_fraud_risk_analyzer
+version: 1.0.0
+display_name: Transaction CSV Fraud Risk Analyzer
+category: ScoringService
+capability:
+  summary: Reads a transaction CSV batch, applies caller-configured fraud risk scoring
+    rules or model profile, and emits an aggregate risk score plus scored transaction
+    metadata and scoring status.
+  operations:
+  - Read and parse a transaction CSV artifact using configured delimiter and header
+    behavior.
+  - Validate required transaction columns supplied by workflow binding.
+  - Apply a deterministic fraud risk scoring profile or declarative scoring rules
+    to rows.
+  - Compute an aggregate routing risk score, such as max or weighted aggregate risk,
+    in the range [0,1].
+  keywords:
+  - fraud detection
+  - transaction csv
+  - risk score
+  - financial transactions
+  - batch scoring
+  limitations:
+  - Does not decide workflow branch routing; use a route decider service downstream.
+  - Does not call external fraud APIs or model endpoints under this contract.
+  - Risk model implementation details and required CSV columns must be supplied by
+    parameters.
+  - Does not submit transactions to payment or review systems.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: transaction_csv
+    description: Daily transaction batch CSV file to score.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://transaction_csv_batch/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  outputs:
+  - name: risk_score
+    description: Aggregate fraud risk score and supporting counts for routing, with
+      score in [0,1].
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://fraud_transaction_risk_score/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: scored_transactions
+    description: Optional row-level transaction scoring output containing bounded
+      transaction references and scores.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://fraud_scored_transaction_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  - name: scoring_status
+    description: Observable scoring execution status with parse success, rows read/scored,
+      scoring profile, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://fraud_risk_scoring_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: risk_model_profile
+    description: Named deterministic scoring profile or implementation binding used
+      to compute fraud risk.
+    type: string
+    required: true
+  - name: required_columns
+    description: CSV columns that must be present before scoring.
+    type: array
+    required: false
+  - name: scoring_rules
+    description: Optional declarative scoring rules or weights used by mock or rule-based
+      execution.
+    type: object
+    required: false
+  - name: aggregate_score_method
+    description: Method for deriving the batch-level risk score from row scores.
+    type: string
+    required: false
+    enum:
+    - max
+    - mean
+    - weighted
+  - name: has_header
+    description: Whether the CSV contains a header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  secrets: []
+contracts:
+- contract_id: transaction_csv_fraud_input_readable
+  type: precondition
+  applies_to: input
+  target: transaction_csv
+  description: Input must be readable and parseable as CSV using configured parsing
+    parameters.
+  expression: readable(transaction_csv) and csv_parseable(transaction_csv, delimiter,
+    has_header)
+- contract_id: transaction_csv_fraud_required_columns
+  type: precondition
+  applies_to: parameter
+  target: required_columns
+  description: When required columns are supplied, all must be present in the parsed
+    CSV header.
+  expression: required_columns == null or all(c in columns(transaction_csv) for c
+    in required_columns)
+- contract_id: fraud_transaction_risk_score_schema
+  type: json_schema
+  applies_to: output
+  target: risk_score
+  description: Risk score output exposes the aggregate score used for routing.
+  schema_ref: schema://fraud_transaction_risk_score/v1
+  expression: '{"type":"object","required":["score","score_range","transactions_scored"],"properties":{"score":{"type":"number","minimum":0,"maximum":1},"score_range":{"type":"string","const":"0_to_1"},"transactions_scored":{"type":"integer","minimum":0},"aggregate_score_method":{"type":["string","null"]},"risk_model_profile":{"type":"string"}}}'
+- contract_id: fraud_risk_scoring_status_schema
+  type: json_schema
+  applies_to: output
+  target: scoring_status
+  description: Status exposes scoring execution outcome.
+  schema_ref: schema://fraud_risk_scoring_status/v1
+  expression: '{"type":"object","required":["success","rows_read","rows_scored","risk_model_profile"],"properties":{"success":{"type":"boolean"},"rows_read":{"type":"integer","minimum":0},"rows_scored":{"type":"integer","minimum":0},"risk_model_profile":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: fraud_risk_scoring_effect
+  type: effect
+  applies_to: service
+  target: transaction_csv_fraud_risk_analyzer
+  description: On success, a bounded risk_score artifact exists and the aggregate
+    score is between 0 and 1.
+  expression: scoring_status.success == true implies exists(risk_score) and risk_score.score
+    >= 0 and risk_score.score <= 1
+invocation:
+  type: argo_workflow_template
+  template_name: transaction-csv-fraud-risk-analyzer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.transaction_csv_fraud_risk_analyzer
+  implementation_ref: services/implementations/transaction_csv_fraud_risk_analyzer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - financial
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw transaction rows or account identifiers.
+  - Risk model profile and rules must be approved by workflow binding.
+  idempotency_notes: Same CSV input and scoring configuration produce the same risk
+    score for deterministic profiles.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:fraud_detection_triage#analyze_transactions
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No registry service computes fraud risk from transaction CSVs; a new
+    generic financial transaction scoring service is required.'
+  - 'Evidence status: strongly_inferred.'

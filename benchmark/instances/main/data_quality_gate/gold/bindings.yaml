@@ -1,0 +1,21 @@
+binding_gold_version: 0.1.0
+benchmark_id: main:data_quality_gate
+bindings:
+- intent_id: ingest_customer_csv
+  service_id: csv_artifact_profile_ingestor
+  service_version: 1.0.0
+- intent_id: assess_customer_quality
+  service_id: tabular_quality_score_gate
+  service_version: 1.0.0
+- intent_id: load_production_data
+  service_id: tabular_dataset_database_loader
+  service_version: 1.0.0
+- intent_id: quarantine_customer_data
+  service_id: dataset_quarantine_zone_writer
+  service_version: 1.0.0
+- intent_id: notify_data_stewards
+  service_id: email_notification_sender
+  service_version: 1.0.0
+- intent_id: cleanup_temporary_resources
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0

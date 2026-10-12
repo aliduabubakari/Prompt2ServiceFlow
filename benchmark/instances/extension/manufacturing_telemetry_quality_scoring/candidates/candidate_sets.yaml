@@ -1,0 +1,62 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:manufacturing_telemetry_quality_scoring
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.3
+candidate_sets:
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_source_bundle_ingestor_candidates
+  source_step_refs:
+  - ingest_source_batch
+  service_ids:
+  - timeseries_source_bundle_ingestor
+  - reviewed_domain_adapter
+  - sensor_window_alignment_fuser
+  - iot_anomaly_feature_calculator
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_source_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contract
+  service_ids:
+  - timeseries_source_contract_validator
+  - sensor_window_alignment_fuser
+  - iot_anomaly_feature_calculator
+  - event_record_cleaner
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_branch_feature_extractor_candidates
+  source_step_refs:
+  - extract_branch_features
+  service_ids:
+  - timeseries_branch_feature_extractor
+  - iot_anomaly_feature_calculator
+  - event_record_cleaner
+  - feature_table_drift_validator
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_context_enricher_candidates
+  source_step_refs:
+  - enrich_branch_context
+  service_ids:
+  - timeseries_context_enricher
+  - event_record_cleaner
+  - feature_table_drift_validator
+  - api_table_conflict_reconciler
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_quality_scorer_candidates
+  source_step_refs:
+  - score_branch_quality
+  service_ids:
+  - timeseries_quality_scorer
+  - feature_table_drift_validator
+  - api_table_conflict_reconciler
+  - reviewed_domain_adapter
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_branch_output_merger_candidates
+  source_step_refs:
+  - merge_branch_outputs
+  service_ids:
+  - timeseries_branch_output_merger
+  - api_table_conflict_reconciler
+  - reviewed_domain_adapter
+  - sensor_window_alignment_fuser
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_output_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - timeseries_output_bundle_publisher
+  - reviewed_domain_adapter
+  - sensor_window_alignment_fuser
+  - iot_anomaly_feature_calculator

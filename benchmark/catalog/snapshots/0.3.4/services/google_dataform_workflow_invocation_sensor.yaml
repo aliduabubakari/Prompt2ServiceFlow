@@ -1,0 +1,163 @@
+schema_version: 0.1.0
+service_id: google_dataform_workflow_invocation_sensor
+version: 1.0.0
+display_name: Google Dataform Workflow Invocation Sensor
+category: Sensor
+capability:
+  summary: Checks or waits for a Google Cloud Dataform workflow invocation to reach
+    configured terminal states and emits an observable status/decision.
+  operations:
+  - Resolve a bound Google Cloud Dataform repository resource.
+  - Read a workflow invocation reference.
+  - Query the workflow invocation state from Google Cloud Dataform.
+  - Compare the observed state with expected terminal states and success states.
+  keywords:
+  - google dataform
+  - sensor
+  - wait poll
+  - workflow invocation status
+  - readiness check
+  - gcp
+  limitations:
+  - Does not create workflow invocations.
+  - Polling cadence, workflow-level retries, and dependency edges remain orchestration
+    concerns.
+  - Only supports Google Cloud Dataform invocation status semantics.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: dataform_repository
+    description: Google Cloud Dataform repository resource, including project, region,
+      repository identity, and authentication binding.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://google_dataform_repository_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: workflow_invocation_reference
+    description: Reference to a Dataform workflow invocation to observe.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://dataform_workflow_invocation_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: invocation_status
+    description: Observable status/decision containing the observed Dataform state
+      and whether it matched configured terminal and success expectations.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://dataform_workflow_invocation_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: project_id
+    description: Google Cloud project identifier containing the Dataform repository.
+    type: string
+    required: true
+  - name: region
+    description: Google Cloud region for the Dataform repository.
+    type: string
+    required: true
+  - name: repository_id
+    description: Dataform repository identifier.
+    type: string
+    required: true
+  - name: expected_statuses
+    description: Dataform states that should be treated as terminal observations for
+      the wait/check, such as SUCCEEDED and FAILED.
+    type: array
+    required: true
+  - name: success_statuses
+    description: Subset of expected statuses that should be treated as successful,
+      typically SUCCEEDED.
+    type: array
+    required: false
+  secrets: []
+contracts:
+- contract_id: dataform_invocation_sensor_reference_contract
+  type: precondition
+  applies_to: input
+  target: workflow_invocation_reference
+  description: Workflow invocation reference must include a non-empty Dataform resource
+    name.
+  expression: length(trim(workflow_invocation_reference.name)) > 0
+- contract_id: dataform_invocation_sensor_expected_statuses_contract
+  type: precondition
+  applies_to: parameter
+  target: expected_statuses
+  description: At least one expected terminal status must be configured.
+  expression: length(expected_statuses) > 0
+- contract_id: dataform_workflow_invocation_status_schema
+  type: json_schema
+  applies_to: output
+  target: invocation_status
+  description: Sensor output exposes observed state and terminal/success decisions.
+  schema_ref: schema://dataform_workflow_invocation_status/v1
+  expression: '{"type":"object","required":["workflow_invocation_name","observed_state","terminal","succeeded","expected_statuses"],"properties":{"workflow_invocation_name":{"type":"string"},"observed_state":{"type":"string"},"terminal":{"type":"boolean"},"succeeded":{"type":"boolean"},"expected_statuses":{"type":"array","items":{"type":"string"}},"api_status_code":{"type":["integer","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: dataform_invocation_sensor_effect
+  type: effect
+  applies_to: service
+  target: google_dataform_workflow_invocation_sensor
+  description: The service emits terminal=true exactly when the observed state is
+    in expected_statuses, and succeeded=true only for configured success states.
+  expression: invocation_status.terminal == (invocation_status.observed_state in expected_statuses)
+invocation:
+  type: argo_workflow_template
+  template_name: google-dataform-workflow-invocation-sensor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.google_dataform_workflow_invocation_sensor
+  implementation_ref: services/implementations/google_dataform_workflow_invocation_sensor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - https://dataform.googleapis.com/*
+  secret_access: required
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit GCP credentials in outputs or logs.
+  - Polling interval and Argo retry policy should be configured outside the service
+    catalogue.
+  idempotency_notes: For a fixed workflow invocation state at query time, the service
+    emits the same decision; the observed external state may change over time.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:data-transformation-pipeline#is_workflow_invocation_done
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No registry service supports observing Google Cloud Dataform workflow
+    invocation completion.'
+  - 'Evidence status: explicit.'

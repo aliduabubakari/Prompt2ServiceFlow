@@ -1,0 +1,187 @@
+schema_version: 0.1.0
+service_id: inventory_sku_csv_normalizer
+version: 1.0.0
+display_name: Inventory SKU CSV Normalizer
+category: Transformer
+capability:
+  summary: Reads an inventory CSV, standardizes SKU values using configured rules,
+    writes a normalized inventory CSV, and emits normalization status.
+  operations:
+  - Read and parse an inventory CSV artifact.
+  - Validate the configured SKU column and optional quantity/location columns.
+  - Apply deterministic SKU normalization rules such as trimming, case normalization,
+    prefix mapping, separator removal, or alias mapping.
+  - Write a normalized inventory CSV artifact with configured canonical SKU column.
+  keywords:
+  - inventory
+  - sku
+  - normalization
+  - csv
+  - retail
+  - transformer
+  limitations:
+  - Does not fetch source inventory files.
+  - Does not reconcile discrepancies across warehouses.
+  - Exact SKU normalization rules must be supplied by workflow binding or an approved
+    profile.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: inventory_csv
+    description: Raw warehouse inventory CSV artifact to normalize.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://warehouse_inventory_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: normalized_inventory_csv
+    description: Inventory CSV with normalized SKU values and preserved inventory
+      quantities/attributes.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://normalized_inventory_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: normalization_status
+    description: Observable status with warehouse id, rows read/written, SKU values
+      normalized, output URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://inventory_sku_normalization_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: warehouse_id
+    description: Warehouse identifier associated with the input inventory file.
+    type: string
+    required: true
+  - name: sku_column
+    description: Input column containing SKU values to normalize.
+    type: string
+    required: true
+  - name: normalized_sku_column
+    description: Output column containing normalized SKU values; may equal sku_column
+      when replacing in place.
+    type: string
+    required: false
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: normalization_rules
+    description: Declarative SKU normalization rules or named profile.
+    type: object
+    required: true
+  - name: output_path
+    description: Deterministic output artifact path or name for the normalized CSV.
+    type: string
+    required: true
+  - name: has_header
+    description: Whether the input CSV contains a header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  secrets: []
+contracts:
+- contract_id: inventory_sku_normalizer_input_readable
+  type: precondition
+  applies_to: input
+  target: inventory_csv
+  description: Input inventory CSV must be readable and parseable.
+  expression: readable(inventory_csv) and csv_parseable(inventory_csv, delimiter,
+    has_header)
+- contract_id: inventory_sku_column_present
+  type: precondition
+  applies_to: parameter
+  target: sku_column
+  description: Configured SKU column must be present in the input CSV header.
+  expression: sku_column in columns(inventory_csv)
+- contract_id: inventory_sku_normalized_csv_schema
+  type: tabular_schema
+  applies_to: output
+  target: normalized_inventory_csv
+  description: Output CSV must contain the configured normalized SKU column and preserve
+    row-level inventory records.
+  schema_ref: schema://normalized_inventory_csv/v1
+  expression: csv_parseable(normalized_inventory_csv) and (normalized_sku_column in
+    columns(normalized_inventory_csv) or sku_column in columns(normalized_inventory_csv))
+- contract_id: inventory_sku_normalization_status_schema
+  type: json_schema
+  applies_to: output
+  target: normalization_status
+  description: Status exposes normalization effect for validation.
+  schema_ref: schema://inventory_sku_normalization_status/v1
+  expression: '{"type":"object","required":["success","warehouse_id","rows_read","rows_written","sku_values_normalized","output_uri"],"properties":{"success":{"type":"boolean"},"warehouse_id":{"type":"string"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"sku_values_normalized":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: inventory_sku_normalization_effect
+  type: effect
+  applies_to: service
+  target: inventory_sku_csv_normalizer
+  description: On success, normalized CSV exists and row counts are reported.
+  expression: normalization_status.success == true implies exists(normalized_inventory_csv)
+    and normalization_status.rows_written == normalization_status.rows_read
+invocation:
+  type: argo_workflow_template
+  template_name: inventory-sku-csv-normalizer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.inventory_sku_csv_normalizer
+  implementation_ref: services/implementations/inventory_sku_csv_normalizer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full inventory rows or raw operational data; emit counts, columns,
+    and bounded diagnostics.
+  - SKU normalization rules must be explicitly bound for deterministic execution.
+  idempotency_notes: Same input CSV and normalization rules produce the same normalized
+    CSV.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:retail_inventory_reconciliation#normalize_east_skus
+  - main:retail_inventory_reconciliation#normalize_north_skus
+  - main:retail_inventory_reconciliation#normalize_south_skus
+  - main:retail_inventory_reconciliation#normalize_west_skus
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service provides inventory-specific SKU normalization
+    while preserving CSV artifact boundaries.'
+  - 'Evidence status: strongly_inferred.'

@@ -1,0 +1,141 @@
+schema_version: 0.1.0
+service_id: synthetic_document_parquet_generator
+version: 1.0.0
+display_name: Synthetic Document Parquet Generator
+category: Extractor
+capability:
+  summary: Generates a configurable synthetic document dataset and writes it as a
+    Parquet artifact with generation status.
+  operations:
+  - Generate synthetic document records with configured text and metadata fields.
+  - Optionally use a caller-supplied random seed for deterministic mock execution.
+  - Write the generated records to a Parquet artifact at the configured output path.
+  - Emit generation status with row count, output URI, schema fields, and diagnostics.
+  keywords:
+  - synthetic data
+  - documents
+  - text processing
+  - parquet
+  - test data
+  - generator
+  limitations:
+  - Does not fetch external data.
+  - Does not perform downstream cleansing, keyword extraction, validation, or reporting.
+  - Exact document text vocabulary and schema must be supplied or accepted from implementation
+    defaults.
+lifecycle:
+  status: active
+interface:
+  inputs: []
+  outputs:
+  - name: document_parquet
+    description: Generated raw synthetic document dataset in Parquet format.
+    channel: artifact
+    data_type: parquet
+    media_type: application/vnd.apache.parquet
+    schema_ref: schema://document_parquet_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: generation_status
+    description: Observable status containing success flag, output URI, row count,
+      generated columns, seed use, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://synthetic_document_generation_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: output_path
+    description: Deterministic Parquet output artifact path or name.
+    type: string
+    required: true
+  - name: record_count
+    description: Number of synthetic document rows to generate.
+    type: integer
+    required: false
+    minimum: 0.0
+  - name: document_schema
+    description: Configured field names and types; must include a text field for downstream
+      processing.
+    type: object
+    required: false
+  - name: text_column
+    description: Name of the generated document text column.
+    type: string
+    required: false
+  - name: random_seed
+    description: Optional seed for deterministic generation.
+    type: integer
+    required: false
+  secrets: []
+contracts:
+- contract_id: synthetic_document_generator_output_path_required
+  type: precondition
+  applies_to: parameter
+  target: output_path
+  description: Output path must be non-empty.
+  expression: length(trim(output_path)) > 0
+- contract_id: synthetic_document_parquet_schema
+  type: json_schema
+  applies_to: output
+  target: generation_status
+  description: Generation status exposes the artifact creation effect.
+  schema_ref: schema://synthetic_document_generation_status/v1
+  expression: '{"type":"object","required":["success","output_uri","rows_generated","columns"],"properties":{"success":{"type":"boolean"},"output_uri":{"type":"string"},"rows_generated":{"type":"integer","minimum":0},"columns":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: synthetic_document_generator_effect
+  type: effect
+  applies_to: service
+  target: synthetic_document_parquet_generator
+  description: On success, the Parquet artifact exists and generation_status.success=true.
+  expression: generation_status.success == true implies exists(document_parquet)
+invocation:
+  type: argo_workflow_template
+  template_name: synthetic-document-parquet-generator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.synthetic_document_parquet_generator
+  implementation_ref: services/implementations/synthetic_document_parquet_generator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Generated synthetic data should not include real personal data unless explicitly
+    supplied by caller configuration.
+  idempotency_notes: Idempotent when random_seed, record_count, schema, and output_path
+    are stable; otherwise generated content may differ.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:keyword_extraction_pipeline#generate_documents
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service generates text-document Parquet artifacts.'
+  - 'Evidence status: strongly_inferred.'

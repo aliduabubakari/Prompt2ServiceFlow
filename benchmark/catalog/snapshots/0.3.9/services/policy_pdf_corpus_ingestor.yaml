@@ -1,0 +1,107 @@
+schema_version: 0.1.0
+service_id: policy_pdf_corpus_ingestor
+version: 1.0.0
+display_name: Policy Pdf Corpus Ingestor
+category: Extractor
+capability:
+  summary: Executes the reviewed policy pdf corpus ingestor capability for deterministic AI, LLM, NLP,
+    embedding, retrieval, and review workflows.
+  operations:
+  - Read fixture-backed workflow artifacts supplied by the runtime.
+  - Perform the reviewed multimodal batch operation deterministically.
+  - Emit an artifact bundle and observable execution report.
+  keywords:
+  - policy
+  - pdf
+  - corpus
+  - ingestor
+  - ai
+  - llm
+  - nlp
+  - embedding
+  - retrieval
+  - rag
+  limitations:
+  - Does not contact production document, image, storage, or review systems.
+  - Does not claim true streaming execution.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: input_artifacts
+    description: Reviewed input artifacts port.
+    channel: artifact
+    data_type: any
+    required: false
+    cardinality: many
+    sensitivity: internal
+  outputs:
+  - name: output_artifacts
+    description: Reviewed output artifacts port.
+    channel: artifact
+    data_type: any
+    required: true
+    cardinality: many
+    sensitivity: internal
+  - name: execution_report
+    description: Reviewed execution report port.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: operation_profile
+    description: Reviewed operation profile configuration.
+    type: string
+    required: true
+  - name: modality_policy
+    description: Reviewed modality policy configuration.
+    type: object
+    required: false
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: policy-pdf-corpus-ingestor
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.3.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.policy_pdf_corpus_ingestor
+  implementation_ref: services/implementations/policy_pdf_corpus_ingestor
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  - pii
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-27T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - extension-batch-09:ai-llm-nlp-curation
+  notes:
+  - Curated for Extension-50 Batch 01 image/document multimodal pipelines.
+  - Contracts are intentionally fixture-backed for local G5 validation.

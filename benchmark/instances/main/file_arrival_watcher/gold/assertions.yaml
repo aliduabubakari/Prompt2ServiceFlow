@@ -1,0 +1,33 @@
+assertions_version: 0.1.0
+pipeline_id: file_arrival_watcher
+scenarios:
+- scenario: file_arrives
+  assertions:
+  - assertion_id: file_available
+    type: json_path_equals
+    path: artifacts/availability_decision.json
+    json_path: available
+    expected: true
+  - assertion_id: validation_succeeds
+    type: json_path_equals
+    path: artifacts/validation_status.json
+    json_path: success
+    expected: true
+  - assertion_id: rows_loaded
+    type: json_path_equals
+    path: artifacts/load_status.json
+    json_path: rows_loaded
+    expected: 3
+- scenario: file_missing
+  assertions:
+  - assertion_id: missing_file_observed
+    type: json_path_equals
+    path: artifacts/availability_decision.json
+    json_path: available
+    expected: false
+  - assertion_id: validation_not_invoked
+    type: file_absent
+    path: artifacts/validation_status.json
+  - assertion_id: load_not_invoked
+    type: file_absent
+    path: artifacts/load_status.json

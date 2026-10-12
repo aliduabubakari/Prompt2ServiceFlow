@@ -1,0 +1,227 @@
+schema_version: 0.1.0
+service_id: http_api_request_artifact_extractor
+version: 1.0.0
+display_name: HTTP API Request Artifact Extractor
+category: Extractor
+capability:
+  summary: Executes a configured HTTP/HTTPS API request, stores the response body
+    as an artifact regardless of media type, and emits observable request/extraction
+    status.
+  operations:
+  - Resolve request URL from base URL and endpoint or absolute endpoint.
+  - Execute configured HTTP method with optional query parameters and non-secret headers.
+  - Persist response body as an artifact with detected or configured media type.
+  - Emit extraction status including HTTP status code, response size, content type,
+    and errors.
+  keywords:
+  - http api
+  - rest api
+  - extractor
+  - response artifact
+  - healthcare data
+  - endpoint invocation
+  limitations:
+  - Does not infer endpoint semantics or response schema.
+  - Does not require JSON; downstream services must validate or parse the response
+    format they need.
+  - Does not schedule retries or fan-out.
+  - Authentication is only used when explicitly bound by the workflow.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: http_api_resource
+    description: Optional bound HTTP API resource or connection policy used to constrain
+      and authenticate endpoint access.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://http_api_resource/v1
+    required: false
+    cardinality: one
+    sensitivity: confidential
+  - name: request_body
+    description: Optional request payload artifact for POST/PUT/PATCH methods.
+    channel: artifact
+    data_type: any
+    required: false
+    cardinality: one
+    sensitivity: phi
+  outputs:
+  - name: response_artifact
+    description: Persisted HTTP response body with media type recorded in extraction_status.
+    channel: artifact
+    data_type: any
+    media_type: application/octet-stream
+    schema_ref: schema://http_response_artifact_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: phi
+  - name: extraction_status
+    description: Observable status for request execution and response persistence.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://http_api_extraction_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: base_url
+    description: Optional HTTP/HTTPS base URL used when endpoint is relative.
+    type: string
+    required: false
+    pattern: ^https?://.+
+  - name: endpoint
+    description: Absolute URL or relative endpoint path to request.
+    type: string
+    required: true
+  - name: method
+    description: HTTP method to execute.
+    type: string
+    required: true
+    enum:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+  - name: query_params
+    description: Optional query parameter object.
+    type: object
+    required: false
+  - name: headers
+    description: Optional non-secret request headers.
+    type: object
+    required: false
+  - name: expected_content_types
+    description: Optional list of acceptable response content types.
+    type: array
+    required: false
+  - name: output_name
+    description: Deterministic artifact name or path for the stored response.
+    type: string
+    required: false
+  secrets:
+  - name: http_api_auth_material
+    description: Optional API key, token, or credential material supplied by workflow
+      binding when the endpoint requires authentication.
+    required: false
+contracts:
+- contract_id: http_artifact_extractor_url_contract
+  type: precondition
+  applies_to: service
+  target: http_api_request_artifact_extractor
+  description: The resolved request URL must be HTTP or HTTPS.
+  expression: resolved_url(base_url, endpoint) matches '^https?://.+'
+- contract_id: http_artifact_extractor_method_contract
+  type: precondition
+  applies_to: parameter
+  target: method
+  description: Method must be one of the supported HTTP verbs.
+  expression: method in ['GET','POST','PUT','PATCH','DELETE']
+- contract_id: http_response_artifact_reference_schema
+  type: json_schema
+  applies_to: output
+  target: response_artifact
+  description: Response artifact reference records where the body was stored and its
+    media type.
+  schema_ref: schema://http_response_artifact_reference/v1
+  expression: '{"type":"object","required":["uri","media_type"],"properties":{"uri":{"type":"string"},"media_type":{"type":"string"},"content_length":{"type":["integer","null"],"minimum":0},"sha256":{"type":["string","null"]}}}'
+- contract_id: http_api_extraction_status_schema
+  type: json_schema
+  applies_to: output
+  target: extraction_status
+  description: Status exposes request and response persistence outcome.
+  schema_ref: schema://http_api_extraction_status/v1
+  expression: '{"type":"object","required":["success","method","resolved_url","http_status_code","response_saved"],"properties":{"success":{"type":"boolean"},"method":{"type":"string"},"resolved_url":{"type":"string"},"http_status_code":{"type":["integer","null"]},"content_type":{"type":["string","null"]},"response_saved":{"type":"boolean"},"output_uri":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: http_artifact_extractor_effect
+  type: effect
+  applies_to: service
+  target: http_api_request_artifact_extractor
+  description: On success, the service completed the HTTP request, persisted the response
+    body, and emitted extraction_status.success=true.
+  expression: extraction_status.success == true implies extraction_status.response_saved
+    == true and exists(response_artifact.uri)
+invocation:
+  type: argo_workflow_template
+  template_name: http-api-request-artifact-extractor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.http_api_request_artifact_extractor
+  implementation_ref: services/implementations/http_api_request_artifact_extractor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - http://*
+  - https://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  - pii
+  - phi
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log authorization headers or raw healthcare response bodies.
+  - Endpoint targets should be constrained by workflow policy or bound http_api_resource.
+  - Response parsing and business validation are separate downstream concerns.
+  idempotency_notes: GET requests are normally retry-safe for stable endpoints; mutating
+    methods depend on upstream API semantics.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:climate_data_fusion_pipeline#download_bom
+  - main:climate_data_fusion_pipeline#download_ecmwf
+  - main:climate_data_fusion_pipeline#download_jma
+  - main:climate_data_fusion_pipeline#download_metoffice
+  - main:global_dag#ingestion_pipeline.get_city_code_geo
+  - main:global_dag#ingestion_pipeline.get_death_resource_list
+  - main:global_dag#ingestion_pipeline.get_nuclear_json
+  - main:global_dag#ingestion_pipeline.get_thermal_json
+  - main:pcd-etl#CHC_Budget
+  - main:pcd-etl#CHC_Financial_reporting
+  - main:pcd-etl#CHC_Primary_Care_Patient_Services
+  - main:pcd-etl#Decision_Log
+  - main:pcd-etl#Financial_Expense
+  - main:pcd-etl#Fiscal_Year_Reporting_Dates
+  - main:pcd-etl#HA_Hierarchy
+  - main:pcd-etl#HR_Records
+  - main:pcd-etl#NPPCC_Budget
+  - main:pcd-etl#NPPCC_Financial_Reporting
+  - main:pcd-etl#PCN_Budget
+  - main:pcd-etl#PCN_Financial_Reporting
+  - main:pcd-etl#Practitioner_Role_Mapping
+  - main:pcd-etl#Provincial_Risk_Tracking
+  - main:pcd-etl#Status_Tracker
+  - main:pcd-etl#UPCC_Financial_Reportingr
+  - main:pcd-etl#UPCC_Primary_Care_Patient_Services
+  - main:pcd-etl#UPPC_Budget
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The registry HTTP extractor requires JSON parsing, while the active
+    pipeline only states HTTP API endpoints and does not provide response media-type
+    contracts. This service preserves the observable extraction effect without inventing
+    JSON response assumptions.'
+  - 'Evidence status: strongly_inferred.'

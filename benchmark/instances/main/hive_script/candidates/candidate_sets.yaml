@@ -1,0 +1,26 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:hive_script
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_hive_script_temporary_resource_cleanup_candidates
+  source_step_refs:
+  - run_after_loop
+  service_ids:
+  - temporary_resource_cleanup
+  - filesystem_retention_cleanup_with_lock
+  - redis_key_cleanup
+  - database_expired_session_cleanup
+  - airflow_metadata_retention_cleaner
+  - dataset_quarantine_zone_writer
+- candidate_set_id: main_hive_script_hive_hql_script_executor_candidates
+  source_step_refs:
+  - hive_script_task
+  service_ids:
+  - hive_hql_script_executor
+  - postgres_parameterized_sql_executor
+  - postgres_sql_file_executor
+  - snowflake_ctas_atomic_table_replacer
+  - sql_query_readiness_sensor
+  - unreviewed_postgres_sql_executor

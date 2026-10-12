@@ -1,0 +1,72 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_supply_chain_exception_management
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.3
+candidate_sets:
+- candidate_set_id: validation_val_supply_chain_exception_management_multi_resource_readiness_sensor_candidates
+  source_step_refs:
+  - wait_for_supplier_feeds
+  service_ids:
+  - multi_resource_readiness_sensor
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_supply_chain_exception_management_supply_chain_feed_extractor_candidates
+  source_step_refs:
+  - ingest_inventory
+  - ingest_shipments
+  - ingest_weather_alerts
+  - ingest_supplier_capacity
+  service_ids:
+  - supply_chain_feed_extractor
+  - temporary_resource_cleanup
+  - http_json_request_extractor
+- candidate_set_id: validation_val_supply_chain_exception_management_supply_state_harmonizer_candidates
+  source_step_refs:
+  - harmonize_supply_state
+  service_ids:
+  - supply_state_harmonizer
+  - http_json_request_extractor
+  - tabular_dataset_database_loader
+- candidate_set_id: validation_val_supply_chain_exception_management_disruption_risk_detector_candidates
+  source_step_refs:
+  - detect_disruption_risk
+  service_ids:
+  - disruption_risk_detector
+  - tabular_dataset_database_loader
+  - bi_dashboard_refresh_trigger
+- candidate_set_id: validation_val_supply_chain_exception_management_exception_severity_route_decider_candidates
+  source_step_refs:
+  - route_exception_severity
+  service_ids:
+  - exception_severity_route_decider
+  - bi_dashboard_refresh_trigger
+  - parquet_tabular_data_profiler
+- candidate_set_id: validation_val_supply_chain_exception_management_response_plan_generator_candidates
+  source_step_refs:
+  - generate_response_plan
+  service_ids:
+  - response_plan_generator
+  - parquet_tabular_data_profiler
+  - bulk_email_campaign_sender
+- candidate_set_id: validation_val_supply_chain_exception_management_operations_dashboard_publisher_candidates
+  source_step_refs:
+  - publish_operations_dashboard
+  service_ids:
+  - operations_dashboard_publisher
+  - bulk_email_campaign_sender
+  - file_location_availability_sensor
+- candidate_set_id: validation_val_supply_chain_exception_management_regional_team_notifier_candidates
+  source_step_refs:
+  - notify_regional_teams
+  service_ids:
+  - regional_team_notifier
+  - file_location_availability_sensor
+  - reviewed_domain_adapter
+- candidate_set_id: validation_val_supply_chain_exception_management_exception_snapshot_archiver_candidates
+  source_step_refs:
+  - archive_exception_snapshot
+  service_ids:
+  - exception_snapshot_archiver
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup

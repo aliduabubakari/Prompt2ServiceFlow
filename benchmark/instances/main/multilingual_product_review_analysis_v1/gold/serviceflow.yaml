@@ -1,0 +1,505 @@
+ir_version: 0.1.0
+composition_id: multilingual_product_review_analysis_v1
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:multilingual_product_review_analysis_v1
+  split: main
+  pipeline_id: multilingual_product_review_analysis_v1
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/26_multilingual_product_review_analysis_v1.txt
+  description_sha256: 6adb0684d0d11ec6b8c31b510b7ca36735a53798fdd7cd575054deb40cc43cd7
+  internal_spec_path: source/internal_specs/main_40/26_multilingual_product_review_analysis_v1.json
+  internal_spec_sha256: b1c123d8056abd844a473e389b1d3f69bd5c9474dc25de6f5b8d5bbe406209b6
+requirement:
+  name: Multilingual Product Review Analysis v1
+  purpose: Load product reviews, detect language, analyze sentiment, extract text features, and export
+    enriched CSV.
+  domain: data_science
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes:
+  - Five-step NLP pipeline for multilingual review processing.
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: source_filesystem
+  type: filesystem
+  name: Source filesystem
+  identifier: /tmp/reviews/data
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: load_and_modify_reviews
+  name: Load and format reviews
+  category: Transformer
+  capability: Parse review CSV and emit structured tabular JSON.
+  source_step_refs:
+  - load_and_modify_reviews
+  evidence:
+  - source: description
+    text: Ingest and format product review data from CSV to structured JSON.
+  inputs:
+  - reviews_csv
+  outputs:
+  - formatted_reviews_json
+  - format_status
+  external_system_refs:
+  - source_filesystem
+  preconditions:
+  - Readable reviews CSV available.
+  effects:
+  - Structured JSON emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step formats CSV to JSON.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: detect_language
+  name: Detect language
+  category: ScoringService
+  capability: Detect language of each review text.
+  source_step_refs:
+  - detect_language
+  evidence:
+  - source: description
+    text: Detect language of product reviews.
+  inputs:
+  - formatted_reviews_json
+  outputs:
+  - lang_detected_json
+  - lang_detection_status
+  external_system_refs: []
+  preconditions:
+  - Structured reviews available.
+  effects:
+  - Language-annotated JSON emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step detects languages.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: analyze_sentiment
+  name: Analyze sentiment
+  category: ScoringService
+  capability: Score sentiment of each review text.
+  source_step_refs:
+  - analyze_sentiment
+  evidence:
+  - source: description
+    text: Analyze sentiment of product reviews.
+  inputs:
+  - lang_detected_json
+  outputs:
+  - sentiment_json
+  - sentiment_status
+  external_system_refs: []
+  preconditions:
+  - Language-detected JSON available.
+  effects:
+  - Sentiment-scored JSON emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step scores sentiment.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: extract_features
+  name: Extract features
+  category: Transformer
+  capability: Extract text features from reviews.
+  source_step_refs:
+  - extract_features
+  evidence:
+  - source: description
+    text: Extract features from reviews.
+  inputs:
+  - sentiment_json
+  outputs:
+  - features_json
+  - feature_extraction_status
+  external_system_refs: []
+  preconditions:
+  - Sentiment-scored JSON available.
+  effects:
+  - Feature-extended JSON emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step extracts features.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: save_enriched_reviews
+  name: Export enriched reviews
+  category: Transformer
+  capability: Export fully enriched JSON to CSV.
+  source_step_refs:
+  - save_enriched_reviews
+  evidence:
+  - source: description
+    text: Export final enriched reviews to CSV.
+  inputs:
+  - features_json
+  outputs:
+  - enriched_reviews_csv
+  - export_status
+  external_system_refs: []
+  preconditions:
+  - Fully enriched JSON available.
+  effects:
+  - Enriched CSV exported.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step exports to CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: load_and_modify_reviews
+    to: detect_language
+  - from: detect_language
+    to: analyze_sentiment
+  - from: analyze_sentiment
+    to: extract_features
+  - from: extract_features
+    to: save_enriched_reviews
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: reviews_csv
+  name: Reviews CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - load_and_modify_reviews
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/reviews.csv
+  external_system_ref: source_filesystem
+- artifact_id: formatted_reviews_json
+  name: Formatted reviews
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/tab.schema.json
+  role: intermediate
+  producer: load_and_modify_reviews
+  consumers:
+  - detect_language
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: format_status
+  name: Format status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: load_and_modify_reviews
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: lang_detected_json
+  name: Language-detected JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/tab.schema.json
+  role: intermediate
+  producer: detect_language
+  consumers:
+  - analyze_sentiment
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: lang_detection_status
+  name: Lang detection status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: detect_language
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: sentiment_json
+  name: Sentiment-scored JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/tab.schema.json
+  role: intermediate
+  producer: analyze_sentiment
+  consumers:
+  - extract_features
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: sentiment_status
+  name: Sentiment status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: analyze_sentiment
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: features_json
+  name: Feature-extended JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/tab.schema.json
+  role: intermediate
+  producer: extract_features
+  consumers:
+  - save_enriched_reviews
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: feature_extraction_status
+  name: Feature status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: extract_features
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: enriched_reviews_csv
+  name: Enriched reviews CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: output
+  producer: save_enriched_reviews
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: export_status
+  name: Export status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: save_enriched_reviews
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: load_and_modify_reviews
+  service_id: csv_to_structured_json_table_formatter
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_file
+    artifact_id: reviews_csv
+  output_bindings:
+  - port: structured_json
+    artifact_id: formatted_reviews_json
+  - port: transform_status
+    artifact_id: format_status
+  parameter_bindings:
+    output_path: /workspace/artifacts/formatted_reviews_json.json
+    dataset_id: '2'
+    table_name: JOT_
+    has_header: true
+  secret_bindings: []
+  rationale: Formats CSV to JSON.
+  confidence: explicit
+- intent_id: detect_language
+  service_id: tabular_text_language_detector
+  service_version: 1.0.0
+  input_bindings:
+  - port: structured_json
+    artifact_id: formatted_reviews_json
+  output_bindings:
+  - port: language_detected_json
+    artifact_id: lang_detected_json
+  - port: detection_status
+    artifact_id: lang_detection_status
+  parameter_bindings:
+    text_column: review_text
+    lang_code_column: language
+    output_path: /workspace/artifacts/lang_detected_json.json
+  secret_bindings: []
+  rationale: Detects review languages.
+  confidence: explicit
+- intent_id: analyze_sentiment
+  service_id: tabular_text_sentiment_scorer
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_tabular_json
+    artifact_id: lang_detected_json
+  output_bindings:
+  - port: sentiment_scored_json
+    artifact_id: sentiment_json
+  - port: scoring_status
+    artifact_id: sentiment_status
+  parameter_bindings:
+    model_name: mock_deterministic_v1
+    text_column: review_text
+    output_column: sentiment_score
+    output_path: /workspace/artifacts/sentiment_json.json
+  secret_bindings: []
+  rationale: Scores review sentiment.
+  confidence: explicit
+- intent_id: extract_features
+  service_id: tabular_text_feature_column_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_tabular_json
+    artifact_id: sentiment_json
+  output_bindings:
+  - port: feature_extended_json
+    artifact_id: features_json
+  - port: feature_extraction_status
+    artifact_id: feature_extraction_status
+  parameter_bindings:
+    text_column: review_text
+    output_column: word_count
+    output_path: /workspace/artifacts/features_json.json
+  secret_bindings: []
+  rationale: Extracts text features.
+  confidence: explicit
+- intent_id: save_enriched_reviews
+  service_id: structured_json_to_csv_exporter
+  service_version: 1.0.0
+  input_bindings:
+  - port: structured_json
+    artifact_id: features_json
+  output_bindings:
+  - port: csv_file
+    artifact_id: enriched_reviews_csv
+  - port: export_status
+    artifact_id: export_status
+  parameter_bindings:
+    output_filename: enriched_reviews.csv
+    include_header: true
+  secret_bindings: []
+  rationale: Exports to CSV.
+  confidence: explicit
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - All NLP models are mocked with deterministic results.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All five source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Five exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Five-task Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Single scenario executes all five steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - All NLP and export invariants hold
+source_step_accounting:
+- source_step_ref: load_and_modify_reviews
+  disposition: service
+  intent_ids:
+  - load_and_modify_reviews
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: detect_language
+  disposition: service
+  intent_ids:
+  - detect_language
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: analyze_sentiment
+  disposition: service
+  intent_ids:
+  - analyze_sentiment
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: extract_features
+  disposition: service
+  intent_ids:
+  - extract_features
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: save_enriched_reviews
+  disposition: service
+  intent_ids:
+  - save_enriched_reviews
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

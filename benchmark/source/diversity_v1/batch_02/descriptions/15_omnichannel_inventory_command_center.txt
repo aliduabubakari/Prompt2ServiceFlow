@@ -1,0 +1,116 @@
+Pipeline Summary:
+- Pipeline ID: diversity-v1__omnichannel_inventory_command_center.py
+- Name: omnichannel_inventory_command_center
+- Purpose: Omnichannel Inventory Command Center is a synthetic data-preparation workflow for Retail/E-commerce.
+- Execution model: batch
+- Topology pattern: fan_out
+- Business domain: Retail/E-commerce
+- Notes: Synthetic Diversity-40 source; use only as benchmark input and not as hidden gold evidence.
+
+Control Flow:
+- Dependencies (directed edges):
+  - extract_source -> validate_schema
+  - validate_schema -> profile_records
+  - validate_schema -> enrich_reference
+  - validate_schema -> score_records
+  - profile_records -> publish_dataset
+  - enrich_reference -> publish_dataset
+  - score_records -> publish_dataset
+  - validate_schema -> audit_enrichment_1
+  - validate_schema -> audit_enrichment_2
+  - validate_schema -> audit_enrichment_3
+  - validate_schema -> audit_enrichment_4
+  - validate_schema -> audit_enrichment_5
+  - validate_schema -> audit_enrichment_6
+  - validate_schema -> audit_enrichment_7
+
+Data Artifacts / I-O Identifiers:
+- file: raw_input.csv (Synthetic input data)
+- file: prepared_output.parquet (Prepared output dataset)
+
+External Systems:
+- object_storage: Fixture-backed source and publication location
+
+Pipeline Steps:
+1. extract_source — extract_source
+  - Objective: Extract the source dataset into a raw tabular artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_schema — validate_schema
+  - Objective: Validate required columns, formats, and record identity.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. profile_records — profile_records
+  - Objective: Produce the profile records artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. enrich_reference — enrich_reference
+  - Objective: Produce the enrich reference artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. score_records — score_records
+  - Objective: Produce the score records artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. audit_enrichment_1 — audit_enrichment_1
+  - Objective: Apply audited enrichment stage 1.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. audit_enrichment_2 — audit_enrichment_2
+  - Objective: Apply audited enrichment stage 2.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+8. audit_enrichment_3 — audit_enrichment_3
+  - Objective: Apply audited enrichment stage 3.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+9. audit_enrichment_4 — audit_enrichment_4
+  - Objective: Apply audited enrichment stage 4.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+10. audit_enrichment_5 — audit_enrichment_5
+  - Objective: Apply audited enrichment stage 5.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+11. audit_enrichment_6 — audit_enrichment_6
+  - Objective: Apply audited enrichment stage 6.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+12. audit_enrichment_7 — audit_enrichment_7
+  - Objective: Apply audited enrichment stage 7.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+13. publish_dataset — publish_dataset
+  - Objective: Publish branch outputs with completion status.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

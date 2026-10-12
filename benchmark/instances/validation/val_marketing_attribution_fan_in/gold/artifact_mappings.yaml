@@ -1,0 +1,48 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_marketing_attribution_fan_in
+mappings:
+- intent_id: extract_impressions
+  inputs:
+    ad_platform_api: ad_platform_api_resource
+  outputs:
+    marketing_events: impressions
+    extraction_status: impression_extract_status
+- intent_id: extract_clicks
+  inputs:
+    ad_platform_api: ad_platform_api_resource
+  outputs:
+    marketing_events: clicks
+    extraction_status: click_extract_status
+- intent_id: extract_purchases
+  inputs:
+    commerce_database: commerce_database_resource
+  outputs:
+    purchase_events: purchases
+    extraction_status: purchase_extract_status
+- intent_id: join_customer_events
+  inputs:
+    impressions: impressions
+    clicks: clicks
+    purchases: purchases
+  outputs:
+    joined_customer_events: joined_customer_events
+    join_status: join_status
+- intent_id: compute_attribution
+  inputs:
+    joined_customer_events: joined_customer_events
+  outputs:
+    attribution_metrics: attribution_metrics
+    calculation_status: attribution_status
+- intent_id: publish_attribution_table
+  inputs:
+    attribution_metrics: attribution_metrics
+    commerce_database: commerce_database_resource
+  outputs:
+    attribution_table: attribution_table
+    publication_status: attribution_publication_status
+- intent_id: send_campaign_summary
+  inputs:
+    attribution_table: attribution_table
+    email_service: email_service_resource
+  outputs:
+    campaign_notification_status: campaign_notification_status

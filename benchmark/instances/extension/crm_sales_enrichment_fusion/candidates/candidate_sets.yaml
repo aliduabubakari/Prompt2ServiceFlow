@@ -1,0 +1,62 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:crm_sales_enrichment_fusion
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.2
+candidate_sets:
+- candidate_set_id: extension_crm_sales_enrichment_fusion_api_table_primary_source_ingestor_candidates
+  source_step_refs:
+  - ingest_primary_source
+  service_ids:
+  - api_table_primary_source_ingestor
+  - reviewed_domain_adapter
+  - json_field_projection_transformer
+  - csv_to_structured_json_standardizer
+- candidate_set_id: extension_crm_sales_enrichment_fusion_api_table_secondary_source_ingestor_candidates
+  source_step_refs:
+  - ingest_secondary_source
+  service_ids:
+  - api_table_secondary_source_ingestor
+  - json_field_projection_transformer
+  - csv_to_structured_json_standardizer
+  - customer_profile_field_normalizer
+- candidate_set_id: extension_crm_sales_enrichment_fusion_api_table_reference_source_ingestor_candidates
+  source_step_refs:
+  - ingest_reference_source
+  service_ids:
+  - api_table_reference_source_ingestor
+  - csv_to_structured_json_standardizer
+  - customer_profile_field_normalizer
+  - federated_entity_matcher
+- candidate_set_id: extension_crm_sales_enrichment_fusion_api_table_multi_source_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contracts
+  service_ids:
+  - api_table_multi_source_contract_validator
+  - customer_profile_field_normalizer
+  - federated_entity_matcher
+  - discrepancy_route_decider
+- candidate_set_id: extension_crm_sales_enrichment_fusion_api_table_multi_source_normalizer_candidates
+  source_step_refs:
+  - normalize_sources
+  service_ids:
+  - api_table_multi_source_normalizer
+  - federated_entity_matcher
+  - discrepancy_route_decider
+  - reviewed_domain_adapter
+- candidate_set_id: extension_crm_sales_enrichment_fusion_api_table_source_fusion_reconciler_candidates
+  source_step_refs:
+  - fuse_sources
+  service_ids:
+  - api_table_source_fusion_reconciler
+  - discrepancy_route_decider
+  - reviewed_domain_adapter
+  - json_field_projection_transformer
+- candidate_set_id: extension_crm_sales_enrichment_fusion_api_table_output_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - api_table_output_bundle_publisher
+  - reviewed_domain_adapter
+  - json_field_projection_transformer
+  - csv_to_structured_json_standardizer

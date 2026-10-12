@@ -1,0 +1,158 @@
+schema_version: 0.1.0
+service_id: parquet_customer_quality_score_calculator
+version: 1.0.0
+display_name: Parquet Customer Quality Score Calculator
+category: QualityCheck
+capability:
+  summary: Calculates completeness, validity, consistency, and overall data-quality
+    scores for a cleaned customer Parquet dataset.
+  operations:
+  - Read cleaned customer Parquet data.
+  - Evaluate completeness metrics such as missing-field rates.
+  - Evaluate validity metrics using configured column rules.
+  - Evaluate consistency metrics using configured cross-field or duplicate rules via
+    deterministic configuration.
+  keywords:
+  - customer data
+  - data quality
+  - completeness
+  - validity
+  - consistency
+  - parquet
+  - quality score
+  limitations:
+  - Does not perform workflow branching.
+  - Does not clean or repair invalid data.
+  - Validity and consistency rules must be supplied or accepted from implementation
+    defaults.
+  - Does not export reports; use a report generator downstream.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: cleaned_customer_parquet
+    description: Cleaned customer Parquet dataset to score.
+    channel: artifact
+    data_type: parquet
+    media_type: application/vnd.apache.parquet
+    schema_ref: schema://cleaned_customer_parquet_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  outputs:
+  - name: dq_scores
+    description: Data-quality score object containing completeness, validity, consistency,
+      and overall scores plus metric details.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://customer_dq_scores/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: scoring_status
+    description: Observable scoring status with success flag, rows evaluated, metrics
+      computed, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://customer_dq_scoring_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: quality_rules
+    description: Declarative rules for completeness, validity, consistency, weighting,
+      and overall score calculation.
+    type: object
+    required: true
+  - name: score_scale
+    description: Numeric score scale to emit, for example 0_to_100 or 0_to_1.
+    type: string
+    required: false
+    enum:
+    - 0_to_100
+    - 0_to_1
+  - name: fail_on_empty_dataset
+    description: Whether an empty dataset should fail scoring.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: customer_quality_input_readable
+  type: precondition
+  applies_to: input
+  target: cleaned_customer_parquet
+  description: Input must be readable and parseable as Parquet.
+  expression: readable(cleaned_customer_parquet) and parquet_parseable(cleaned_customer_parquet)
+- contract_id: customer_quality_rules_required
+  type: precondition
+  applies_to: parameter
+  target: quality_rules
+  description: Quality rules must be supplied for deterministic metric calculation.
+  expression: quality_rules != null and length(keys(quality_rules)) > 0
+- contract_id: customer_dq_scores_schema
+  type: json_schema
+  applies_to: output
+  target: dq_scores
+  description: Score object contains completeness, validity, consistency, and overall
+    score fields.
+  schema_ref: schema://customer_dq_scores/v1
+  expression: '{"type":"object","required":["completeness_score","validity_score","consistency_score","overall_score","metrics"],"properties":{"completeness_score":{"type":"number"},"validity_score":{"type":"number"},"consistency_score":{"type":"number"},"overall_score":{"type":"number"},"score_scale":{"type":"string"},"metrics":{"type":"object"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: customer_quality_scoring_effect
+  type: effect
+  applies_to: service
+  target: parquet_customer_quality_score_calculator
+  description: On success, dq_scores exists and scoring_status.success is true.
+  expression: scoring_status.success == true implies exists(dq_scores)
+invocation:
+  type: argo_workflow_template
+  template_name: parquet-customer-quality-score-calculator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.parquet_customer_quality_score_calculator
+  implementation_ref: services/implementations/parquet_customer_quality_score_calculator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - pii
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Diagnostics should avoid raw customer PII.
+  - Quality-rule definitions must be bound explicitly for reproducible scoring.
+  idempotency_notes: Same cleaned dataset and quality_rules produce the same score
+    object.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:customer_dq_scoring_pipeline#calculate_quality_score
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing quality gate emits pass/quarantine decisions from generic
+    metadata and lacks Parquet input plus completeness/validity/consistency score
+    object contract.'
+  - 'Evidence status: strongly_inferred.'

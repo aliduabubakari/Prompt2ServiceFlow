@@ -1,0 +1,58 @@
+review_version: 0.1.0
+batch_id: main_batch_02
+review_date: '2026-06-20'
+status: provisional
+review_method: codex_assisted_structural_and_semantic_review
+independent_human_review: pending
+pipelines:
+- benchmark_id: main:backup_strategy_selector
+  decisions:
+  - Classified unknown start and completion markers as orchestration.
+  - Represented the selected branch output as a conditional multi-producer backup artifact.
+  outstanding_questions:
+  - Confirm whether the original implementation has an incremental checkpoint input not described by the
+    dataset.
+- benchmark_id: main:fraud_detection_triage
+  decisions:
+  - Added explicit accounting for every source step without changing the reviewed branch bindings.
+  outstanding_questions:
+  - Confirm whether manual-review and payment-processing systems should become explicit external resources
+    in a later catalogue release.
+- benchmark_id: main:file_arrival_watcher
+  decisions:
+  - Added an observed-missing-file scenario that gates validation and loading.
+  - Bound the database loader to the original CSV after validation instead of an unproduced intermediate.
+  outstanding_questions:
+  - Confirm whether the missing-file state should be represented as a workflow failure rather than a completed
+    timeout observation at cluster qualification.
+- benchmark_id: main:database_replication_fanout
+  decisions:
+  - Restored explicit production, development, staging, and QA database resources and fixture-backed snapshot
+    data.
+  outstanding_questions:
+  - Confirm source table, credential, and replace-vs-upsert semantics if original implementation evidence
+    becomes available.
+- benchmark_id: main:multi_region_ecommerce_analytics
+  decisions:
+  - Classified unknown bookend markers as orchestration.
+  - Corrected regional ingestion from a file loader to a database CSV exporter.
+  - Bound all four converted CSVs to the aggregator cardinality-many input.
+  outstanding_questions:
+  - Confirm the intended EUR-to-USD rate convention and whether rates should vary by logical date.
+validation:
+  local_g0_g6:
+    passed: 5
+    failed: 0
+    status: pass
+  main_40_regression:
+    passed: 40
+    failed: 0
+  pytest:
+    passed: 43
+    failed: 0
+  ruff:
+    batch_scope: pass
+  minikube_cluster_execution: deferred
+release_effect:
+  annotation_status: semantic_hardening_complete
+  review_status: independent_review_pending

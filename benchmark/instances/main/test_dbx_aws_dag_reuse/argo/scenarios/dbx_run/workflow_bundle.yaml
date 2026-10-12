@@ -1,0 +1,338 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-dbx-aws-dag-reuse-dbx-run-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"DBX AWS DAG mock.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json, uuid\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"--step\",type=str,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    st={\"\
+    success\":True,\"errors\":[]}\n    if a.step==\"start\":\n        (art/\"run_id.txt\").write_text(\"\
+    dbx-run-\"+uuid.uuid4().hex[:8]+\"\\n\",encoding=\"utf-8\")\n        (art/\"gen_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    elif a.step==\"nb1\":\n        (art/\"notebook_result.json\").write_text(json.dumps({\"\
+    output\":\"done\",\"success\":True},indent=2)+\"\\n\",encoding=\"utf-8\")\n        (art/\"notebook_status.json\"\
+    ).write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\")\n    elif a.step==\"d1\":\n     \
+    \   (art/\"d1_cleanup.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\")\n   \
+    \ elif a.step==\"branch\":\n        (art/\"branch_decision.json\").write_text(json.dumps({\"selected_strategy\"\
+    :\"incremental\",\"branch_label\":\"skip\",\"success\":True},indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n        (art/\"route.txt\").write_text(\"skip\",encoding=\"utf-8\")\n    elif a.step==\"nb2\":\n\
+    \        (art/\"nb2_result.json\").write_text(json.dumps({\"output\":\"done2\",\"success\":True},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n        (art/\"nb2_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    elif a.step==\"d2\":\n        (art/\"d2_cleanup.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    elif a.step==\"d3\":\n        (art/\"d3_cleanup.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    elif a.step==\"end\":\n        (art/\"cleanup_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-dbx-aws-dag-reuse-dbx-run-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock","workspace":"databricks"}'
+  fixture-0001: "{\n  \"pipeline_id\": \"test_dbx_aws_dag_reuse\",\n  \"inputs\": {\n    \"dbx\": \"dbx.json\"\
+    \n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n  ],\n  \"systems\": [\n    \"system_a\"\
+    ,\n    \"system_b\"\n  ]\n}"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: test-dbx-aws-dag-reuse-dbx-run-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: test-dbx-aws-dag-reuse-dbx-run
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: dbx-run
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters: []
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: test-dbx-aws-dag-reuse-dbx-run-scripts
+  - name: fixtures
+    configMap:
+      name: test-dbx-aws-dag-reuse-dbx-run-fixtures
+      items:
+      - key: fixture-0000
+        path: dbx.json
+      - key: fixture-0001
+        path: fixture.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: start-task
+        template: run-start-task
+      - name: spark-jar-task
+        template: run-spark-jar-task
+        depends: start-task.Succeeded
+      - name: dummy-task-1
+        template: run-dummy-task-1
+        depends: spark-jar-task.Succeeded
+      - name: branch-task
+        template: run-branch-task
+        depends: dummy-task-1.Succeeded
+      - name: spark-jar-task-2
+        template: run-spark-jar-task-2
+        depends: branch-task.Succeeded
+        when: '{{tasks.branch-task.outputs.parameters.route}} == execute'
+      - name: dummy-task-3
+        template: run-dummy-task-3
+        depends: branch-task.Succeeded
+        when: '{{tasks.branch-task.outputs.parameters.route}} == skip'
+      - name: dummy-task-2
+        template: run-dummy-task-2
+        depends: spark-jar-task-2.Succeeded
+      - name: end-task
+        template: run-end-task
+        depends: (dummy-task-2.Succeeded || dummy-task-3.Succeeded)
+  - name: run-start-task
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: start_task
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - start
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-spark-jar-task
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: spark_jar_task
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - nb1
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-dummy-task-1
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: dummy_task_1
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - d1
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-branch-task
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: branch_task
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - branch
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    outputs:
+      parameters:
+      - name: route
+        valueFrom:
+          path: /workspace/artifacts/route.txt
+  - name: run-spark-jar-task-2
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: spark_jar_task_2
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - nb2
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-dummy-task-3
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: dummy_task_3
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - d3
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-dummy-task-2
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: dummy_task_2
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - d2
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-end-task
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: end_task
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - end
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

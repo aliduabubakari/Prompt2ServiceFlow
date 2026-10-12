@@ -1,0 +1,463 @@
+{
+  "report_version": "0.1.0",
+  "pipeline_id": "main:pcd-etl",
+  "generated_at": "2026-07-21T09:37:19.221064+00:00",
+  "overall_status": "pass",
+  "gates": [
+    {
+      "gate": "G0",
+      "status": "pass",
+      "checks": [
+        "Parse, schema, required files, and checksums"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G1",
+      "status": "pass",
+      "checks": [
+        "Graph integrity and complete source-step accounting"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G2",
+      "status": "pass",
+      "checks": [
+        "Catalog service/version/lifecycle resolution"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G3",
+      "status": "pass",
+      "checks": [
+        "Interface, parameter, secret, artifact, and policy closure"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G4",
+      "status": "pass",
+      "checks": [
+        "Exact gold-to-runtime task identities, dependency edges, and script syntax"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G5",
+      "status": "pass",
+      "checks": [
+        "Deterministic Argo projection, deployable bundles, ConfigMap-size checks, and structural lint"
+      ],
+      "errors": [],
+      "details": {
+        "configmap_payloads": [
+          {
+            "name": "pcd-etl-scripts",
+            "data_size_bytes": 2376,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "pcd-etl-fixtures",
+            "data_size_bytes": 720,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "pcd-etl-pcd-data-available-scripts",
+            "scenario": "pcd_data_available",
+            "data_size_bytes": 2376,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "pcd-etl-pcd-data-available-fixtures",
+            "scenario": "pcd_data_available",
+            "data_size_bytes": 720,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "pcd-etl-pcd-data-missing-scripts",
+            "scenario": "pcd_data_missing",
+            "data_size_bytes": 2376,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "pcd-etl-pcd-data-missing-fixtures",
+            "scenario": "pcd_data_missing",
+            "data_size_bytes": 720,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          }
+        ]
+      }
+    },
+    {
+      "gate": "G6",
+      "status": "pass",
+      "checks": [
+        "Execute every declared scenario and evaluate reviewed semantic assertions and artifact schemas"
+      ],
+      "errors": []
+    }
+  ],
+  "scenario_results": [
+    {
+      "scenario": "pcd_data_available",
+      "status": "pass",
+      "executed_tasks": [
+        "check_pcd_sftp_folder",
+        "check_pcd_shared_folder",
+        "financial_expense",
+        "upcc_financial_reporting",
+        "chc_financial_reporting",
+        "pcn_financial_reporting",
+        "nppcc_financial_reporting",
+        "fiscal_year_reporting_dates",
+        "upcc_primary_care_patient_services",
+        "chc_primary_care_patient_services",
+        "practitioner_role_mapping",
+        "status_tracker",
+        "hr_records",
+        "provincial_risk_tracking",
+        "decision_log",
+        "ha_hierarchy",
+        "uppc_budget",
+        "chc_budget",
+        "pcn_budget",
+        "nppcc_budget",
+        "pcd_file_upload",
+        "etl_notification"
+      ],
+      "skipped_tasks": [],
+      "assertions": [
+        {
+          "assertion_id": "sftp_ready",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "shared_folder_ready",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "first_phase_extracted",
+          "status": "pass",
+          "message": "value=2, expected=2"
+        },
+        {
+          "assertion_id": "second_phase_extracted",
+          "status": "pass",
+          "message": "value=2, expected=2"
+        },
+        {
+          "assertion_id": "processing_job_completed",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "completion_email_sent",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "schema_check_pcd_sftp_folder_decision",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_check_pcd_sftp_folder_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_check_pcd_shared_folder_decision",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_check_pcd_shared_folder_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_status_tracker_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_status_tracker_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_financial_expense_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_financial_expense_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_upcc_financial_reporting_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_upcc_financial_reporting_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_chc_financial_reporting_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_chc_financial_reporting_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_pcn_financial_reporting_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_pcn_financial_reporting_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_nppcc_financial_reporting_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_nppcc_financial_reporting_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_fiscal_year_reporting_dates_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_fiscal_year_reporting_dates_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_upcc_primary_care_patient_services_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_upcc_primary_care_patient_services_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_chc_primary_care_patient_services_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_chc_primary_care_patient_services_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_practitioner_role_mapping_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_practitioner_role_mapping_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_provincial_risk_tracking_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_provincial_risk_tracking_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_decision_log_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_decision_log_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_ha_hierarchy_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_ha_hierarchy_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_hr_records_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_hr_records_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_uppc_budget_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_uppc_budget_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_chc_budget_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_chc_budget_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_pcn_budget_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_pcn_budget_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_nppcc_budget_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_nppcc_budget_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_pcd_file_upload_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_pcd_file_upload_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_etl_notification_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        }
+      ]
+    },
+    {
+      "scenario": "pcd_data_missing",
+      "status": "pass",
+      "executed_tasks": [
+        "check_pcd_sftp_folder",
+        "check_pcd_shared_folder"
+      ],
+      "skipped_tasks": [
+        "financial_expense",
+        "upcc_financial_reporting",
+        "chc_financial_reporting",
+        "pcn_financial_reporting",
+        "nppcc_financial_reporting",
+        "fiscal_year_reporting_dates",
+        "upcc_primary_care_patient_services",
+        "chc_primary_care_patient_services",
+        "practitioner_role_mapping",
+        "status_tracker",
+        "hr_records",
+        "provincial_risk_tracking",
+        "decision_log",
+        "ha_hierarchy",
+        "uppc_budget",
+        "chc_budget",
+        "pcn_budget",
+        "nppcc_budget",
+        "pcd_file_upload",
+        "etl_notification"
+      ],
+      "assertions": [
+        {
+          "assertion_id": "shared_folder_not_ready",
+          "status": "pass",
+          "message": "value=False, expected=False"
+        },
+        {
+          "assertion_id": "first_phase_skipped",
+          "status": "pass",
+          "message": "financial_expense_result.json is absent"
+        },
+        {
+          "assertion_id": "second_phase_skipped",
+          "status": "pass",
+          "message": "provincial_risk_tracking_result.json is absent"
+        },
+        {
+          "assertion_id": "processing_job_skipped",
+          "status": "pass",
+          "message": "pcd_file_upload_status.json is absent"
+        },
+        {
+          "assertion_id": "notification_skipped",
+          "status": "pass",
+          "message": "etl_notification_status.json is absent"
+        },
+        {
+          "assertion_id": "schema_check_pcd_sftp_folder_decision",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_check_pcd_sftp_folder_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_check_pcd_shared_folder_decision",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_check_pcd_shared_folder_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        }
+      ]
+    }
+  ]
+}

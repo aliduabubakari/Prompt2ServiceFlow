@@ -1,0 +1,156 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: file-arrival-watcher
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: fixture-file
+        value: transactions_20240115.csv
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: file-arrival-watcher-scripts
+    - name: fixtures
+      configMap:
+        name: file-arrival-watcher-fixtures
+        items:
+        - key: fixture-0000
+          path: file_location.json
+        - key: fixture-0001
+          path: postgres_resource.json
+        - key: fixture-0002
+          path: transactions_20240115.csv
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: wait-for-file
+          template: run-wait-for-file
+        - name: validate-schema
+          template: run-validate-schema
+          depends: wait-for-file.Succeeded
+          when: '{{tasks.wait-for-file.outputs.parameters.available}} == true'
+        - name: load-db
+          template: run-load-db
+          depends: validate-schema.Succeeded
+          when: '{{tasks.wait-for-file.outputs.parameters.available}} == true'
+    - name: run-wait-for-file
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: wait_for_file
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_wait_for_file.py
+        - --workspace
+        - /workspace
+        - --file-location
+        - /opt/p2sf/fixtures/file_location.json
+        - --fixture
+        - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      outputs:
+        parameters:
+        - name: available
+          valueFrom:
+            path: /workspace/artifacts/availability.txt
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-validate-schema
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: validate_schema
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_validate_schema.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-load-db
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: load_db
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_load_db.py
+        - --workspace
+        - /workspace
+        - --database-resource
+        - /opt/p2sf/fixtures/postgres_resource.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError

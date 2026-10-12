@@ -1,0 +1,23 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:file_arrival_watcher
+mappings:
+- intent_id: wait_for_file
+  inputs:
+    file_location_resource: file_location_resource
+  outputs:
+    availability_decision: availability_decision
+    check_status: check_status
+- intent_id: validate_schema
+  inputs:
+    csv_file: transaction_csv
+  outputs:
+    validated_dataset: validated_dataset
+    validated_data_object: validated_data_object
+    validation_status: validation_status
+- intent_id: load_db
+  inputs:
+    csv_snapshot: transaction_csv
+    target_database: postgres_resource
+  outputs:
+    target_database_reference: target_db_reference
+    load_status: load_status

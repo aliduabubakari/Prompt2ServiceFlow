@@ -1,0 +1,41 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:test_dbx_aws_dag_reuse
+mappings:
+- intent_id: start_task
+  inputs: {}
+  outputs:
+    load_id: run_id
+    generation_status: gen_status
+- intent_id: spark_jar_task
+  inputs:
+    databricks_workspace: dbx_resource
+  outputs:
+    run_reference: notebook_result
+    execution_status: notebook_status
+- intent_id: dummy_task_1
+  inputs: {}
+  outputs:
+    cleanup_status: d1_cleanup
+- intent_id: branch_task
+  inputs:
+    execution_date: execution_date_str
+  outputs:
+    backup_strategy_decision: branch_decision
+- intent_id: spark_jar_task_2
+  inputs:
+    databricks_workspace: dbx_resource
+  outputs:
+    run_reference: nb2_result
+    execution_status: nb2_status
+- intent_id: dummy_task_2
+  inputs: {}
+  outputs:
+    cleanup_status: d2_cleanup
+- intent_id: dummy_task_3
+  inputs: {}
+  outputs:
+    cleanup_status: d3_cleanup
+- intent_id: end_task
+  inputs: {}
+  outputs:
+    cleanup_status: cleanup_status

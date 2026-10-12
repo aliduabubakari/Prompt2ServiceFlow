@@ -1,0 +1,11 @@
+assertions_version: 0.1.0
+pipeline_id: medical_facility_accessibility_v1
+scenarios:
+  - scenario: three_facilities
+    assertions:
+      - {assertion_id: format_succeeded, type: json_path_equals, path: artifacts/format_status.json, json_path: success, expected: true}
+      - {assertion_id: geocoding_succeeded, type: json_path_equals, path: artifacts/geocoding_status.json, json_path: success, expected: true}
+      - {assertion_id: pt_distance_succeeded, type: json_path_equals, path: artifacts/pt_distance_status.json, json_path: success, expected: true}
+      - {assertion_id: residential_distance_succeeded, type: json_path_equals, path: artifacts/residential_distance_status.json, json_path: success, expected: true}
+      - {assertion_id: export_succeeded, type: json_path_equals, path: artifacts/export_status.json, json_path: success, expected: true}
+      - {assertion_id: csv_has_three_rows, type: json_path_equals, path: artifacts/export_status.json, json_path: rows_written, expected: 3}

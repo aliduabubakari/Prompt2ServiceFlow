@@ -1,0 +1,52 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:climate_station_gap_fill_alignment
+candidate_sets:
+- candidate_set_id: extension_climate_station_gap_fill_alignment_timeseries_primary_source_ingestor_candidates
+  required_service_id: timeseries_primary_source_ingestor
+  labels:
+    timeseries_primary_source_ingestor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    bounded_window_checkpoint_validator: contract_mismatch
+    event_record_cleaner: format_mismatch
+- candidate_set_id: extension_climate_station_gap_fill_alignment_timeseries_secondary_source_ingestor_candidates
+  required_service_id: timeseries_secondary_source_ingestor
+  labels:
+    timeseries_secondary_source_ingestor: gold
+    bounded_window_checkpoint_validator: semantic_mismatch
+    event_record_cleaner: contract_mismatch
+    external_workflow_completion_sensor: format_mismatch
+- candidate_set_id: extension_climate_station_gap_fill_alignment_timeseries_reference_source_ingestor_candidates
+  required_service_id: timeseries_reference_source_ingestor
+  labels:
+    timeseries_reference_source_ingestor: gold
+    event_record_cleaner: semantic_mismatch
+    external_workflow_completion_sensor: contract_mismatch
+    iot_anomaly_feature_calculator: format_mismatch
+- candidate_set_id: extension_climate_station_gap_fill_alignment_timeseries_multi_source_contract_validator_candidates
+  required_service_id: timeseries_multi_source_contract_validator
+  labels:
+    timeseries_multi_source_contract_validator: gold
+    external_workflow_completion_sensor: semantic_mismatch
+    iot_anomaly_feature_calculator: contract_mismatch
+    dataset_quarantine_zone_writer: format_mismatch
+- candidate_set_id: extension_climate_station_gap_fill_alignment_timeseries_multi_source_normalizer_candidates
+  required_service_id: timeseries_multi_source_normalizer
+  labels:
+    timeseries_multi_source_normalizer: gold
+    iot_anomaly_feature_calculator: semantic_mismatch
+    dataset_quarantine_zone_writer: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_climate_station_gap_fill_alignment_timeseries_source_fusion_reconciler_candidates
+  required_service_id: timeseries_source_fusion_reconciler
+  labels:
+    timeseries_source_fusion_reconciler: gold
+    dataset_quarantine_zone_writer: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    bounded_window_checkpoint_validator: format_mismatch
+- candidate_set_id: extension_climate_station_gap_fill_alignment_timeseries_output_bundle_publisher_candidates
+  required_service_id: timeseries_output_bundle_publisher
+  labels:
+    timeseries_output_bundle_publisher: gold
+    reviewed_domain_adapter: semantic_mismatch
+    bounded_window_checkpoint_validator: contract_mismatch
+    event_record_cleaner: format_mismatch

@@ -1,0 +1,214 @@
+{
+  "report_version": "0.1.0",
+  "pipeline_id": "main:multi_region_ecommerce_analytics",
+  "generated_at": "2026-07-21T09:37:17.083462+00:00",
+  "overall_status": "pass",
+  "gates": [
+    {
+      "gate": "G0",
+      "status": "pass",
+      "checks": [
+        "Parse, schema, required files, and checksums"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G1",
+      "status": "pass",
+      "checks": [
+        "Graph integrity and complete source-step accounting"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G2",
+      "status": "pass",
+      "checks": [
+        "Catalog service/version/lifecycle resolution"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G3",
+      "status": "pass",
+      "checks": [
+        "Interface, parameter, secret, artifact, and policy closure"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G4",
+      "status": "pass",
+      "checks": [
+        "Exact gold-to-runtime task identities, dependency edges, and script syntax"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G5",
+      "status": "pass",
+      "checks": [
+        "Deterministic Argo projection, deployable bundles, ConfigMap-size checks, and structural lint"
+      ],
+      "errors": [],
+      "details": {
+        "configmap_payloads": [
+          {
+            "name": "multi-region-ecommerce-analytics-scripts",
+            "data_size_bytes": 3974,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "multi-region-ecommerce-analytics-fixtures",
+            "data_size_bytes": 1610,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "multi-region-ecommerce-analytics-regional-r-c94a3410-scripts",
+            "scenario": "regional_revenue_run",
+            "data_size_bytes": 3974,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "multi-region-ecommerce-analytics-regional-r-c94a3410-fixtures",
+            "scenario": "regional_revenue_run",
+            "data_size_bytes": 1610,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          }
+        ]
+      }
+    },
+    {
+      "gate": "G6",
+      "status": "pass",
+      "checks": [
+        "Execute every declared scenario and evaluate reviewed semantic assertions and artifact schemas"
+      ],
+      "errors": []
+    }
+  ],
+  "scenario_results": [
+    {
+      "scenario": "regional_revenue_run",
+      "status": "pass",
+      "executed_tasks": [
+        "ingest_us_east",
+        "ingest_us_west",
+        "ingest_eu",
+        "ingest_apac",
+        "convert_currency_us_east",
+        "convert_currency_us_west",
+        "convert_currency_eu",
+        "convert_currency_apac",
+        "aggregate_global_revenue"
+      ],
+      "skipped_tasks": [],
+      "assertions": [
+        {
+          "assertion_id": "us_east_exported",
+          "status": "pass",
+          "message": "value=1, expected=1"
+        },
+        {
+          "assertion_id": "us_west_exported",
+          "status": "pass",
+          "message": "value=1, expected=1"
+        },
+        {
+          "assertion_id": "eu_exported",
+          "status": "pass",
+          "message": "value=1, expected=1"
+        },
+        {
+          "assertion_id": "apac_exported",
+          "status": "pass",
+          "message": "value=1, expected=1"
+        },
+        {
+          "assertion_id": "us_east_converted",
+          "status": "pass",
+          "message": "value=1, expected=1"
+        },
+        {
+          "assertion_id": "us_west_converted",
+          "status": "pass",
+          "message": "value=1, expected=1"
+        },
+        {
+          "assertion_id": "eu_converted",
+          "status": "pass",
+          "message": "value=1, expected=1"
+        },
+        {
+          "assertion_id": "apac_converted",
+          "status": "pass",
+          "message": "value=1, expected=1"
+        },
+        {
+          "assertion_id": "four_inputs_aggregated",
+          "status": "pass",
+          "message": "value=4, expected=4"
+        },
+        {
+          "assertion_id": "global_revenue_total",
+          "status": "pass",
+          "message": "value=43230.0, expected=43230.0"
+        },
+        {
+          "assertion_id": "global_report_has_four_regions",
+          "status": "pass",
+          "message": "rows=4, expected=4"
+        },
+        {
+          "assertion_id": "schema_us_east_ingest_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_us_west_ingest_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_eu_ingest_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_apac_ingest_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_us_east_convert_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_us_west_convert_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_eu_convert_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_apac_convert_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_aggregate_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        }
+      ]
+    }
+  ]
+}

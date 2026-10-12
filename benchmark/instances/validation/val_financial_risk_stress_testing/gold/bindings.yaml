@@ -1,0 +1,36 @@
+binding_gold_version: 0.1.0
+benchmark_id: validation:val_financial_risk_stress_testing
+bindings:
+- intent_id: load_market_scenarios
+  service_id: financial_dataset_extractor
+  service_version: 1.0.0
+- intent_id: load_portfolio_positions
+  service_id: financial_dataset_extractor
+  service_version: 1.0.0
+- intent_id: run_credit_stress
+  service_id: portfolio_stress_runner
+  service_version: 1.0.0
+- intent_id: run_liquidity_stress
+  service_id: portfolio_stress_runner
+  service_version: 1.0.0
+- intent_id: run_market_stress
+  service_id: portfolio_stress_runner
+  service_version: 1.0.0
+- intent_id: aggregate_stress_results
+  service_id: stress_result_aggregator
+  service_version: 1.0.0
+- intent_id: validate_capital_thresholds
+  service_id: capital_threshold_validator
+  service_version: 1.0.0
+- intent_id: route_validation_status
+  service_id: risk_validation_route_decider
+  service_version: 1.0.0
+- intent_id: write_regulatory_report
+  service_id: regulatory_report_writer
+  service_version: 1.0.0
+- intent_id: open_remediation_ticket
+  service_id: review_case_opener
+  service_version: 1.0.0
+- intent_id: archive_model_inputs
+  service_id: model_input_archive_publisher
+  service_version: 1.0.0

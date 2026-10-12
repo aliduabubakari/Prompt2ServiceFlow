@@ -1,0 +1,87 @@
+Pipeline Summary:
+- Pipeline ID: diversity-v1__portfolio_stress_command_center.py
+- Name: portfolio_stress_command_center
+- Purpose: Portfolio Stress Command Center is a synthetic data-preparation workflow for Finance/Risk.
+- Execution model: batch
+- Topology pattern: branch_merge
+- Business domain: Finance/Risk
+- Notes: Synthetic Diversity-40 source; use only as benchmark input and not as hidden gold evidence.
+
+Control Flow:
+- Dependencies (directed edges):
+  - extract_source -> validate_schema
+  - validate_schema -> calculate_decision
+  - calculate_decision -> approve_records
+  - calculate_decision -> quarantine_records
+  - approve_records -> notify_outcome
+  - quarantine_records -> notify_outcome
+  - validate_schema -> audit_enrichment_1
+  - validate_schema -> audit_enrichment_2
+  - validate_schema -> audit_enrichment_3
+
+Data Artifacts / I-O Identifiers:
+- file: raw_input.csv (Synthetic input data)
+- file: prepared_output.parquet (Prepared output dataset)
+
+External Systems:
+- object_storage: Fixture-backed source and publication location
+
+Pipeline Steps:
+1. extract_source — extract_source
+  - Objective: Extract the source dataset into a raw tabular artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_schema — validate_schema
+  - Objective: Validate required columns, formats, and record identity.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. calculate_decision — calculate_decision
+  - Objective: Calculate a policy decision from validated records.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. approve_records — approve_records
+  - Objective: Publish records that meet the policy.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. quarantine_records — quarantine_records
+  - Objective: Quarantine records that fail the policy.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. audit_enrichment_1 — audit_enrichment_1
+  - Objective: Apply audited enrichment stage 1.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. audit_enrichment_2 — audit_enrichment_2
+  - Objective: Apply audited enrichment stage 2.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+8. audit_enrichment_3 — audit_enrichment_3
+  - Objective: Apply audited enrichment stage 3.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+9. notify_outcome — notify_outcome
+  - Objective: Notify stakeholders of the selected outcome.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

@@ -1,0 +1,386 @@
+ir_version: 0.1.0
+composition_id: magento_graphql_customer
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:magento_graphql_customer
+  split: main
+  pipeline_id: magento_graphql_customer
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/04_magento_graphql_customer.txt
+  description_sha256: 571ff004f011b1eac2357a571264287b1ffbf2b8836dbb8f803e97b8d07e1aec
+  internal_spec_path: source/internal_specs/main_40/04_magento_graphql_customer.json
+  internal_spec_sha256: 78b2cb509b59593bb741bde22a5072dbd77848d50dac12b426f5e73bf62bcdac
+requirement:
+  name: Magento GraphQL Customer
+  purpose: Create Magento customer, generate auth token, and retrieve customer info via GraphQL.
+  domain: e-commerce
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes:
+  - Three-step linear GraphQL pipeline.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: magento_api
+  type: http_api
+  name: Magento
+  identifier: magento_default
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: create_customer
+  name: Create customer
+  category: DomainAdapter
+  capability: Create a new customer via Magento GraphQL mutation.
+  source_step_refs:
+  - create_customer
+  evidence:
+  - source: description
+    text: Create a new customer in Magento system.
+  inputs:
+  - graphql_resource
+  outputs:
+  - create_response
+  - create_result
+  - create_status
+  external_system_refs:
+  - magento_api
+  preconditions:
+  - GraphQL endpoint available.
+  effects:
+  - Customer created.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step creates Magento customer.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: generate_customer_token
+  name: Generate token
+  category: DomainAdapter
+  capability: Generate customer auth token via Magento GraphQL.
+  source_step_refs:
+  - generate_customer_token
+  evidence:
+  - source: description
+    text: Generate authentication token.
+  inputs:
+  - graphql_resource
+  outputs:
+  - token_response
+  - token_result
+  - token_status
+  external_system_refs:
+  - magento_api
+  preconditions:
+  - Customer created.
+  effects:
+  - Token generated.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step generates token.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: get_customer_info
+  name: Get customer info
+  category: DomainAdapter
+  capability: Retrieve customer info via Magento GraphQL query.
+  source_step_refs:
+  - get_customer_info
+  evidence:
+  - source: description
+    text: Retrieve customer information.
+  inputs:
+  - graphql_resource
+  outputs:
+  - get_response
+  - get_result
+  - get_status
+  external_system_refs:
+  - magento_api
+  preconditions:
+  - Token available.
+  effects:
+  - Customer info retrieved.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step retrieves customer.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: create_customer
+    to: generate_customer_token
+  - from: generate_customer_token
+    to: get_customer_info
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: graphql_resource
+  name: GraphQL endpoint
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - create_customer
+  - generate_customer_token
+  - get_customer_info
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/graphql_endpoint.json
+  external_system_ref: magento_api
+- artifact_id: create_response
+  name: Create response
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: create_customer
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: create_result
+  name: Create result
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: create_customer
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: create_status
+  name: Create status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: create_customer
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: token_response
+  name: Token response
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: generate_customer_token
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: token_result
+  name: Token result
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: generate_customer_token
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: token_status
+  name: Token status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: generate_customer_token
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: get_response
+  name: Get response
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: output
+  producer: get_customer_info
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: get_result
+  name: Get result
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: output
+  producer: get_customer_info
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: get_status
+  name: Get status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: get_customer_info
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: create_customer
+  service_id: graphql_json_operation_executor
+  service_version: 1.0.0
+  input_bindings:
+  - port: graphql_endpoint_resource
+    artifact_id: graphql_resource
+  output_bindings:
+  - port: graphql_response_json
+    artifact_id: create_response
+  - port: projected_result
+    artifact_id: create_result
+  - port: operation_status
+    artifact_id: create_status
+  parameter_bindings:
+    operation_document: mutation{createCustomerV2(input:{firstname:"John",lastname:"Doe",email:"test@example.com"}){customer{id
+      email}}}
+    operation_type: mutation
+  secret_bindings: []
+  rationale: Creates Magento customer via GraphQL.
+  confidence: explicit
+- intent_id: generate_customer_token
+  service_id: graphql_json_operation_executor
+  service_version: 1.0.0
+  input_bindings:
+  - port: graphql_endpoint_resource
+    artifact_id: graphql_resource
+  output_bindings:
+  - port: graphql_response_json
+    artifact_id: token_response
+  - port: projected_result
+    artifact_id: token_result
+  - port: operation_status
+    artifact_id: token_status
+  parameter_bindings:
+    operation_document: mutation{generateCustomerToken(email:"test@example.com",password:"Password123"){token}}
+    operation_type: mutation
+  secret_bindings: []
+  rationale: Generates customer auth token.
+  confidence: explicit
+- intent_id: get_customer_info
+  service_id: graphql_json_operation_executor
+  service_version: 1.0.0
+  input_bindings:
+  - port: graphql_endpoint_resource
+    artifact_id: graphql_resource
+  output_bindings:
+  - port: graphql_response_json
+    artifact_id: get_response
+  - port: projected_result
+    artifact_id: get_result
+  - port: operation_status
+    artifact_id: get_status
+  parameter_bindings:
+    operation_document: query{customer{id firstname lastname email}}
+    operation_type: query
+  secret_bindings: []
+  rationale: Retrieves customer info.
+  confidence: explicit
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - All GraphQL calls mocked.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All three source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Three exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports, parameters, types, and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Linear Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Magento scenario executes all three steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - GraphQL operation invariants hold
+source_step_accounting:
+- source_step_ref: create_customer
+  disposition: service
+  intent_ids:
+  - create_customer
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: generate_customer_token
+  disposition: service
+  intent_ids:
+  - generate_customer_token
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: get_customer_info
+  disposition: service
+  intent_ids:
+  - get_customer_info
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

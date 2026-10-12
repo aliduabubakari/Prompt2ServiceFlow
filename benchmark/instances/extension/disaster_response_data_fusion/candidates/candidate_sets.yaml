@@ -1,0 +1,110 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:disaster_response_data_fusion
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.7
+candidate_sets:
+- candidate_set_id: extension_disaster_response_data_fusion_disaster_multimodal_batch_ingestor_candidates
+  source_step_refs:
+  - ingest_source_batch
+  service_ids:
+  - disaster_multimodal_batch_ingestor
+  - generic_multimodal_bundle_ingestor
+  - single_source_priority_ranker
+  - geojson_format_converter_only
+- candidate_set_id: extension_disaster_response_data_fusion_disaster_response_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contract
+  service_ids:
+  - disaster_response_contract_validator
+  - single_source_priority_ranker
+  - geojson_format_converter_only
+  - notification_only_publisher
+- candidate_set_id: extension_disaster_response_data_fusion_disaster_imagery_partition_normalizer_candidates
+  source_step_refs:
+  - normalize_partition_a
+  service_ids:
+  - disaster_imagery_partition_normalizer
+  - geojson_format_converter_only
+  - notification_only_publisher
+  - publication_manifest_archiver
+- candidate_set_id: extension_disaster_response_data_fusion_disaster_shelter_status_normalizer_candidates
+  source_step_refs:
+  - normalize_partition_b
+  service_ids:
+  - disaster_shelter_status_normalizer
+  - notification_only_publisher
+  - publication_manifest_archiver
+  - reviewed_domain_adapter
+- candidate_set_id: extension_disaster_response_data_fusion_disaster_road_incident_text_normalizer_candidates
+  source_step_refs:
+  - normalize_partition_c
+  service_ids:
+  - disaster_road_incident_text_normalizer
+  - publication_manifest_archiver
+  - reviewed_domain_adapter
+  - generic_multimodal_bundle_ingestor
+- candidate_set_id: extension_disaster_response_data_fusion_disaster_operational_picture_fuser_candidates
+  source_step_refs:
+  - fuse_partitions
+  service_ids:
+  - disaster_operational_picture_fuser
+  - reviewed_domain_adapter
+  - generic_multimodal_bundle_ingestor
+  - single_source_priority_ranker
+- candidate_set_id: extension_disaster_response_data_fusion_mixed_domain_entity_standardizer_candidates
+  source_step_refs:
+  - standardize_cross_domain_entities
+  service_ids:
+  - mixed_domain_entity_standardizer
+  - generic_multimodal_bundle_ingestor
+  - single_source_priority_ranker
+  - geojson_format_converter_only
+- candidate_set_id: extension_disaster_response_data_fusion_cross_modal_entity_conflict_resolver_candidates
+  source_step_refs:
+  - resolve_entity_conflicts
+  service_ids:
+  - cross_modal_entity_conflict_resolver
+  - single_source_priority_ranker
+  - geojson_format_converter_only
+  - notification_only_publisher
+- candidate_set_id: extension_disaster_response_data_fusion_disaster_operational_priority_scorer_candidates
+  source_step_refs:
+  - score_operational_priority
+  service_ids:
+  - disaster_operational_priority_scorer
+  - geojson_format_converter_only
+  - notification_only_publisher
+  - publication_manifest_archiver
+- candidate_set_id: extension_disaster_response_data_fusion_disaster_routing_gate_evaluator_candidates
+  source_step_refs:
+  - apply_publication_or_routing_gate
+  service_ids:
+  - disaster_routing_gate_evaluator
+  - notification_only_publisher
+  - publication_manifest_archiver
+  - reviewed_domain_adapter
+- candidate_set_id: extension_disaster_response_data_fusion_disaster_briefing_packet_builder_candidates
+  source_step_refs:
+  - create_stakeholder_packet
+  service_ids:
+  - disaster_briefing_packet_builder
+  - publication_manifest_archiver
+  - reviewed_domain_adapter
+  - generic_multimodal_bundle_ingestor
+- candidate_set_id: extension_disaster_response_data_fusion_disaster_notification_publisher_candidates
+  source_step_refs:
+  - publish_notifications
+  service_ids:
+  - disaster_notification_publisher
+  - reviewed_domain_adapter
+  - generic_multimodal_bundle_ingestor
+  - single_source_priority_ranker
+- candidate_set_id: extension_disaster_response_data_fusion_disaster_response_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - disaster_response_bundle_publisher
+  - generic_multimodal_bundle_ingestor
+  - single_source_priority_ranker
+  - geojson_format_converter_only

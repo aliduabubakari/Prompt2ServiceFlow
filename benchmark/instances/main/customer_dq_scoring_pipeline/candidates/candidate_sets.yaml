@@ -1,0 +1,63 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:customer_dq_scoring_pipeline
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_customer_dq_scoring_pipeline_synthetic_customer_parquet_generator_candidates
+  source_step_refs:
+  - generate_synthetic_data
+  service_ids:
+  - synthetic_customer_parquet_generator
+  - synthetic_document_parquet_generator
+  - customer_segment_csv_loader
+  - parquet_customer_data_clean_standardizer
+  - reviewed_domain_adapter
+- candidate_set_id: main_customer_dq_scoring_pipeline_parquet_document_data_profiler_candidates
+  source_step_refs:
+  - explore_raw_data
+  service_ids:
+  - parquet_document_data_profiler
+  - parquet_tabular_data_profiler
+  - csv_artifact_profile_ingestor
+  - parquet_document_clean_standardizer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_customer_dq_scoring_pipeline_parquet_customer_data_clean_standardizer_candidates
+  source_step_refs:
+  - clean_data
+  service_ids:
+  - parquet_customer_data_clean_standardizer
+  - parquet_document_clean_standardizer
+  - tabular_null_value_cleanser
+  - tabular_dataset_declarative_transformer
+  - parquet_tabular_feature_engineer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_customer_dq_scoring_pipeline_parquet_customer_quality_score_calculator_candidates
+  source_step_refs:
+  - calculate_quality_score
+  service_ids:
+  - parquet_customer_quality_score_calculator
+  - tabular_quality_score_gate
+  - document_feature_validation_quality_check
+  - parquet_tabular_data_profiler
+  - reviewed_domain_adapter
+- candidate_set_id: main_customer_dq_scoring_pipeline_parquet_tabular_feature_engineer_candidates
+  source_step_refs:
+  - feature_engineering
+  service_ids:
+  - parquet_tabular_feature_engineer
+  - document_keyword_feature_extractor
+  - tabular_dataset_declarative_transformer
+  - tabular_text_feature_column_extractor
+  - parquet_customer_data_clean_standardizer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_customer_dq_scoring_pipeline_parquet_quality_report_csv_exporter_candidates
+  source_step_refs:
+  - save_and_report
+  service_ids:
+  - parquet_quality_report_csv_exporter
+  - validated_parquet_to_csv_report_exporter
+  - tabular_query_result_csv_writer
+  - structured_json_to_csv_exporter
+  - csv_chart_pdf_report_generator
+  - reviewed_domain_adapter

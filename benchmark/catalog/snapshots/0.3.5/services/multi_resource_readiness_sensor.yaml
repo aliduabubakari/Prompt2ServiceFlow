@@ -1,0 +1,98 @@
+schema_version: 0.1.0
+service_id: multi_resource_readiness_sensor
+version: 1.0.0
+display_name: Multi Resource Readiness Sensor
+category: Sensor
+capability:
+  summary: Checks that a configured set of upstream resources is ready for processing.
+  operations:
+  - Checks that a configured set of upstream resources is ready for processing.
+  keywords:
+  - multi
+  - resource
+  - readiness
+  - sensor
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: resource_group
+    description: Reviewed resource group value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: readiness_decision
+    description: Reviewed readiness decision value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: readiness_status
+    description: Reviewed readiness status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: readiness_condition
+    description: Configuration for readiness condition.
+    type: string
+    required: true
+  - name: minimum_ready_count
+    description: Configuration for minimum ready count.
+    type: integer
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: multi-resource-readiness-sensor
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.3
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.multi_resource_readiness_sensor
+  implementation_ref: services/implementations/multi_resource_readiness_sensor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-04:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 04 descriptions; bindings retain inference confidence.

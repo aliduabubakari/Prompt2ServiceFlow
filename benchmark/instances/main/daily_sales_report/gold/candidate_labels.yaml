@@ -1,0 +1,39 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:daily_sales_report
+candidate_sets:
+- candidate_set_id: main_daily_sales_report_postgres_readonly_query_result_extractor_candidates
+  required_service_id: postgres_readonly_query_result_extractor
+  labels:
+    postgres_readonly_query_result_extractor: gold
+    postgres_parameterized_sql_executor: missing_required_output
+    sql_incremental_table_extractor: contract_mismatch
+    database_csv_snapshot_exporter: format_mismatch
+    sql_query_readiness_sensor: missing_required_output
+    unreviewed_postgres_sql_executor: policy_incompatible
+- candidate_set_id: main_daily_sales_report_tabular_query_result_csv_writer_candidates
+  required_service_id: tabular_query_result_csv_writer
+  labels:
+    tabular_query_result_csv_writer: gold
+    structured_json_to_csv_exporter: contract_mismatch
+    csv_to_structured_json_standardizer: format_mismatch
+    csv_tabular_schema_validating_loader: semantic_mismatch
+    tabular_dashboard_report_generator: missing_required_output
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_daily_sales_report_csv_chart_pdf_report_generator_candidates
+  required_service_id: csv_chart_pdf_report_generator
+  labels:
+    csv_chart_pdf_report_generator: gold
+    inventory_reconciliation_pdf_report_generator: semantic_mismatch
+    tabular_dashboard_report_generator: format_mismatch
+    validated_parquet_to_csv_report_exporter: format_mismatch
+    csv_tabular_schema_validating_loader: missing_required_output
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_daily_sales_report_email_notification_sender_candidates
+  required_service_id: email_notification_sender
+  labels:
+    email_notification_sender: gold
+    email_attachment_notification_sender: contract_mismatch
+    status_context_email_summary_notifier: contract_mismatch
+    aqi_threshold_email_alert_notifier: semantic_mismatch
+    bulk_email_campaign_sender: semantic_mismatch
+    slack_notification_sender: target_mismatch

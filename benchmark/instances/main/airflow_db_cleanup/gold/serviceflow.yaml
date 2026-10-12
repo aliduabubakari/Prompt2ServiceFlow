@@ -1,0 +1,1302 @@
+ir_version: 0.1.0
+composition_id: airflow_db_cleanup
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:airflow_db_cleanup
+  split: main
+  pipeline_id: airflow_db_cleanup
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/12_airflow_db_cleanup.txt
+  description_sha256: e315bed7dbab13743c2f842a3d1d1e6c22169a521dce05ee36fbf1a68f3eb937
+  internal_spec_path: source/internal_specs/main_40/12_airflow_db_cleanup.json
+  internal_spec_sha256: b43a0f0e96538e291c0df42b9e15f00f5476480b6cd3f04f12f247ded1c9a772
+requirement:
+  name: Airflow DB Cleanup
+  purpose: Clean up 12 Airflow metadata tables in parallel, then analyze database statistics.
+  domain: data_platform_maintenance
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: high
+  notes:
+  - "Massive fan-out/fan-in: 12 parallel cleanup \u2192 analyze."
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: airflow_metadata_database
+  type: database
+  name: Airflow metadata PostgreSQL database
+  identifier: airflow_metadata
+  access_mode: read_write
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: print_configuration
+  name: Print config
+  category: Transformer
+  capability: Resolve and validate the metadata-retention cutoff configuration.
+  source_step_refs:
+  - print_configuration
+  evidence:
+  - source: description
+    text: Print config.
+  inputs:
+  - runtime_parameters
+  outputs:
+  - retention_config
+  - config_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Config printed.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step resolves the maximum metadata age and cleanup flags.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanup_dag_run
+  name: Cleanup DagRun
+  category: Maintenance
+  capability: Delete expired Airflow metadata rows from DagRun.
+  source_step_refs:
+  - cleanup_DagRun
+  evidence:
+  - source: description
+    text: Clean DagRun.
+  inputs:
+  - db_resource
+  - retention_config
+  outputs:
+  - dag_run_status
+  - dag_run_result
+  external_system_refs:
+  - airflow_metadata_database
+  preconditions: []
+  effects:
+  - DagRun cleaned.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This is an Airflow metadata retention operation, not session cleanup.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanup_task_instance
+  name: Cleanup TaskInstance
+  category: Maintenance
+  capability: Delete expired Airflow metadata rows from TaskInstance.
+  source_step_refs:
+  - cleanup_TaskInstance
+  evidence:
+  - source: description
+    text: Clean TaskInstance.
+  inputs:
+  - db_resource
+  - retention_config
+  outputs:
+  - task_instance_status
+  - task_instance_result
+  external_system_refs:
+  - airflow_metadata_database
+  preconditions: []
+  effects:
+  - TaskInstance cleaned.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This is an Airflow metadata retention operation, not session cleanup.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanup_log
+  name: Cleanup Log
+  category: Maintenance
+  capability: Delete expired Airflow metadata rows from Log.
+  source_step_refs:
+  - cleanup_Log
+  evidence:
+  - source: description
+    text: Clean Log.
+  inputs:
+  - db_resource
+  - retention_config
+  outputs:
+  - log_status
+  - log_result
+  external_system_refs:
+  - airflow_metadata_database
+  preconditions: []
+  effects:
+  - Log cleaned.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This is an Airflow metadata retention operation, not session cleanup.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanup_xcom
+  name: Cleanup XCom
+  category: Maintenance
+  capability: Delete expired Airflow metadata rows from XCom.
+  source_step_refs:
+  - cleanup_XCom
+  evidence:
+  - source: description
+    text: Clean XCom.
+  inputs:
+  - db_resource
+  - retention_config
+  outputs:
+  - xcom_status
+  - xcom_result
+  external_system_refs:
+  - airflow_metadata_database
+  preconditions: []
+  effects:
+  - XCom cleaned.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This is an Airflow metadata retention operation, not session cleanup.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanup_sla_miss
+  name: Cleanup SlaMiss
+  category: Maintenance
+  capability: Delete expired Airflow metadata rows from SlaMiss.
+  source_step_refs:
+  - cleanup_SlaMiss
+  evidence:
+  - source: description
+    text: Clean SlaMiss.
+  inputs:
+  - db_resource
+  - retention_config
+  outputs:
+  - sla_miss_status
+  - sla_miss_result
+  external_system_refs:
+  - airflow_metadata_database
+  preconditions: []
+  effects:
+  - SlaMiss cleaned.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This is an Airflow metadata retention operation, not session cleanup.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanup_dag_model
+  name: Cleanup DagModel
+  category: Maintenance
+  capability: Delete expired Airflow metadata rows from DagModel.
+  source_step_refs:
+  - cleanup_DagModel
+  evidence:
+  - source: description
+    text: Clean DagModel.
+  inputs:
+  - db_resource
+  - retention_config
+  outputs:
+  - dag_model_status
+  - dag_model_result
+  external_system_refs:
+  - airflow_metadata_database
+  preconditions: []
+  effects:
+  - DagModel cleaned.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This is an Airflow metadata retention operation, not session cleanup.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanup_task_reschedule
+  name: Cleanup TaskReschedule
+  category: Maintenance
+  capability: Delete expired Airflow metadata rows from TaskReschedule.
+  source_step_refs:
+  - cleanup_TaskReschedule
+  evidence:
+  - source: description
+    text: Clean TaskReschedule.
+  inputs:
+  - db_resource
+  - retention_config
+  outputs:
+  - task_reschedule_status
+  - task_reschedule_result
+  external_system_refs:
+  - airflow_metadata_database
+  preconditions: []
+  effects:
+  - TaskReschedule cleaned.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This is an Airflow metadata retention operation, not session cleanup.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanup_task_fail
+  name: Cleanup TaskFail
+  category: Maintenance
+  capability: Delete expired Airflow metadata rows from TaskFail.
+  source_step_refs:
+  - cleanup_TaskFail
+  evidence:
+  - source: description
+    text: Clean TaskFail.
+  inputs:
+  - db_resource
+  - retention_config
+  outputs:
+  - task_fail_status
+  - task_fail_result
+  external_system_refs:
+  - airflow_metadata_database
+  preconditions: []
+  effects:
+  - TaskFail cleaned.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This is an Airflow metadata retention operation, not session cleanup.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanup_rendered_task_instance_fields
+  name: Cleanup RenderedTaskInstanceFields
+  category: Maintenance
+  capability: Delete expired Airflow metadata rows from RenderedTaskInstanceFields.
+  source_step_refs:
+  - cleanup_RenderedTaskInstanceFields
+  evidence:
+  - source: description
+    text: Clean RenderedTaskInstanceFields.
+  inputs:
+  - db_resource
+  - retention_config
+  outputs:
+  - rendered_task_instance_fields_status
+  - rendered_task_instance_fields_result
+  external_system_refs:
+  - airflow_metadata_database
+  preconditions: []
+  effects:
+  - RenderedTaskInstanceFields cleaned.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This is an Airflow metadata retention operation, not session cleanup.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanup_import_error
+  name: Cleanup ImportError
+  category: Maintenance
+  capability: Delete expired Airflow metadata rows from ImportError.
+  source_step_refs:
+  - cleanup_ImportError
+  evidence:
+  - source: description
+    text: Clean ImportError.
+  inputs:
+  - db_resource
+  - retention_config
+  outputs:
+  - import_error_status
+  - import_error_result
+  external_system_refs:
+  - airflow_metadata_database
+  preconditions: []
+  effects:
+  - ImportError cleaned.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This is an Airflow metadata retention operation, not session cleanup.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanup_base_job
+  name: Cleanup BaseJob
+  category: Maintenance
+  capability: Delete expired Airflow metadata rows from BaseJob.
+  source_step_refs:
+  - cleanup_BaseJob
+  evidence:
+  - source: description
+    text: Clean BaseJob.
+  inputs:
+  - db_resource
+  - retention_config
+  outputs:
+  - base_job_status
+  - base_job_result
+  external_system_refs:
+  - airflow_metadata_database
+  preconditions: []
+  effects:
+  - BaseJob cleaned.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: This is an Airflow metadata retention operation, not session cleanup.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanup_sessions
+  name: Cleanup sessions
+  category: Maintenance
+  capability: Delete expired rows from the Airflow session table.
+  source_step_refs:
+  - cleanup_sessions
+  evidence:
+  - source: description
+    text: Clean sessions.
+  inputs:
+  - db_resource
+  outputs:
+  - sessions_status
+  - sessions_result
+  external_system_refs:
+  - airflow_metadata_database
+  preconditions: []
+  effects:
+  - sessions cleaned.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The session cleanup has a distinct expiration-table contract.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: analyze_query
+  name: Analyze query
+  category: Maintenance
+  capability: Refresh PostgreSQL optimizer statistics after all cleanup operations.
+  source_step_refs:
+  - analyze_query
+  evidence:
+  - source: description
+    text: Analyze.
+  inputs:
+  - db_resource
+  outputs:
+  - analyze_status
+  external_system_refs:
+  - airflow_metadata_database
+  preconditions: []
+  effects:
+  - Analysis done.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly runs database analysis after the cleanup fan-in.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: print_configuration
+    to: cleanup_dag_run
+  - from: print_configuration
+    to: cleanup_task_instance
+  - from: print_configuration
+    to: cleanup_log
+  - from: print_configuration
+    to: cleanup_xcom
+  - from: print_configuration
+    to: cleanup_sla_miss
+  - from: print_configuration
+    to: cleanup_dag_model
+  - from: print_configuration
+    to: cleanup_task_reschedule
+  - from: print_configuration
+    to: cleanup_task_fail
+  - from: print_configuration
+    to: cleanup_rendered_task_instance_fields
+  - from: print_configuration
+    to: cleanup_import_error
+  - from: print_configuration
+    to: cleanup_base_job
+  - from: print_configuration
+    to: cleanup_sessions
+  - from: cleanup_dag_run
+    to: analyze_query
+  - from: cleanup_task_instance
+    to: analyze_query
+  - from: cleanup_log
+    to: analyze_query
+  - from: cleanup_xcom
+    to: analyze_query
+  - from: cleanup_sla_miss
+    to: analyze_query
+  - from: cleanup_dag_model
+    to: analyze_query
+  - from: cleanup_task_reschedule
+    to: analyze_query
+  - from: cleanup_task_fail
+    to: analyze_query
+  - from: cleanup_rendered_task_instance_fields
+    to: analyze_query
+  - from: cleanup_import_error
+    to: analyze_query
+  - from: cleanup_base_job
+    to: analyze_query
+  - from: cleanup_sessions
+    to: analyze_query
+  parallel_groups:
+  - group_id: cleanup_phase
+    intent_ids:
+    - cleanup_dag_run
+    - cleanup_task_instance
+    - cleanup_log
+    - cleanup_xcom
+    - cleanup_sla_miss
+    - cleanup_dag_model
+    - cleanup_task_reschedule
+    - cleanup_task_fail
+    - cleanup_rendered_task_instance_fields
+    - cleanup_import_error
+    - cleanup_base_job
+    - cleanup_sessions
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: runtime_parameters
+  name: Cleanup runtime parameters
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - print_configuration
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/config.json
+- artifact_id: retention_config
+  name: Resolved retention configuration
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: print_configuration
+  consumers:
+  - cleanup_dag_run
+  - cleanup_task_instance
+  - cleanup_log
+  - cleanup_xcom
+  - cleanup_sla_miss
+  - cleanup_dag_model
+  - cleanup_task_reschedule
+  - cleanup_task_fail
+  - cleanup_rendered_task_instance_fields
+  - cleanup_import_error
+  - cleanup_base_job
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/retention_config.schema.json
+- artifact_id: config_status
+  name: Configuration status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: print_configuration
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: db_resource
+  name: Airflow metadata database
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - cleanup_dag_run
+  - cleanup_task_instance
+  - cleanup_log
+  - cleanup_xcom
+  - cleanup_sla_miss
+  - cleanup_dag_model
+  - cleanup_task_reschedule
+  - cleanup_task_fail
+  - cleanup_rendered_task_instance_fields
+  - cleanup_import_error
+  - cleanup_base_job
+  - cleanup_sessions
+  - analyze_query
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/db.json
+- artifact_id: dag_run_status
+  name: Dag Run cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: cleanup_dag_run
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: dag_run_result
+  name: Dag Run affected table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: cleanup_dag_run
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/cleanup_result.schema.json
+- artifact_id: task_instance_status
+  name: Task Instance cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: cleanup_task_instance
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: task_instance_result
+  name: Task Instance affected table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: cleanup_task_instance
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/cleanup_result.schema.json
+- artifact_id: log_status
+  name: Log cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: cleanup_log
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: log_result
+  name: Log affected table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: cleanup_log
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/cleanup_result.schema.json
+- artifact_id: xcom_status
+  name: Xcom cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: cleanup_xcom
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: xcom_result
+  name: Xcom affected table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: cleanup_xcom
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/cleanup_result.schema.json
+- artifact_id: sla_miss_status
+  name: Sla Miss cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: cleanup_sla_miss
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: sla_miss_result
+  name: Sla Miss affected table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: cleanup_sla_miss
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/cleanup_result.schema.json
+- artifact_id: dag_model_status
+  name: Dag Model cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: cleanup_dag_model
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: dag_model_result
+  name: Dag Model affected table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: cleanup_dag_model
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/cleanup_result.schema.json
+- artifact_id: task_reschedule_status
+  name: Task Reschedule cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: cleanup_task_reschedule
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: task_reschedule_result
+  name: Task Reschedule affected table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: cleanup_task_reschedule
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/cleanup_result.schema.json
+- artifact_id: task_fail_status
+  name: Task Fail cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: cleanup_task_fail
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: task_fail_result
+  name: Task Fail affected table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: cleanup_task_fail
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/cleanup_result.schema.json
+- artifact_id: rendered_task_instance_fields_status
+  name: Rendered Task Instance Fields cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: cleanup_rendered_task_instance_fields
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: rendered_task_instance_fields_result
+  name: Rendered Task Instance Fields affected table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: cleanup_rendered_task_instance_fields
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/cleanup_result.schema.json
+- artifact_id: import_error_status
+  name: Import Error cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: cleanup_import_error
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: import_error_result
+  name: Import Error affected table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: cleanup_import_error
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/cleanup_result.schema.json
+- artifact_id: base_job_status
+  name: Base Job cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: cleanup_base_job
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: base_job_result
+  name: Base Job affected table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: cleanup_base_job
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/cleanup_result.schema.json
+- artifact_id: sessions_status
+  name: Session cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: cleanup_sessions
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: sessions_result
+  name: Session cleanup affected table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: intermediate
+  producer: cleanup_sessions
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/cleanup_result.schema.json
+- artifact_id: analyze_status
+  name: Database analysis status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: analyze_query
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+bindings:
+- intent_id: print_configuration
+  service_id: retention_cutoff_config_resolver
+  service_version: 1.0.0
+  input_bindings:
+  - port: runtime_parameters
+    artifact_id: runtime_parameters
+  output_bindings:
+  - port: retention_config
+    artifact_id: retention_config
+  - port: config_status
+    artifact_id: config_status
+  parameter_bindings:
+    max_age_parameter_name: maxDBEntryAgeInDays
+    max_age_variable_name: airflow_db_cleanup__max_db_entry_age_in_days
+    default_max_age_days: 30
+    enable_delete: true
+    print_deletes: false
+    reference_time: '2026-01-31T00:00:00Z'
+  secret_bindings: []
+  rationale: Resolves the reviewed cutoff and deletion flags used by metadata cleanup tasks.
+  confidence: explicit
+- intent_id: cleanup_dag_run
+  service_id: airflow_metadata_retention_cleaner
+  service_version: 1.0.0
+  input_bindings:
+  - port: airflow_metadata_database
+    artifact_id: db_resource
+  - port: retention_config
+    artifact_id: retention_config
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: dag_run_status
+  - port: affected_table
+    artifact_id: dag_run_result
+  parameter_bindings:
+    airflow_model_name: DagRun
+    table_name: dag_run
+    age_check_column: execution_date
+    keep_last: true
+  secret_bindings: []
+  rationale: Applies Airflow-aware retention semantics to the dag_run metadata table.
+  confidence: explicit
+- intent_id: cleanup_task_instance
+  service_id: airflow_metadata_retention_cleaner
+  service_version: 1.0.0
+  input_bindings:
+  - port: airflow_metadata_database
+    artifact_id: db_resource
+  - port: retention_config
+    artifact_id: retention_config
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: task_instance_status
+  - port: affected_table
+    artifact_id: task_instance_result
+  parameter_bindings:
+    airflow_model_name: TaskInstance
+    table_name: task_instance
+    age_check_column: execution_date
+    keep_last: false
+  secret_bindings: []
+  rationale: Applies Airflow-aware retention semantics to the task_instance metadata table.
+  confidence: explicit
+- intent_id: cleanup_log
+  service_id: airflow_metadata_retention_cleaner
+  service_version: 1.0.0
+  input_bindings:
+  - port: airflow_metadata_database
+    artifact_id: db_resource
+  - port: retention_config
+    artifact_id: retention_config
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: log_status
+  - port: affected_table
+    artifact_id: log_result
+  parameter_bindings:
+    airflow_model_name: Log
+    table_name: log
+    age_check_column: dttm
+    keep_last: false
+  secret_bindings: []
+  rationale: Applies Airflow-aware retention semantics to the log metadata table.
+  confidence: explicit
+- intent_id: cleanup_xcom
+  service_id: airflow_metadata_retention_cleaner
+  service_version: 1.0.0
+  input_bindings:
+  - port: airflow_metadata_database
+    artifact_id: db_resource
+  - port: retention_config
+    artifact_id: retention_config
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: xcom_status
+  - port: affected_table
+    artifact_id: xcom_result
+  parameter_bindings:
+    airflow_model_name: XCom
+    table_name: xcom
+    age_check_column: timestamp
+    keep_last: false
+  secret_bindings: []
+  rationale: Applies Airflow-aware retention semantics to the xcom metadata table.
+  confidence: explicit
+- intent_id: cleanup_sla_miss
+  service_id: airflow_metadata_retention_cleaner
+  service_version: 1.0.0
+  input_bindings:
+  - port: airflow_metadata_database
+    artifact_id: db_resource
+  - port: retention_config
+    artifact_id: retention_config
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: sla_miss_status
+  - port: affected_table
+    artifact_id: sla_miss_result
+  parameter_bindings:
+    airflow_model_name: SlaMiss
+    table_name: sla_miss
+    age_check_column: execution_date
+    keep_last: false
+  secret_bindings: []
+  rationale: Applies Airflow-aware retention semantics to the sla_miss metadata table.
+  confidence: explicit
+- intent_id: cleanup_dag_model
+  service_id: airflow_metadata_retention_cleaner
+  service_version: 1.0.0
+  input_bindings:
+  - port: airflow_metadata_database
+    artifact_id: db_resource
+  - port: retention_config
+    artifact_id: retention_config
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: dag_model_status
+  - port: affected_table
+    artifact_id: dag_model_result
+  parameter_bindings:
+    airflow_model_name: DagModel
+    table_name: dag
+    age_check_column: last_parsed_time
+    keep_last: false
+  secret_bindings: []
+  rationale: Applies Airflow-aware retention semantics to the dag metadata table.
+  confidence: explicit
+- intent_id: cleanup_task_reschedule
+  service_id: airflow_metadata_retention_cleaner
+  service_version: 1.0.0
+  input_bindings:
+  - port: airflow_metadata_database
+    artifact_id: db_resource
+  - port: retention_config
+    artifact_id: retention_config
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: task_reschedule_status
+  - port: affected_table
+    artifact_id: task_reschedule_result
+  parameter_bindings:
+    airflow_model_name: TaskReschedule
+    table_name: task_reschedule
+    age_check_column: reschedule_date
+    keep_last: false
+  secret_bindings: []
+  rationale: Applies Airflow-aware retention semantics to the task_reschedule metadata table.
+  confidence: explicit
+- intent_id: cleanup_task_fail
+  service_id: airflow_metadata_retention_cleaner
+  service_version: 1.0.0
+  input_bindings:
+  - port: airflow_metadata_database
+    artifact_id: db_resource
+  - port: retention_config
+    artifact_id: retention_config
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: task_fail_status
+  - port: affected_table
+    artifact_id: task_fail_result
+  parameter_bindings:
+    airflow_model_name: TaskFail
+    table_name: task_fail
+    age_check_column: end_date
+    keep_last: false
+  secret_bindings: []
+  rationale: Applies Airflow-aware retention semantics to the task_fail metadata table.
+  confidence: explicit
+- intent_id: cleanup_rendered_task_instance_fields
+  service_id: airflow_metadata_retention_cleaner
+  service_version: 1.0.0
+  input_bindings:
+  - port: airflow_metadata_database
+    artifact_id: db_resource
+  - port: retention_config
+    artifact_id: retention_config
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: rendered_task_instance_fields_status
+  - port: affected_table
+    artifact_id: rendered_task_instance_fields_result
+  parameter_bindings:
+    airflow_model_name: RenderedTaskInstanceFields
+    table_name: rendered_task_instance_fields
+    age_check_column: execution_date
+    keep_last: false
+  secret_bindings: []
+  rationale: Applies Airflow-aware retention semantics to the rendered_task_instance_fields metadata table.
+  confidence: explicit
+- intent_id: cleanup_import_error
+  service_id: airflow_metadata_retention_cleaner
+  service_version: 1.0.0
+  input_bindings:
+  - port: airflow_metadata_database
+    artifact_id: db_resource
+  - port: retention_config
+    artifact_id: retention_config
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: import_error_status
+  - port: affected_table
+    artifact_id: import_error_result
+  parameter_bindings:
+    airflow_model_name: ImportError
+    table_name: import_error
+    age_check_column: timestamp
+    keep_last: false
+    do_not_delete_by_dag_id: true
+  secret_bindings: []
+  rationale: Applies Airflow-aware retention semantics to the import_error metadata table.
+  confidence: explicit
+- intent_id: cleanup_base_job
+  service_id: airflow_metadata_retention_cleaner
+  service_version: 1.0.0
+  input_bindings:
+  - port: airflow_metadata_database
+    artifact_id: db_resource
+  - port: retention_config
+    artifact_id: retention_config
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: base_job_status
+  - port: affected_table
+    artifact_id: base_job_result
+  parameter_bindings:
+    airflow_model_name: BaseJob
+    table_name: job
+    age_check_column: latest_heartbeat
+    keep_last: false
+  secret_bindings: []
+  rationale: Applies Airflow-aware retention semantics to the job metadata table.
+  confidence: explicit
+- intent_id: cleanup_sessions
+  service_id: database_expired_session_cleanup
+  service_version: 1.0.0
+  input_bindings:
+  - port: session_database
+    artifact_id: db_resource
+  output_bindings:
+  - port: session_cleanup_status
+    artifact_id: sessions_status
+  - port: affected_table
+    artifact_id: sessions_result
+  parameter_bindings:
+    session_table: session
+    expiration_column: expiry
+    delete_enabled: true
+  secret_bindings: []
+  rationale: Uses the dedicated expired-session cleanup contract.
+  confidence: explicit
+- intent_id: analyze_query
+  service_id: database_statistics_analyzer
+  service_version: 1.0.0
+  input_bindings:
+  - port: database
+    artifact_id: db_resource
+  output_bindings:
+  - port: analysis_status
+    artifact_id: analyze_status
+  parameter_bindings:
+    analysis_scope: tables
+    table_names:
+    - dag_run
+    - task_instance
+    - log
+    - xcom
+    - sla_miss
+    - dag
+    - task_reschedule
+    - task_fail
+    - rendered_task_instance_fields
+    - import_error
+    - job
+    - session
+  secret_bindings: []
+  rationale: Refreshes optimizer statistics for every cleaned metadata table.
+  confidence: explicit
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock cleanup.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Gate 0
+- gate: G1
+  expected_status: pass
+  checks:
+  - Gate 1
+- gate: G2
+  expected_status: pass
+  checks:
+  - Gate 2
+- gate: G3
+  expected_status: pass
+  checks:
+  - Gate 3
+- gate: G4
+  expected_status: pass
+  checks:
+  - Gate 4
+- gate: G5
+  expected_status: pass
+  checks:
+  - Gate 5
+- gate: G6
+  expected_status: pass
+  checks:
+  - Gate 6
+source_step_accounting:
+- source_step_ref: print_configuration
+  disposition: service
+  intent_ids:
+  - print_configuration
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: cleanup_DagRun
+  disposition: service
+  intent_ids:
+  - cleanup_dag_run
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: cleanup_TaskInstance
+  disposition: service
+  intent_ids:
+  - cleanup_task_instance
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: cleanup_Log
+  disposition: service
+  intent_ids:
+  - cleanup_log
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: cleanup_XCom
+  disposition: service
+  intent_ids:
+  - cleanup_xcom
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: cleanup_SlaMiss
+  disposition: service
+  intent_ids:
+  - cleanup_sla_miss
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: cleanup_DagModel
+  disposition: service
+  intent_ids:
+  - cleanup_dag_model
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: cleanup_TaskReschedule
+  disposition: service
+  intent_ids:
+  - cleanup_task_reschedule
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: cleanup_TaskFail
+  disposition: service
+  intent_ids:
+  - cleanup_task_fail
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: cleanup_RenderedTaskInstanceFields
+  disposition: service
+  intent_ids:
+  - cleanup_rendered_task_instance_fields
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: cleanup_ImportError
+  disposition: service
+  intent_ids:
+  - cleanup_import_error
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: cleanup_BaseJob
+  disposition: service
+  intent_ids:
+  - cleanup_base_job
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: cleanup_sessions
+  disposition: service
+  intent_ids:
+  - cleanup_sessions
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: analyze_query
+  disposition: service
+  intent_ids:
+  - analyze_query
+  rationale: The source step invokes the reviewed service intent or intents listed.

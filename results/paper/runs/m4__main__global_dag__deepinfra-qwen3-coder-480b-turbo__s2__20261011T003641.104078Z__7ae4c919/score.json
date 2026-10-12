@@ -1,0 +1,735 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-11T00:47:33.026369+00:00",
+  "instance": "benchmark/instances/main/global_dag",
+  "workspace": "experiments/workspaces/main/global_dag",
+  "submission": "results/paper/runs/m4__main__global_dag__deepinfra-qwen3-coder-480b-turbo__s2__20261011T003641.104078Z__7ae4c919/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G1",
+    "g6_assert_status": "pass",
+    "full_pass_g0_g6": false,
+    "node_f1": 0.8372093023255814,
+    "edge_f1": 0.4067796610169491,
+    "binding_top1_accuracy": 0.9473684210526315,
+    "binding_version_accuracy": null,
+    "wiring_f1": 0.2380952380952381,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 42,
+    "over_decomposition_rate": 0.2631578947368421,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": null
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-11T00:47:31.074294+00:00",
+    "workspace": "experiments/workspaces/main/global_dag",
+    "submission": "results/paper/runs/m4__main__global_dag__deepinfra-qwen3-coder-480b-turbo__s2__20261011T003641.104078Z__7ae4c919/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G1",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "fail",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'imported_death_files_redis_key' names consumer 'clean_tmp_death_files_intent', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "start_global_intent: output 'availability_decision' expects decision, got any"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "start_global_intent: required input port 'file_location_resource' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "start_global_intent: required output port 'check_status' is not bound"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "ingestion_pipeline_start_intent: output 'availability_decision' expects decision, got any"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "ingestion_pipeline_start_intent: required input port 'file_location_resource' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "ingestion_pipeline_start_intent: required output port 'check_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "ingestion_pipeline_start_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "get_city_code_geo_intent: output 'response_artifact' expects any, got csv"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "get_city_code_geo_intent: required output port 'extraction_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "get_city_code_geo_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "get_nuclear_json_intent: required output port 'extraction_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "get_nuclear_json_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "get_nuclear_data_intent: output 'downloaded_files' expects array, got csv"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "get_nuclear_data_intent: required output port 'download_status' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "get_death_resource_list_intent: required output port 'extraction_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "get_death_resource_list_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "get_death_resources_intent: output 'downloaded_files' expects array, got text"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "get_death_resources_intent: required output port 'download_status' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "get_thermal_json_intent: required output port 'extraction_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "get_thermal_json_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "get_thermal_data_intent: output 'downloaded_files' expects array, got csv"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "get_thermal_data_intent: required output port 'download_status' is not bound"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "ingestion_pipeline_end_intent: output 'availability_decision' expects decision, got any"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "ingestion_pipeline_end_intent: required input port 'file_location_resource' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "ingestion_pipeline_end_intent: required output port 'check_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "ingestion_pipeline_end_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "staging_pipeline_start_intent: output 'availability_decision' expects decision, got any"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "staging_pipeline_start_intent: required input port 'file_location_resource' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "staging_pipeline_start_intent: required output port 'check_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "staging_pipeline_start_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "import_nuclear_clean_data_intent: required output port 'transform_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "import_nuclear_clean_data_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "import_thermal_clean_data_intent: required output port 'transform_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "import_thermal_clean_data_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "create_power_plants_table_intent: required input port 'sql_script_file' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "create_power_plants_table_intent: required input port 'postgres_database' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "create_power_plants_table_intent: required output port 'execution_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "create_power_plants_table_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "create_death_table_intent: required input port 'sql_script_file' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "create_death_table_intent: required input port 'postgres_database' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "create_death_table_intent: required output port 'execution_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "create_death_table_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_OUTPUT_CARDINALITY",
+            "message": "load_data_from_ingestion_intent: output port 'redis_key_references' does not accept multiple artifacts"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "load_data_from_ingestion_intent: output 'redis_key_references' expects object, got string"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "load_data_from_ingestion_intent: output 'redis_key_references' expects object, got string"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "load_data_from_ingestion_intent: required input port 'redis_resource' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "load_data_from_ingestion_intent: required output port 'load_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "load_data_from_ingestion_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "cleanse_death_data_intent: required input port 'redis_resource' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "cleanse_death_data_intent: required output port 'generation_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "cleanse_death_data_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "death_emptiness_check_intent: required input port 'file_location_resource' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "death_emptiness_check_intent: required output port 'check_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "death_emptiness_check_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "store_deaths_in_postgres_intent: required input port 'postgres_database' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "store_deaths_in_postgres_intent: required output port 'execution_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "store_deaths_in_postgres_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "clean_tmp_death_files_intent: output 'redis_cleanup_status' expects status, got any"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "clean_tmp_death_files_intent: required input port 'redis_resource' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "clean_tmp_death_files_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "create_plant_persist_sql_query_intent: required output port 'generation_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "create_plant_persist_sql_query_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "store_plants_in_postgres_intent: required input port 'postgres_database' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "store_plants_in_postgres_intent: required output port 'execution_status' is not bound"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "staging_pipeline_staging_end_intent: output 'availability_decision' expects decision, got any"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "staging_pipeline_staging_end_intent: required input port 'file_location_resource' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "staging_pipeline_staging_end_intent: required output port 'check_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "staging_pipeline_staging_end_intent: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "end_global_intent: output 'availability_decision' expects decision, got any"
+          },
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "end_global_intent: required input port 'file_location_resource' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "end_global_intent: required output port 'check_status' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "end_global_intent: bound input artifacts do not exactly match the intent inputs"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "fail",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": [
+          {
+            "code": "G4_NETWORK_POLICY",
+            "message": "start_global_intent: network-forbidden intent binds service with optional access"
+          },
+          {
+            "code": "G4_NETWORK_POLICY",
+            "message": "ingestion_pipeline_start_intent: network-forbidden intent binds service with optional access"
+          },
+          {
+            "code": "G4_NETWORK_POLICY",
+            "message": "get_nuclear_data_intent: network-forbidden intent binds service with required access"
+          },
+          {
+            "code": "G4_NETWORK_POLICY",
+            "message": "get_death_resources_intent: network-forbidden intent binds service with required access"
+          },
+          {
+            "code": "G4_NETWORK_POLICY",
+            "message": "get_thermal_data_intent: network-forbidden intent binds service with required access"
+          },
+          {
+            "code": "G4_NETWORK_POLICY",
+            "message": "ingestion_pipeline_end_intent: network-forbidden intent binds service with optional access"
+          },
+          {
+            "code": "G4_NETWORK_POLICY",
+            "message": "staging_pipeline_start_intent: network-forbidden intent binds service with optional access"
+          },
+          {
+            "code": "G4_NETWORK_POLICY",
+            "message": "death_emptiness_check_intent: network-forbidden intent binds service with optional access"
+          },
+          {
+            "code": "G4_NETWORK_POLICY",
+            "message": "staging_pipeline_staging_end_intent: network-forbidden intent binds service with optional access"
+          },
+          {
+            "code": "G4_NETWORK_POLICY",
+            "message": "end_global_intent: network-forbidden intent binds service with optional access"
+          }
+        ]
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "global-dag-composition-scripts",
+              "scenario": "base",
+              "data_size_bytes": 48492,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "global-dag-composition-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 1259,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "global-dag-composition-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 48492,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "global-dag-composition-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 1259,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "start_global_intent",
+                "ingestion_pipeline_start_intent",
+                "get_city_code_geo_intent",
+                "get_nuclear_json_intent",
+                "get_nuclear_data_intent",
+                "get_death_resource_list_intent",
+                "get_death_resources_intent",
+                "get_thermal_json_intent",
+                "get_thermal_data_intent",
+                "ingestion_pipeline_end_intent",
+                "staging_pipeline_start_intent",
+                "import_nuclear_clean_data_intent",
+                "import_thermal_clean_data_intent",
+                "create_power_plants_table_intent",
+                "create_death_table_intent",
+                "load_data_from_ingestion_intent",
+                "cleanse_death_data_intent",
+                "death_emptiness_check_intent",
+                "store_deaths_in_postgres_intent",
+                "clean_tmp_death_files_intent",
+                "create_plant_persist_sql_query_intent",
+                "store_plants_in_postgres_intent",
+                "staging_pipeline_staging_end_intent",
+                "end_global_intent"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 18,
+      "submission_intents": 24,
+      "gold_intents": 19,
+      "mapping": {
+        "clean_tmp_death_files_intent": "stage_clean_tmp_death_redis",
+        "cleanse_death_data_intent": "stage_cleanse_death_data",
+        "create_death_table_intent": "stage_create_death_table",
+        "create_plant_persist_sql_query_intent": "stage_create_plant_persist_sql_query",
+        "create_power_plants_table_intent": "stage_create_power_plants_table",
+        "death_emptiness_check_intent": "stage_death_emptiness_check",
+        "get_city_code_geo_intent": "ingest_get_city_code_geo",
+        "get_death_resource_list_intent": "ingest_get_death_resource_list",
+        "get_death_resources_intent": "ingest_get_death_resources",
+        "get_nuclear_data_intent": "ingest_get_nuclear_data",
+        "get_nuclear_json_intent": "ingest_get_nuclear_json",
+        "get_thermal_data_intent": "ingest_get_thermal_data",
+        "get_thermal_json_intent": "ingest_get_thermal_json",
+        "import_nuclear_clean_data_intent": "stage_import_nuclear_clean_data",
+        "import_thermal_clean_data_intent": "stage_import_thermal_clean_data",
+        "load_data_from_ingestion_intent": "stage_load_data_from_ingestion",
+        "store_deaths_in_postgres_intent": "stage_store_deaths_in_postgres",
+        "store_plants_in_postgres_intent": "stage_store_plants_in_postgres"
+      }
+    },
+    "node": {
+      "precision": 0.75,
+      "recall": 0.9473684210526315,
+      "f1": 0.8372093023255814,
+      "matched": 18
+    },
+    "edge": {
+      "precision": 0.4,
+      "recall": 0.41379310344827586,
+      "f1": 0.4067796610169491,
+      "true_positives": 12,
+      "false_positives": 18,
+      "false_negatives": 17
+    },
+    "over_decomposition_rate": 0.2631578947368421,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 42,
+    "source_step_coverage": {
+      "covered": 24,
+      "total": 24,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 0.9473684210526315,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 19,
+    "correct": 18,
+    "confusion_by_label": {
+      "missing_intent": 1
+    },
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "ingest_get_city_code_geo",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "get_city_code_geo_intent",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_get_death_resource_list",
+        "gold_service": "http_json_request_extractor",
+        "submission_intent": "get_death_resource_list_intent",
+        "submission_service": "http_json_request_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_get_death_resources",
+        "gold_service": "data_gouv_dataset_resource_downloader",
+        "submission_intent": "get_death_resources_intent",
+        "submission_service": "data_gouv_dataset_resource_downloader",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_get_nuclear_data",
+        "gold_service": "data_gouv_dataset_resource_downloader",
+        "submission_intent": "get_nuclear_data_intent",
+        "submission_service": "data_gouv_dataset_resource_downloader",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_get_nuclear_json",
+        "gold_service": "http_json_request_extractor",
+        "submission_intent": "get_nuclear_json_intent",
+        "submission_service": "http_json_request_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_get_thermal_data",
+        "gold_service": "data_gouv_dataset_resource_downloader",
+        "submission_intent": "get_thermal_data_intent",
+        "submission_service": "data_gouv_dataset_resource_downloader",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_get_thermal_json",
+        "gold_service": "http_json_request_extractor",
+        "submission_intent": "get_thermal_json_intent",
+        "submission_service": "http_json_request_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "stage_clean_tmp_death_files",
+        "gold_service": "temporary_resource_cleanup",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "stage_clean_tmp_death_redis",
+        "gold_service": "redis_key_cleanup",
+        "submission_intent": "clean_tmp_death_files_intent",
+        "submission_service": "redis_key_cleanup",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "stage_cleanse_death_data",
+        "gold_service": "french_death_records_sql_script_generator",
+        "submission_intent": "cleanse_death_data_intent",
+        "submission_service": "french_death_records_sql_script_generator",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "stage_create_death_table",
+        "gold_service": "postgres_sql_file_executor",
+        "submission_intent": "create_death_table_intent",
+        "submission_service": "postgres_sql_file_executor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "stage_create_plant_persist_sql_query",
+        "gold_service": "tabular_csv_postgres_insert_sql_generator",
+        "submission_intent": "create_plant_persist_sql_query_intent",
+        "submission_service": "tabular_csv_postgres_insert_sql_generator",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "stage_create_power_plants_table",
+        "gold_service": "postgres_sql_file_executor",
+        "submission_intent": "create_power_plants_table_intent",
+        "submission_service": "postgres_sql_file_executor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "stage_death_emptiness_check",
+        "gold_service": "file_location_availability_sensor",
+        "submission_intent": "death_emptiness_check_intent",
+        "submission_service": "file_location_availability_sensor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "stage_import_nuclear_clean_data",
+        "gold_service": "power_plant_csv_standardizer",
+        "submission_intent": "import_nuclear_clean_data_intent",
+        "submission_service": "power_plant_csv_standardizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "stage_import_thermal_clean_data",
+        "gold_service": "power_plant_csv_standardizer",
+        "submission_intent": "import_thermal_clean_data_intent",
+        "submission_service": "power_plant_csv_standardizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "stage_load_data_from_ingestion",
+        "gold_service": "redis_file_batch_loader",
+        "submission_intent": "load_data_from_ingestion_intent",
+        "submission_service": "redis_file_batch_loader",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "stage_store_deaths_in_postgres",
+        "gold_service": "postgres_sql_file_executor",
+        "submission_intent": "store_deaths_in_postgres_intent",
+        "submission_service": "postgres_sql_file_executor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "stage_store_plants_in_postgres",
+        "gold_service": "postgres_sql_file_executor",
+        "submission_intent": "store_plants_in_postgres_intent",
+        "submission_service": "postgres_sql_file_executor",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 0.13513513513513514,
+    "recall": 1.0,
+    "f1": 0.2380952380952381,
+    "applicable": true,
+    "true_positives": 5,
+    "false_positives": 32,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [],
+        "status": "pass"
+      }
+    ],
+    "assertions_total": 0,
+    "assertions_passed": 0,
+    "pass_rate": null,
+    "overall_status": "pass"
+  }
+}

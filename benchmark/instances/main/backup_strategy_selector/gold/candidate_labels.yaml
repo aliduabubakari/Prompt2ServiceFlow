@@ -1,0 +1,27 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:backup_strategy_selector
+candidate_sets:
+- candidate_set_id: main_backup_strategy_selector_execution_date_backup_strategy_decider_candidates
+  required_service_id: execution_date_backup_strategy_decider
+  labels:
+    execution_date_backup_strategy_decider: gold
+    runtime_parameter_allowed_values_validator: missing_required_output
+    retention_cutoff_config_resolver: semantic_mismatch
+    fraud_risk_threshold_route_decider: contract_mismatch
+    database_backup_artifact_creator: semantic_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_backup_strategy_selector_database_backup_artifact_creator_candidates
+  required_service_id: database_backup_artifact_creator
+  labels:
+    database_backup_artifact_creator: gold
+    database_csv_snapshot_exporter: format_mismatch
+    postgres_parameterized_sql_executor: target_mismatch
+    database_csv_snapshot_importer: semantic_mismatch
+    backup_artifact_integrity_verifier: missing_required_output
+- candidate_set_id: main_backup_strategy_selector_backup_artifact_integrity_verifier_candidates
+  required_service_id: backup_artifact_integrity_verifier
+  labels:
+    backup_artifact_integrity_verifier: gold
+    database_backup_artifact_creator: semantic_mismatch
+    csv_tabular_schema_validating_loader: format_mismatch
+    reviewed_domain_adapter: generic_escape_hatch

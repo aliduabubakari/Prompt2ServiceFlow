@@ -1,0 +1,155 @@
+schema_version: 0.1.0
+service_id: financial_account_type_regulatory_route_decider
+version: 1.0.0
+display_name: Financial Account Type Regulatory Route Decider
+category: Transformer
+capability:
+  summary: Reads a financial transaction dataset, counts configured account-type values,
+    and emits an observable routing decision indicating whether FATCA and/or IRS reporting
+    branches are applicable.
+  operations:
+  - Read a structured transaction dataset with rows and columns.
+  - Validate that the configured account type column is present.
+  - Count transactions matching configured international and domestic account-type
+    values.
+  - Emit branch booleans, route labels, and count diagnostics without executing workflow
+    branches.
+  keywords:
+  - finance
+  - regulatory reporting
+  - account type
+  - routing decision
+  - fatca
+  - irs
+  - branch decision
+  limitations:
+  - Does not perform workflow branching; it only emits a decision artifact.
+  - Does not generate regulatory reports.
+  - Does not submit data to regulatory systems.
+  - Requires caller to configure account-type values and route labels.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: transaction_dataset
+    description: Validated financial transaction dataset containing transaction_id,
+      account_type, amount, currency, and any additional fields required downstream.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://validated_tabular_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  outputs:
+  - name: routing_decision
+    description: Decision with booleans and counts for FATCA/international and IRS/domestic
+      reporting applicability.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://financial_regulatory_routing_decision/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: account_type_column
+    description: Column containing account type values used for routing.
+    type: string
+    required: true
+  - name: international_values
+    description: Account type values that require FATCA reporting.
+    type: array
+    required: true
+  - name: domestic_values
+    description: Account type values that require IRS reporting.
+    type: array
+    required: true
+  - name: fatca_route_label
+    description: Route label emitted for the FATCA reporting path.
+    type: string
+    required: false
+  - name: irs_route_label
+    description: Route label emitted for the IRS reporting path.
+    type: string
+    required: false
+  secrets: []
+contracts:
+- contract_id: financial_route_input_dataset_schema
+  type: json_schema
+  applies_to: input
+  target: transaction_dataset
+  description: Input dataset must expose columns, rows, and non-negative row_count.
+  schema_ref: schema://validated_tabular_dataset/v1
+  expression: '{"type":"object","required":["columns","rows","row_count"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0}}}'
+- contract_id: financial_route_account_type_column_present
+  type: precondition
+  applies_to: parameter
+  target: account_type_column
+  description: Configured account type column must exist in the input dataset.
+  expression: account_type_column in transaction_dataset.columns
+- contract_id: financial_regulatory_routing_decision_schema
+  type: json_schema
+  applies_to: output
+  target: routing_decision
+  description: Decision exposes route booleans, matching counts, and configured labels.
+  schema_ref: schema://financial_regulatory_routing_decision/v1
+  expression: '{"type":"object","required":["should_generate_fatca","should_generate_irs","international_count","domestic_count","routes"],"properties":{"should_generate_fatca":{"type":"boolean"},"should_generate_irs":{"type":"boolean"},"international_count":{"type":"integer","minimum":0},"domestic_count":{"type":"integer","minimum":0},"routes":{"type":"array","items":{"type":"string"}},"unmatched_count":{"type":"integer","minimum":0}}}'
+- contract_id: financial_route_decider_effect
+  type: effect
+  applies_to: service
+  target: financial_account_type_regulatory_route_decider
+  description: Service is read-only and emits FATCA/IRS flags based on whether matching
+    account-type counts are greater than zero.
+  expression: no_external_mutation and routing_decision.should_generate_fatca == (routing_decision.international_count
+    > 0) and routing_decision.should_generate_irs == (routing_decision.domestic_count
+    > 0)
+invocation:
+  type: argo_workflow_template
+  template_name: financial-account-type-regulatory-route-decider-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.financial_account_type_regulatory_route_decider
+  implementation_ref: services/implementations/financial_account_type_regulatory_route_decider
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - financial
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw transaction rows or account identifiers.
+  - Workflow branch execution remains outside the service catalogue.
+  idempotency_notes: Same dataset and routing parameters produce the same decision.
+  default_timeout_seconds: 120
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:regulatory_report_router#account_check
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No registry service provided account-type regulatory routing with
+    observable branch decision semantics.'
+  - 'Evidence status: explicit.'

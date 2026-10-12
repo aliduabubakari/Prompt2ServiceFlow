@@ -1,0 +1,100 @@
+schema_version: 0.1.0
+service_id: exception_case_creator
+version: 1.0.0
+display_name: Exception Case Creator
+category: Publisher
+capability:
+  summary: Creates exception-tracker cases for invalid invoice records.
+  operations:
+  - Creates exception-tracker cases for invalid invoice records.
+  keywords:
+  - exception
+  - case
+  - creator
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: invalid_invoice_rows
+    description: Reviewed invalid invoice rows value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: exception_tracker
+    description: Reviewed exception tracker value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: exception_case_records
+    description: Reviewed exception case records value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: exception_status
+    description: Reviewed exception status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: case_type
+    description: Configuration for case type.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: exception-case-creator
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.1
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.exception_case_creator
+  implementation_ref: services/implementations/exception_case_creator
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-02:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 02 descriptions; bindings retain inference confidence.

@@ -1,0 +1,71 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: content_moderation_pipeline
+image: python:3.12-slim
+workflow_parameters:
+- name: fixture-file
+  default: user_content_toxic.csv
+tasks:
+- intent_id: scan_csv
+  script: scripts/01_scan_csv.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{fixture-file}'
+  retries: 2
+- intent_id: toxicity_check
+  script: scripts/02_toxicity_check.py
+  dependencies:
+  - scan_csv
+  arguments:
+  - --workspace
+  - '{workspace}'
+  output_parameters:
+  - name: route
+    path: /workspace/artifacts/toxicity_route.txt
+  retries: 2
+- intent_id: remove_and_flag_content
+  script: scripts/03_remove_and_flag_content.py
+  dependencies:
+  - toxicity_check
+  when: '{{tasks.toxicity_check.outputs.parameters.route}} == remove_flag'
+  local_condition:
+    path: artifacts/toxicity_routing_decision.json
+    json_path: route
+    equals: remove_flag
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: publish_content
+  script: scripts/04_publish_content.py
+  dependencies:
+  - toxicity_check
+  when: '{{tasks.toxicity_check.outputs.parameters.route}} == publish'
+  local_condition:
+    path: artifacts/toxicity_routing_decision.json
+    json_path: route
+    equals: publish
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: audit_log
+  script: scripts/05_audit_log.py
+  depends: (remove_and_flag_content.Succeeded || publish_content.Succeeded)
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+scenarios:
+- name: toxic_content_removal
+  parameters:
+    fixture-file: user_content_toxic.csv
+  fixture_root: fixtures/inputs
+- name: safe_content_publication
+  parameters:
+    fixture-file: user_content_safe.csv
+  fixture_root: fixtures/inputs
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

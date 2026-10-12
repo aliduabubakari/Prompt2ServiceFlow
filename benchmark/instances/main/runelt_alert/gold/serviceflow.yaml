@@ -1,0 +1,179 @@
+ir_version: 0.1.0
+composition_id: runelt_alert
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:RunELT_Alert
+  split: main
+  pipeline_id: RunELT_Alert
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/02_runelt_alert.txt
+  description_sha256: c3ae500f60f33b2f43ad5c40fc9fe05a2a939fd070c0165419af046b34c9621a
+  internal_spec_path: source/internal_specs/main_40/02_runelt_alert.json
+  internal_spec_sha256: 8edd395a23fb1b8b29aa51dd50e5995d1ecadddac339c3f9c38d1047b1bc9ce6
+requirement:
+  name: Runelt Alert
+  purpose: Processing pipeline.
+  domain: data_platform
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes: []
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems: []
+service_intents:
+- intent_id: run_ctas_mau_summary
+  name: Run CTAS
+  category: Loader
+  capability: Execute CTAS to build MAU summary table.
+  source_step_refs:
+  - runCTAS_mau_summary
+  evidence:
+  - source: description
+    text: Build ELT tables.
+  inputs:
+  - snowflake_resource
+  outputs:
+  - target_table
+  - exec_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Table created.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: CTAS execution.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges: []
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: snowflake_resource
+  name: Snowflake resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - run_ctas_mau_summary
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/snowflake.json
+- artifact_id: target_table
+  name: Target table
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: output
+  producer: run_ctas_mau_summary
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: exec_status
+  name: Exec status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: run_ctas_mau_summary
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: run_ctas_mau_summary
+  service_id: snowflake_ctas_atomic_table_replacer
+  service_version: 1.0.0
+  input_bindings:
+  - port: snowflake_database
+    artifact_id: snowflake_resource
+  output_bindings:
+  - port: target_table
+    artifact_id: target_table
+  - port: execution_status
+    artifact_id: exec_status
+  parameter_bindings:
+    target_schema: analytics
+    target_table_name: mau_summary
+    ctas_select_sql: SELECT COUNT(*) FROM raw_data.session_timestamp
+  secret_bindings:
+  - secret: snowflake_credentials
+    kubernetes_secret: snowflake-secrets
+    key: credentials
+  rationale: Runs CTAS.
+  confidence: explicit
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock execution.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Gate 0
+- gate: G1
+  expected_status: pass
+  checks:
+  - Gate 1
+- gate: G2
+  expected_status: pass
+  checks:
+  - Gate 2
+- gate: G3
+  expected_status: pass
+  checks:
+  - Gate 3
+- gate: G4
+  expected_status: pass
+  checks:
+  - Gate 4
+- gate: G5
+  expected_status: pass
+  checks:
+  - Gate 5
+- gate: G6
+  expected_status: pass
+  checks:
+  - Gate 6
+source_step_accounting:
+- source_step_ref: runCTAS_mau_summary
+  disposition: service
+  intent_ids:
+  - run_ctas_mau_summary
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

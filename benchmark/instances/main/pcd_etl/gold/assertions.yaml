@@ -1,0 +1,54 @@
+assertions_version: 0.1.0
+pipeline_id: pcd_etl
+scenarios:
+- scenario: pcd_data_available
+  assertions:
+  - assertion_id: sftp_ready
+    type: json_path_equals
+    path: artifacts/check_pcd_sftp_folder_decision.json
+    json_path: available
+    expected: true
+  - assertion_id: shared_folder_ready
+    type: json_path_equals
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    expected: true
+  - assertion_id: first_phase_extracted
+    type: json_path_equals
+    path: artifacts/financial_expense_result.json
+    json_path: record_count
+    expected: 2
+  - assertion_id: second_phase_extracted
+    type: json_path_equals
+    path: artifacts/provincial_risk_tracking_result.json
+    json_path: record_count
+    expected: 2
+  - assertion_id: processing_job_completed
+    type: json_path_equals
+    path: artifacts/pcd_file_upload_status.json
+    json_path: success
+    expected: true
+  - assertion_id: completion_email_sent
+    type: json_path_equals
+    path: artifacts/etl_notification_status.json
+    json_path: sent
+    expected: true
+- scenario: pcd_data_missing
+  assertions:
+  - assertion_id: shared_folder_not_ready
+    type: json_path_equals
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    expected: false
+  - assertion_id: first_phase_skipped
+    type: file_absent
+    path: artifacts/financial_expense_result.json
+  - assertion_id: second_phase_skipped
+    type: file_absent
+    path: artifacts/provincial_risk_tracking_result.json
+  - assertion_id: processing_job_skipped
+    type: file_absent
+    path: artifacts/pcd_file_upload_status.json
+  - assertion_id: notification_skipped
+    type: file_absent
+    path: artifacts/etl_notification_status.json

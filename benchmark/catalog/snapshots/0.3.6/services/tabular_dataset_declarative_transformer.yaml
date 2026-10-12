@@ -1,0 +1,173 @@
+schema_version: 0.1.0
+service_id: tabular_dataset_declarative_transformer
+version: 1.0.0
+display_name: Tabular Dataset Declarative Transformer
+category: Transformer
+capability:
+  summary: Applies caller-supplied declarative transformation rules to a tabular dataset
+    and emits a transformed dataset reference plus transformation status.
+  operations:
+  - Read a tabular input dataset with rows and column metadata.
+  - Validate declarative transformation rules such as column selection, renaming,
+    type casting, derived fields, filtering, or null handling.
+  - Apply rules deterministically to each input row.
+  - Emit transformed rows, dataset metadata, and observable row-count status.
+  keywords:
+  - tabular transform
+  - data cleaning
+  - declarative rules
+  - orders
+  - dataset transformation
+  limitations:
+  - Does not infer business transformation rules from table names or domains.
+  - Does not call external systems.
+  - Does not load transformed data into a database.
+  - Requires transformation_rules for deterministic non-identity behavior.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_dataset
+    description: Extracted tabular dataset to transform.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://tabular_query_result/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: transformed_dataset
+    description: Transformed tabular rows and column metadata.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://tabular_query_result/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: transformed_data_object
+    description: Dataset reference and metadata suitable for downstream database loading.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://tabular_ingest_metadata/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: transform_status
+    description: Observable transform status with rows read/written, produced columns,
+      and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://tabular_declarative_transform_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: transformation_rules
+    description: Declarative transformation rule object controlling filtering, cleaning,
+      column mapping, derived fields, casts, and output schema.
+    type: object
+    required: true
+  - name: output_path
+    description: Deterministic output artifact path or name for the transformed dataset.
+    type: string
+    required: true
+  - name: allow_identity_transform
+    description: Whether an empty/no-op transform is permitted when no transformation
+      rules are required by the workflow binding.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: tabular_declarative_transform_input_schema
+  type: json_schema
+  applies_to: input
+  target: source_dataset
+  description: Input dataset must contain columns, rows, and non-negative row count.
+  schema_ref: schema://tabular_query_result/v1
+  expression: '{"type":"object","required":["columns","rows","row_count"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0}}}'
+- contract_id: tabular_declarative_transform_rules_contract
+  type: precondition
+  applies_to: parameter
+  target: transformation_rules
+  description: Transformation rules must be supplied unless identity transformation
+    is explicitly allowed.
+  expression: allow_identity_transform == true or (transformation_rules != null and
+    length(keys(transformation_rules)) > 0)
+- contract_id: tabular_declarative_transform_output_schema
+  type: json_schema
+  applies_to: output
+  target: transformed_dataset
+  description: Transformed output remains a tabular dataset with columns, rows, and
+    row count.
+  schema_ref: schema://tabular_query_result/v1
+  expression: '{"type":"object","required":["columns","rows","row_count"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0}}}'
+- contract_id: tabular_declarative_transform_status_schema
+  type: json_schema
+  applies_to: output
+  target: transform_status
+  description: Status exposes transformation outcome for validation.
+  schema_ref: schema://tabular_declarative_transform_status/v1
+  expression: '{"type":"object","required":["success","rows_read","rows_written","output_uri"],"properties":{"success":{"type":"boolean"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"columns_produced":{"type":"array","items":{"type":"string"}},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: tabular_declarative_transform_effect
+  type: effect
+  applies_to: service
+  target: tabular_dataset_declarative_transformer
+  description: On success, the transformed dataset and loadable data-object metadata
+    exist and row counts are reported.
+  expression: transform_status.success == true implies exists(transformed_dataset)
+    and exists(transformed_data_object)
+invocation:
+  type: argo_workflow_template
+  template_name: tabular-dataset-declarative-transformer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.tabular_dataset_declarative_transformer
+  implementation_ref: services/implementations/tabular_dataset_declarative_transformer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw order rows; emit counts, column names, and bounded diagnostics.
+  - Transformation rules must be reviewed or supplied by workflow binding because
+    the source step does not define them.
+  idempotency_notes: Same input dataset and transformation_rules produce the same
+    transformed output.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:database_partition_check_etl#transform
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Needed because the registry has no generic service for a Python callable
+    that transforms an in-memory/tabular orders dataset between extractor and loader
+    artifact boundaries.'
+  - 'Evidence status: weakly_inferred.'

@@ -1,0 +1,204 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: procurement-supplier-validation-v1-scripts
+  namespace: prompt2serviceflow
+data:
+  01_load_suppliers.py: "#!/usr/bin/env python3\n\"\"\"Load supplier CSV and produce structured JSON.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, csv, json, shutil\nfrom pathlib import\
+    \ Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    dest=art/\"suppliers.csv\"; shutil.copyfile(a.fixture,dest)\n\
+    \    with dest.open(encoding=\"utf-8\",newline=\"\") as f:\n        r=csv.DictReader(f); rows=list(r);\
+    \ cols=r.fieldnames or []\n    out={\"columns\":cols,\"rows\":rows,\"row_count\":len(rows)}\n    (art/\"\
+    formatted_suppliers_json.json\").write_text(json.dumps(out,indent=2)+\"\\n\",encoding=\"utf-8\")\n\
+    \    (art/\"format_status.json\").write_text(json.dumps({\"success\":True,\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  02_reconcile_suppliers.py: "#!/usr/bin/env python3\n\"\"\"Mock Wikidata entity reconciliation.\"\"\"\
+    \nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\nWIKIDATA={\"\
+    Acme Corporation\":\"Q123\",\"Global Supplies Ltd\":\"Q456\",\"TechParts GmbH\":\"Q789\"}\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"\n    src=json.loads((art/\"formatted_suppliers_json.json\").read_text(encoding=\"\
+    utf-8\"))\n    for r in src[\"rows\"]:\n        r[\"wikidata_id\"]=WIKIDATA.get(r[\"supplier_name\"\
+    ],\"UNKNOWN\")\n    src[\"columns\"]=src[\"columns\"]+[\"wikidata_id\"]\n    (art/\"reconciled_suppliers_json.json\"\
+    ).write_text(json.dumps(src,indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"reconciliation_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif\
+    \ __name__==\"__main__\": main()\n"
+  03_save_suppliers.py: "#!/usr/bin/env python3\n\"\"\"Export reconciled JSON to CSV.\"\"\"\nfrom __future__\
+    \ import annotations\nimport argparse, csv, json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"\n    src=json.loads((art/\"reconciled_suppliers_json.json\").read_text(encoding=\"utf-8\"\
+    ))\n    out=art/\"enriched_suppliers.csv\"\n    with out.open(\"w\",encoding=\"utf-8\",newline=\"\"\
+    ) as f:\n        w=csv.DictWriter(f,fieldnames=src[\"columns\"]); w.writeheader(); w.writerows(src[\"\
+    rows\"])\n    (art/\"export_status.json\").write_text(json.dumps({\"success\":True,\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: procurement-supplier-validation-v1-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"pipeline_id\": \"procurement_supplier_validation_v1\",\n  \"inputs\": {\n    \"\
+    wikidata_resource\": \"wikidata_resource.json\",\n    \"suppliers\": \"suppliers.csv\"\n  },\n  \"\
+    input_modalities\": [\n    \"json\",\n    \"table\"\n  ],\n  \"systems\": [\n    \"system_a\",\n \
+    \   \"system_b\"\n  ]\n}"
+  fixture-0001: 'supplier_id,supplier_name,contact,country
+
+    SUP001,Acme Corporation,John Doe,USA
+
+    SUP002,Global Supplies Ltd,Jane Smith,UK
+
+    SUP003,TechParts GmbH,Hans Mueller,Germany
+
+    '
+  fixture-0002: '{"driver":"filesystem-mock","provider":"wikidata","target":"artifacts/reconciled_json.json"}'
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: procurement-supplier-validation-v1-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: procurement-supplier-validation-v1
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: three-suppliers
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: fixture-file
+      value: suppliers.csv
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: procurement-supplier-validation-v1-scripts
+  - name: fixtures
+    configMap:
+      name: procurement-supplier-validation-v1-fixtures
+      items:
+      - key: fixture-0000
+        path: fixture.json
+      - key: fixture-0001
+        path: suppliers.csv
+      - key: fixture-0002
+        path: wikidata_resource.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: load-and-modify-suppliers
+        template: run-load-and-modify-suppliers
+      - name: reconcile-supplier-entities
+        template: run-reconcile-supplier-entities
+        depends: load-and-modify-suppliers.Succeeded
+      - name: save-validated-suppliers
+        template: run-save-validated-suppliers
+        depends: reconcile-supplier-entities.Succeeded
+  - name: run-load-and-modify-suppliers
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: load_and_modify_suppliers
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_load_suppliers.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-reconcile-supplier-entities
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: reconcile_supplier_entities
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_reconcile_suppliers.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-save-validated-suppliers
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: save_validated_suppliers
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_save_suppliers.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError

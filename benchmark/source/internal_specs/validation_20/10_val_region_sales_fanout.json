@@ -1,0 +1,189 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_region_sales_fanout",
+  "pipeline_name": "Regional Sales Fan-out",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_region_sales_fanout.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Extract global sales data and publish regional aggregates for North America, Europe, and APAC in parallel.",
+    "business_domain": "Sales Analytics",
+    "execution_model": "Batch",
+    "topology_pattern": "Fan-out only",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "extract_global_sales",
+        "to": "publish_na_sales"
+      },
+      {
+        "from": "extract_global_sales",
+        "to": "publish_eu_sales"
+      },
+      {
+        "from": "extract_global_sales",
+        "to": "publish_apac_sales"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "steps": [
+          "publish_na_sales",
+          "publish_eu_sales",
+          "publish_apac_sales"
+        ]
+      }
+    ],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Sales warehouse",
+      "identifier": "sales_warehouse",
+      "details": [
+        "Validation external dependency: Sales warehouse"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Regional dashboard service",
+      "identifier": "regional_dashboard_service",
+      "details": [
+        "Validation external dependency: Regional dashboard service"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "global_sales_extract",
+        "description": "Validation artifact: global_sales_extract"
+      },
+      {
+        "identifier": "regional_sales_dataset",
+        "description": "Validation artifact: regional_sales_dataset"
+      },
+      {
+        "identifier": "dashboard_payload",
+        "description": "Validation artifact: dashboard_payload"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "extract_global_sales",
+      "name": "extract_global_sales",
+      "objective": "Extract global sales",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_na_sales",
+      "name": "publish_na_sales",
+      "objective": "Publish na sales",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_eu_sales",
+      "name": "publish_eu_sales",
+      "objective": "Publish eu sales",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_apac_sales",
+      "name": "publish_apac_sales",
+      "objective": "Publish apac sales",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

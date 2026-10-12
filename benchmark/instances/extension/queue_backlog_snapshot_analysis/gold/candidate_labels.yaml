@@ -1,0 +1,45 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:queue_backlog_snapshot_analysis
+candidate_sets:
+- candidate_set_id: extension_queue_backlog_snapshot_analysis_queue_snapshot_json_ingestor_candidates
+  required_service_id: queue_snapshot_json_ingestor
+  labels:
+    queue_snapshot_json_ingestor: gold
+    checkpoint_position_only_loader: semantic_mismatch
+    checkpoint_event_sort_deduplicator: contract_mismatch
+    append_only_event_archiver: format_mismatch
+- candidate_set_id: extension_queue_backlog_snapshot_analysis_queue_capacity_checkpoint_validator_candidates
+  required_service_id: queue_capacity_checkpoint_validator
+  labels:
+    queue_capacity_checkpoint_validator: gold
+    checkpoint_event_sort_deduplicator: semantic_mismatch
+    append_only_event_archiver: contract_mismatch
+    generic_queue_metric_counter: format_mismatch
+- candidate_set_id: extension_queue_backlog_snapshot_analysis_checkpoint_event_sort_deduplicator_candidates
+  required_service_id: checkpoint_event_sort_deduplicator
+  labels:
+    checkpoint_event_sort_deduplicator: gold
+    append_only_event_archiver: semantic_mismatch
+    generic_queue_metric_counter: contract_mismatch
+    audit_log_redaction_only_filter: format_mismatch
+- candidate_set_id: extension_queue_backlog_snapshot_analysis_checkpoint_window_builder_candidates
+  required_service_id: checkpoint_window_builder
+  labels:
+    checkpoint_window_builder: gold
+    generic_queue_metric_counter: semantic_mismatch
+    audit_log_redaction_only_filter: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_queue_backlog_snapshot_analysis_queue_backlog_capacity_risk_scorer_candidates
+  required_service_id: queue_backlog_capacity_risk_scorer
+  labels:
+    queue_backlog_capacity_risk_scorer: gold
+    audit_log_redaction_only_filter: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    checkpoint_position_only_loader: format_mismatch
+- candidate_set_id: extension_queue_backlog_snapshot_analysis_checkpoint_alert_digest_publisher_candidates
+  required_service_id: checkpoint_alert_digest_publisher
+  labels:
+    checkpoint_alert_digest_publisher: gold
+    reviewed_domain_adapter: semantic_mismatch
+    checkpoint_position_only_loader: contract_mismatch
+    checkpoint_event_sort_deduplicator: format_mismatch

@@ -1,0 +1,199 @@
+[
+  {
+    "pipeline_id": "crm_sales_enrichment_fusion",
+    "name": "CRM Sales Enrichment Fusion",
+    "track": "api_json_table_fusion",
+    "domain": "Marketing/Customer Operations",
+    "topology": "fan_in",
+    "complexity": "medium",
+    "subject": "CRM and sales enrichment records",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "json"
+    ],
+    "primary_inputs": [
+      "CRM account API snapshot",
+      "daily sales CSV",
+      "territory lookup table"
+    ],
+    "external_systems": [
+      "CRM API fixture",
+      "sales warehouse staging area"
+    ],
+    "scenario": "Join CRM account attributes with tabular sales measures for campaign planning.",
+    "global_number": 11,
+    "batch": 3,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_03/descriptions/11_crm_sales_enrichment_fusion.txt",
+    "spec_path": "batch_03/specs/11_crm_sales_enrichment_fusion.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "payment_ledger_reconciliation",
+    "name": "Payment Ledger Reconciliation",
+    "track": "api_json_table_fusion",
+    "domain": "Finance/Risk",
+    "topology": "branch_gate",
+    "complexity": "complex",
+    "subject": "payment API and ledger reconciliation",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "exception_report",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "payment provider JSON export",
+      "general ledger CSV",
+      "merchant registry table"
+    ],
+    "external_systems": [
+      "payment API fixture",
+      "finance exception queue"
+    ],
+    "scenario": "Reconcile payment provider events against ledger postings and branch unresolved mismatches.",
+    "global_number": 12,
+    "batch": 3,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_03/descriptions/12_payment_ledger_reconciliation.txt",
+    "spec_path": "batch_03/specs/12_payment_ledger_reconciliation.json",
+    "step_count": 10,
+    "edge_count": 10,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "weather_sales_feature_builder",
+    "name": "Weather Sales Feature Builder",
+    "track": "api_json_table_fusion",
+    "domain": "Retail/E-commerce",
+    "topology": "staged",
+    "complexity": "simple",
+    "subject": "weather and store-sales features",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "feature_manifest"
+    ],
+    "primary_inputs": [
+      "weather API JSON snapshot",
+      "store sales CSV",
+      "store location table"
+    ],
+    "external_systems": [
+      "weather API fixture",
+      "feature staging bucket"
+    ],
+    "scenario": "Build weather-aware sales features from bounded API and table inputs.",
+    "global_number": 13,
+    "batch": 3,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_03/descriptions/13_weather_sales_feature_builder.txt",
+    "spec_path": "batch_03/specs/13_weather_sales_feature_builder.json",
+    "step_count": 5,
+    "edge_count": 4,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "ehr_operations_fusion",
+    "name": "EHR Operations Fusion",
+    "track": "api_json_table_fusion",
+    "domain": "Healthcare/Public Health",
+    "topology": "fan_in",
+    "complexity": "complex",
+    "subject": "EHR API and operations dashboard records",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "json",
+      "status"
+    ],
+    "primary_inputs": [
+      "EHR encounter JSON export",
+      "bed operations CSV",
+      "department lookup table"
+    ],
+    "external_systems": [
+      "EHR API fixture",
+      "operations warehouse"
+    ],
+    "scenario": "Fuse encounter payloads with operational tables to prepare a de-identified command-center dataset.",
+    "global_number": 14,
+    "batch": 3,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_03/descriptions/14_ehr_operations_fusion.txt",
+    "spec_path": "batch_03/specs/14_ehr_operations_fusion.json",
+    "step_count": 10,
+    "edge_count": 9,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "supplier_risk_api_table_fusion",
+    "name": "Supplier Risk API Table Fusion",
+    "track": "api_json_table_fusion",
+    "domain": "Supply Chain/Manufacturing",
+    "topology": "fan_in",
+    "complexity": "medium",
+    "subject": "supplier risk API and procurement table",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "risk_report"
+    ],
+    "primary_inputs": [
+      "supplier risk API JSON",
+      "purchase order CSV",
+      "supplier master table"
+    ],
+    "external_systems": [
+      "risk intelligence API fixture",
+      "procurement staging bucket"
+    ],
+    "scenario": "Combine supplier risk indicators with procurement volume for exception prioritization.",
+    "global_number": 15,
+    "batch": 3,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_03/descriptions/15_supplier_risk_api_table_fusion.txt",
+    "spec_path": "batch_03/specs/15_supplier_risk_api_table_fusion.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  }
+]

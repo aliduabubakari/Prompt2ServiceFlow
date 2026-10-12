@@ -1,0 +1,158 @@
+schema_version: 0.1.0
+service_id: portfolio_holdings_metrics_analyzer
+version: 1.0.0
+display_name: Portfolio Holdings Metrics Analyzer
+category: ScoringService
+capability:
+  summary: Calculates total portfolio value, allocation percentages, and a deterministic
+    risk score from a brokerage holdings dataset.
+  operations:
+  - Read structured holdings rows with symbols, quantities, and prices.
+  - Calculate per-holding market value when absent.
+  - Aggregate total portfolio value.
+  - Calculate allocation percentages by configured asset class, symbol, or grouping
+    rule.
+  keywords:
+  - portfolio
+  - holdings
+  - allocation
+  - risk score
+  - finance
+  - metrics
+  limitations:
+  - Does not fetch holdings from brokerage APIs.
+  - Risk semantics require a configured model profile or deterministic rules.
+  - Does not aggregate across multiple portfolios or generate trade orders.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: holdings_dataset
+    description: Structured holdings dataset produced by a brokerage holdings extractor.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://brokerage_holdings_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  outputs:
+  - name: portfolio_analysis
+    description: Portfolio metrics including total value, allocation percentages,
+      and risk score.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://portfolio_analysis/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  - name: analysis_status
+    description: Observable analysis status with processed holding count and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://portfolio_analysis_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: allocation_grouping
+    description: Field or rule used to group holdings for allocation percentages,
+      such as asset_class or symbol.
+    type: string
+    required: false
+  - name: risk_model_profile
+    description: Named deterministic risk scoring profile.
+    type: string
+    required: true
+  - name: risk_rules
+    description: Optional declarative risk scoring rules or weights.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: portfolio_analysis_input_holdings_schema
+  type: json_schema
+  applies_to: input
+  target: holdings_dataset
+  description: Input holdings must include a brokerage id and holding rows with symbol,
+    quantity, and price.
+  schema_ref: schema://brokerage_holdings_dataset/v1
+  expression: '{"type":"object","required":["brokerage_id","holdings"],"properties":{"brokerage_id":{"type":"string"},"holdings":{"type":"array","items":{"type":"object","required":["symbol","quantity","price"]}}}}'
+- contract_id: portfolio_analysis_output_schema
+  type: json_schema
+  applies_to: output
+  target: portfolio_analysis
+  description: Portfolio analysis exposes total value, allocations, and risk score.
+  schema_ref: schema://portfolio_analysis/v1
+  expression: '{"type":"object","required":["brokerage_id","total_value","allocations","risk_score"],"properties":{"brokerage_id":{"type":"string"},"total_value":{"type":"number","minimum":0},"allocations":{"type":"object","additionalProperties":{"type":"number"}},"risk_score":{"type":"number","minimum":0,"maximum":1},"holding_count":{"type":"integer","minimum":0}}}'
+- contract_id: portfolio_analysis_status_schema
+  type: json_schema
+  applies_to: output
+  target: analysis_status
+  description: Status exposes metric calculation outcome.
+  schema_ref: schema://portfolio_analysis_status/v1
+  expression: '{"type":"object","required":["success","brokerage_id","holdings_processed","risk_model_profile"],"properties":{"success":{"type":"boolean"},"brokerage_id":{"type":"string"},"holdings_processed":{"type":"integer","minimum":0},"risk_model_profile":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: portfolio_analysis_effect
+  type: effect
+  applies_to: service
+  target: portfolio_holdings_metrics_analyzer
+  description: On success, a portfolio analysis exists for the same brokerage id as
+    the input holdings dataset.
+  expression: analysis_status.success == true implies portfolio_analysis.brokerage_id
+    == holdings_dataset.brokerage_id
+invocation:
+  type: argo_workflow_template
+  template_name: portfolio-holdings-metrics-analyzer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.portfolio_holdings_metrics_analyzer
+  implementation_ref: services/implementations/portfolio_holdings_metrics_analyzer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - financial
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw positions or account identifiers beyond bounded status fields.
+  - Risk rules should be approved by workflow binding for finance use.
+  idempotency_notes: Same holdings dataset and scoring configuration produce the same
+    portfolio analysis.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:portfolio_rebalancing_dag#analyze_portfolio_1
+  - main:portfolio_rebalancing_dag#analyze_portfolio_2
+  - main:portfolio_rebalancing_dag#analyze_portfolio_3
+  - main:portfolio_rebalancing_dag#analyze_portfolio_4
+  - main:portfolio_rebalancing_dag#analyze_portfolio_5
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing scoring services are domain-specific to fraud, quality, toxicity,
+    or environmental risk and do not satisfy portfolio allocation/risk contracts.'
+  - 'Evidence status: strongly_inferred.'

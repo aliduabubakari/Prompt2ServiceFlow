@@ -1,0 +1,218 @@
+schema_version: 0.1.0
+service_id: snowflake_ctas_atomic_table_replacer
+version: 1.0.0
+display_name: Snowflake CTAS Atomic Table Replacer
+category: Loader
+capability:
+  summary: Creates or replaces a Snowflake table from a caller-supplied SELECT query
+    by materializing into a temporary/staging table, validating the staged result,
+    and atomically swapping or replacing the configured target table while emitting
+    affected table references and execution status.
+  operations:
+  - Connect to a bound Snowflake database resource.
+  - Execute a CREATE OR REPLACE TABLE staging/temporary table AS caller-supplied SELECT
+    statement.
+  - Validate the staged table using default existence/query-success checks and optional
+    validation rules.
+  - "Atomically replace the configured target table using Snowflake-compatible swap\
+    \ or replacement semantics when validation succeeds \u0906\u0930 only after validation\
+    \ succeeds? no need non-English. Need valid JSON. Continue. Ensure no weird char?\
+    \ I typed "
+  keywords:
+  - snowflake
+  - ctas
+  - elt
+  - create table as select
+  - atomic swap
+  - table validation
+  - analytics table
+  - database mutation
+  limitations:
+  - Targets Snowflake databases only.
+  - Requires the CTAS SQL to be supplied by the caller and does not infer business
+    logic.
+  - Does not implement workflow scheduling, retries, branching, or failure alert hooks.
+  - Does not send Slack or other notifications; failure notifications are orchestration-level
+    hooks or separate notifier steps if explicitly modeled.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: snowflake_database
+    description: Snowflake database resource used to execute CTAS, validation, and
+      table replacement statements.
+    channel: external_resource
+    data_type: object
+    schema_ref: schema://snowflake_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: source_tables
+    description: Logical references to source Snowflake tables read by the CTAS query.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://sql_table_references/v1
+    required: false
+    cardinality: many
+    sensitivity: internal
+  outputs:
+  - name: target_table
+    description: Logical reference to the Snowflake table created or replaced by the
+      CTAS operation.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://sql_table_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: execution_status
+    description: Observable status containing success flag, staging table, target
+      table, validation outcome, rows produced when available, and error diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://snowflake_ctas_replacement_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: target_schema
+    description: Snowflake schema containing the final target table.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: target_table_name
+    description: Final Snowflake table name to create or atomically replace.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: ctas_select_sql
+    description: SELECT query used as the body of the CTAS operation. The service
+      wraps this query in Snowflake CREATE OR REPLACE TABLE staging AS ... semantics.
+    type: string
+    required: true
+  - name: staging_table_name
+    description: Optional staging or temporary table name. If omitted, the implementation
+      derives a deterministic name such as temp_<target_table_name>.
+    type: string
+    required: false
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: replacement_mode
+    description: Snowflake table replacement behavior after validation succeeds.
+    type: string
+    required: false
+    enum:
+    - swap
+    - create_or_replace
+  - name: validation_rules
+    description: Optional validation configuration, such as require_non_empty_result,
+      expected_columns, or custom validation SQL predicates.
+    type: object
+    required: false
+  secrets:
+  - name: snowflake_credentials
+    description: Credentials resolved through the bound Snowflake database resource.
+    required: true
+contracts:
+- contract_id: snowflake_target_identifier_contract
+  type: precondition
+  applies_to: service
+  target: snowflake_ctas_atomic_table_replacer
+  description: Target schema and table names must be valid Snowflake identifier-like
+    unquoted names.
+  expression: target_schema matches '^[A-Za-z_][A-Za-z0-9_]*$' and target_table_name
+    matches '^[A-Za-z_][A-Za-z0-9_]*$'
+- contract_id: snowflake_ctas_sql_contract
+  type: precondition
+  applies_to: parameter
+  target: ctas_select_sql
+  description: The CTAS body must be a non-empty SELECT query supplied by the caller.
+  expression: length(trim(ctas_select_sql)) > 0 and lower(trim(ctas_select_sql)) starts_with
+    'select'
+- contract_id: snowflake_table_reference_schema
+  type: json_schema
+  applies_to: output
+  target: target_table
+  description: Target table reference identifies the Snowflake schema and table affected
+    by the service.
+  schema_ref: schema://sql_table_reference/v1
+  expression: '{"type":"object","required":["database_type","schema_name","table_name"],"properties":{"database_type":{"const":"snowflake"},"schema_name":{"type":"string"},"table_name":{"type":"string"},"qualified_name":{"type":"string"}}}'
+- contract_id: snowflake_ctas_replacement_status_schema
+  type: json_schema
+  applies_to: output
+  target: execution_status
+  description: Execution status exposes CTAS, validation, and replacement effects
+    for downstream workflow validation.
+  schema_ref: schema://snowflake_ctas_replacement_status/v1
+  expression: '{"type":"object","required":["success","target_table","staging_table","ctas_executed","validation_passed","replacement_performed"],"properties":{"success":{"type":"boolean"},"target_table":{"type":"string"},"staging_table":{"type":"string"},"ctas_executed":{"type":"boolean"},"validation_passed":{"type":"boolean"},"replacement_performed":{"type":"boolean"},"replacement_mode":{"type":"string"},"rows_staged":{"type":["integer","null"],"minimum":0},"source_tables":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: snowflake_ctas_atomic_effect_contract
+  type: effect
+  applies_to: service
+  target: snowflake_ctas_atomic_table_replacer
+  description: On success, the staged CTAS table passed validation and the configured
+    target table was replaced; if validation fails, the target table must not be replaced
+    by this invocation.
+  expression: execution_status.success == true implies execution_status.ctas_executed
+    == true and execution_status.validation_passed == true and execution_status.replacement_performed
+    == true
+invocation:
+  type: argo_workflow_template
+  template_name: snowflake-ctas-atomic-table-replacer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.snowflake_ctas_atomic_table_replacer
+  implementation_ref: services/implementations/snowflake_ctas_atomic_table_replacer
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - snowflake://*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Snowflake credentials must not be emitted in logs or status artifacts.
+  - Caller-supplied SQL should be reviewed or constrained by workflow policy before
+    binding.
+  - Slack failure notification behavior from the source description is treated as
+    a workflow failure hook, not part of this database loader service.
+  idempotency_notes: Retry safety depends on deterministic CTAS SQL and stable source
+    tables. Using a deterministic staging table and Snowflake atomic replacement semantics
+    makes repeated invocations converge to the same target content for unchanged inputs.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:RunELT_Alert#runCTAS_mau_summary
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: A generic Snowflake CTAS atomic replacement service preserves the
+    material requirements of the source step: CTAS table construction, validation
+    before promotion, and atomic target replacement. Existing generic database loaders
+    operate from dataset artifacts and do not satisfy the CTAS/Snowflake SWAP contract.'
+  - 'Evidence status: explicit.'
+  - Contract snowflake_target_identifier_contract target 'target_schema_and_target_table_name'
+    was normalized to service scope.

@@ -1,0 +1,21 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:database_replication_fanout
+candidate_sets:
+- candidate_set_id: main_database_replication_fanout_database_csv_snapshot_exporter_candidates
+  required_service_id: database_csv_snapshot_exporter
+  labels:
+    database_csv_snapshot_exporter: gold
+    postgres_readonly_query_result_extractor: format_mismatch
+    sql_incremental_table_extractor: semantic_mismatch
+    database_backup_artifact_creator: format_mismatch
+    database_csv_snapshot_importer: target_mismatch
+    unreviewed_postgres_sql_executor: policy_incompatible
+- candidate_set_id: main_database_replication_fanout_database_csv_snapshot_importer_candidates
+  required_service_id: database_csv_snapshot_importer
+  labels:
+    database_csv_snapshot_importer: gold
+    tabular_dataset_database_loader: contract_mismatch
+    postgres_parameterized_sql_executor: format_mismatch
+    postgres_sql_file_executor: format_mismatch
+    database_csv_snapshot_exporter: target_mismatch
+    unreviewed_postgres_sql_executor: policy_incompatible

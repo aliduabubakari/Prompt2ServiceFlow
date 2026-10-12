@@ -1,0 +1,460 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-11T08:35:47.294303+00:00",
+  "instance": "benchmark/instances/extension/disaster_response_data_fusion",
+  "workspace": "experiments/workspaces/extension/disaster_response_data_fusion",
+  "submission": "results/paper/runs/m4__extension__disaster_response_data_fusion__deepinfra-qwen3-coder-480b-turbo__s2__20261011T082529.265745Z__4c16718d/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G1",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 0.18181818181818182,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-11T08:35:44.839668+00:00",
+    "workspace": "experiments/workspaces/extension/disaster_response_data_fusion",
+    "submission": "results/paper/runs/m4__extension__disaster_response_data_fusion__deepinfra-qwen3-coder-480b-turbo__s2__20261011T082529.265745Z__4c16718d/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G1",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "fail",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'prepared_outputs' names producer 'ingest_source_batch', but the producer does not list it as an output",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'prepared_outputs' names consumer 'normalize_partition_a', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'prepared_outputs' names consumer 'normalize_partition_b', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'prepared_outputs' names consumer 'normalize_partition_c', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'audit_manifest' names producer 'validate_source_contract', but the producer does not list it as an output",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'audit_manifest' names consumer 'normalize_partition_a', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'audit_manifest' names consumer 'normalize_partition_b', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'audit_manifest' names consumer 'normalize_partition_c', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "ingest_source_batch: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "validate_source_contract: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "normalize_partition_a: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "normalize_partition_b: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "normalize_partition_c: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "fuse_partitions: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "standardize_cross_domain_entities: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "resolve_entity_conflicts: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "score_operational_priority: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "apply_publication_or_routing_gate: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "create_stakeholder_packet: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "publish_notifications: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "publish_outputs: required output port 'execution_report' is not bound"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "extension-v1-disaster-response-data-fusion-scripts",
+              "scenario": "base",
+              "data_size_bytes": 26079,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-disaster-response-data-fusion-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 2126,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-disaster-response-data-fusion-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 26079,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-disaster-response-data-fusion-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 2126,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_source_batch",
+                "validate_source_contract",
+                "normalize_partition_a",
+                "normalize_partition_b",
+                "normalize_partition_c",
+                "fuse_partitions",
+                "standardize_cross_domain_entities",
+                "resolve_entity_conflicts",
+                "score_operational_priority",
+                "apply_publication_or_routing_gate",
+                "create_stakeholder_packet",
+                "publish_notifications",
+                "publish_outputs"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 13,
+      "submission_intents": 13,
+      "gold_intents": 13,
+      "mapping": {
+        "apply_publication_or_routing_gate": "apply_publication_or_routing_gate",
+        "create_stakeholder_packet": "create_stakeholder_packet",
+        "fuse_partitions": "fuse_partitions",
+        "ingest_source_batch": "ingest_source_batch",
+        "normalize_partition_a": "normalize_partition_a",
+        "normalize_partition_b": "normalize_partition_b",
+        "normalize_partition_c": "normalize_partition_c",
+        "publish_notifications": "publish_notifications",
+        "publish_outputs": "publish_outputs",
+        "resolve_entity_conflicts": "resolve_entity_conflicts",
+        "score_operational_priority": "score_operational_priority",
+        "standardize_cross_domain_entities": "standardize_cross_domain_entities",
+        "validate_source_contract": "validate_source_contract"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 13
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 14,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 13,
+      "total": 13,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 13,
+    "correct": 13,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "apply_publication_or_routing_gate",
+        "gold_service": "disaster_routing_gate_evaluator",
+        "submission_intent": "apply_publication_or_routing_gate",
+        "submission_service": "disaster_routing_gate_evaluator",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "create_stakeholder_packet",
+        "gold_service": "disaster_briefing_packet_builder",
+        "submission_intent": "create_stakeholder_packet",
+        "submission_service": "disaster_briefing_packet_builder",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "fuse_partitions",
+        "gold_service": "disaster_operational_picture_fuser",
+        "submission_intent": "fuse_partitions",
+        "submission_service": "disaster_operational_picture_fuser",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_source_batch",
+        "gold_service": "disaster_multimodal_batch_ingestor",
+        "submission_intent": "ingest_source_batch",
+        "submission_service": "disaster_multimodal_batch_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "normalize_partition_a",
+        "gold_service": "disaster_imagery_partition_normalizer",
+        "submission_intent": "normalize_partition_a",
+        "submission_service": "disaster_imagery_partition_normalizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "normalize_partition_b",
+        "gold_service": "disaster_shelter_status_normalizer",
+        "submission_intent": "normalize_partition_b",
+        "submission_service": "disaster_shelter_status_normalizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "normalize_partition_c",
+        "gold_service": "disaster_road_incident_text_normalizer",
+        "submission_intent": "normalize_partition_c",
+        "submission_service": "disaster_road_incident_text_normalizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_notifications",
+        "gold_service": "disaster_notification_publisher",
+        "submission_intent": "publish_notifications",
+        "submission_service": "disaster_notification_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_outputs",
+        "gold_service": "disaster_response_bundle_publisher",
+        "submission_intent": "publish_outputs",
+        "submission_service": "disaster_response_bundle_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "resolve_entity_conflicts",
+        "gold_service": "cross_modal_entity_conflict_resolver",
+        "submission_intent": "resolve_entity_conflicts",
+        "submission_service": "cross_modal_entity_conflict_resolver",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "score_operational_priority",
+        "gold_service": "disaster_operational_priority_scorer",
+        "submission_intent": "score_operational_priority",
+        "submission_service": "disaster_operational_priority_scorer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "standardize_cross_domain_entities",
+        "gold_service": "mixed_domain_entity_standardizer",
+        "submission_intent": "standardize_cross_domain_entities",
+        "submission_service": "mixed_domain_entity_standardizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "validate_source_contract",
+        "gold_service": "disaster_response_contract_validator",
+        "submission_intent": "validate_source_contract",
+        "submission_service": "disaster_response_contract_validator",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 0.25,
+    "recall": 0.14285714285714285,
+    "f1": 0.18181818181818182,
+    "applicable": true,
+    "true_positives": 2,
+    "false_positives": 6,
+    "false_negatives": 12
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "source_fixture_loaded",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-6nxf7f6z/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "source_files_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-6nxf7f6z/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "source_records_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-6nxf7f6z/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-6nxf7f6z/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "final_artifact_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-6nxf7f6z/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "upstream_evidence_propagated",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-6nxf7f6z/artifacts/publish_outputs_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 6,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

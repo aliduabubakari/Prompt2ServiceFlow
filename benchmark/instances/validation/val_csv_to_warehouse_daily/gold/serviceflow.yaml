@@ -1,0 +1,369 @@
+ir_version: 0.1.0
+composition_id: val_csv_to_warehouse_daily
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.0
+  sha256: 06ea151c94fc25937ea217f18ad8ef4add356fcdf26510e0f4241e17ccc14849
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_csv_to_warehouse_daily
+  split: validation
+  pipeline_id: val_csv_to_warehouse_daily
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/01_val_csv_to_warehouse_daily.txt
+  description_sha256: 9d62e9f9da5912e63e476bae180fc5b443c97ed7e0d0b04121fa659dbe03578a
+  internal_spec_path: source/internal_specs/validation_20/01_val_csv_to_warehouse_daily.json
+  internal_spec_sha256: 45fc81ce650cc4e3ea5d814cc61173971974bc1294a22733db726b982f0e3528
+requirement:
+  name: Val Csv To Warehouse Daily
+  purpose: Load daily sales CSV after file availability and schema validation.
+  domain: validation_holdout
+  execution_model: batch
+  topology: linear
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: sftp_drop_zone
+  type: sftp
+  name: SFTP daily sales drop zone
+  identifier: sftp_drop_zone
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: warehouse
+  type: database
+  name: PostgreSQL warehouse
+  identifier: warehouse
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: detect_daily_file
+  name: Detect Daily File
+  category: Sensor
+  capability: Perform the reviewed detect daily file capability.
+  source_step_refs:
+  - detect_daily_file
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: detect_daily_file.'
+  inputs:
+  - sftp_drop_zone_resource
+  outputs:
+  - availability_decision
+  - availability_status
+  external_system_refs:
+  - sftp_drop_zone
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared availability_decision, availability_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: validate_columns
+  name: Validate Columns
+  category: Extractor
+  capability: Perform the reviewed validate columns capability.
+  source_step_refs:
+  - validate_columns
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: validate_columns.'
+  inputs:
+  - daily_sales_csv
+  outputs:
+  - validated_sales_frame
+  - validated_sales_metadata
+  - validation_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared validated_sales_frame, validated_sales_metadata, validation_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: load_sales_table
+  name: Load Sales Table
+  category: Loader
+  capability: Perform the reviewed load sales table capability.
+  source_step_refs:
+  - load_sales_table
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: load_sales_table.'
+  inputs:
+  - validated_sales_metadata
+  - warehouse_resource
+  outputs:
+  - sales_load_status
+  external_system_refs:
+  - warehouse
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared sales_load_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: detect_daily_file
+  disposition: service
+  intent_ids:
+  - detect_daily_file
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: validate_columns
+  disposition: service
+  intent_ids:
+  - validate_columns
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: load_sales_table
+  disposition: service
+  intent_ids:
+  - load_sales_table
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: detect_daily_file
+    to: validate_columns
+  - from: validate_columns
+    to: load_sales_table
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: sftp_drop_zone_resource
+  name: Sftp Drop Zone Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: sftp_drop_zone
+- artifact_id: warehouse_resource
+  name: Warehouse Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: warehouse
+- artifact_id: daily_sales_csv
+  name: Daily Sales Csv
+  kind: artifact
+  data_type: csv
+  role: intermediate
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: availability_decision
+  name: Availability Decision
+  kind: artifact
+  data_type: decision
+  role: output
+  producer: detect_daily_file
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: availability_status
+  name: Availability Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: detect_daily_file
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validated_sales_frame
+  name: Validated Sales Frame
+  kind: artifact
+  data_type: table
+  role: output
+  producer: validate_columns
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validated_sales_metadata
+  name: Validated Sales Metadata
+  kind: artifact
+  data_type: object
+  role: intermediate
+  producer: validate_columns
+  consumers:
+  - load_sales_table
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validation_status
+  name: Validation Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: validate_columns
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: sales_load_status
+  name: Sales Load Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: load_sales_table
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: detect_daily_file
+  service_id: file_location_availability_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: file_location_resource
+    artifact_id: sftp_drop_zone_resource
+  output_bindings:
+  - port: availability_decision
+    artifact_id: availability_decision
+  - port: check_status
+    artifact_id: availability_status
+  parameter_bindings:
+    location_type: sftp
+    path: /sales
+    availability_condition: contains_matching_files
+    filename_pattern: daily_sales.csv
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: validate_columns
+  service_id: csv_tabular_schema_validating_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_file
+    artifact_id: daily_sales_csv
+  output_bindings:
+  - port: validated_dataset
+    artifact_id: validated_sales_frame
+  - port: validated_data_object
+    artifact_id: validated_sales_metadata
+  - port: validation_status
+    artifact_id: validation_status
+  parameter_bindings:
+    required_columns:
+    - sale_id
+    - amount
+    output_path: validated-sales.json
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: load_sales_table
+  service_id: tabular_dataset_database_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: ingested_data_object
+    artifact_id: validated_sales_metadata
+  - port: target_database
+    artifact_id: warehouse_resource
+  output_bindings:
+  - port: load_status
+    artifact_id: sales_load_status
+  parameter_bindings:
+    target_table: sales_fact
+    write_mode: upsert
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

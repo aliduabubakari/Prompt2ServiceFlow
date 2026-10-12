@@ -1,0 +1,208 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-partition-check-etl-etl-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Database partition check ETL mock.\"\"\"\nfrom __future__\
+    \ import annotations\nimport argparse, json\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"--step\",type=str,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    st={\"\
+    success\":True,\"errors\":[]}\n    if a.step==\"wait\":\n        (art/\"readiness_decision.json\"\
+    ).write_text(json.dumps({\"ready\":True,\"success\":True},indent=2)+\"\\n\",encoding=\"utf-8\")\n\
+    \        (art/\"sensor_status.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    elif a.step==\"extract\":\n        ds={\"columns\":[\"id\",\"event\"],\"rows\":[{\"id\":1,\"\
+    event\":\"test\"}]}\n        (art/\"extracted_dataset.json\").write_text(json.dumps(ds,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n        (art/\"extraction_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    elif a.step==\"transform\":\n        (art/\"transformed_dataset.json\"\
+    ).write_text(json.dumps({\"columns\":[\"id\",\"event\"],\"rows\":[]},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n        (art/\"transformed_obj.json\").write_text(json.dumps({\"rows\":1,\"success\":True},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n        (art/\"transform_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    elif a.step==\"load\":\n        (art/\"load_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-partition-check-etl-etl-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock","engine":"postgresql"}'
+  fixture-0001: "{\n  \"pipeline_id\": \"database_partition_check_etl\",\n  \"inputs\": {\n    \"target_db\"\
+    : \"target_db.json\",\n    \"db\": \"db.json\"\n  },\n  \"input_modalities\": [\n    \"json\",\n \
+    \   \"table\"\n  ],\n  \"systems\": [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"
+  fixture-0002: '{"driver":"filesystem-mock"}'
+---
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: database-partition-check-etl-etl
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters: []
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: database-partition-check-etl-etl-scripts
+    - name: fixtures
+      configMap:
+        name: database-partition-check-etl-etl-fixtures
+        items:
+        - key: fixture-0000
+          path: db.json
+        - key: fixture-0001
+          path: fixture.json
+        - key: fixture-0002
+          path: target_db.json
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: wait-partition
+          template: run-wait-partition
+        - name: extract-incremental
+          template: run-extract-incremental
+          depends: wait-partition.Succeeded
+        - name: transform
+          template: run-transform
+          depends: extract-incremental.Succeeded
+        - name: load
+          template: run-load
+          depends: transform.Succeeded
+    - name: run-wait-partition
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: wait_partition
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - wait
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-extract-incremental
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: extract_incremental
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - extract
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-transform
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: transform
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - transform
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-load
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: load
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - load
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

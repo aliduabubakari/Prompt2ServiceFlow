@@ -1,0 +1,49 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: data_transformation_pipeline
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: start
+  script: scripts/01_start.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+- intent_id: parse_input_params
+  script: scripts/02_parse_input_params.py
+  dependencies:
+  - start
+  arguments:
+  - --workspace
+  - '{workspace}'
+- intent_id: create_compilation_result
+  script: scripts/03_create_compilation_result.py
+  dependencies:
+  - parse_input_params
+  arguments:
+  - --workspace
+  - '{workspace}'
+- intent_id: create_workflow_invocation
+  script: scripts/04_create_workflow_invocation.py
+  dependencies:
+  - create_compilation_result
+  arguments:
+  - --workspace
+  - '{workspace}'
+- intent_id: is_workflow_invocation_done
+  script: scripts/05_is_workflow_invocation_done.py
+  dependencies:
+  - create_workflow_invocation
+  arguments:
+  - --workspace
+  - '{workspace}'
+- intent_id: end
+  script: scripts/06_end.py
+  dependencies:
+  - is_workflow_invocation_done
+  arguments:
+  - --workspace
+  - '{workspace}'
+scenarios:
+- name: dataform_run
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal

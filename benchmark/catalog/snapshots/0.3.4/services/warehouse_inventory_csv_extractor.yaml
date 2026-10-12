@@ -1,0 +1,166 @@
+schema_version: 0.1.0
+service_id: warehouse_inventory_csv_extractor
+version: 1.0.0
+display_name: Warehouse Inventory CSV Extractor
+category: Extractor
+capability:
+  summary: Fetches an inventory CSV for a configured warehouse from a bound warehouse
+    management system resource, stores it as a CSV artifact, and emits observable
+    extraction status.
+  operations:
+  - Resolve a bound warehouse management system resource.
+  - Request or retrieve inventory data for the configured warehouse identifier.
+  - Persist the returned inventory data as a CSV artifact at a deterministic output
+    path.
+  - Validate configured required columns when supplied, such as SKU and quantity columns.
+  keywords:
+  - warehouse management system
+  - inventory
+  - csv
+  - extractor
+  - warehouse_id
+  - retail
+  limitations:
+  - Does not infer the warehouse management system protocol; connection and request
+    details must be supplied by resource binding and parameters.
+  - Does not normalize SKU values or reconcile inventories.
+  - Does not implement workflow retries, fan-out, or schedules.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: warehouse_management_system
+    description: Bound external warehouse management system resource that can provide
+      inventory CSV data for configured warehouse identifiers.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://warehouse_management_system_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: inventory_csv
+    description: Fetched inventory CSV artifact for the configured warehouse.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://warehouse_inventory_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: extraction_status
+    description: Observable status containing warehouse id, request attempt flag,
+      output URI, row count when available, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://warehouse_inventory_extraction_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: warehouse_id
+    description: Warehouse identifier to fetch, such as north, south, east, or west.
+    type: string
+    required: true
+  - name: output_path
+    description: Deterministic artifact path or name for the fetched CSV.
+    type: string
+    required: true
+  - name: required_columns
+    description: Optional inventory CSV columns that must be present after fetch.
+    type: array
+    required: false
+  - name: request_options
+    description: Optional non-secret request selectors, endpoint paths, query parameters,
+      or export options for the bound warehouse system.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: warehouse_inventory_warehouse_id_required
+  type: precondition
+  applies_to: parameter
+  target: warehouse_id
+  description: Warehouse identifier must be non-empty.
+  expression: length(trim(warehouse_id)) > 0
+- contract_id: warehouse_inventory_csv_schema
+  type: tabular_schema
+  applies_to: output
+  target: inventory_csv
+  description: Fetched CSV must be parseable and contain all configured required columns.
+  schema_ref: schema://warehouse_inventory_csv/v1
+  expression: csv_parseable(inventory_csv) and (required_columns == null or columns(inventory_csv)
+    contains all required_columns)
+- contract_id: warehouse_inventory_extraction_status_schema
+  type: json_schema
+  applies_to: output
+  target: extraction_status
+  description: Status exposes extraction effect for downstream validation.
+  schema_ref: schema://warehouse_inventory_extraction_status/v1
+  expression: '{"type":"object","required":["success","warehouse_id","request_attempted","output_uri"],"properties":{"success":{"type":"boolean"},"warehouse_id":{"type":"string"},"request_attempted":{"type":"boolean"},"output_uri":{"type":"string"},"rows_fetched":{"type":["integer","null"],"minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: warehouse_inventory_extraction_effect
+  type: effect
+  applies_to: service
+  target: warehouse_inventory_csv_extractor
+  description: On success, the inventory CSV artifact exists and status.success is
+    true.
+  expression: extraction_status.success == true implies exists(inventory_csv)
+invocation:
+  type: argo_workflow_template
+  template_name: warehouse-inventory-csv-extractor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.warehouse_inventory_csv_extractor
+  implementation_ref: services/implementations/warehouse_inventory_csv_extractor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - warehouse-management://*
+  - https://*
+  - http://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit warehouse system credentials in outputs or logs.
+  - Raw inventory files may contain internal operational data.
+  - Workflow retries and fan-out are outside the service catalogue.
+  idempotency_notes: Retry-safe for read-only warehouse exports when output_path and
+    warehouse state are stable; external inventory contents may change between invocations.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:retail_inventory_reconciliation#fetch_east_warehouse_csv
+  - main:retail_inventory_reconciliation#fetch_north_warehouse_csv
+  - main:retail_inventory_reconciliation#fetch_south_warehouse_csv
+  - main:retail_inventory_reconciliation#fetch_west_warehouse_csv
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service models a warehouse-management-system
+    inventory CSV export with warehouse_id semantics and a CSV artifact contract.'
+  - 'Evidence status: strongly_inferred.'

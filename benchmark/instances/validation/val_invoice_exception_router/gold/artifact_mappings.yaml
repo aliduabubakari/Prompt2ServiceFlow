@@ -1,0 +1,31 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_invoice_exception_router
+mappings:
+- intent_id: validate_invoices
+  inputs:
+    invoice_batch: invoice_batch
+  outputs:
+    valid_invoice_rows: valid_invoice_rows
+    invalid_invoice_rows: invalid_invoice_rows
+    validation_status: invoice_validation_status
+- intent_id: route_invoice_status
+  inputs:
+    valid_invoice_rows: valid_invoice_rows
+    invalid_invoice_rows: invalid_invoice_rows
+    validation_status: invoice_validation_status
+  outputs:
+    route_decision: invoice_route_decision
+    routing_status: invoice_routing_status
+- intent_id: post_valid_invoices
+  inputs:
+    valid_invoice_rows: valid_invoice_rows
+    erp_api: erp_api_resource
+  outputs:
+    posting_status: posting_status
+- intent_id: create_exception_cases
+  inputs:
+    invalid_invoice_rows: invalid_invoice_rows
+    exception_tracker: exception_tracker_resource
+  outputs:
+    exception_case_records: exception_case_records
+    exception_status: exception_status

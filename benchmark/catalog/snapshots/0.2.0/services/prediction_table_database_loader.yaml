@@ -1,0 +1,94 @@
+schema_version: 0.1.0
+service_id: prediction_table_database_loader
+version: 1.0.0
+display_name: Prediction Table Database Loader
+category: Loader
+capability:
+  summary: Writes a prediction table to the configured durable prediction sink.
+  operations:
+  - Writes a prediction table to the configured durable prediction sink.
+  keywords:
+  - prediction
+  - table
+  - database
+  - loader
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: prediction_table
+    description: Reviewed prediction table value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: prediction_store
+    description: Reviewed prediction store value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: write_status
+    description: Reviewed write status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: target_table
+    description: Configuration for target table.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: prediction-table-database-loader
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.prediction_table_database_loader
+  implementation_ref: services/implementations/prediction_table_database_loader
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-24T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-01:curated-extension
+  notes:
+  - Curated from sparse Validation-20 descriptions; bindings retain inference confidence.

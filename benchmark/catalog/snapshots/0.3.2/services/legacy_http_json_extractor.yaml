@@ -1,0 +1,166 @@
+schema_version: 0.1.0
+service_id: legacy_http_json_extractor
+version: 0.9.0
+display_name: Legacy HTTP JSON Extractor
+category: Extractor
+capability:
+  summary: Fetches JSON over HTTP using a deprecated legacy extraction interface.
+  operations:
+  - Resolve request URL from base_url and endpoint or from absolute endpoint.
+  - Execute an HTTP request with configured method, query parameters, and optional
+    headers.
+  - Parse successful response bodies as JSON.
+  - Write the JSON response as an artifact for downstream processing.
+  keywords:
+  - http
+  - rest api
+  - json
+  - api extraction
+  - request
+  - response artifact
+  limitations:
+  - Deprecated; new compositions must use the documented replacement.
+  - Retained only for compatibility with legacy catalogue clients.
+lifecycle:
+  status: deprecated
+  deprecated_since: 0.1.0
+  replacement:
+    service_id: http_json_request_extractor
+    version: 1.0.0
+interface:
+  inputs: []
+  outputs:
+  - name: response_json
+    description: JSON artifact containing the parsed HTTP response body.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://http_json_response/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: extraction_status
+    description: Observable status including URL, method, HTTP status, parse success,
+      output artifact reference, and errors.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://http_json_extraction_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: base_url
+    description: Optional base URL used when endpoint is relative.
+    type: string
+    required: false
+    pattern: ^https?://.+
+  - name: endpoint
+    description: Absolute URL or relative endpoint path to request.
+    type: string
+    required: true
+  - name: method
+    description: HTTP method to execute.
+    type: string
+    required: true
+    enum:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+  - name: query_params
+    description: Optional query parameter object.
+    type: object
+    required: false
+  - name: headers
+    description: Optional non-secret request headers.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: http_json_endpoint_contract
+  type: precondition
+  applies_to: service
+  target: legacy_http_json_extractor
+  description: The resolved request URL must be an HTTP or HTTPS URL.
+  expression: resolved_url(base_url, endpoint) matches '^https?://.+'
+- contract_id: http_json_method_contract
+  type: precondition
+  applies_to: parameter
+  target: method
+  description: Method must be one of the supported HTTP verbs.
+  expression: method in ['GET','POST','PUT','PATCH','DELETE']
+- contract_id: http_json_response_schema
+  type: json_schema
+  applies_to: output
+  target: response_json
+  description: Parsed response artifact must be a JSON value; object responses are
+    expected for typical API extraction.
+  schema_ref: schema://http_json_response/v1
+  expression: '{"type":["object","array"]}'
+- contract_id: http_json_extraction_status_schema
+  type: json_schema
+  applies_to: output
+  target: extraction_status
+  description: Status exposes request and parse outcome for workflow validation.
+  schema_ref: schema://http_json_extraction_status/v1
+  expression: '{"type":"object","required":["success","method","resolved_url","http_status_code","json_parse_success"],"properties":{"success":{"type":"boolean"},"method":{"type":"string"},"resolved_url":{"type":"string"},"http_status_code":{"type":["integer","null"]},"json_parse_success":{"type":"boolean"},"output_uri":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: http_json_extractor_effect
+  type: effect
+  applies_to: service
+  target: legacy_http_json_extractor
+  description: On success, the response body is parsed as JSON, response_json exists,
+    and extraction_status.success is true.
+  expression: extraction_status.success == true implies exists(response_json) and
+    extraction_status.json_parse_success == true
+invocation:
+  type: argo_workflow_template
+  template_name: legacy-http-json-extractor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.legacy_http_json_extractor
+  implementation_ref: services/implementations/legacy_http_json_extractor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - http://*
+  - https://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - pii
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log authorization headers or response bodies containing personal data.
+  - Caller must bind approved endpoint targets.
+  idempotency_notes: GET requests are normally retry-safe; other methods depend on
+    upstream API semantics.
+  default_timeout_seconds: 120
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: reviewed
+  source_refs:
+  - catalog-curation:0.1.0
+  notes:
+  - Curated supplementary service derived from http_json_request_extractor.
+  - Lifecycle and policy metadata reflect catalogue governance constraints.

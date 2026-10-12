@@ -1,0 +1,125 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__access_entitlement_recertification.py
+- Name: Access Entitlement Recertification
+- Purpose: Fuse identity and resource entitlement records, route recertification decisions, and preserve an audit trail.
+- Execution model: bounded batch
+- Extension track: policy_privacy_human_review
+- Topology pattern: fan_in
+- Complexity band: very_complex
+- Business domain: AI Platform Operations
+- Input modalities: json, table
+- Output modalities: review_packet, audit_log, status
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- identity provider export
+- resource entitlement CSV
+- manager directory JSON
+
+External Systems:
+- identity governance fixture (fixture-backed; no production system is contacted)
+- manager approval queue (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_primary_source -> validate_source_contracts
+  - ingest_secondary_source -> validate_source_contracts
+  - ingest_reference_source -> validate_source_contracts
+  - validate_source_contracts -> normalize_sources
+  - normalize_sources -> fuse_sources
+  - fuse_sources -> detect_sensitive_fields
+  - detect_sensitive_fields -> apply_redaction_or_suppression
+  - apply_redaction_or_suppression -> create_human_review_packet
+  - create_human_review_packet -> record_policy_decision
+  - record_policy_decision -> write_audit_log
+  - write_audit_log -> notify_reviewer_or_owner
+  - notify_reviewer_or_owner -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_primary_source - Ingest Primary Source
+  - Objective: Ingest the primary source for access entitlement recertification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. ingest_secondary_source - Ingest Secondary Source
+  - Objective: Ingest the secondary source for access entitlement recertification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. ingest_reference_source - Ingest Reference Source
+  - Objective: Ingest reference data needed to interpret access entitlement recertification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. validate_source_contracts - Validate Source Contracts
+  - Objective: Validate schemas, identities, and freshness constraints across all access entitlement recertification sources.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. normalize_sources - Normalize Sources
+  - Objective: Normalize source-specific fields into a shared representation for access entitlement recertification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. fuse_sources - Fuse Sources
+  - Objective: Fuse normalized sources into a coherent access entitlement recertification artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. detect_sensitive_fields - Detect Sensitive Fields
+  - Objective: Detect sensitive, regulated, or policy-controlled fields in access entitlement recertification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+8. apply_redaction_or_suppression - Apply Redaction Or Suppression
+  - Objective: Apply redaction, suppression, or minimization rules for access entitlement recertification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+9. create_human_review_packet - Create Human Review Packet
+  - Objective: Create a human-review packet for ambiguous access entitlement recertification records.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+10. record_policy_decision - Record Policy Decision
+  - Objective: Record machine-readable policy decisions for access entitlement recertification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+11. write_audit_log - Write Audit Log
+  - Objective: Write audit evidence for access entitlement recertification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+12. notify_reviewer_or_owner - Notify Reviewer Or Owner
+  - Objective: Notify reviewers or data owners about access entitlement recertification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+13. publish_outputs - Publish Outputs
+  - Objective: Publish the prepared access entitlement recertification outputs and completion status.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

@@ -1,0 +1,112 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_financial_risk_stress_testing
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: load_market_scenarios
+  script: scripts/01_load_market_scenarios.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: load_portfolio_positions
+  script: scripts/02_load_portfolio_positions.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: run_credit_stress
+  script: scripts/03_run_credit_stress.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - load_market_scenarios
+  - load_portfolio_positions
+- intent_id: run_liquidity_stress
+  script: scripts/04_run_liquidity_stress.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - load_market_scenarios
+  - load_portfolio_positions
+- intent_id: run_market_stress
+  script: scripts/05_run_market_stress.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - load_market_scenarios
+  - load_portfolio_positions
+- intent_id: aggregate_stress_results
+  script: scripts/06_aggregate_stress_results.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - run_credit_stress
+  - run_liquidity_stress
+  - run_market_stress
+- intent_id: validate_capital_thresholds
+  script: scripts/07_validate_capital_thresholds.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - aggregate_stress_results
+- intent_id: route_validation_status
+  script: scripts/08_route_validation_status.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - validate_capital_thresholds
+- intent_id: write_regulatory_report
+  script: scripts/09_write_regulatory_report.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_validation_status
+- intent_id: open_remediation_ticket
+  script: scripts/10_open_remediation_ticket.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_validation_status
+- intent_id: archive_model_inputs
+  script: scripts/11_archive_model_inputs.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - write_regulatory_report
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

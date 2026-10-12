@@ -1,0 +1,250 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: data-quality-gate-low-quality-quarantine
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: fixture-file
+        value: customers_low_quality.csv
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: data-quality-gate-low-quality-quarantine-scripts
+    - name: fixtures
+      configMap:
+        name: data-quality-gate-low-quality-quarantine-fixtures
+        items:
+        - key: fixture-0000
+          path: customers_high_quality.csv
+        - key: fixture-0001
+          path: customers_low_quality.csv
+        - key: fixture-0002
+          path: email_service.json
+        - key: fixture-0003
+          path: production_database.json
+        - key: fixture-0004
+          path: quarantine_destination.json
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: ingest-customer-csv
+          template: run-ingest-customer-csv
+        - name: assess-customer-quality
+          template: run-assess-customer-quality
+          depends: ingest-customer-csv.Succeeded
+        - name: load-production-data
+          template: run-load-production-data
+          depends: assess-customer-quality.Succeeded
+          when: '{{tasks.assess-customer-quality.outputs.parameters.route}} == production'
+        - name: quarantine-customer-data
+          template: run-quarantine-customer-data
+          depends: assess-customer-quality.Succeeded
+          when: '{{tasks.assess-customer-quality.outputs.parameters.route}} == quarantine'
+        - name: notify-data-stewards
+          template: run-notify-data-stewards
+          depends: quarantine-customer-data.Succeeded
+          when: '{{tasks.assess-customer-quality.outputs.parameters.route}} == quarantine'
+        - name: cleanup-temporary-resources
+          template: run-cleanup-temporary-resources
+          depends: (load-production-data.Succeeded || notify-data-stewards.Succeeded)
+    - name: run-ingest-customer-csv
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: ingest_customer_csv
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_ingest_customer_csv.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-assess-customer-quality
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: assess_customer_quality
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_assess_customer_quality.py
+        - --workspace
+        - /workspace
+        - --threshold
+        - '95'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      outputs:
+        parameters:
+        - name: route
+          valueFrom:
+            path: /workspace/artifacts/quality_route.txt
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-load-production-data
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: load_production_data
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_load_production_data.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-quarantine-customer-data
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: quarantine_customer_data
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_quarantine_customer_data.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-notify-data-stewards
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: notify_data_stewards
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/05_notify_data_stewards.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-cleanup-temporary-resources
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanup_temporary_resources
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/06_cleanup_temporary_resources.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError

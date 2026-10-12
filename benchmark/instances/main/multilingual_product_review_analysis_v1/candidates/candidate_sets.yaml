@@ -1,0 +1,56 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:multilingual_product_review_analysis_v1
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_multilingual_product_review_analysis_v1_csv_to_structured_json_table_formatter_candidates
+  source_step_refs:
+  - load_and_modify_reviews
+  service_ids:
+  - csv_to_structured_json_table_formatter
+  - csv_to_structured_json_standardizer
+  - csv_tabular_schema_validating_loader
+  - customer_segment_csv_loader
+  - delimited_file_tabular_dataset_loader
+  - legacy_csv_schema_validator
+- candidate_set_id: main_multilingual_product_review_analysis_v1_tabular_text_language_detector_candidates
+  source_step_refs:
+  - detect_language
+  service_ids:
+  - tabular_text_language_detector
+  - tabular_text_sentiment_scorer
+  - content_toxicity_route_decider
+  - tabular_http_property_extension_enricher
+  - csv_to_structured_json_table_formatter
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_multilingual_product_review_analysis_v1_tabular_text_sentiment_scorer_candidates
+  source_step_refs:
+  - analyze_sentiment
+  service_ids:
+  - tabular_text_sentiment_scorer
+  - tabular_text_language_detector
+  - content_toxicity_route_decider
+  - transaction_csv_fraud_risk_analyzer
+  - tabular_text_feature_column_extractor
+  - reviewed_domain_adapter
+- candidate_set_id: main_multilingual_product_review_analysis_v1_tabular_text_feature_column_extractor_candidates
+  source_step_refs:
+  - extract_features
+  service_ids:
+  - tabular_text_feature_column_extractor
+  - tabular_http_property_extension_enricher
+  - tabular_text_sentiment_scorer
+  - document_keyword_feature_extractor
+  - json_field_projection_transformer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_multilingual_product_review_analysis_v1_structured_json_to_csv_exporter_candidates
+  source_step_refs:
+  - save_enriched_reviews
+  service_ids:
+  - structured_json_to_csv_exporter
+  - structured_json_batch_to_csv_exporter
+  - tabular_query_result_csv_writer
+  - csv_to_structured_json_standardizer
+  - parquet_quality_report_csv_exporter
+  - reviewed_domain_adapter

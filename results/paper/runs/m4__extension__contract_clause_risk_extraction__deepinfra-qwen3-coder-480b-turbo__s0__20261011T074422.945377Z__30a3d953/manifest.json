@@ -1,0 +1,207 @@
+{
+  "run_id": "m4__extension__contract_clause_risk_extraction__deepinfra-qwen3-coder-480b-turbo__s0__20261011T074422.945377Z__30a3d953",
+  "batch_id": "ablations__deepinfra-qwen3-coder-480b-turbo__20261011T055725.548808Z__5e295670",
+  "sample_index": 0,
+  "ablation": {
+    "withhold_contracts": true,
+    "strip_contract_details": true,
+    "diagnostic_visibility": "gate_identity",
+    "id": "a1_no_contracts"
+  },
+  "harness_version": "2.2.2",
+  "method": {
+    "id": "m4",
+    "name": "Contract-first ServiceFlowIR + repair"
+  },
+  "prompt_version": "2.1.0",
+  "runtime_compiler_version": "1.0.0",
+  "model": {
+    "model_id": "deepinfra-qwen3-coder-480b-turbo",
+    "model_name": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+    "base_url": "https://api.deepinfra.com/v1/openai",
+    "temperature": 0.2,
+    "top_p": 1.0,
+    "seed": 101,
+    "max_tokens": 16384,
+    "context_window": 262144
+  },
+  "instance": {
+    "id": "contract_clause_risk_extraction",
+    "split": "extension",
+    "benchmark_id": "extension:contract_clause_risk_extraction"
+  },
+  "catalog": {
+    "version": "0.3.8",
+    "pinned_catalog_yaml_sha256": "d91fe0463b599a49cf0e24a37b357d5dd67f442a7d8bae51a4c07f6c493d3cb1",
+    "sanitized_catalog_yaml_sha256": "436cedbac3d4dbe261632b2d3853dda28aed20be785e2ea7a87d4c292afdc44d",
+    "descriptor_count": 483
+  },
+  "roster_sha256": "3ed5509009ae44983ff2fc95595ca45538cc38b6759bf9deecb72138e20a58d3",
+  "workspace_manifest_sha256": "d3a3c38a63e189ecd266de96c1e60987eda21e97543a16bb05840901ad814bac",
+  "freeze": {
+    "freeze_id": "freeze-2026-10-10.deepinfra.ablation.v24",
+    "status": "frozen",
+    "sha256": "01c18230138dc40d3ce53f713324871ec4c22192ac025097b006c3406818cfac"
+  },
+  "visible_input_policy": {
+    "method_view": [
+      "task.md",
+      "candidates/",
+      "catalog/",
+      "contracts/",
+      "schemas/",
+      "fixtures/"
+    ],
+    "workspace_manifest": "experiments/workspaces/extension/contract_clause_risk_extraction/workspace.yaml"
+  },
+  "repair": {
+    "budget": 3,
+    "execution_feedback": true
+  },
+  "environment": {
+    "python": "3.12.3",
+    "platform": "macOS-15.6.1-arm64-arm-64bit",
+    "git_revision": "a0a9a18"
+  },
+  "started_at": "2026-10-11T07:44:22.945794+00:00",
+  "method_status": "completed",
+  "method_error": null,
+  "evaluation": {
+    "validation": {
+      "overall_status": "pass",
+      "first_failing_gate": null,
+      "gate_statuses": {
+        "G0": "pass",
+        "G1": "pass",
+        "G2": "pass",
+        "G3": "pass",
+        "G4": "pass",
+        "G5": "pass",
+        "G6-Exec": "pass"
+      }
+    },
+    "score_summary": {
+      "public_gates_status": "pass",
+      "first_failing_gate": null,
+      "g6_assert_status": "fail",
+      "full_pass_g0_g6": false,
+      "node_f1": 1.0,
+      "edge_f1": 1.0,
+      "binding_top1_accuracy": 1.0,
+      "binding_version_accuracy": null,
+      "wiring_f1": 1.0,
+      "wiring_applicable": true,
+      "alignment_edit_distance": 0,
+      "over_decomposition_rate": 0.0,
+      "under_decomposition_rate": 0.0,
+      "source_step_coverage": 1.0,
+      "g6_assert_pass_rate": 0.0
+    },
+    "repair_attempts": [
+      {
+        "attempt": 0,
+        "overall_status": "fail",
+        "first_failing_gate": "G3",
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "pass",
+          "G2": "pass",
+          "G3": "fail",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": true,
+        "repeated_state": false,
+        "synthetic": false
+      },
+      {
+        "attempt": 1,
+        "overall_status": "fail",
+        "first_failing_gate": "G1",
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "fail",
+          "G2": "pass",
+          "G3": "fail",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": false,
+        "repeated_state": false,
+        "synthetic": false
+      },
+      {
+        "attempt": 2,
+        "overall_status": "pass",
+        "first_failing_gate": null,
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "pass",
+          "G2": "pass",
+          "G3": "pass",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": true,
+        "repeated_state": false,
+        "synthetic": false
+      }
+    ]
+  },
+  "usage": {
+    "llm_calls": 3,
+    "prompt_tokens": 131762,
+    "completion_tokens": 28582,
+    "reasoning_tokens": 0,
+    "total_tokens": 160344,
+    "latency_s": 217.777,
+    "validator_calls": 3,
+    "evaluation_validator_calls": 2,
+    "cost_usd": 0.068111,
+    "per_stage": [
+      {
+        "stage": "m3_ir",
+        "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+        "usage": {
+          "prompt_tokens": 39194,
+          "completion_tokens": 8966,
+          "total_tokens": 48160,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 54.595,
+        "finish_reason": "stop",
+        "cost_usd": 0.020724
+      },
+      {
+        "stage": "m4_repair_1",
+        "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+        "usage": {
+          "prompt_tokens": 45538,
+          "completion_tokens": 9255,
+          "total_tokens": 54793,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 63.974,
+        "finish_reason": "stop",
+        "cost_usd": 0.022916
+      },
+      {
+        "stage": "m4_repair_2",
+        "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+        "usage": {
+          "prompt_tokens": 47030,
+          "completion_tokens": 10361,
+          "total_tokens": 57391,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 99.207,
+        "finish_reason": "stop",
+        "cost_usd": 0.02447
+      }
+    ]
+  },
+  "finished_at": "2026-10-11T07:49:04.100762+00:00"
+}

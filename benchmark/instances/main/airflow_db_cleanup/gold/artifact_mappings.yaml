@@ -1,0 +1,97 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:airflow_db_cleanup
+mappings:
+- intent_id: print_configuration
+  inputs:
+    runtime_parameters: runtime_parameters
+  outputs:
+    retention_config: retention_config
+    config_status: config_status
+- intent_id: cleanup_dag_run
+  inputs:
+    airflow_metadata_database: db_resource
+    retention_config: retention_config
+  outputs:
+    cleanup_status: dag_run_status
+    affected_table: dag_run_result
+- intent_id: cleanup_task_instance
+  inputs:
+    airflow_metadata_database: db_resource
+    retention_config: retention_config
+  outputs:
+    cleanup_status: task_instance_status
+    affected_table: task_instance_result
+- intent_id: cleanup_log
+  inputs:
+    airflow_metadata_database: db_resource
+    retention_config: retention_config
+  outputs:
+    cleanup_status: log_status
+    affected_table: log_result
+- intent_id: cleanup_xcom
+  inputs:
+    airflow_metadata_database: db_resource
+    retention_config: retention_config
+  outputs:
+    cleanup_status: xcom_status
+    affected_table: xcom_result
+- intent_id: cleanup_sla_miss
+  inputs:
+    airflow_metadata_database: db_resource
+    retention_config: retention_config
+  outputs:
+    cleanup_status: sla_miss_status
+    affected_table: sla_miss_result
+- intent_id: cleanup_dag_model
+  inputs:
+    airflow_metadata_database: db_resource
+    retention_config: retention_config
+  outputs:
+    cleanup_status: dag_model_status
+    affected_table: dag_model_result
+- intent_id: cleanup_task_reschedule
+  inputs:
+    airflow_metadata_database: db_resource
+    retention_config: retention_config
+  outputs:
+    cleanup_status: task_reschedule_status
+    affected_table: task_reschedule_result
+- intent_id: cleanup_task_fail
+  inputs:
+    airflow_metadata_database: db_resource
+    retention_config: retention_config
+  outputs:
+    cleanup_status: task_fail_status
+    affected_table: task_fail_result
+- intent_id: cleanup_rendered_task_instance_fields
+  inputs:
+    airflow_metadata_database: db_resource
+    retention_config: retention_config
+  outputs:
+    cleanup_status: rendered_task_instance_fields_status
+    affected_table: rendered_task_instance_fields_result
+- intent_id: cleanup_import_error
+  inputs:
+    airflow_metadata_database: db_resource
+    retention_config: retention_config
+  outputs:
+    cleanup_status: import_error_status
+    affected_table: import_error_result
+- intent_id: cleanup_base_job
+  inputs:
+    airflow_metadata_database: db_resource
+    retention_config: retention_config
+  outputs:
+    cleanup_status: base_job_status
+    affected_table: base_job_result
+- intent_id: cleanup_sessions
+  inputs:
+    session_database: db_resource
+  outputs:
+    session_cleanup_status: sessions_status
+    affected_table: sessions_result
+- intent_id: analyze_query
+  inputs:
+    database: db_resource
+  outputs:
+    analysis_status: analyze_status

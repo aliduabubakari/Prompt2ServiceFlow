@@ -1,0 +1,10 @@
+assertions_version: 0.1.0
+pipeline_id: customer_dq_scoring_pipeline
+scenarios:
+  - scenario: synthetic_customer_dq
+    assertions:
+      - {assertion_id: data_generated, type: json_path_equals, path: artifacts/generation_status.json, json_path: success, expected: true}
+      - {assertion_id: data_cleaned, type: json_path_equals, path: artifacts/cleaning_status.json, json_path: success, expected: true}
+      - {assertion_id: score_calculated, type: json_path_equals, path: artifacts/scoring_status.json, json_path: success, expected: true}
+      - {assertion_id: features_engineered, type: json_path_equals, path: artifacts/feature_status.json, json_path: success, expected: true}
+      - {assertion_id: report_generated, type: json_path_equals, path: artifacts/report_status.json, json_path: success, expected: true}

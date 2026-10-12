@@ -1,0 +1,93 @@
+schema_version: 0.1.0
+service_id: attribution_metric_calculator
+version: 1.0.0
+display_name: Attribution Metric Calculator
+category: Aggregator
+capability:
+  summary: Computes marketing attribution metrics from joined customer events.
+  operations:
+  - Computes marketing attribution metrics from joined customer events.
+  keywords:
+  - attribution
+  - metric
+  - calculator
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: joined_customer_events
+    description: Reviewed joined customer events value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: attribution_metrics
+    description: Reviewed attribution metrics value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: calculation_status
+    description: Reviewed calculation status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: model_name
+    description: Configuration for model name.
+    type: string
+    required: true
+  - name: conversion_event
+    description: Configuration for conversion event.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: attribution-metric-calculator
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.2
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.attribution_metric_calculator
+  implementation_ref: services/implementations/attribution_metric_calculator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-03:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 03 descriptions; bindings retain inference confidence.

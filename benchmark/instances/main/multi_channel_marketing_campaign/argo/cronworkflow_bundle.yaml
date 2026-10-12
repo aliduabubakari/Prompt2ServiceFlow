@@ -1,0 +1,266 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-channel-marketing-campaign-scripts
+  namespace: prompt2serviceflow
+data:
+  01_load_customer_segment_csv.py: "#!/usr/bin/env python3\n\"\"\"Load customer segment CSV and emit structured\
+    \ dataset.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport csv\nimport json\n\
+    import shutil\nfrom pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace / \"\
+    artifacts\"\n    artifacts.mkdir(parents=True, exist_ok=True)\n    dest = artifacts / \"customer_segments.csv\"\
+    \n    shutil.copyfile(args.fixture, dest)\n\n    with dest.open(encoding=\"utf-8\", newline=\"\")\
+    \ as f:\n        reader = csv.DictReader(f)\n        rows = list(reader)\n        columns = reader.fieldnames\
+    \ or []\n\n    dataset = {\"columns\": columns, \"rows\": rows}\n    (artifacts / \"customer_segments.json\"\
+    ).write_text(\n        json.dumps(dataset, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status\
+    \ = {\"success\": True, \"rows_loaded\": len(rows), \"errors\": []}\n    (artifacts / \"load_status.json\"\
+    ).write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__\
+    \ == \"__main__\":\n    main()\n"
+  02_send_email_campaign.py: "#!/usr/bin/env python3\n\"\"\"Send mock email campaign to premium segment.\"\
+    \"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib import Path\n\
+    \n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace / \"\
+    artifacts\"\n    segs = json.loads((artifacts / \"customer_segments.json\").read_text(encoding=\"\
+    utf-8\"))\n\n    premium = [r for r in segs[\"rows\"] if r.get(\"segment\") == \"premium\" and r.get(\"\
+    email\", \"\").strip()]\n\n    results = {\n        \"campaign_sent\": True,\n        \"recipients_targeted\"\
+    : len(premium),\n        \"segment\": \"premium\",\n        \"channel\": \"email\",\n        \"errors\"\
+    : [],\n    }\n    (artifacts / \"email_campaign_results.json\").write_text(\n        json.dumps(results,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  03_send_sms_campaign.py: "#!/usr/bin/env python3\n\"\"\"Send mock SMS campaign to regular segment.\"\
+    \"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib import Path\n\
+    \n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace / \"\
+    artifacts\"\n    segs = json.loads((artifacts / \"customer_segments.json\").read_text(encoding=\"\
+    utf-8\"))\n\n    regular = [r for r in segs[\"rows\"] if r.get(\"segment\") == \"regular\" and r.get(\"\
+    phone\", \"\").strip()]\n\n    results = {\n        \"campaign_sent\": True,\n        \"recipients_targeted\"\
+    : len(regular),\n        \"segment\": \"regular\",\n        \"channel\": \"sms\",\n        \"errors\"\
+    : [],\n    }\n    (artifacts / \"sms_campaign_results.json\").write_text(\n        json.dumps(results,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  04_send_push_notification.py: "#!/usr/bin/env python3\n\"\"\"Send mock push notification campaign to\
+    \ new segment.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib\
+    \ import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace\
+    \ / \"artifacts\"\n    segs = json.loads((artifacts / \"customer_segments.json\").read_text(encoding=\"\
+    utf-8\"))\n\n    new = [r for r in segs[\"rows\"] if r.get(\"segment\") == \"new\" and r.get(\"device_token\"\
+    , \"\").strip()]\n\n    results = {\n        \"campaign_sent\": True,\n        \"recipients_targeted\"\
+    : len(new),\n        \"segment\": \"new\",\n        \"channel\": \"push_notification\",\n        \"\
+    errors\": [],\n    }\n    (artifacts / \"push_notification_campaign_results.json\").write_text(\n\
+    \        json.dumps(results, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"\
+    __main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-channel-marketing-campaign-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: 'customer_id,segment,email,phone,device_token
+
+    C001,premium,premium1@example.com,+1555001,token_abc123
+
+    C002,premium,premium2@example.com,+1555002,token_def456
+
+    C003,regular,regular1@example.com,+1555003,
+
+    C004,regular,regular2@example.com,+1555004,
+
+    C005,new,new1@example.com,,token_ghi789
+
+    C006,new,new2@example.com,,token_jkl012
+
+    '
+  fixture-0001: '{"driver":"filesystem-mock","target":"artifacts/email_campaign_results.json"}'
+  fixture-0002: "{\n  \"pipeline_id\": \"multi_channel_marketing_campaign\",\n  \"inputs\": {\n    \"\
+    email_service\": \"email_service.json\",\n    \"push_service\": \"push_service.json\",\n    \"customer_segments\"\
+    : \"customer_segments.csv\",\n    \"sms_service\": \"sms_service.json\"\n  },\n  \"input_modalities\"\
+    : [\n    \"json\",\n    \"table\"\n  ],\n  \"systems\": [\n    \"system_a\",\n    \"system_b\"\n \
+    \ ]\n}"
+  fixture-0003: '{"driver":"filesystem-mock","target":"artifacts/push_notification_campaign_results.json"}'
+  fixture-0004: '{"driver":"filesystem-mock","target":"artifacts/sms_campaign_results.json"}'
+---
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: multi-channel-marketing-campaign
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: fixture-file
+        value: customer_segments.csv
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: multi-channel-marketing-campaign-scripts
+    - name: fixtures
+      configMap:
+        name: multi-channel-marketing-campaign-fixtures
+        items:
+        - key: fixture-0000
+          path: customer_segments.csv
+        - key: fixture-0001
+          path: email_service.json
+        - key: fixture-0002
+          path: fixture.json
+        - key: fixture-0003
+          path: push_service.json
+        - key: fixture-0004
+          path: sms_service.json
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: load-customer-segment-csv
+          template: run-load-customer-segment-csv
+        - name: send-email-campaign
+          template: run-send-email-campaign
+          depends: load-customer-segment-csv.Succeeded
+        - name: send-sms-campaign
+          template: run-send-sms-campaign
+          depends: load-customer-segment-csv.Succeeded
+        - name: send-push-notification
+          template: run-send-push-notification
+          depends: load-customer-segment-csv.Succeeded
+    - name: run-load-customer-segment-csv
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: load_customer_segment_csv
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_load_customer_segment_csv.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-send-email-campaign
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: send_email_campaign
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_send_email_campaign.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-send-sms-campaign
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: send_sms_campaign
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_send_sms_campaign.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-send-push-notification
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: send_push_notification
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_send_push_notification.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError

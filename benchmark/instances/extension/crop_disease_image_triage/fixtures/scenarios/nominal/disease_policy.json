@@ -1,0 +1,18 @@
+{
+  "policy_id": "crop-disease-triage-v1",
+  "description": "Risk-based crop disease triage policy",
+  "image_quality_minimum": 0.50,
+  "crop_risk_profiles": {
+    "maize": {"base_risk": 0.2, "symptoms_multiplier": {"leaf_spots": 1.5, "none": 0.5}},
+    "cassava": {"base_risk": 0.4, "symptoms_multiplier": {"mosaic_pattern": 2.5, "wilting": 2.0, "none": 0.3}},
+    "rice": {"base_risk": 0.3, "symptoms_multiplier": {"blast_lesions": 3.0, "none": 0.4}},
+    "tomato": {"base_risk": 0.5, "symptoms_multiplier": {"yellow_curling": 2.8, "none": 0.3}}
+  },
+  "risk_thresholds": {
+    "low": 0.3,
+    "high": 0.7
+  },
+  "high_risk_action": "route_exception",
+  "low_quality_action": "route_exception",
+  "disease_history_escalation": true
+}

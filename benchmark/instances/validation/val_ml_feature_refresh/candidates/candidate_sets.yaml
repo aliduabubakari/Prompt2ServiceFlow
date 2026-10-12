@@ -1,0 +1,55 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_ml_feature_refresh
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.2
+candidate_sets:
+- candidate_set_id: validation_val_ml_feature_refresh_event_lake_raw_event_extractor_candidates
+  source_step_refs:
+  - extract_raw_events
+  service_ids:
+  - event_lake_raw_event_extractor
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_ml_feature_refresh_event_record_cleaner_candidates
+  source_step_refs:
+  - clean_event_records
+  service_ids:
+  - event_record_cleaner
+  - temporary_resource_cleanup
+  - csv_to_structured_json_standardizer
+- candidate_set_id: validation_val_ml_feature_refresh_user_feature_aggregator_candidates
+  source_step_refs:
+  - aggregate_user_features
+  service_ids:
+  - user_feature_aggregator
+  - csv_to_structured_json_standardizer
+  - tabular_dataset_database_loader
+- candidate_set_id: validation_val_ml_feature_refresh_feature_drift_statistics_computer_candidates
+  source_step_refs:
+  - compute_drift_statistics
+  service_ids:
+  - feature_drift_statistics_computer
+  - tabular_dataset_database_loader
+  - http_json_request_extractor
+- candidate_set_id: validation_val_ml_feature_refresh_feature_table_drift_validator_candidates
+  source_step_refs:
+  - validate_feature_table
+  service_ids:
+  - feature_table_drift_validator
+  - http_json_request_extractor
+  - bi_dashboard_refresh_trigger
+- candidate_set_id: validation_val_ml_feature_refresh_feature_store_table_publisher_candidates
+  source_step_refs:
+  - publish_feature_table
+  service_ids:
+  - feature_store_table_publisher
+  - bi_dashboard_refresh_trigger
+  - bulk_email_campaign_sender
+- candidate_set_id: validation_val_ml_feature_refresh_model_team_notification_sender_candidates
+  source_step_refs:
+  - notify_model_team
+  service_ids:
+  - model_team_notification_sender
+  - bulk_email_campaign_sender
+  - parquet_tabular_data_profiler

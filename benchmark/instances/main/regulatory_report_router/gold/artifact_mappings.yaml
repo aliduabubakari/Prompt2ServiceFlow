@@ -1,0 +1,35 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:regulatory_report_router
+mappings:
+- intent_id: read_csv
+  inputs:
+    delimited_file: transaction_csv
+  outputs:
+    tabular_dataset: transaction_dataset
+    load_status: read_status
+- intent_id: account_check
+  inputs:
+    transaction_dataset: transaction_dataset
+  outputs:
+    routing_decision: routing_decision
+- intent_id: route_to_fatca
+  inputs:
+    transaction_dataset: transaction_dataset
+    routing_decision: routing_decision
+  outputs:
+    regulatory_report: fatca_report
+    report_status: fatca_report_status
+- intent_id: route_to_irs
+  inputs:
+    transaction_dataset: transaction_dataset
+    routing_decision: routing_decision
+  outputs:
+    regulatory_report: irs_report
+    report_status: irs_report_status
+- intent_id: archive_reports
+  inputs:
+    report_artifacts: archive_input
+    archive_destination: archive_destination
+  outputs:
+    archive_object: archive_object
+    archive_status: archive_status

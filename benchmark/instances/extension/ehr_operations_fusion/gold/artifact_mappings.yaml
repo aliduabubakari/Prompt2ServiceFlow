@@ -1,0 +1,66 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: extension:ehr_operations_fusion
+mappings:
+- intent_id: ingest_primary_source
+  inputs:
+    input_artifacts: source_bundle
+  outputs:
+    output_artifacts: ingest_primary_source_artifact
+    execution_report: ingest_primary_source_status
+- intent_id: ingest_secondary_source
+  inputs:
+    input_artifacts: source_bundle
+  outputs:
+    output_artifacts: ingest_secondary_source_artifact
+    execution_report: ingest_secondary_source_status
+- intent_id: ingest_reference_source
+  inputs:
+    input_artifacts: source_bundle
+  outputs:
+    output_artifacts: ingest_reference_source_artifact
+    execution_report: ingest_reference_source_status
+- intent_id: validate_source_contracts
+  inputs:
+    input_artifacts:
+    - ingest_primary_source_artifact
+    - ingest_secondary_source_artifact
+    - ingest_reference_source_artifact
+  outputs:
+    output_artifacts: validate_source_contracts_artifact
+    execution_report: validate_source_contracts_status
+- intent_id: normalize_sources
+  inputs:
+    input_artifacts: validate_source_contracts_artifact
+  outputs:
+    output_artifacts: normalize_sources_artifact
+    execution_report: normalize_sources_status
+- intent_id: fuse_sources
+  inputs:
+    input_artifacts: normalize_sources_artifact
+  outputs:
+    output_artifacts: fuse_sources_artifact
+    execution_report: fuse_sources_status
+- intent_id: flatten_nested_payloads
+  inputs:
+    input_artifacts: fuse_sources_artifact
+  outputs:
+    output_artifacts: flatten_nested_payloads_artifact
+    execution_report: flatten_nested_payloads_status
+- intent_id: join_tabular_reference_data
+  inputs:
+    input_artifacts: flatten_nested_payloads_artifact
+  outputs:
+    output_artifacts: join_tabular_reference_data_artifact
+    execution_report: join_tabular_reference_data_status
+- intent_id: reconcile_conflicting_values
+  inputs:
+    input_artifacts: join_tabular_reference_data_artifact
+  outputs:
+    output_artifacts: reconcile_conflicting_values_artifact
+    execution_report: reconcile_conflicting_values_status
+- intent_id: publish_outputs
+  inputs:
+    input_artifacts: reconcile_conflicting_values_artifact
+  outputs:
+    output_artifacts: publish_outputs_artifact
+    execution_report: publish_outputs_status

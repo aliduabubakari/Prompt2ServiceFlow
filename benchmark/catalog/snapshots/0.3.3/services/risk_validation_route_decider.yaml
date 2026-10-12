@@ -1,0 +1,94 @@
+schema_version: 0.1.0
+service_id: risk_validation_route_decider
+version: 1.0.0
+display_name: Risk Validation Route Decider
+category: DomainAdapter
+capability:
+  summary: Routes financial risk validation status to reporting or remediation.
+  operations:
+  - Routes financial risk validation status to reporting or remediation.
+  keywords:
+  - risk
+  - validation
+  - route
+  - decider
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: capital_validation
+    description: Reviewed capital validation value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: validation_route
+    description: Reviewed validation route value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: routing_status
+    description: Reviewed routing status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: breach_route
+    description: Configuration for breach route.
+    type: string
+    required: true
+  - name: within_threshold_route
+    description: Configuration for within threshold route.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: risk-validation-route-decider
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.3
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.risk_validation_route_decider
+  implementation_ref: services/implementations/risk_validation_route_decider
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-04:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 04 descriptions; bindings retain inference confidence.

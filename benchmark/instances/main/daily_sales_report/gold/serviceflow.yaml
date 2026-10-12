@@ -1,0 +1,456 @@
+ir_version: 0.1.0
+composition_id: daily_sales_report
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:daily_sales_report
+  split: main
+  pipeline_id: daily_sales_report
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/16_daily_sales_report.txt
+  description_sha256: 7658d27229eff8c31851a357f00b5ef10e926ff21b6f1e8b6070d6dc2a9c5b2a
+  internal_spec_path: source/internal_specs/main_40/16_daily_sales_report.json
+  internal_spec_sha256: 54b601f8732e3e8ae5d70bd039e4d0e3d4e1b87bb3a0a0a176a6bb30e44b690e
+requirement:
+  name: Daily Sales Report
+  purpose: Query PostgreSQL for daily sales data, transform to CSV, generate a PDF chart, and email the
+    report with attachments.
+  domain: sales
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes:
+  - Linear four-step report generation pipeline.
+  - Mock database returns deterministic sales data; chart is a placeholder PDF.
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: postgres_database
+  type: database
+  name: PostgreSQL
+  identifier: postgres_default
+  access_mode: read
+  authentication: secret
+  mock_strategy: fixture
+- system_id: email_service
+  type: email
+  name: Email service
+  identifier: sales-report-email
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: query_sales_data
+  name: Query daily sales data
+  category: Extractor
+  capability: Execute a SQL query against the bound PostgreSQL database and emit structured query results
+    with status.
+  source_step_refs:
+  - query_sales_data
+  evidence:
+  - source: description
+    text: Query PostgreSQL database for daily sales data.
+  inputs:
+  - postgres_resource
+  outputs:
+  - sales_query_result
+  - query_status
+  external_system_refs:
+  - postgres_database
+  preconditions:
+  - A bound PostgreSQL database resource is available.
+  effects:
+  - Structured query results and execution status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step is a read-only SQL extraction from PostgreSQL.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: transform_to_csv
+  name: Transform query results to CSV
+  category: Transformer
+  capability: Convert the structured query result into a deterministic CSV file.
+  source_step_refs:
+  - transform_to_csv
+  evidence:
+  - source: description
+    text: Transform query results to CSV format.
+  inputs:
+  - sales_query_result
+  outputs:
+  - sales_report_csv
+  - transform_status
+  external_system_refs: []
+  preconditions:
+  - Structured query results with columns and rows are available.
+  effects:
+  - A CSV artifact and transform status are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step explicitly converts tabular data to CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: generate_pdf_chart
+  name: Generate PDF sales chart
+  category: ReportGenerator
+  capability: Render a bar chart from the sales CSV and produce a PDF report.
+  source_step_refs:
+  - generate_pdf_chart
+  evidence:
+  - source: description
+    text: Generate PDF chart from sales data.
+  inputs:
+  - sales_report_csv
+  outputs:
+  - sales_chart_pdf
+  - chart_render_status
+  external_system_refs: []
+  preconditions:
+  - A valid CSV with product and daily_sales columns is available.
+  effects:
+  - A PDF chart artifact and render status are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step explicitly generates a PDF chart visualization from the CSV
+    data.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: email_sales_report
+  name: Email sales report with attachments
+  category: Notifier
+  capability: Send the sales CSV and PDF chart as email attachments to management and emit a delivery
+    receipt.
+  source_step_refs:
+  - email_sales_report
+  evidence:
+  - source: description
+    text: Email sales report to management.
+  inputs:
+  - email_service_resource
+  outputs:
+  - notification_status
+  external_system_refs:
+  - email_service
+  preconditions:
+  - The CSV and PDF report artifacts exist.
+  effects:
+  - An email delivery receipt is emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: The source step sends an email with multiple file attachments at the end of
+    the report workflow.
+  confidence: explicit
+  ambiguity:
+    status: resolved
+    notes:
+    - Mock records a delivery receipt; no real email is sent.
+control_flow:
+  edges:
+  - from: query_sales_data
+    to: transform_to_csv
+  - from: transform_to_csv
+    to: generate_pdf_chart
+  - from: generate_pdf_chart
+    to: email_sales_report
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: postgres_resource
+  name: PostgreSQL connection resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - query_sales_data
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/postgres_resource.json
+  external_system_ref: postgres_database
+- artifact_id: sales_query_result
+  name: Sales query result
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/sales_query_result.schema.json
+  role: intermediate
+  producer: query_sales_data
+  consumers:
+  - transform_to_csv
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: query_status
+  name: Query execution status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/query_status.schema.json
+  role: status
+  producer: query_sales_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: sales_report_csv
+  name: Sales report CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: transform_to_csv
+  consumers:
+  - generate_pdf_chart
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: transform_status
+  name: CSV transform status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/transform_status.schema.json
+  role: status
+  producer: transform_to_csv
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: sales_chart_pdf
+  name: Sales chart PDF
+  kind: artifact
+  data_type: binary
+  media_type: application/pdf
+  role: intermediate
+  producer: generate_pdf_chart
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: chart_render_status
+  name: Chart render status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/chart_render_status.schema.json
+  role: status
+  producer: generate_pdf_chart
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: email_service_resource
+  name: Email service resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - email_sales_report
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/email_service.json
+  external_system_ref: email_service
+- artifact_id: notification_status
+  name: Email notification status
+  kind: artifact
+  data_type: notification
+  media_type: application/json
+  schema_ref: contracts/artifacts/notification_status.schema.json
+  role: output
+  producer: email_sales_report
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: query_sales_data
+  service_id: postgres_readonly_query_result_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: postgres_database
+    artifact_id: postgres_resource
+  output_bindings:
+  - port: query_result
+    artifact_id: sales_query_result
+  - port: query_status
+    artifact_id: query_status
+  parameter_bindings:
+    sql_query: SELECT date, product, SUM(amount) as daily_sales FROM sales WHERE date = '2024-01-15' GROUP
+      BY date, product ORDER BY date, product;
+  secret_bindings: []
+  rationale: The descriptor runs a read-only SQL query against PostgreSQL and returns structured results.
+  confidence: explicit
+- intent_id: transform_to_csv
+  service_id: tabular_query_result_csv_writer
+  service_version: 1.0.0
+  input_bindings:
+  - port: query_result
+    artifact_id: sales_query_result
+  output_bindings:
+  - port: csv_file
+    artifact_id: sales_report_csv
+  - port: transform_status
+    artifact_id: transform_status
+  parameter_bindings:
+    output_path: /workspace/artifacts/sales_report.csv
+    include_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: The descriptor converts tabular query results to a deterministic CSV.
+  confidence: explicit
+- intent_id: generate_pdf_chart
+  service_id: csv_chart_pdf_report_generator
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_file
+    artifact_id: sales_report_csv
+  output_bindings:
+  - port: pdf_report
+    artifact_id: sales_chart_pdf
+  - port: render_status
+    artifact_id: chart_render_status
+  parameter_bindings:
+    output_path: /workspace/artifacts/sales_chart.pdf
+    chart_type: bar
+    chart_spec:
+      x: product
+      y: daily_sales
+      title: Daily Sales Report
+  secret_bindings: []
+  rationale: The descriptor renders a bar chart from the sales CSV and produces a PDF report.
+  confidence: explicit
+- intent_id: email_sales_report
+  service_id: email_notification_sender
+  service_version: 1.0.0
+  input_bindings:
+  - port: email_service
+    artifact_id: email_service_resource
+  output_bindings:
+  - port: notification_status
+    artifact_id: notification_status
+  parameter_bindings:
+    to: management@company.com
+    subject: Daily Sales Report - 2024-01-15
+    body: Daily Sales Report for 2024-01-15. Includes sales data in CSV and a sales chart in PDF. Best
+      regards, Data Team
+  secret_bindings: []
+  rationale: The descriptor sends a simple operational email notification at the end of the report pipeline.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides:
+  - intent_id: query_sales_data
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 120
+    network_access: required
+  - intent_id: email_sales_report
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 60
+    network_access: required
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock database queries return deterministic fixture data.
+    - Mock email records a delivery receipt without real SMTP.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All four source steps are accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Four exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - A four-task Argo DAG compiles deterministically
+- gate: G5
+  expected_status: pass
+  checks:
+  - Single report-generation scenario executes
+- gate: G6
+  expected_status: pass
+  checks:
+  - Query
+  - transform
+  - chart
+  - and notification invariants hold
+source_step_accounting:
+- source_step_ref: query_sales_data
+  disposition: service
+  intent_ids:
+  - query_sales_data
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: transform_to_csv
+  disposition: service
+  intent_ids:
+  - transform_to_csv
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: generate_pdf_chart
+  disposition: service
+  intent_ids:
+  - generate_pdf_chart
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: email_sales_report
+  disposition: service
+  intent_ids:
+  - email_sales_report
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

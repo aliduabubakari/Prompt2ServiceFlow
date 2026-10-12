@@ -1,0 +1,527 @@
+ir_version: 0.1.0
+composition_id: database_replication_fanout
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:database_replication_fanout
+  split: main
+  pipeline_id: database_replication_fanout
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/19_database_replication_fanout.txt
+  description_sha256: 16db021f43e00606cb4f14d7a0b5f9e7a16a09533e21f49f6b0f4243fbe7e389
+  internal_spec_path: source/internal_specs/main_40/19_database_replication_fanout.json
+  internal_spec_sha256: d7a8bf311db676ef24732a7e0f300a4273048ad74e8bd590439fe0d0e5becb38
+requirement:
+  name: Database Replication Fanout
+  purpose: Dump production DB CSV and fan-out to Dev, Staging, and QA environments in parallel.
+  domain: data_platform
+  execution_model: batch
+  topology: fan_out
+  information_sufficiency: high
+  notes:
+  - 'Fan-out pattern: one export, three parallel imports.'
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: production_database
+  type: database
+  name: Production database
+  identifier: production
+  access_mode: read
+  authentication: secret
+  mock_strategy: fixture
+- system_id: dev_database
+  type: database
+  name: Dev database
+  identifier: dev
+  access_mode: write
+  authentication: secret
+  mock_strategy: fixture
+- system_id: staging_database
+  type: database
+  name: Staging database
+  identifier: staging
+  access_mode: write
+  authentication: secret
+  mock_strategy: fixture
+- system_id: qa_database
+  type: database
+  name: Qa database
+  identifier: qa
+  access_mode: write
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: dump_prod_csv
+  name: Dump production CSV
+  category: Extractor
+  capability: Export the production database snapshot as a deterministic CSV artifact.
+  source_step_refs:
+  - dump_prod_csv
+  evidence:
+  - source: description
+    text: Dump production database snapshot.
+  inputs:
+  - prod_db_resource
+  outputs:
+  - csv_snapshot
+  - export_status
+  external_system_refs:
+  - production_database
+  preconditions:
+  - Prod DB accessible.
+  effects:
+  - CSV snapshot emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: The source explicitly exports production data before the fan-out copies.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: copy_dev
+  name: Copy to Dev
+  category: Loader
+  capability: Replace the dev database table from the production CSV snapshot.
+  source_step_refs:
+  - copy_dev
+  evidence:
+  - source: description
+    text: Copy to Dev environment.
+  inputs:
+  - csv_snapshot
+  - dev_db_resource
+  outputs:
+  - dev_ref
+  - dev_load_status
+  external_system_refs:
+  - dev_database
+  preconditions:
+  - CSV snapshot available.
+  effects:
+  - Dev data loaded.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: The source executes this database import as one branch of the copy fan-out.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: copy_staging
+  name: Copy to Staging
+  category: Loader
+  capability: Replace the staging database table from the production CSV snapshot.
+  source_step_refs:
+  - copy_staging
+  evidence:
+  - source: description
+    text: Copy to Staging environment.
+  inputs:
+  - csv_snapshot
+  - staging_db_resource
+  outputs:
+  - staging_ref
+  - staging_load_status
+  external_system_refs:
+  - staging_database
+  preconditions:
+  - CSV snapshot available.
+  effects:
+  - Staging data loaded.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: The source executes this database import as one branch of the copy fan-out.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: copy_qa
+  name: Copy to QA
+  category: Loader
+  capability: Replace the qa database table from the production CSV snapshot.
+  source_step_refs:
+  - copy_qa
+  evidence:
+  - source: description
+    text: Copy to QA environment.
+  inputs:
+  - csv_snapshot
+  - qa_db_resource
+  outputs:
+  - qa_ref
+  - qa_load_status
+  external_system_refs:
+  - qa_database
+  preconditions:
+  - CSV snapshot available.
+  effects:
+  - QA data loaded.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: The source executes this database import as one branch of the copy fan-out.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: dump_prod_csv
+    to: copy_dev
+  - from: dump_prod_csv
+    to: copy_staging
+  - from: dump_prod_csv
+    to: copy_qa
+  parallel_groups:
+  - group_id: env_copies
+    intent_ids:
+    - copy_dev
+    - copy_staging
+    - copy_qa
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: prod_db_resource
+  name: Production database resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - dump_prod_csv
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/prod_db.json
+  external_system_ref: production_database
+- artifact_id: csv_snapshot
+  name: Production CSV snapshot
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: dump_prod_csv
+  consumers:
+  - copy_dev
+  - copy_staging
+  - copy_qa
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: export_status
+  name: Snapshot export status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: dump_prod_csv
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: dev_db_resource
+  name: Dev database resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - copy_dev
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/dev_db.json
+  external_system_ref: dev_database
+- artifact_id: dev_ref
+  name: Dev database reference
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: copy_dev
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/database_reference.schema.json
+- artifact_id: dev_load_status
+  name: Dev import status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: copy_dev
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: staging_db_resource
+  name: Staging database resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - copy_staging
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/staging_db.json
+  external_system_ref: staging_database
+- artifact_id: staging_ref
+  name: Staging database reference
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: copy_staging
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/database_reference.schema.json
+- artifact_id: staging_load_status
+  name: Staging import status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: copy_staging
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: qa_db_resource
+  name: Qa database resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - copy_qa
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/qa_db.json
+  external_system_ref: qa_database
+- artifact_id: qa_ref
+  name: Qa database reference
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: copy_qa
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/database_reference.schema.json
+- artifact_id: qa_load_status
+  name: Qa import status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: copy_qa
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+bindings:
+- intent_id: dump_prod_csv
+  service_id: database_csv_snapshot_exporter
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_database
+    artifact_id: prod_db_resource
+  output_bindings:
+  - port: csv_snapshot
+    artifact_id: csv_snapshot
+  - port: export_status
+    artifact_id: export_status
+  parameter_bindings:
+    export_spec:
+      table: data
+      query: SELECT * FROM data
+    output_path: /workspace/artifacts/snapshot.csv
+    include_header: true
+    overwrite_output: true
+  secret_bindings: []
+  rationale: Exports the production source table once before parallel imports.
+  confidence: explicit
+- intent_id: copy_dev
+  service_id: database_csv_snapshot_importer
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_snapshot
+    artifact_id: csv_snapshot
+  - port: target_database
+    artifact_id: dev_db_resource
+  output_bindings:
+  - port: target_database_reference
+    artifact_id: dev_ref
+  - port: load_status
+    artifact_id: dev_load_status
+  parameter_bindings:
+    import_spec:
+      table: data
+    load_mode: replace
+    target_label: dev
+    has_header: true
+  secret_bindings: []
+  rationale: Imports the shared production snapshot into the dev database branch.
+  confidence: explicit
+- intent_id: copy_staging
+  service_id: database_csv_snapshot_importer
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_snapshot
+    artifact_id: csv_snapshot
+  - port: target_database
+    artifact_id: staging_db_resource
+  output_bindings:
+  - port: target_database_reference
+    artifact_id: staging_ref
+  - port: load_status
+    artifact_id: staging_load_status
+  parameter_bindings:
+    import_spec:
+      table: data
+    load_mode: replace
+    target_label: staging
+    has_header: true
+  secret_bindings: []
+  rationale: Imports the shared production snapshot into the staging database branch.
+  confidence: explicit
+- intent_id: copy_qa
+  service_id: database_csv_snapshot_importer
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_snapshot
+    artifact_id: csv_snapshot
+  - port: target_database
+    artifact_id: qa_db_resource
+  output_bindings:
+  - port: target_database_reference
+    artifact_id: qa_ref
+  - port: load_status
+    artifact_id: qa_load_status
+  parameter_bindings:
+    import_spec:
+      table: data
+    load_mode: replace
+    target_label: qa
+    has_header: true
+  secret_bindings: []
+  rationale: Imports the shared production snapshot into the qa database branch.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides:
+  - intent_id: dump_prod_csv
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 600
+    network_access: required
+  - intent_id: copy_dev
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 600
+    network_access: required
+  - intent_id: copy_staging
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 600
+    network_access: required
+  - intent_id: copy_qa
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 600
+    network_access: required
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: required
+    secret_placeholders_only: true
+    notes:
+    - All DB operations mocked.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and provenance checks validate.
+- gate: G1
+  expected_status: pass
+  checks:
+  - All four source steps have explicit service accounting.
+- gate: G2
+  expected_status: pass
+  checks:
+  - The export and shared importer catalogue bindings resolve.
+- gate: G3
+  expected_status: pass
+  checks:
+  - Database resources, CSV snapshot, import parameters, and policies close.
+- gate: G4
+  expected_status: pass
+  checks:
+  - The production-export and three-way fan-out Argo DAG compiles.
+- gate: G5
+  expected_status: pass
+  checks:
+  - The bounded production snapshot and all target imports execute.
+- gate: G6
+  expected_status: pass
+  checks:
+  - Snapshot row count and every target row-count/reference assertion hold.
+source_step_accounting:
+- source_step_ref: dump_prod_csv
+  disposition: service
+  intent_ids:
+  - dump_prod_csv
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: copy_dev
+  disposition: service
+  intent_ids:
+  - copy_dev
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: copy_staging
+  disposition: service
+  intent_ids:
+  - copy_staging
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: copy_qa
+  disposition: service
+  intent_ids:
+  - copy_qa
+  rationale: The source step invokes the reviewed service intent or intents listed.

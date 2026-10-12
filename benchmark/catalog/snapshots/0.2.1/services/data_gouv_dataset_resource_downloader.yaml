@@ -1,0 +1,169 @@
+schema_version: 0.1.0
+service_id: data_gouv_dataset_resource_downloader
+version: 1.0.0
+display_name: data.gouv Dataset Resource Downloader
+category: Extractor
+capability:
+  summary: Reads a data.gouv-compatible dataset metadata/resource-list JSON artifact,
+    selects resources by configured format/name limits, downloads selected resource
+    files, and emits file references plus download status.
+  operations:
+  - Parse a data.gouv dataset metadata or resource-list JSON artifact.
+  - Select resources using format, media type, name pattern, URL field path, and optional
+    maximum count.
+  - Download selected resource URLs to deterministic output paths or names.
+  - Emit downloaded file references and selection/download status.
+  keywords:
+  - data.gouv
+  - open data
+  - dataset metadata
+  - resource download
+  - csv
+  - text
+  - government data
+  limitations:
+  - Targets data.gouv-compatible metadata/resource-list structures only.
+  - Does not clean or transform downloaded file contents.
+  - Does not implement workflow retries or fan-out scheduling.
+  - Resource selection rules must be supplied by the caller.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: dataset_metadata_json
+    description: data.gouv dataset metadata or resource-list JSON artifact containing
+      resource descriptors and download URLs.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://data_gouv_dataset_metadata/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  outputs:
+  - name: downloaded_files
+    description: References to downloaded resource files with source URL, output URI,
+      media type, and logical resource name.
+    channel: artifact
+    data_type: array
+    media_type: application/json
+    schema_ref: schema://downloaded_resource_file_references/v1
+    required: true
+    cardinality: many
+    sensitivity: public
+  - name: download_status
+    description: Observable status including selected count, downloaded count, skipped
+      count, and errors.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://resource_download_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: resource_selector
+    description: Selection rules such as format, title/name pattern, URL JSON path,
+      and ordering.
+    type: object
+    required: true
+  - name: max_resources
+    description: Maximum number of matching resources to download.
+    type: integer
+    required: false
+    minimum: 1.0
+  - name: output_name_template
+    description: Template for deterministic output file names or paths.
+    type: string
+    required: true
+  - name: expected_media_type
+    description: Expected media type for selected resources when known.
+    type: string
+    required: false
+  secrets: []
+contracts:
+- contract_id: data_gouv_metadata_readable
+  type: precondition
+  applies_to: input
+  target: dataset_metadata_json
+  description: Input metadata must be readable, parseable JSON containing at least
+    one resource descriptor with a download URL.
+  expression: readable(dataset_metadata_json) and json_parseable(dataset_metadata_json)
+    and count(select_resources(dataset_metadata_json, resource_selector)) > 0
+- contract_id: data_gouv_downloaded_files_schema
+  type: json_schema
+  applies_to: output
+  target: downloaded_files
+  description: Downloaded file references include source URL and output artifact URI.
+  schema_ref: schema://downloaded_resource_file_references/v1
+  expression: '{"type":"array","minItems":1,"items":{"type":"object","required":["source_url","uri","action"],"properties":{"source_url":{"type":"string"},"uri":{"type":"string"},"media_type":{"type":["string","null"]},"resource_name":{"type":["string","null"]},"action":{"type":"string","enum":["downloaded","skipped","failed"]}}}}'
+- contract_id: data_gouv_download_status_schema
+  type: json_schema
+  applies_to: output
+  target: download_status
+  description: Status exposes selection and download outcomes.
+  schema_ref: schema://resource_download_status/v1
+  expression: '{"type":"object","required":["success","resources_selected","files_downloaded"],"properties":{"success":{"type":"boolean"},"resources_selected":{"type":"integer","minimum":0},"files_downloaded":{"type":"integer","minimum":0},"files_skipped":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: data_gouv_download_effect
+  type: effect
+  applies_to: service
+  target: data_gouv_dataset_resource_downloader
+  description: On success, every selected resource is downloaded or explicitly skipped,
+    and at least one output file reference is emitted.
+  expression: download_status.success == true implies length(downloaded_files) >=
+    1
+invocation:
+  type: argo_workflow_template
+  template_name: data-gouv-dataset-resource-downloader-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.data_gouv_dataset_resource_downloader
+  implementation_ref: services/implementations/data_gouv_dataset_resource_downloader
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - https://www.data.gouv.fr/*
+  - https://static.data.gouv.fr/*
+  - https://*
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - public
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit credentials; source data is public open data.
+  - Only configured selected resource URLs should be downloaded.
+  idempotency_notes: Retry-safe when resource metadata and output naming are stable;
+    repeated downloads overwrite or confirm the same artifact paths.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:global_dag#ingestion_pipeline.get_death_resources
+  - main:global_dag#ingestion_pipeline.get_nuclear_data
+  - main:global_dag#ingestion_pipeline.get_thermal_data
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing service parses data.gouv metadata/resource-list JSON to
+    select and download referenced resources.'
+  - 'Evidence status: strongly_inferred.'

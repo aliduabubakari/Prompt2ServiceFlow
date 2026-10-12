@@ -1,0 +1,524 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickstream-session-window-batch-nominal-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_bounded_events.py: "#!/usr/bin/env python3\n\"\"\"Ingest bounded clickstream events, user\
+    \ consent table, and previous checkpoint manifest.\"\"\"\nfrom __future__ import annotations\nimport\
+    \ argparse, csv, json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\"\
+    , type=Path, required=True)\n    parser.add_argument(\"--execution-time\", type=str, default=None)\n\
+    \    args = parser.parse_args()\n    root = args.workspace\n    artifacts = root / \"artifacts\"\n\
+    \    artifacts.mkdir(parents=True, exist_ok=True)\n\n    fixture = json.loads(args.fixture.read_text(encoding=\"\
+    utf-8\"))\n    fixtures_dir = args.fixture.parent\n\n    # Use fixed execution time from scenario\
+    \ or fall back to fixture batch end\n    execution_time = args.execution_time or fixture.get(\"batch_window_end\"\
+    , \"2026-07-20T09:00:00Z\")\n\n    # Read clickstream events JSONL\n    events_path = fixtures_dir\
+    \ / fixture[\"inputs\"][\"events\"]\n    events = []\n    parse_errors = []\n    with events_path.open(encoding=\"\
+    utf-8\") as f:\n        for i, line in enumerate(f, 1):\n            line = line.strip()\n       \
+    \     if not line:\n                continue\n            try:\n                evt = json.loads(line)\n\
+    \                evt[\"_line\"] = i\n                events.append(evt)\n            except json.JSONDecodeError\
+    \ as e:\n                parse_errors.append({\"line\": i, \"message\": str(e)})\n\n    # Read user\
+    \ consent CSV\n    consent_path = fixtures_dir / fixture[\"inputs\"][\"consent\"]\n    consent_map\
+    \ = {}\n    with consent_path.open(encoding=\"utf-8\", newline=\"\") as f:\n        reader = csv.DictReader(f)\n\
+    \        for row in reader:\n            consent_map[row[\"user_id\"]] = {\n                \"consent_status\"\
+    : row[\"consent_status\"],\n                \"consent_date\": row[\"consent_date\"],\n           \
+    \ }\n\n    # Read previous checkpoint manifest\n    checkpoint_path = fixtures_dir / fixture[\"inputs\"\
+    ][\"checkpoint\"]\n    previous_checkpoint = json.loads(checkpoint_path.read_text(encoding=\"utf-8\"\
+    ))\n\n    result = {\n        \"events\": events,\n        \"user_consent\": consent_map,\n      \
+    \  \"previous_checkpoint\": previous_checkpoint,\n        \"total_events_read\": len(events),\n  \
+    \      \"parse_errors\": parse_errors,\n        \"ingested_at\": execution_time,\n    }\n    (artifacts\
+    \ / \"ingest_bounded_events_artifact.json\").write_text(\n        json.dumps(result, indent=2) + \"\
+    \\n\", encoding=\"utf-8\"\n    )\n    status = {\n        \"success\": len(parse_errors) == 0,\n \
+    \       \"events_ingested\": len(events),\n        \"errors\": parse_errors,\n    }\n    (artifacts\
+    \ / \"ingest_bounded_events_status.json\").write_text(\n        json.dumps(status, indent=2) + \"\\\
+    n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  02_validate_checkpoint_inputs.py: "#!/usr/bin/env python3\n\"\"\"Validate checkpoint inputs: batch boundaries,\
+    \ required identifiers, consent, and checkpoint continuity.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json\nfrom datetime import datetime, timezone\nfrom pathlib import Path\n\nREQUIRED_EVENT_FIELDS\
+    \ = {\"event_id\", \"user_id\", \"session_id\", \"timestamp\", \"event_type\"}\n\n\ndef parse_ts(ts:\
+    \ str) -> datetime:\n    return datetime.fromisoformat(ts.replace(\"Z\", \"+00:00\"))\n\n\ndef main():\n\
+    \    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--fixture\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \    root = args.workspace\n    artifacts = root / \"artifacts\"\n\n    ingested = json.loads(\n \
+    \       (artifacts / \"ingest_bounded_events_artifact.json\").read_text(encoding=\"utf-8\")\n    )\n\
+    \    events = ingested[\"events\"]\n    consent = ingested[\"user_consent\"]\n    previous_checkpoint\
+    \ = ingested.get(\"previous_checkpoint\", {})\n\n    fixture = json.loads(args.fixture.read_text(encoding=\"\
+    utf-8\"))\n    batch_start = parse_ts(fixture[\"batch_window_start\"])\n    batch_end = parse_ts(fixture[\"\
+    batch_window_end\"])\n\n    errors = []\n    valid_events = []\n\n    # Validate checkpoint continuity\n\
+    \    prev_ckpt_id = previous_checkpoint.get(\"checkpoint_id\", \"\")\n    if prev_ckpt_id:\n     \
+    \   prev_ckpt_end = previous_checkpoint.get(\"batch_window_end\", \"\")\n        if prev_ckpt_end:\n\
+    \            prev_end = parse_ts(prev_ckpt_end)\n            if prev_end > batch_start:\n        \
+    \        errors.append({\n                    \"message\": \"Previous checkpoint end is after current\
+    \ batch start\",\n                    \"previous_checkpoint_end\": prev_ckpt_end,\n              \
+    \      \"batch_window_start\": fixture[\"batch_window_start\"],\n                })\n\n    for evt\
+    \ in events:\n        issues = []\n        # Required fields\n        missing = REQUIRED_EVENT_FIELDS\
+    \ - set(evt.keys())\n        if missing:\n            issues.append(f\"missing_fields: {', '.join(missing)}\"\
+    )\n\n        # Timestamp within batch window\n        try:\n            ts = parse_ts(evt.get(\"timestamp\"\
+    , \"\"))\n            if ts < batch_start or ts > batch_end:\n                issues.append(f\"timestamp_out_of_batch_window:\
+    \ {evt['timestamp']}\")\n        except (KeyError, ValueError) as e:\n            issues.append(f\"\
+    invalid_timestamp: {e}\")\n\n        # User consent check\n        uid = evt.get(\"user_id\", \"\"\
+    )\n        consent_entry = consent.get(uid)\n        if consent_entry and consent_entry[\"consent_status\"\
+    ] == \"revoked\":\n            issues.append(f\"user_consent_revoked: {uid}\")\n\n        if issues:\n\
+    \            errors.append({\n                \"message\": \"Validation failed\",\n              \
+    \  \"event_id\": evt.get(\"event_id\", \"?\"),\n                \"line\": evt.get(\"_line\", None),\n\
+    \                \"issues\": issues,\n            })\n        else:\n            valid_events.append(evt)\n\
+    \n    result = {\n        \"valid_events\": valid_events,\n        \"total_events\": len(events),\n\
+    \        \"valid_count\": len(valid_events),\n        \"rejected_count\": len(errors),\n        \"\
+    validation_errors\": errors,\n        \"batch_window\": {\"start\": fixture[\"batch_window_start\"\
+    ], \"end\": fixture[\"batch_window_end\"]},\n        \"previous_checkpoint_id\": previous_checkpoint.get(\"\
+    checkpoint_id\", \"\"),\n    }\n    (artifacts / \"validate_checkpoint_inputs_artifact.json\").write_text(\n\
+    \        json.dumps(result, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\n     \
+    \   \"success\": True,\n        \"valid\": len(valid_events),\n        \"rejected\": len(errors),\n\
+    \        \"errors\": errors,\n    }\n    (artifacts / \"validate_checkpoint_inputs_status.json\").write_text(\n\
+    \        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"\
+    __main__\":\n    main()\n"
+  03_sort_and_deduplicate_records.py: "#!/usr/bin/env python3\n\"\"\"Sort events by timestamp and deduplicate\
+    \ by event_id.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import\
+    \ Path\n\ndef parse_ts(ts: str):\n    from datetime import datetime\n    return datetime.fromisoformat(ts.replace(\"\
+    Z\", \"+00:00\"))\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    args = parser.parse_args()\n    root = args.workspace\n    artifacts = root / \"artifacts\"\n\
+    \n    validated = json.loads(\n        (artifacts / \"validate_checkpoint_inputs_artifact.json\").read_text(encoding=\"\
+    utf-8\")\n    )\n    events = validated[\"valid_events\"]\n\n    # Sort by timestamp, then by event_id\
+    \ for deterministic ordering\n    events.sort(key=lambda e: (e.get(\"timestamp\", \"\"), e.get(\"\
+    event_id\", \"\")))\n\n    # Deduplicate by event_id, keeping first occurrence\n    seen = set()\n\
+    \    deduped = []\n    dups = []\n    for evt in events:\n        eid = evt.get(\"event_id\", \"\"\
+    )\n        if eid in seen:\n            dups.append({\"event_id\": eid, \"line\": evt.get(\"_line\"\
+    , \"?\")})\n        else:\n            seen.add(eid)\n            deduped.append(evt)\n\n    result\
+    \ = {\n        \"events\": deduped,\n        \"total_before_dedup\": len(events),\n        \"total_after_dedup\"\
+    : len(deduped),\n        \"duplicates_removed\": len(dups),\n        \"duplicate_details\": dups,\n\
+    \    }\n    (artifacts / \"sort_and_deduplicate_records_artifact.json\").write_text(\n        json.dumps(result,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\"success\": True, \"sorted_and_deduped\"\
+    : len(deduped), \"duplicates_removed\": len(dups), \"errors\": []}\n    (artifacts / \"sort_and_deduplicate_records_status.json\"\
+    ).write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__\
+    \ == \"__main__\":\n    main()\n"
+  04_build_analysis_windows.py: "#!/usr/bin/env python3\n\"\"\"Build analysis windows: group events into\
+    \ session windows by (user_id, session_id) pair.\"\"\"\nfrom __future__ import annotations\nimport\
+    \ argparse, json\nfrom datetime import datetime\nfrom pathlib import Path\n\n\ndef parse_ts(ts: str)\
+    \ -> datetime:\n    return datetime.fromisoformat(ts.replace(\"Z\", \"+00:00\"))\n\n\ndef main():\n\
+    \    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--fixture\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \    root = args.workspace\n    artifacts = root / \"artifacts\"\n\n    fixture = json.loads(args.fixture.read_text(encoding=\"\
+    utf-8\"))\n    gap_minutes = fixture.get(\"session_window_gap_minutes\", 30)\n\n    sorted_data =\
+    \ json.loads(\n        (artifacts / \"sort_and_deduplicate_records_artifact.json\").read_text(encoding=\"\
+    utf-8\")\n    )\n    events = sorted_data[\"events\"]\n\n    # Group events by (user_id, session_id)\
+    \ to prevent cross-user session merging\n    sessions: dict[tuple[str, str], list[dict]] = {}\n  \
+    \  for evt in events:\n        key = (evt.get(\"user_id\", \"?\"), evt.get(\"session_id\", \"unknown\"\
+    ))\n        if key not in sessions:\n            sessions[key] = []\n        sessions[key].append(evt)\n\
+    \n    # Build windows per (user_id, session_id) group\n    windows = []\n    for (uid, sid), sevents\
+    \ in sessions.items():\n        # Sort within group by timestamp\n        sevents.sort(key=lambda\
+    \ e: parse_ts(e.get(\"timestamp\", \"1970-01-01T00:00:00Z\")))\n\n        # Split into sub-windows\
+    \ if gap > gap_minutes\n        current_window: list[dict] = []\n        window_index = 0\n      \
+    \  for evt in sevents:\n            if not current_window:\n                current_window.append(evt)\n\
+    \            else:\n                last_ts = parse_ts(current_window[-1][\"timestamp\"])\n      \
+    \          curr_ts = parse_ts(evt[\"timestamp\"])\n                gap = (curr_ts - last_ts).total_seconds()\
+    \ / 60.0\n                if gap > gap_minutes:\n                    windows.append({\n          \
+    \              \"session_id\": sid,\n                        \"window_index\": window_index,\n   \
+    \                     \"user_id\": uid,\n                        \"events\": current_window,\n   \
+    \                     \"event_count\": len(current_window),\n                        \"window_start\"\
+    : current_window[0][\"timestamp\"],\n                        \"window_end\": current_window[-1][\"\
+    timestamp\"],\n                    })\n                    window_index += 1\n                   \
+    \ current_window = [evt]\n                else:\n                    current_window.append(evt)\n\
+    \        if current_window:\n            windows.append({\n                \"session_id\": sid,\n\
+    \                \"window_index\": window_index,\n                \"user_id\": uid,\n            \
+    \    \"events\": current_window,\n                \"event_count\": len(current_window),\n        \
+    \        \"window_start\": current_window[0][\"timestamp\"],\n                \"window_end\": current_window[-1][\"\
+    timestamp\"],\n            })\n\n    result = {\n        \"windows\": windows,\n        \"total_windows\"\
+    : len(windows),\n        \"total_sessions\": len(sessions),\n        \"gap_threshold_minutes\": gap_minutes,\n\
+    \    }\n    (artifacts / \"build_analysis_windows_artifact.json\").write_text(\n        json.dumps(result,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\n        \"success\": True,\n   \
+    \     \"windows_built\": len(windows),\n        \"sessions_processed\": len(sessions),\n        \"\
+    errors\": [],\n    }\n    (artifacts / \"build_analysis_windows_status.json\").write_text(\n     \
+    \   json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\"\
+    :\n    main()\n"
+  05_compute_window_metrics.py: "#!/usr/bin/env python3\n\"\"\"Compute per-window metrics: event counts,\
+    \ unique pages, durations, conversion flags.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom datetime import datetime\nfrom pathlib import Path\n\ndef parse_ts(ts: str):\n    return\
+    \ datetime.fromisoformat(ts.replace(\"Z\", \"+00:00\"))\n\ndef main():\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n    root = args.workspace\n    artifacts\
+    \ = root / \"artifacts\"\n\n    windows_data = json.loads(\n        (artifacts / \"build_analysis_windows_artifact.json\"\
+    ).read_text(encoding=\"utf-8\")\n    )\n    windows = windows_data[\"windows\"]\n\n    metrics = []\n\
+    \    for w in windows:\n        events = w[\"events\"]\n        event_types = [e.get(\"event_type\"\
+    , \"unknown\") for e in events]\n        pages = set(e.get(\"page_url\", \"\") for e in events)\n\
+    \        devices = set(e.get(\"device_type\", \"unknown\") for e in events)\n\n        start = parse_ts(w[\"\
+    window_start\"])\n        end = parse_ts(w[\"window_end\"])\n        duration_seconds = (end - start).total_seconds()\n\
+    \n        conversion = any(\n            et in (\"checkout_start\", \"add_to_cart\") for et in event_types\n\
+    \        )\n\n        metrics.append({\n            \"session_id\": w[\"session_id\"],\n         \
+    \   \"window_index\": w[\"window_index\"],\n            \"user_id\": w[\"user_id\"],\n           \
+    \ \"event_count\": len(events),\n            \"unique_pages\": len(pages),\n            \"devices_used\"\
+    : sorted(devices),\n            \"event_types_seen\": sorted(set(event_types)),\n            \"duration_seconds\"\
+    : round(duration_seconds, 1),\n            \"has_conversion_signal\": conversion,\n            \"\
+    window_start\": w[\"window_start\"],\n            \"window_end\": w[\"window_end\"],\n        })\n\
+    \n    # Aggregate summary\n    total_events = sum(m[\"event_count\"] for m in metrics)\n    total_windows\
+    \ = len(metrics)\n    conversion_windows = sum(1 for m in metrics if m[\"has_conversion_signal\"])\n\
+    \n    result = {\n        \"per_window_metrics\": metrics,\n        \"summary\": {\n            \"\
+    total_windows\": total_windows,\n            \"total_events\": total_events,\n            \"conversion_windows\"\
+    : conversion_windows,\n            \"conversion_rate\": round(conversion_windows / total_windows,\
+    \ 3) if total_windows else 0,\n            \"avg_events_per_window\": round(total_events / total_windows,\
+    \ 1) if total_windows else 0,\n            \"unique_users\": len(set(m[\"user_id\"] for m in metrics)),\n\
+    \        },\n    }\n    (artifacts / \"compute_window_metrics_artifact.json\").write_text(\n     \
+    \   json.dumps(result, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\"success\":\
+    \ True, \"windows_analyzed\": total_windows, \"metrics_computed\": len(metrics), \"errors\": []}\n\
+    \    (artifacts / \"compute_window_metrics_status.json\").write_text(\n        json.dumps(status,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  06_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish outputs: generate checkpoint manifest\
+    \ referencing previous checkpoint, export CSV metrics.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, csv, json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\"\
+    , type=Path, required=True)\n    parser.add_argument(\"--execution-time\", type=str, default=None)\n\
+    \    args = parser.parse_args()\n    root = args.workspace\n    artifacts = root / \"artifacts\"\n\
+    \n    fixture = json.loads(args.fixture.read_text(encoding=\"utf-8\"))\n\n    # Use fixed execution\
+    \ time from scenario or fixture\n    execution_time = args.execution_time or fixture.get(\"batch_window_end\"\
+    , \"2026-07-20T09:00:00Z\")\n\n    # Load upstream artifacts\n    metrics_data = json.loads(\n   \
+    \     (artifacts / \"compute_window_metrics_artifact.json\").read_text(encoding=\"utf-8\")\n    )\n\
+    \    validated = json.loads(\n        (artifacts / \"validate_checkpoint_inputs_artifact.json\").read_text(encoding=\"\
+    utf-8\")\n    )\n    previous_checkpoint_id = validated.get(\"previous_checkpoint_id\", \"\")\n\n\
+    \    # Build checkpoint manifest with fixed timestamp\n    manifest = {\n        \"checkpoint_id\"\
+    : f\"ckpt_{fixture['pipeline_id']}_{execution_time[:10].replace('-', '_')}\",\n        \"checkpoint_time\"\
+    : execution_time,\n        \"previous_checkpoint_id\": previous_checkpoint_id,\n        \"batch_window\"\
+    : {\n            \"start\": fixture[\"batch_window_start\"],\n            \"end\": fixture[\"batch_window_end\"\
+    ],\n        },\n        \"pipeline_id\": fixture[\"pipeline_id\"],\n        \"execution_summary\"\
+    : metrics_data[\"summary\"],\n        \"output_files\": [\n            \"per_window_metrics.csv\"\
+    ,\n            \"checkpoint_manifest.json\",\n        ],\n        \"status\": \"completed\",\n   \
+    \ }\n\n    (artifacts / \"checkpoint_manifest.json\").write_text(\n        json.dumps(manifest, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\"\n    )\n\n    # Export per-window metrics as CSV (relative path only\
+    \ in manifest)\n    csv_rel = \"per_window_metrics.csv\"\n    csv_path = artifacts / csv_rel\n   \
+    \ fieldnames = [\n        \"session_id\", \"window_index\", \"user_id\", \"event_count\",\n      \
+    \  \"unique_pages\", \"duration_seconds\", \"has_conversion_signal\",\n        \"window_start\", \"\
+    window_end\",\n    ]\n    with csv_path.open(\"w\", encoding=\"utf-8\", newline=\"\") as f:\n    \
+    \    writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction=\"ignore\")\n        writer.writeheader()\n\
+    \        for m in metrics_data[\"per_window_metrics\"]:\n            writer.writerow({\n         \
+    \       **m,\n                \"has_conversion_signal\": str(m[\"has_conversion_signal\"]),\n    \
+    \        })\n\n    # Publish output bundle \u2014 use relative paths\n    publish_result = {\n   \
+    \     \"checkpoint_manifest\": manifest,\n        \"metrics_csv\": csv_rel,\n        \"output_summary\"\
+    : metrics_data[\"summary\"],\n    }\n    (artifacts / \"publish_outputs_artifact.json\").write_text(\n\
+    \        json.dumps(publish_result, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\n\
+    \        \"success\": True,\n        \"manifest_written\": True,\n        \"csv_exported\": csv_rel,\n\
+    \        \"errors\": [],\n    }\n    (artifacts / \"publish_outputs_status.json\").write_text(\n \
+    \       json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\"\
+    :\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickstream-session-window-batch-nominal-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"checkpoint_id\": \"ckpt_2026_07_20_00\",\n  \"checkpoint_time\": \"2026-07-20T00:00:00Z\"\
+    ,\n  \"batch_window_start\": \"2026-07-20T07:00:00Z\",\n  \"batch_window_end\": \"2026-07-20T08:00:00Z\"\
+    ,\n  \"previous_checkpoint_id\": \"ckpt_2026_07_19_23\",\n  \"status\": \"ready\",\n  \"expected_event_count\"\
+    : 10\n}\n"
+  fixture-0001: '{"event_id": "evt_001", "user_id": "usr_A", "session_id": "sess_01", "timestamp": "2026-07-20T08:00:00Z",
+    "page_url": "/home", "event_type": "page_view", "device_type": "mobile"}
+
+    {"event_id": "evt_002", "user_id": "usr_A", "session_id": "sess_01", "timestamp": "2026-07-20T08:01:30Z",
+    "page_url": "/products", "event_type": "page_view", "device_type": "mobile"}
+
+    {"event_id": "evt_003", "user_id": "usr_A", "session_id": "sess_01", "timestamp": "2026-07-20T08:03:00Z",
+    "page_url": "/products/item-42", "event_type": "product_view", "device_type": "mobile"}
+
+    {"event_id": "evt_004", "user_id": "usr_A", "session_id": "sess_01", "timestamp": "2026-07-20T08:05:15Z",
+    "page_url": "/cart/add?item=42", "event_type": "add_to_cart", "device_type": "mobile"}
+
+    {"event_id": "evt_005", "user_id": "usr_B", "session_id": "sess_02", "timestamp": "2026-07-20T08:02:00Z",
+    "page_url": "/home", "event_type": "page_view", "device_type": "desktop"}
+
+    {"event_id": "evt_006", "user_id": "usr_B", "session_id": "sess_02", "timestamp": "2026-07-20T08:04:30Z",
+    "page_url": "/search?q=laptop", "event_type": "search", "device_type": "desktop"}
+
+    {"event_id": "evt_007", "user_id": "usr_B", "session_id": "sess_02", "timestamp": "2026-07-20T08:07:00Z",
+    "page_url": "/products/item-88", "event_type": "product_view", "device_type": "desktop"}
+
+    {"event_id": "evt_008", "user_id": "usr_B", "session_id": "sess_02", "timestamp": "2026-07-20T08:35:00Z",
+    "page_url": "/checkout", "event_type": "checkout_start", "device_type": "desktop"}
+
+    {"event_id": "evt_009", "user_id": "usr_C", "session_id": "sess_03", "timestamp": "2026-07-20T08:10:00Z",
+    "page_url": "/home", "event_type": "page_view", "device_type": "tablet"}
+
+    {"event_id": "evt_010", "user_id": "usr_C", "session_id": "sess_03", "timestamp": "2026-07-20T08:12:30Z",
+    "page_url": "/categories/electronics", "event_type": "category_view", "device_type": "tablet"}
+
+    {"event_id": "evt_010", "user_id": "usr_C", "session_id": "sess_03", "timestamp": "2026-07-20T08:12:30Z",
+    "page_url": "/categories/electronics", "event_type": "category_view", "device_type": "tablet"}
+
+    {"event_id": "evt_011", "user_id": "usr_C", "session_id": "sess_03", "timestamp": "2026-07-20T08:15:00Z",
+    "page_url": "/products/item-55", "event_type": "product_view", "device_type": "tablet"}
+
+    {"event_id": "evt_012", "user_id": "usr_D", "session_id": "sess_04", "timestamp": "2026-07-20T08:20:00Z",
+    "page_url": "/home", "event_type": "page_view", "device_type": "mobile"}
+
+    {"event_id": "evt_013", "user_id": "usr_D", "session_id": "sess_04", "timestamp": "2026-07-20T08:22:00Z",
+    "page_url": "/products/item-42", "event_type": "product_view", "device_type": "mobile"}
+
+    {"event_id": "evt_014", "user_id": "usr_D", "session_id": "sess_04", "timestamp": "2026-07-20T08:23:00Z",
+    "page_url": "/cart/add?item=42", "event_type": "add_to_cart", "device_type": "mobile"}
+
+    {"event_id": "evt_015", "user_id": "usr_D", "session_id": "sess_04", "timestamp": "2026-07-20T08:40:00Z",
+    "page_url": "/checkout", "event_type": "checkout_start", "device_type": "mobile"}
+
+    '
+  fixture-0002: "{\n  \"pipeline_id\": \"clickstream_session_window_batch\",\n  \"inputs\": {\n    \"\
+    events\": \"clickstream_events.jsonl\",\n    \"consent\": \"user_consent.csv\",\n    \"checkpoint\"\
+    : \"checkpoint_manifest.json\"\n  },\n  \"input_modalities\": [\"jsonl\", \"table\"],\n  \"systems\"\
+    : [\n    \"event export bucket\",\n    \"analytics staging bucket\"\n  ],\n  \"session_window_gap_minutes\"\
+    : 30,\n  \"batch_window_start\": \"2026-07-20T08:00:00Z\",\n  \"batch_window_end\": \"2026-07-20T09:00:00Z\"\
+    \n}\n"
+  fixture-0003: 'user_id,consent_status,consent_date
+
+    usr_A,granted,2026-06-01
+
+    usr_B,granted,2026-06-15
+
+    usr_C,granted,2026-07-01
+
+    usr_D,revoked,2026-07-10
+
+    usr_E,granted,2026-07-18
+
+    '
+---
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: clickstream-session-window-batch-nominal
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 8 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: execution-time
+        value: '2026-07-20T09:00:00Z'
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: clickstream-session-window-batch-nominal-scripts
+    - name: fixtures
+      configMap:
+        name: clickstream-session-window-batch-nominal-fixtures
+        items:
+        - key: fixture-0000
+          path: checkpoint_manifest.json
+        - key: fixture-0001
+          path: clickstream_events.jsonl
+        - key: fixture-0002
+          path: fixture.json
+        - key: fixture-0003
+          path: user_consent.csv
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: ingest-bounded-events
+          template: run-ingest-bounded-events
+        - name: validate-checkpoint-inputs
+          template: run-validate-checkpoint-inputs
+          depends: ingest-bounded-events.Succeeded
+        - name: sort-and-deduplicate-records
+          template: run-sort-and-deduplicate-records
+          depends: validate-checkpoint-inputs.Succeeded
+        - name: build-analysis-windows
+          template: run-build-analysis-windows
+          depends: sort-and-deduplicate-records.Succeeded
+        - name: compute-window-metrics
+          template: run-compute-window-metrics
+          depends: build-analysis-windows.Succeeded
+        - name: publish-outputs
+          template: run-publish-outputs
+          depends: compute-window-metrics.Succeeded
+    - name: run-ingest-bounded-events
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: ingest_bounded_events
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_ingest_bounded_events.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        - --execution-time
+        - '{{workflow.parameters.execution-time}}'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-validate-checkpoint-inputs
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: validate_checkpoint_inputs
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_validate_checkpoint_inputs.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-sort-and-deduplicate-records
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: sort_and_deduplicate_records
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_sort_and_deduplicate_records.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-build-analysis-windows
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: build_analysis_windows
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_build_analysis_windows.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-compute-window-metrics
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: compute_window_metrics
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/05_compute_window_metrics.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+    - name: run-publish-outputs
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: publish_outputs
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/06_publish_outputs.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/fixture.json
+        - --execution-time
+        - '{{workflow.parameters.execution-time}}'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

@@ -1,0 +1,324 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-08T23:25:47.718044+00:00",
+  "instance": "benchmark/instances/main/magento_graphql_customer",
+  "workspace": "experiments/workspaces/main/magento_graphql_customer",
+  "submission": "results/paper/runs/m5__main__magento_graphql_customer__deepinfra-deepseek-v4-1-flash__s0__20261008T232223.891031Z__e5336581/agent_workspace/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G1",
+    "g6_assert_status": "pass",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": null,
+    "wiring_applicable": false,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": null
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-08T23:25:46.479542+00:00",
+    "workspace": "experiments/workspaces/main/magento_graphql_customer",
+    "submission": "results/paper/runs/m5__main__magento_graphql_customer__deepinfra-deepseek-v4-1-flash__s0__20261008T232223.891031Z__e5336581/agent_workspace/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G1",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "fail",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "intent 'create_customer' input references unknown artifact 'graphql_endpoint_resource'",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "intent 'generate_customer_token' input references unknown artifact 'graphql_endpoint_resource'",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "intent 'get_customer_info' input references unknown artifact 'graphql_endpoint_resource'",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "intent 'get_customer_info' input references unknown artifact 'bearer_token'",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'magento_graphql_endpoint' names consumer 'create_customer', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'magento_graphql_endpoint' names consumer 'generate_customer_token', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'magento_graphql_endpoint' names consumer 'get_customer_info', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'customer_email' names consumer 'generate_customer_token', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'customer_token' names consumer 'get_customer_info', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "binding 'create_customer' maps input artifact 'magento_graphql_endpoint' that is not declared by the intent",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "binding 'generate_customer_token' maps input artifact 'magento_graphql_endpoint' that is not declared by the intent",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "binding 'get_customer_info' maps input artifact 'magento_graphql_endpoint' that is not declared by the intent",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "binding 'get_customer_info' maps input artifact 'customer_token' that is not declared by the intent",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "create_customer: output 'projected_result' expects object, got string"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "create_customer: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "generate_customer_token: output 'projected_result' expects object, got string"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "generate_customer_token: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "get_customer_info: bound input artifacts do not exactly match the intent inputs"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "magento-graphql-customer-scripts",
+              "scenario": "base",
+              "data_size_bytes": 6813,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "magento-graphql-customer-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 319,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "magento-graphql-customer-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 6813,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "magento-graphql-customer-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 319,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "create_customer",
+                "generate_customer_token",
+                "get_customer_info"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 3,
+      "submission_intents": 3,
+      "gold_intents": 3,
+      "mapping": {
+        "create_customer": "create_customer",
+        "generate_customer_token": "generate_customer_token",
+        "get_customer_info": "get_customer_info"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 3
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 2,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 3,
+      "total": 3,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 3,
+    "correct": 3,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "create_customer",
+        "gold_service": "graphql_json_operation_executor",
+        "submission_intent": "create_customer",
+        "submission_service": "graphql_json_operation_executor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "generate_customer_token",
+        "gold_service": "graphql_json_operation_executor",
+        "submission_intent": "generate_customer_token",
+        "submission_service": "graphql_json_operation_executor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "get_customer_info",
+        "gold_service": "graphql_json_operation_executor",
+        "submission_intent": "get_customer_info",
+        "submission_service": "graphql_json_operation_executor",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "status": "not_applicable",
+    "reason": "gold and submission contain no producer-consumer wiring pairs",
+    "applicable": false,
+    "precision": null,
+    "recall": null,
+    "f1": null,
+    "true_positives": 0,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [],
+        "status": "pass"
+      }
+    ],
+    "assertions_total": 0,
+    "assertions_passed": 0,
+    "pass_rate": null,
+    "overall_status": "pass"
+  }
+}

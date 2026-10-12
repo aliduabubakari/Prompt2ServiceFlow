@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-db-cleanup-run-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Deterministic Airflow metadata cleanup mock.\"\"\"\n\nfrom\
+    \ __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib import Path\n\n\nTABLES\
+    \ = {\n    \"cleanup_dag_run\": \"dag_run\",\n    \"cleanup_task_instance\": \"task_instance\",\n\
+    \    \"cleanup_log\": \"log\",\n    \"cleanup_xcom\": \"xcom\",\n    \"cleanup_sla_miss\": \"sla_miss\"\
+    ,\n    \"cleanup_dag_model\": \"dag\",\n    \"cleanup_task_reschedule\": \"task_reschedule\",\n  \
+    \  \"cleanup_task_fail\": \"task_fail\",\n    \"cleanup_rendered_task_instance_fields\": \"rendered_task_instance_fields\"\
+    ,\n    \"cleanup_import_error\": \"import_error\",\n    \"cleanup_base_job\": \"job\",\n    \"cleanup_sessions\"\
+    : \"session\",\n}\n\n\ndef write_json(path: Path, document: dict) -> None:\n    path.write_text(json.dumps(document,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--step\"\
+    , required=True)\n    args = parser.parse_args()\n    artifacts = args.workspace / \"artifacts\"\n\
+    \    artifacts.mkdir(parents=True, exist_ok=True)\n\n    if args.step == \"config\":\n        retention\
+    \ = {\n            \"max_age_days\": 30,\n            \"cutoff_date\": \"2026-01-01\",\n         \
+    \   \"delete_enabled\": True,\n        }\n        write_json(artifacts / \"retention_config.json\"\
+    , retention)\n        write_json(\n            artifacts / \"config_status.json\",\n            {\"\
+    success\": True, \"errors\": [], \"source\": \"default\"},\n        )\n        return\n\n    if args.step\
+    \ in TABLES:\n        table = TABLES[args.step]\n        suffix = args.step.removeprefix(\"cleanup_\"\
+    )\n        write_json(\n            artifacts / f\"{suffix}_result.json\",\n            {\"table\"\
+    : table, \"deleted_rows\": len(table), \"cutoff_date\": \"2026-01-01\"},\n        )\n        write_json(\n\
+    \            artifacts / f\"{suffix}_status.json\",\n            {\"success\": True, \"errors\": [],\
+    \ \"table\": table},\n        )\n        return\n\n    if args.step == \"analyze\":\n        write_json(\n\
+    \            artifacts / \"analyze_status.json\",\n            {\n                \"success\": True,\n\
+    \                \"errors\": [],\n                \"analyzed_table_count\": len(TABLES),\n       \
+    \         \"tables\": list(TABLES.values()),\n            },\n        )\n\n\nif __name__ == \"__main__\"\
+    :\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-db-cleanup-run-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"maxDBEntryAgeInDays":30,"enable_delete":true,"print_deletes":false}
+
+    '
+  fixture-0001: '{"driver":"filesystem-mock","engine":"postgresql"}'
+  fixture-0002: "{\n  \"pipeline_id\": \"airflow_db_cleanup\",\n  \"inputs\": {\n    \"db\": \"db.json\"\
+    ,\n    \"config\": \"config.json\"\n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n\
+    \  ],\n  \"systems\": [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"

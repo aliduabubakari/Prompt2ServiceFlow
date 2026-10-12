@@ -1,0 +1,44 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:supply_chain_shipment_etl
+mappings:
+- intent_id: ingest_vendor_a
+  inputs:
+    csv_file: vendor_a_csv
+  outputs:
+    validated_dataset: vendor_a_dataset
+    validated_data_object: vendor_a_data_object
+    validation_status: vendor_a_validation_status
+- intent_id: ingest_vendor_b
+  inputs:
+    csv_file: vendor_b_csv
+  outputs:
+    validated_dataset: vendor_b_dataset
+    validated_data_object: vendor_b_data_object
+    validation_status: vendor_b_validation_status
+- intent_id: ingest_vendor_c
+  inputs:
+    csv_file: vendor_c_csv
+  outputs:
+    validated_dataset: vendor_c_dataset
+    validated_data_object: vendor_c_data_object
+    validation_status: vendor_c_validation_status
+- intent_id: cleanse_data
+  inputs:
+    vendor_data_objects: vendor_a_data_object
+  outputs:
+    cleansed_shipment_dataset: cleansed_shipment_dataset
+    cleansed_data_object: cleansed_data_object
+    transform_status: transform_status
+- intent_id: load_to_db
+  inputs:
+    ingested_data_object: cleansed_data_object
+    target_database: inventory_db_resource
+  outputs:
+    load_status: db_load_status
+- intent_id: send_summary_email
+  inputs:
+    summary_context: etl_summary_context
+    email_service: email_service_resource
+  outputs:
+    notification_status: notification_status
+    rendered_summary: rendered_summary

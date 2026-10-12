@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: medical-facility-accessibility-v1-scripts
+  namespace: prompt2serviceflow
+data:
+  01_load_and_modify_facilities.py: "#!/usr/bin/env python3\n\"\"\"Load facility CSV and produce structured\
+    \ JSON.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json, shutil\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser()\n    p.add_argument(\"--workspace\"\
+    ,type=Path,required=True)\n    p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    dest=art/\"facilities.csv\"\
+    ; shutil.copyfile(a.fixture,dest)\n    with dest.open(encoding=\"utf-8\",newline=\"\") as f:\n   \
+    \     r=csv.DictReader(f); rows=list(r); cols=r.fieldnames or []\n    out={\"columns\":cols,\"rows\"\
+    :rows,\"row_count\":len(rows),\"dataset_id\":\"2\",\"table_name\":\"JOT_\"}\n    (art/\"formatted_facilities_json.json\"\
+    ).write_text(json.dumps(out,indent=2)+\"\\n\",encoding=\"utf-8\")\n    st={\"success\":True,\"rows_read\"\
+    :len(rows),\"rows_written\":len(rows),\"output_uri\":str(art/\"formatted_facilities_json.json\"),\"\
+    errors\":[]}\n    (art/\"format_status.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n\nif __name__==\"__main__\": main()\n"
+  02_geocode_facilities.py: "#!/usr/bin/env python3\n\"\"\"Mock geocode facility addresses.\"\"\"\nfrom\
+    \ __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\nCOORDS={\"City General\
+    \ Hospital\":(40.7128,-74.0060),\"Community Health Center\":(37.7749,-122.4194),\"Regional Medical\
+    \ Center\":(39.7392,-104.9903)}\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"artifacts\"\n    src=json.loads((art/\"\
+    formatted_facilities_json.json\").read_text(encoding=\"utf-8\"))\n    erows=[]\n    for row in src[\"\
+    rows\"]:\n        name=row.get(\"facility_name\",\"\"); lat,lon=COORDS.get(name,(0,0))\n        r2=dict(row);\
+    \ r2[\"latitude\"]=lat; r2[\"longitude\"]=lon; erows.append(r2)\n    out={\"columns\":src[\"columns\"\
+    ]+[\"latitude\",\"longitude\"],\"rows\":erows,\"row_count\":len(erows),\"geocoding\":{\"provider_id\"\
+    :\"geocodingHere\"}}\n    (art/\"geocoded_facilities_json.json\").write_text(json.dumps(out,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    st={\"success\":True,\"geocoder_id\":\"geocodingHere\",\"rows_processed\"\
+    :len(erows),\"rows_geocoded\":len(erows),\"rows_failed\":0,\"output_uri\":str(art/\"geocoded_facilities_json.json\"\
+    ),\"errors\":[]}\n    (art/\"geocoding_status.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n\nif __name__==\"__main__\": main()\n"
+  03_calc_distance_public_transport.py: "#!/usr/bin/env python3\n\"\"\"Mock distance calculation to public\
+    \ transport.\"\"\"\nfrom __future__ import annotations\nimport argparse, json, math\nfrom pathlib\
+    \ import Path\n\ndef haversine(lat1,lon1,lat2,lon2):\n    R=6371000; p=math.pi/180\n    a=0.5-math.cos((lat2-lat1)*p)/2+math.cos(lat1*p)*math.cos(lat2*p)*(1-math.cos((lon2-lon1)*p))/2\n\
+    \    return 2*R*math.asin(math.sqrt(a))\n\nSTOP_COORDS={\"Metropolis Central Station\":(40.713,-74.006),\"\
+    Riverside Bus Terminal\":(37.775,-122.419),\"Highland Transit Hub\":(39.739,-104.990)}\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"\n    src=json.loads((art/\"geocoded_facilities_json.json\").read_text(encoding=\"\
+    utf-8\"))\n    erows=[]\n    for row in src[\"rows\"]:\n        fla,flo=row.get(\"latitude\",0),row.get(\"\
+    longitude\",0)\n        best=min((haversine(fla,flo,sla,slo),n) for n,(sla,slo) in STOP_COORDS.items())\n\
+    \        r2=dict(row); r2[\"distance_to_pt\"]=round(best[0],1); erows.append(r2)\n    out={\"columns\"\
+    :src[\"columns\"]+[\"distance_to_pt\"],\"rows\":erows,\"row_count\":len(erows)}\n    (art/\"pt_distance_json.json\"\
+    ).write_text(json.dumps(out,indent=2)+\"\\n\",encoding=\"utf-8\")\n    st={\"success\":True,\"rows_processed\"\
+    :len(erows),\"rows_extended\":len(erows),\"output_uri\":str(art/\"pt_distance_json.json\"),\"errors\"\
+    :[]}\n    (art/\"pt_distance_status.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n\nif __name__==\"__main__\": main()\n"
+  04_calc_distance_residential.py: "#!/usr/bin/env python3\n\"\"\"Mock distance calculation to residential\
+    \ areas.\"\"\"\nfrom __future__ import annotations\nimport argparse, json, math\nfrom pathlib import\
+    \ Path\n\ndef haversine(lat1,lon1,lat2,lon2):\n    R=6371000; p=math.pi/180\n    return 2*R*math.asin(math.sqrt(0.5-math.cos((lat2-lat1)*p)/2+math.cos(lat1*p)*math.cos(lat2*p)*(1-math.cos((lon2-lon1)*p))/2))\n\
+    \nRES_COORDS={\"Metropolis Downtown Residential\":(40.713,-74.006),\"Riverside Residential Zone\"\
+    :(37.775,-122.419),\"Highland Residential Area\":(39.739,-104.990)}\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"\n    src=json.loads((art/\"pt_distance_json.json\").read_text(encoding=\"utf-8\"))\n \
+    \   erows=[]\n    for row in src[\"rows\"]:\n        fla,flo=row.get(\"latitude\",0),row.get(\"longitude\"\
+    ,0)\n        best=min((haversine(fla,flo,rla,rlo),n) for n,(rla,rlo) in RES_COORDS.items())\n    \
+    \    r2=dict(row); r2[\"distance_to_residential\"]=round(best[0],1); erows.append(r2)\n    out={\"\
+    columns\":src[\"columns\"]+[\"distance_to_residential\"],\"rows\":erows,\"row_count\":len(erows)}\n\
+    \    (art/\"residential_distance_json.json\").write_text(json.dumps(out,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    st={\"success\":True,\"rows_processed\":len(erows),\"rows_extended\":len(erows),\"output_uri\"\
+    :str(art/\"residential_distance_json.json\"),\"errors\":[]}\n    (art/\"residential_distance_status.json\"\
+    ).write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\")\n\nif __name__==\"__main__\": main()\n"
+  05_save_accessibility_data.py: "#!/usr/bin/env python3\n\"\"\"Export enriched JSON to CSV.\"\"\"\nfrom\
+    \ __future__ import annotations\nimport argparse, csv, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"\n    src=json.loads((art/\"residential_distance_json.json\").read_text(encoding=\"\
+    utf-8\"))\n    out=art/\"enriched_facilities.csv\"\n    with out.open(\"w\",encoding=\"utf-8\",newline=\"\
+    \") as f:\n        w=csv.DictWriter(f,fieldnames=src[\"columns\"]); w.writeheader(); w.writerows(src[\"\
+    rows\"])\n    st={\"success\":True,\"rows_read\":len(src[\"rows\"]),\"rows_written\":len(src[\"rows\"\
+    ]),\"output_uri\":str(out),\"errors\":[]}\n    (art/\"export_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: medical-facility-accessibility-v1-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: 'facility_id,facility_name,address,type
+
+    F001,City General Hospital,"123 Main St, Metropolis",hospital
+
+    F002,Community Health Center,"456 Oak Ave, Riverside",clinic
+
+    F003,Regional Medical Center,"789 Pine Rd, Highland",hospital
+
+    '
+  fixture-0001: "{\n  \"pipeline_id\": \"medical_facility_accessibility_v1\",\n  \"inputs\": {\n    \"\
+    geocoding_api\": \"geocoding_api.json\",\n    \"facilities\": \"facilities.csv\"\n  },\n  \"input_modalities\"\
+    : [\n    \"json\",\n    \"table\"\n  ],\n  \"systems\": [\n    \"system_a\",\n    \"system_b\"\n \
+    \ ]\n}"
+  fixture-0002: '{"driver":"filesystem-mock","provider":"here-geocoding","target":"artifacts/geocoded_facilities_json.json"}'

@@ -1,0 +1,46 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:database_partition_check_etl
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_database_partition_check_etl_sql_query_readiness_sensor_candidates
+  source_step_refs:
+  - wait_partition
+  service_ids:
+  - sql_query_readiness_sensor
+  - postgres_readonly_query_result_extractor
+  - sql_incremental_table_extractor
+  - external_workflow_completion_sensor
+  - postgres_parameterized_sql_executor
+  - reviewed_domain_adapter
+- candidate_set_id: main_database_partition_check_etl_sql_incremental_table_extractor_candidates
+  source_step_refs:
+  - extract_incremental
+  service_ids:
+  - sql_incremental_table_extractor
+  - postgres_readonly_query_result_extractor
+  - sql_query_readiness_sensor
+  - database_csv_snapshot_exporter
+  - postgres_parameterized_sql_executor
+  - unreviewed_postgres_sql_executor
+- candidate_set_id: main_database_partition_check_etl_tabular_dataset_declarative_transformer_candidates
+  source_step_refs:
+  - transform
+  service_ids:
+  - tabular_dataset_declarative_transformer
+  - tabular_null_value_cleanser
+  - tabular_query_result_csv_writer
+  - shipment_data_standardization_enricher
+  - parquet_tabular_feature_engineer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_database_partition_check_etl_tabular_dataset_database_loader_candidates
+  source_step_refs:
+  - load
+  service_ids:
+  - tabular_dataset_database_loader
+  - database_csv_snapshot_importer
+  - postgres_parameterized_sql_executor
+  - multi_table_analytics_warehouse_loader
+  - air_quality_dimensional_postgres_loader
+  - legacy_database_table_loader

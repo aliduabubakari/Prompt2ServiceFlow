@@ -1,0 +1,205 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crop-disease-image-triage-nominal-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_source_batch.py: "#!/usr/bin/env python3\n\"\"\"Ingest crop image metadata, farmer master\
+    \ data, and disease risk policy.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv,\
+    \ json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--execution-time\", type=str, default=None)\n    args = parser.parse_args()\n\
+    \    root = args.workspace\n    artifacts = root / \"artifacts\"\n    artifacts.mkdir(parents=True,\
+    \ exist_ok=True)\n\n    fixture = json.loads(args.fixture.read_text(encoding=\"utf-8\"))\n    fixtures_dir\
+    \ = args.fixture.parent\n\n    images = json.loads((fixtures_dir / fixture[\"inputs\"][\"images\"\
+    ]).read_text(encoding=\"utf-8\"))\n    farmers = {}\n    with (fixtures_dir / fixture[\"inputs\"][\"\
+    master\"]).open(encoding=\"utf-8\", newline=\"\") as f:\n        for row in csv.DictReader(f):\n \
+    \           farmers[row[\"farmer_id\"]] = row\n    policy = json.loads((fixtures_dir / fixture[\"\
+    inputs\"][\"policy\"]).read_text(encoding=\"utf-8\"))\n\n    result = {\n        \"images\": images,\
+    \ \"farmers\": farmers, \"policy\": policy,\n        \"total_images\": len(images), \"total_farmers\"\
+    : len(farmers),\n        \"ingested_at\": args.execution_time,\n    }\n    (artifacts / \"ingest_source_batch_artifact.json\"\
+    ).write_text(json.dumps(result, indent=2) + \"\\n\", encoding=\"utf-8\")\n    (artifacts / \"ingest_source_batch_status.json\"\
+    ).write_text(\n        json.dumps({\"success\": True, \"images\": len(images), \"farmers\": len(farmers),\
+    \ \"errors\": []}, indent=2) + \"\\n\",\n        encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\"\
+    :\n    main()\n"
+  02_validate_source_contract.py: "#!/usr/bin/env python3\n\"\"\"Validate source contracts: required fields,\
+    \ farmer references, crop type validity.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\nREQUIRED_IMAGE_FIELDS = {\"image_id\", \"farmer_id\", \"crop_type\"\
+    , \"image_quality_score\", \"symptoms_observed\"}\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n    root = args.workspace; artifacts\
+    \ = root / \"artifacts\"\n\n    ingested = json.loads((artifacts / \"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    images, farmers, policy = ingested[\"images\"], ingested[\"\
+    farmers\"], ingested[\"policy\"]\n    crop_profiles = policy[\"crop_risk_profiles\"]\n\n    errors\
+    \ = []; valid_images = []\n    for img in images:\n        issues = []\n        missing = REQUIRED_IMAGE_FIELDS\
+    \ - set(img.keys())\n        if missing: issues.append(f\"missing_fields: {missing}\")\n        if\
+    \ img.get(\"farmer_id\") not in farmers: issues.append(f\"unknown_farmer: {img.get('farmer_id')}\"\
+    )\n        if img.get(\"crop_type\") not in crop_profiles: issues.append(f\"unknown_crop: {img.get('crop_type')}\"\
+    )\n        qs = img.get(\"image_quality_score\", 0)\n        if not (0 <= qs <= 1): issues.append(f\"\
+    invalid_quality_score: {qs}\")\n        if issues:\n            errors.append({\"image_id\": img.get(\"\
+    image_id\",\"?\"), \"issues\": issues})\n        else:\n            valid_images.append(img)\n\n \
+    \   result = {\"valid_images\": valid_images, \"total_errors\": len(errors), \"errors\": errors}\n\
+    \    (artifacts / \"validate_source_contract_artifact.json\").write_text(json.dumps(result, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\")\n    (artifacts / \"validate_source_contract_status.json\").write_text(\n\
+    \        json.dumps({\"success\": True, \"valid\": len(valid_images), \"rejected\": len(errors), \"\
+    errors\": errors}, indent=2) + \"\\n\",\n        encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\"\
+    :\n    main()\n"
+  03_evaluate_policy_or_risk.py: "#!/usr/bin/env python3\n\"\"\"Evaluate risk per image: compute disease\
+    \ risk score and determine routing decision.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    args = parser.parse_args()\n    root = args.workspace; artifacts = root / \"artifacts\"\n\n \
+    \   validated = json.loads((artifacts / \"validate_source_contract_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    ingested = json.loads((artifacts / \"ingest_source_batch_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    policy = ingested[\"policy\"]\n    farmers = ingested[\"farmers\"]\n    quality_min\
+    \ = policy[\"image_quality_minimum\"]\n    profiles = policy[\"crop_risk_profiles\"]\n    thresholds\
+    \ = policy[\"risk_thresholds\"]\n\n    scored = []\n    for img in validated[\"valid_images\"]:\n\
+    \        qs = img[\"image_quality_score\"]\n        crop = img[\"crop_type\"]\n        symptoms =\
+    \ img.get(\"symptoms_observed\", \"none\")\n        farmer = farmers.get(img[\"farmer_id\"], {})\n\
+    \n        # Low quality \u2192 automatic exception\n        if qs < quality_min:\n            scored.append({**img,\
+    \ \"risk_score\": 0.0, \"route\": \"exception\",\n                           \"reason\": f\"low_quality:\
+    \ {qs} < {quality_min}\"})\n            continue\n\n        # Compute disease risk\n        profile\
+    \ = profiles.get(crop, {})\n        base = profile.get(\"base_risk\", 0.3)\n        mult = profile.get(\"\
+    symptoms_multiplier\", {}).get(symptoms, 1.0)\n        risk = min(round(base * mult, 2), 1.0)\n\n\
+    \        # Disease history escalation\n        if policy.get(\"disease_history_escalation\") and farmer.get(\"\
+    disease_history\") == \"high\":\n            risk = min(risk + 0.15, 1.0)\n\n        route = \"exception\"\
+    \ if risk > thresholds[\"high\"] else \"approved\"\n        scored.append({**img, \"risk_score\":\
+    \ risk, \"route\": route,\n                       \"reason\": f\"risk={risk}, thresholds=({thresholds['low']},{thresholds['high']})\"\
+    })\n\n    approved = [s for s in scored if s[\"route\"] == \"approved\"]\n    exceptions = [s for\
+    \ s in scored if s[\"route\"] == \"exception\"]\n\n    result = {\"scored_images\": scored, \"approved\"\
+    : approved, \"exceptions\": exceptions,\n              \"total\": len(scored), \"approved_count\"\
+    : len(approved), \"exception_count\": len(exceptions)}\n    (artifacts / \"evaluate_policy_or_risk_artifact.json\"\
+    ).write_text(json.dumps(result, indent=2) + \"\\n\", encoding=\"utf-8\")\n    (artifacts / \"evaluate_policy_or_risk_status.json\"\
+    ).write_text(\n        json.dumps({\"success\": True, \"scored\": len(scored), \"approved\": len(approved),\
+    \ \"exceptions\": len(exceptions), \"errors\": []}, indent=2) + \"\\n\",\n        encoding=\"utf-8\"\
+    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  04_route_approved_records.py: "#!/usr/bin/env python3\n\"\"\"Route approved (low-risk) records: prepare\
+    \ for automated processing.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom\
+    \ pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    args = parser.parse_args()\n    root = args.workspace; artifacts = root / \"artifacts\"\n\n \
+    \   evaluated = json.loads((artifacts / \"evaluate_policy_or_risk_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    approved = evaluated[\"approved\"]\n\n    result = {\"route\": \"approved\", \"records\"\
+    : approved, \"total_routed\": len(approved),\n              \"action\": \"auto_process\", \"notification\"\
+    : \"No expert review required\"}\n    (artifacts / \"route_approved_records_artifact.json\").write_text(json.dumps(result,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n    (artifacts / \"route_approved_records_status.json\"\
+    ).write_text(\n        json.dumps({\"success\": True, \"routed\": len(approved), \"errors\": []},\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  05_route_exception_records.py: "#!/usr/bin/env python3\n\"\"\"Route exception (high-risk/low-quality)\
+    \ records: escalate for expert agronomist review.\"\"\"\nfrom __future__ import annotations\nimport\
+    \ argparse, json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n    root = args.workspace; artifacts\
+    \ = root / \"artifacts\"\n\n    evaluated = json.loads((artifacts / \"evaluate_policy_or_risk_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    exceptions = evaluated[\"exceptions\"]\n\n    result = {\"route\"\
+    : \"exception\", \"records\": exceptions, \"total_escalated\": len(exceptions),\n              \"\
+    action\": \"escalate_to_expert\", \"notification\": \"Expert agronomist review required\"}\n    (artifacts\
+    \ / \"route_exception_records_artifact.json\").write_text(json.dumps(result, indent=2) + \"\\n\",\
+    \ encoding=\"utf-8\")\n    (artifacts / \"route_exception_records_status.json\").write_text(\n   \
+    \     json.dumps({\"success\": True, \"escalated\": len(exceptions), \"errors\": []}, indent=2) +\
+    \ \"\\n\", encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  06_merge_route_outcomes.py: "#!/usr/bin/env python3\n\"\"\"Merge route outcomes: combine approved and\
+    \ exception records into final disposition.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    args = parser.parse_args()\n    root = args.workspace; artifacts = root / \"artifacts\"\n\n \
+    \   approved = json.loads((artifacts / \"route_approved_records_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    exceptions = json.loads((artifacts / \"route_exception_records_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n\n    merged = {\n        \"disposition\": \"complete\",\n        \"summary\": {\n    \
+    \        \"total_images\": approved[\"total_routed\"] + exceptions[\"total_escalated\"],\n       \
+    \     \"approved\": approved[\"total_routed\"],\n            \"escalated\": exceptions[\"total_escalated\"\
+    ],\n        },\n        \"approved_records\": [{\"image_id\": r[\"image_id\"], \"farmer_id\": r[\"\
+    farmer_id\"],\n                               \"crop_type\": r[\"crop_type\"], \"risk_score\": r.get(\"\
+    risk_score\", \"N/A\"),\n                               \"reason\": r.get(\"reason\", \"\")} for r\
+    \ in approved[\"records\"]],\n        \"exception_records\": [{\"image_id\": r[\"image_id\"], \"farmer_id\"\
+    : r[\"farmer_id\"],\n                                \"crop_type\": r[\"crop_type\"], \"risk_score\"\
+    : r.get(\"risk_score\", \"N/A\"),\n                                \"reason\": r.get(\"reason\", \"\
+    \")} for r in exceptions[\"records\"]],\n    }\n    (artifacts / \"merge_route_outcomes_artifact.json\"\
+    ).write_text(json.dumps(merged, indent=2) + \"\\n\", encoding=\"utf-8\")\n    (artifacts / \"merge_route_outcomes_status.json\"\
+    ).write_text(\n        json.dumps({\"success\": True, \"merged\": merged[\"summary\"][\"total_images\"\
+    ], \"errors\": []}, indent=2) + \"\\n\",\n        encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\"\
+    :\n    main()\n"
+  07_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish outputs: export triage CSV, exception\
+    \ notification, and audit manifest.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv,\
+    \ json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--execution-time\", type=str, default=None)\n    args = parser.parse_args()\n\
+    \    root = args.workspace; artifacts = root / \"artifacts\"\n    execution_time = args.execution_time\
+    \ or \"2026-07-20T12:00:00Z\"\n    fixture = json.loads(args.fixture.read_text(encoding=\"utf-8\"\
+    ))\n\n    merged = json.loads((artifacts / \"merge_route_outcomes_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n\n    manifest = {\"checkpoint_id\": f\"ckpt_crop_triage_{execution_time[:10].replace('-',\
+    \ '_')}\",\n                \"checkpoint_time\": execution_time, \"pipeline_id\": fixture[\"pipeline_id\"\
+    ],\n                \"triage_summary\": merged[\"summary\"],\n                \"output_files\": [\"\
+    crop_triage_report.csv\", \"exception_alert.json\", \"audit_manifest.json\"],\n                \"\
+    status\": \"completed\"}\n    (artifacts / \"audit_manifest.json\").write_text(json.dumps(manifest,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n\n    csv_rel = \"crop_triage_report.csv\"\n    with (artifacts\
+    \ / csv_rel).open(\"w\", encoding=\"utf-8\", newline=\"\") as f:\n        w = csv.DictWriter(f, fieldnames=[\"\
+    image_id\", \"farmer_id\", \"crop_type\", \"risk_score\", \"route\", \"reason\"])\n        w.writeheader()\n\
+    \        for g in [merged[\"approved_records\"], merged[\"exception_records\"]]:\n            for\
+    \ r in g:\n                w.writerow({**r, \"route\": \"approved\" if r in merged[\"approved_records\"\
+    ] else \"exception\"})\n\n    alert = {\"generated_at\": execution_time, \"escalated_count\": merged[\"\
+    summary\"][\"escalated\"],\n             \"exception_images\": [r[\"image_id\"] for r in merged[\"\
+    exception_records\"]]}\n    (artifacts / \"exception_alert.json\").write_text(json.dumps(alert, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\")\n\n    (artifacts / \"publish_outputs_artifact.json\").write_text(\n\
+    \        json.dumps({\"audit_manifest\": manifest, \"triage_csv\": csv_rel, \"exception_alert\": \"\
+    exception_alert.json\"}, indent=2) + \"\\n\",\n        encoding=\"utf-8\")\n    (artifacts / \"publish_outputs_status.json\"\
+    ).write_text(\n        json.dumps({\"success\": True, \"csv_exported\": csv_rel, \"escalated\": alert[\"\
+    escalated_count\"], \"errors\": []}, indent=2) + \"\\n\",\n        encoding=\"utf-8\")\n\n\nif __name__\
+    \ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crop-disease-image-triage-nominal-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "[\n  {\"image_id\": \"IMG-001\", \"farmer_id\": \"FARM-A01\", \"crop_type\": \"maize\"\
+    , \"location\": \"Kano\", \"capture_date\": \"2026-07-18\", \"image_quality_score\": 0.92, \"symptoms_observed\"\
+    : \"leaf_spots\"},\n  {\"image_id\": \"IMG-002\", \"farmer_id\": \"FARM-A01\", \"crop_type\": \"maize\"\
+    , \"location\": \"Kano\", \"capture_date\": \"2026-07-18\", \"image_quality_score\": 0.85, \"symptoms_observed\"\
+    : \"none\"},\n  {\"image_id\": \"IMG-003\", \"farmer_id\": \"FARM-B02\", \"crop_type\": \"cassava\"\
+    , \"location\": \"Oyo\", \"capture_date\": \"2026-07-19\", \"image_quality_score\": 0.45, \"symptoms_observed\"\
+    : \"mosaic_pattern\"},\n  {\"image_id\": \"IMG-004\", \"farmer_id\": \"FARM-B02\", \"crop_type\":\
+    \ \"cassava\", \"location\": \"Oyo\", \"capture_date\": \"2026-07-19\", \"image_quality_score\": 0.78,\
+    \ \"symptoms_observed\": \"wilting\"},\n  {\"image_id\": \"IMG-005\", \"farmer_id\": \"FARM-C03\"\
+    , \"crop_type\": \"rice\", \"location\": \"Ebonyi\", \"capture_date\": \"2026-07-20\", \"image_quality_score\"\
+    : 0.91, \"symptoms_observed\": \"none\"},\n  {\"image_id\": \"IMG-006\", \"farmer_id\": \"FARM-C03\"\
+    , \"crop_type\": \"rice\", \"location\": \"Ebonyi\", \"capture_date\": \"2026-07-20\", \"image_quality_score\"\
+    : 0.88, \"symptoms_observed\": \"blast_lesions\"},\n  {\"image_id\": \"IMG-007\", \"farmer_id\": \"\
+    FARM-D04\", \"crop_type\": \"tomato\", \"location\": \"Kaduna\", \"capture_date\": \"2026-07-17\"\
+    , \"image_quality_score\": 0.30, \"symptoms_observed\": \"yellow_curling\"},\n  {\"image_id\": \"\
+    IMG-008\", \"farmer_id\": \"FARM-D04\", \"crop_type\": \"tomato\", \"location\": \"Kaduna\", \"capture_date\"\
+    : \"2026-07-17\", \"image_quality_score\": 0.76, \"symptoms_observed\": \"none\"}\n]\n"
+  fixture-0001: 'farmer_id,farmer_name,region,crop_types,avg_field_hectares,disease_history
+
+    FARM-A01,Alhaji Musa,Kano,maize,3.5,low
+
+    FARM-B02,Mrs Adeola,Oyo,"cassava, yam",2.1,high
+
+    FARM-C03,Mr Chukwudi,Ebonyi,rice,5.0,medium
+
+    FARM-D04,Mr Tanko,Kaduna,"tomato, pepper",0.8,high
+
+    '
+  fixture-0002: "{\n  \"policy_id\": \"crop-disease-triage-v1\",\n  \"description\": \"Risk-based crop\
+    \ disease triage policy\",\n  \"image_quality_minimum\": 0.50,\n  \"crop_risk_profiles\": {\n    \"\
+    maize\": {\"base_risk\": 0.2, \"symptoms_multiplier\": {\"leaf_spots\": 1.5, \"none\": 0.5}},\n  \
+    \  \"cassava\": {\"base_risk\": 0.4, \"symptoms_multiplier\": {\"mosaic_pattern\": 2.5, \"wilting\"\
+    : 2.0, \"none\": 0.3}},\n    \"rice\": {\"base_risk\": 0.3, \"symptoms_multiplier\": {\"blast_lesions\"\
+    : 3.0, \"none\": 0.4}},\n    \"tomato\": {\"base_risk\": 0.5, \"symptoms_multiplier\": {\"yellow_curling\"\
+    : 2.8, \"none\": 0.3}}\n  },\n  \"risk_thresholds\": {\n    \"low\": 0.3,\n    \"high\": 0.7\n  },\n\
+    \  \"high_risk_action\": \"route_exception\",\n  \"low_quality_action\": \"route_exception\",\n  \"\
+    disease_history_escalation\": true\n}\n"
+  fixture-0003: "{\n  \"input_modalities\": [\n    \"image\",\n    \"json\",\n    \"table\"\n  ],\n  \"\
+    inputs\": {\n    \"images\": \"crop_images.json\",\n    \"master\": \"crop_master.csv\",\n    \"policy\"\
+    : \"disease_policy.json\"\n  },\n  \"pipeline_id\": \"crop_disease_image_triage\",\n  \"sample_media\"\
+    : {\n    \"image\": \"sample_image.png\"\n  },\n  \"systems\": [\n    \"agronomy intake bucket\",\n\
+    \    \"extension officer notification endpoint\"\n  ]\n}\n"
+binaryData:
+  fixture-0004: iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGUlEQVR42mNgC4v+TwlmGDVg1IBRA4aLAQBwGLYQ2ZZaJQAAAABJRU5ErkJggg==

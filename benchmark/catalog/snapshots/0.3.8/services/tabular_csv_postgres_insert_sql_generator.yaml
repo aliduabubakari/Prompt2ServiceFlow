@@ -1,0 +1,149 @@
+schema_version: 0.1.0
+service_id: tabular_csv_postgres_insert_sql_generator
+version: 1.0.0
+display_name: Tabular CSV PostgreSQL Insert SQL Generator
+category: Transformer
+capability:
+  summary: Reads one or more cleaned tabular CSV artifacts and renders a PostgreSQL
+    insert/upsert SQL script for a configured target table.
+  operations:
+  - Read configured CSV input files.
+  - Map CSV columns to target table columns.
+  - Render PostgreSQL insert statements using configured write mode.
+  - Emit SQL script artifact and generation status.
+  keywords:
+  - csv
+  - sql generation
+  - postgresql
+  - insert script
+  - tabular
+  limitations:
+  - Does not execute the generated SQL.
+  - Does not infer target schema without column mapping or header compatibility.
+  - Large CSV files may produce large SQL scripts; bulk loaders may be preferable
+    for very large datasets.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_csv_files
+    description: Cleaned CSV files to render into insert SQL.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://csv_file_references/v1
+    required: true
+    cardinality: many
+    sensitivity: public
+  outputs:
+  - name: insert_sql_file
+    description: Generated PostgreSQL insert SQL script artifact.
+    channel: artifact
+    data_type: text
+    media_type: text/plain
+    schema_ref: schema://sql_script_file/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: generation_status
+    description: Observable status with input row counts and statements rendered.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://csv_to_sql_generation_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: target_table
+    description: Target PostgreSQL table name.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_\.]*$
+  - name: column_mapping
+    description: Mapping from CSV columns to target table columns.
+    type: object
+    required: false
+  - name: insert_mode
+    description: Statement rendering behavior.
+    type: string
+    required: false
+    enum:
+    - insert
+    - upsert
+    - insert_ignore_duplicates
+  - name: output_path
+    description: Deterministic SQL script output path or name.
+    type: string
+    required: true
+  secrets: []
+contracts:
+- contract_id: csv_sql_generator_inputs
+  type: precondition
+  applies_to: input
+  target: source_csv_files
+  description: At least one readable CSV file must be supplied.
+  expression: length(source_csv_files) > 0 and all(readable(f) and csv_parseable(f)
+    for f in source_csv_files)
+- contract_id: csv_sql_generator_target_contract
+  type: precondition
+  applies_to: parameter
+  target: target_table
+  description: Target table must be identifier-like, optionally schema-qualified.
+  expression: target_table matches '^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)?$'
+- contract_id: csv_sql_generation_status_schema
+  type: json_schema
+  applies_to: output
+  target: generation_status
+  description: Status exposes SQL script generation outcome.
+  schema_ref: schema://csv_to_sql_generation_status/v1
+  expression: '{"type":"object","required":["success","files_read","rows_read","statements_rendered","output_uri"],"properties":{"success":{"type":"boolean"},"files_read":{"type":"integer","minimum":0},"rows_read":{"type":"integer","minimum":0},"statements_rendered":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+invocation:
+  type: argo_workflow_template
+  template_name: tabular-csv-postgres-insert-sql-generator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.tabular_csv_postgres_insert_sql_generator
+  implementation_ref: services/implementations/tabular_csv_postgres_insert_sql_generator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - public
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Generated SQL should be treated as internal; do not log full row values in status.
+  idempotency_notes: Same CSV inputs and rendering parameters produce the same SQL
+    script.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:global_dag#staging_pipeline.create_plant_persist_sql_query
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing service renders CSV artifacts into a SQL script artifact
+    while preserving the pipeline''s generated SQL boundary.'
+  - 'Evidence status: explicit.'

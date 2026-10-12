@@ -1,0 +1,11 @@
+assertions_version: 0.1.0
+pipeline_id: retail_inventory_reconciliation
+scenarios:
+  - scenario: four_warehouse_reconciliation
+    assertions:
+      - {assertion_id: north_fetched, type: json_path_equals, path: artifacts/north_fetch_status.json, json_path: success, expected: true}
+      - {assertion_id: south_fetched, type: json_path_equals, path: artifacts/south_fetch_status.json, json_path: success, expected: true}
+      - {assertion_id: north_normalized, type: json_path_equals, path: artifacts/north_normalization_status.json, json_path: success, expected: true}
+      - {assertion_id: reconciled, type: json_path_equals, path: artifacts/reconciliation_status.json, json_path: success, expected: true}
+      - {assertion_id: report_generated, type: json_path_equals, path: artifacts/report_status.json, json_path: success, expected: true}
+      - {assertion_id: pdf_exists, type: file_exists, path: artifacts/reconciliation_report.pdf}

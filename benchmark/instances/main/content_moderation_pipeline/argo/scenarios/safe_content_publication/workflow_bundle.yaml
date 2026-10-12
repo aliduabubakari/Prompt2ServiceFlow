@@ -1,0 +1,332 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: content-moderation-pipeline-safe-content-publication-scripts
+  namespace: prompt2serviceflow
+data:
+  01_scan_csv.py: "#!/usr/bin/env python3\n\"\"\"Scan user-content CSV and emit structured scan dataset.\"\
+    \"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport csv\nimport json\nimport shutil\n\
+    from pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    args = parser.parse_args()\n\n    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True,\
+    \ exist_ok=True)\n    dest = artifacts / \"user_content.csv\"\n    shutil.copyfile(args.fixture, dest)\n\
+    \n    with dest.open(encoding=\"utf-8\", newline=\"\") as f:\n        reader = csv.DictReader(f)\n\
+    \        items = list(reader)\n        columns = reader.fieldnames or []\n\n    dataset = {\n    \
+    \    \"columns\": columns,\n        \"items\": items,\n        \"total_items\": len(items),\n    }\n\
+    \    (artifacts / \"scanned_content_dataset.json\").write_text(\n        json.dumps(dataset, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\n        \"success\": True,\n        \"total_items\"\
+    : len(items),\n        \"parse_success\": True,\n        \"errors\": [],\n    }\n    (artifacts /\
+    \ \"scan_status.json\").write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\
+    \n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  02_toxicity_check.py: "#!/usr/bin/env python3\n\"\"\"Score content toxicity with deterministic keyword\
+    \ rules and emit routing decision.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\n\
+    import json\nfrom pathlib import Path\n\nTOXIC_KEYWORDS = {\"hate\", \"banned\", \"kill\", \"stupid\"\
+    , \"terrible\", \"awful\"}\nTHRESHOLD = 0.7\nREMOVE_FLAG = \"remove_flag\"\nPUBLISH = \"publish\"\n\
+    \n\ndef compute_toxicity(text: str) -> float:\n    words = text.lower().split()\n    if not words:\n\
+    \        return 0.0\n    toxic_count = sum(1 for w in words if w in TOXIC_KEYWORDS)\n    return round(min(toxic_count\
+    \ / len(words) * 3.0, 1.0), 4)\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \n    artifacts = args.workspace / \"artifacts\"\n    scan = json.loads((artifacts / \"scanned_content_dataset.json\"\
+    ).read_text(encoding=\"utf-8\"))\n\n    scored_items = []\n    max_score = 0.0\n    for item in scan[\"\
+    items\"]:\n        score = compute_toxicity(item[\"content_text\"])\n        max_score = max(max_score,\
+    \ score)\n        scored = dict(item)\n        scored[\"toxicity_score\"] = score\n        scored_items.append(scored)\n\
+    \n    toxic = max_score > THRESHOLD\n    scored_ds = {\n        \"items\": scored_items,\n       \
+    \ \"total_items\": len(scored_items),\n        \"toxicity_threshold\": THRESHOLD,\n    }\n    (artifacts\
+    \ / \"scored_content_dataset.json\").write_text(\n        json.dumps(scored_ds, indent=2) + \"\\n\"\
+    , encoding=\"utf-8\"\n    )\n\n    decision = {\n        \"route\": REMOVE_FLAG if toxic else PUBLISH,\n\
+    \        \"toxicity_exceeded\": toxic,\n        \"safety_passed\": not toxic,\n        \"threshold\"\
+    : THRESHOLD,\n        \"reason\": f\"max toxicity {max_score} {'>' if toxic else '<='} {THRESHOLD}\"\
+    ,\n    }\n    (artifacts / \"toxicity_routing_decision.json\").write_text(\n        json.dumps(decision,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts / \"toxicity_route.txt\").write_text(decision[\"\
+    route\"], encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  03_remove_and_flag_content.py: "#!/usr/bin/env python3\n\"\"\"Apply remove-and-flag moderation action\
+    \ to toxic content.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\n\
+    from pathlib import Path\n\nTHRESHOLD = 0.7\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \n    artifacts = args.workspace / \"artifacts\"\n    scored = json.loads((artifacts / \"scored_content_dataset.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    routing = json.loads((artifacts / \"toxicity_routing_decision.json\"\
+    ).read_text(encoding=\"utf-8\"))\n\n    if not routing[\"toxicity_exceeded\"]:\n        raise SystemExit(\"\
+    Toxicity not exceeded; remove-flag action not applicable\")\n\n    toxic_items = [it for it in scored[\"\
+    items\"] if it.get(\"toxicity_score\", 0) > THRESHOLD]\n    refs = [it[\"content_id\"] for it in toxic_items]\n\
+    \n    results = {\n        \"action_type\": \"remove_and_flag\",\n        \"items_affected\": len(toxic_items),\n\
+    \        \"success\": True,\n        \"bounded_content_refs\": refs,\n        \"errors\": [],\n  \
+    \  }\n    (artifacts / \"moderation_action_results.json\").write_text(\n        json.dumps(results,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\n        \"success\": True,\n   \
+    \     \"action_applied\": True,\n        \"action_type\": \"remove_and_flag\",\n        \"errors\"\
+    : [],\n    }\n    (artifacts / \"action_status.json\").write_text(\n        json.dumps(status, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  04_publish_content.py: "#!/usr/bin/env python3\n\"\"\"Publish safe content to the platform.\"\"\"\n\n\
+    from __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib import Path\n\n\n\
+    def main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace / \"\
+    artifacts\"\n    scored = json.loads((artifacts / \"scored_content_dataset.json\").read_text(encoding=\"\
+    utf-8\"))\n    routing = json.loads((artifacts / \"toxicity_routing_decision.json\").read_text(encoding=\"\
+    utf-8\"))\n\n    if not routing[\"safety_passed\"]:\n        raise SystemExit(\"Content not safe;\
+    \ publish action not applicable\")\n\n    refs = [it[\"content_id\"] for it in scored[\"items\"]]\n\
+    \n    results = {\n        \"items_published\": len(refs),\n        \"success\": True,\n        \"\
+    publication_mode\": \"standard\",\n        \"bounded_content_refs\": refs,\n        \"errors\": [],\n\
+    \    }\n    (artifacts / \"publication_results.json\").write_text(\n        json.dumps(results, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\n        \"success\": True,\n        \"publication_attempted\"\
+    : True,\n        \"errors\": [],\n    }\n    (artifacts / \"publication_status.json\").write_text(\n\
+    \        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"\
+    __main__\":\n    main()\n"
+  05_audit_log.py: "#!/usr/bin/env python3\n\"\"\"Create audit log entry at the moderation merge point.\"\
+    \"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib import Path\n\
+    \n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace / \"\
+    artifacts\"\n\n    action_path = artifacts / \"moderation_action_results.json\"\n    pub_path = artifacts\
+    \ / \"publication_results.json\"\n\n    event_type = \"unknown\"\n    bounded_refs: list[str] = []\n\
+    \    if action_path.is_file():\n        action = json.loads(action_path.read_text(encoding=\"utf-8\"\
+    ))\n        event_type = action.get(\"action_type\", \"moderation_action\")\n        bounded_refs\
+    \ = action.get(\"bounded_content_refs\", [])\n    elif pub_path.is_file():\n        pub = json.loads(pub_path.read_text(encoding=\"\
+    utf-8\"))\n        event_type = \"safe_publication\"\n        bounded_refs = pub.get(\"bounded_content_refs\"\
+    , [])\n\n    entry = {\n        \"audit_event_type\": event_type,\n        \"audit_record_created\"\
+    : True,\n        \"success\": True,\n        \"workflow_id\": \"content_moderation_pipeline\",\n \
+    \       \"bounded_references\": bounded_refs,\n        \"errors\": [],\n    }\n    (artifacts / \"\
+    audit_log_entry.json\").write_text(\n        json.dumps(entry, indent=2) + \"\\n\", encoding=\"utf-8\"\
+    \n    )\n    status = {\n        \"success\": True,\n        \"audit_attempted\": True,\n        \"\
+    errors\": [],\n    }\n    (artifacts / \"audit_status.json\").write_text(\n        json.dumps(status,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: content-moderation-pipeline-safe-content-publication-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: 'content_id,user_id,content_text
+
+    C101,U101,The weather today is beautiful and sunny
+
+    C102,U102,Just finished reading a wonderful book about history
+
+    C103,U103,Happy birthday to my best friend! Hope you have an amazing year.
+
+    '
+  fixture-0001: 'content_id,user_id,content_text
+
+    C001,U001,This is a great article about machine learning trends
+
+    C002,U002,I hate everything and everyone should be banned
+
+    C003,U003,Looking forward to the weekend! Have a great day everyone.
+
+    '
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: content-moderation-pipeline-safe-content-publication-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: content-moderation-pipeline-safe-content-publication
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: safe-content-publication
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: fixture-file
+      value: user_content_safe.csv
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: content-moderation-pipeline-safe-content-publication-scripts
+  - name: fixtures
+    configMap:
+      name: content-moderation-pipeline-safe-content-publication-fixtures
+      items:
+      - key: fixture-0000
+        path: user_content_safe.csv
+      - key: fixture-0001
+        path: user_content_toxic.csv
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: scan-csv
+        template: run-scan-csv
+      - name: toxicity-check
+        template: run-toxicity-check
+        depends: scan-csv.Succeeded
+      - name: remove-and-flag-content
+        template: run-remove-and-flag-content
+        depends: toxicity-check.Succeeded
+        when: '{{tasks.toxicity-check.outputs.parameters.route}} == remove_flag'
+      - name: publish-content
+        template: run-publish-content
+        depends: toxicity-check.Succeeded
+        when: '{{tasks.toxicity-check.outputs.parameters.route}} == publish'
+      - name: audit-log
+        template: run-audit-log
+        depends: (remove-and-flag-content.Succeeded || publish-content.Succeeded)
+  - name: run-scan-csv
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: scan_csv
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_scan_csv.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-toxicity-check
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: toxicity_check
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_toxicity_check.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    outputs:
+      parameters:
+      - name: route
+        valueFrom:
+          path: /workspace/artifacts/toxicity_route.txt
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-remove-and-flag-content
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: remove_and_flag_content
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_remove_and_flag_content.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-publish-content
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: publish_content
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_publish_content.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-audit-log
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: audit_log
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_audit_log.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError

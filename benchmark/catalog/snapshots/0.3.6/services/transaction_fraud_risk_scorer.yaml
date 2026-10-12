@@ -1,0 +1,90 @@
+schema_version: 0.1.0
+service_id: transaction_fraud_risk_scorer
+version: 1.0.0
+display_name: Transaction Fraud Risk Scorer
+category: ScoringService
+capability:
+  summary: Scores joined transaction context for account-level fraud risk.
+  operations:
+  - Scores joined transaction context for account-level fraud risk.
+  keywords:
+  - transaction
+  - fraud
+  - risk
+  - scorer
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: transaction_context
+    description: Reviewed transaction context value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: risk_scores
+    description: Reviewed risk scores value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: scoring_status
+    description: Reviewed scoring status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: scoring_profile
+    description: Configuration for scoring profile.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: transaction-fraud-risk-scorer
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.3
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.transaction_fraud_risk_scorer
+  implementation_ref: services/implementations/transaction_fraud_risk_scorer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-04:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 04 descriptions; bindings retain inference confidence.

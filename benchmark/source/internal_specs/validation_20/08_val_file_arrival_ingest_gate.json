@@ -1,0 +1,159 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_file_arrival_ingest_gate",
+  "pipeline_name": "File Arrival Ingest Gate",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_file_arrival_ingest_gate.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Wait for an expected partner file, validate its checksum, and load it into staging.",
+    "business_domain": "Data Ingestion",
+    "execution_model": "Batch",
+    "topology_pattern": "Sensor-gated",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "wait_for_partner_file",
+        "to": "validate_file_checksum"
+      },
+      {
+        "from": "validate_file_checksum",
+        "to": "load_file_to_staging"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [],
+    "gates": [
+      {
+        "step": "wait_for_partner_file",
+        "condition": "partner_file_exists"
+      }
+    ]
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Partner SFTP",
+      "identifier": "partner_sftp",
+      "details": [
+        "Validation external dependency: Partner SFTP"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Staging database",
+      "identifier": "staging_database",
+      "details": [
+        "Validation external dependency: Staging database"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "partner_file.csv",
+        "description": "Validation artifact: partner_file.csv"
+      },
+      {
+        "identifier": "checksum_record",
+        "description": "Validation artifact: checksum_record"
+      },
+      {
+        "identifier": "staging_table",
+        "description": "Validation artifact: staging_table"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "wait_for_partner_file",
+      "name": "wait_for_partner_file",
+      "objective": "Wait for partner file",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "validate_file_checksum",
+      "name": "validate_file_checksum",
+      "objective": "Validate file checksum",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "load_file_to_staging",
+      "name": "load_file_to_staging",
+      "objective": "Load file to staging",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

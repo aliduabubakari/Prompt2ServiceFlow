@@ -1,0 +1,934 @@
+ir_version: 0.1.0
+composition_id: clinical_note_phi_review_packet
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.6
+  sha256: 6e9bfa3c9390d0aa5470926c9b96167a5130fd63705767be94c7304873429f2d
+source:
+  dataset_id: prompt2serviceflow_extension_sources
+  dataset_version: extension_v1
+  benchmark_id: extension:clinical_note_phi_review_packet
+  split: extension
+  pipeline_id: clinical_note_phi_review_packet
+  description_path: source/extension_v1/batch_07/descriptions/31_clinical_note_phi_review_packet.txt
+  description_sha256: 98c01b0d840f6c16d3cbb0d329bb011c567839d6b71a5a37dec295d9dce2d286
+  internal_spec_path: source/extension_v1/batch_07/specs/31_clinical_note_phi_review_packet.json
+  internal_spec_sha256: 95ee13e1d662f3b8c5fb1b0f74ea73dd669c573cf0c85c404ee4a4b4e9e6c5ab
+requirement:
+  name: Clinical Note PHI Review Packet
+  purpose: Detect PHI, redact deterministic fields, and route ambiguous clinical notes for human review.
+  domain: Healthcare/Public Health
+  execution_model: batch
+  topology: branch_merge
+  information_sufficiency: high
+  notes:
+  - Extension-50 Batch 01 synthetic source.
+  - Event and external-system behavior is represented as bounded fixture-backed batch execution.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: secure_note_archive
+  type: object_storage
+  name: secure note archive
+  identifier: synthetic://extension-v1/clinical_note_phi_review_packet/1
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+- system_id: privacy_review_queue
+  type: other
+  name: privacy review queue
+  identifier: synthetic://extension-v1/clinical_note_phi_review_packet/2
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_source_batch
+  name: Ingest Source Batch
+  category: Extractor
+  capability: Ingest the bounded input batch for clinical note PHI review evidence.
+  source_step_refs:
+  - ingest_source_batch
+  evidence:
+  - source: internal_spec
+    text: Ingest the bounded input batch for clinical note PHI review evidence.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_source_batch_artifact
+  - ingest_source_batch_status
+  external_system_refs: &id001
+  - secure_note_archive
+  - privacy_review_queue
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_source_batch_artifact, ingest_source_batch_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: validate_source_contract
+  name: Validate Source Contract
+  category: QualityCheck
+  capability: Validate required fields, identities, and policy inputs for clinical note PHI review evidence.
+  source_step_refs:
+  - validate_source_contract
+  evidence:
+  - source: internal_spec
+    text: Validate required fields, identities, and policy inputs for clinical note PHI review evidence.
+  inputs:
+  - ingest_source_batch_artifact
+  outputs:
+  - validate_source_contract_artifact
+  - validate_source_contract_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces validate_source_contract_artifact, validate_source_contract_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: detect_sensitive_fields
+  name: Detect Sensitive Fields
+  category: DomainAdapter
+  capability: Detect sensitive, regulated, or policy-controlled fields in clinical note PHI review evidence.
+  source_step_refs:
+  - detect_sensitive_fields
+  evidence:
+  - source: internal_spec
+    text: Detect sensitive, regulated, or policy-controlled fields in clinical note PHI review evidence.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - detect_sensitive_fields_artifact
+  - detect_sensitive_fields_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces detect_sensitive_fields_artifact, detect_sensitive_fields_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: apply_redaction_or_suppression
+  name: Apply Redaction Or Suppression
+  category: Transformer
+  capability: Apply redaction, suppression, or minimization rules for clinical note PHI review evidence.
+  source_step_refs:
+  - apply_redaction_or_suppression
+  evidence:
+  - source: internal_spec
+    text: Apply redaction, suppression, or minimization rules for clinical note PHI review evidence.
+  inputs:
+  - detect_sensitive_fields_artifact
+  outputs:
+  - apply_redaction_or_suppression_artifact
+  - apply_redaction_or_suppression_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces apply_redaction_or_suppression_artifact, apply_redaction_or_suppression_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: create_human_review_packet
+  name: Create Human Review Packet
+  category: Aggregator
+  capability: Create a human-review packet for ambiguous clinical note PHI review evidence records.
+  source_step_refs:
+  - create_human_review_packet
+  evidence:
+  - source: internal_spec
+    text: Create a human-review packet for ambiguous clinical note PHI review evidence records.
+  inputs:
+  - apply_redaction_or_suppression_artifact
+  outputs:
+  - create_human_review_packet_artifact
+  - create_human_review_packet_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces create_human_review_packet_artifact, create_human_review_packet_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: evaluate_policy_or_risk
+  name: Evaluate Policy Or Risk
+  category: DomainAdapter
+  capability: Evaluate quality, policy, risk, or confidence rules for clinical note PHI review evidence.
+  source_step_refs:
+  - evaluate_policy_or_risk
+  evidence:
+  - source: internal_spec
+    text: Evaluate quality, policy, risk, or confidence rules for clinical note PHI review evidence.
+  inputs:
+  - create_human_review_packet_artifact
+  outputs:
+  - evaluate_policy_or_risk_artifact
+  - evaluate_policy_or_risk_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces evaluate_policy_or_risk_artifact, evaluate_policy_or_risk_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: route_approved_records
+  name: Route Approved Records
+  category: Publisher
+  capability: Route approved or low-risk clinical note PHI review evidence records.
+  source_step_refs:
+  - route_approved_records
+  evidence:
+  - source: internal_spec
+    text: Route approved or low-risk clinical note PHI review evidence records.
+  inputs:
+  - evaluate_policy_or_risk_artifact
+  outputs:
+  - route_approved_records_artifact
+  - route_approved_records_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces route_approved_records_artifact, route_approved_records_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: route_exception_records
+  name: Route Exception Records
+  category: Publisher
+  capability: Route exception, high-risk, or low-confidence clinical note PHI review evidence records.
+  source_step_refs:
+  - route_exception_records
+  evidence:
+  - source: internal_spec
+    text: Route exception, high-risk, or low-confidence clinical note PHI review evidence records.
+  inputs:
+  - evaluate_policy_or_risk_artifact
+  outputs:
+  - route_exception_records_artifact
+  - route_exception_records_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces route_exception_records_artifact, route_exception_records_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: merge_route_outcomes
+  name: Merge Route Outcomes
+  category: Aggregator
+  capability: Merge routed outcomes into a complete clinical note PHI review evidence disposition artifact.
+  source_step_refs:
+  - merge_route_outcomes
+  evidence:
+  - source: internal_spec
+    text: Merge routed outcomes into a complete clinical note PHI review evidence disposition artifact.
+  inputs:
+  - route_approved_records_artifact
+  - route_exception_records_artifact
+  outputs:
+  - merge_route_outcomes_artifact
+  - merge_route_outcomes_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces merge_route_outcomes_artifact, merge_route_outcomes_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: publish_outputs
+  name: Publish Outputs
+  category: Publisher
+  capability: Publish clinical note PHI review evidence outputs, review status, and completion metadata.
+  source_step_refs:
+  - publish_outputs
+  evidence:
+  - source: internal_spec
+    text: Publish clinical note PHI review evidence outputs, review status, and completion metadata.
+  inputs:
+  - merge_route_outcomes_artifact
+  outputs:
+  - publish_outputs_artifact
+  - publish_outputs_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces publish_outputs_artifact, publish_outputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+source_step_accounting:
+- source_step_ref: ingest_source_batch
+  disposition: service
+  intent_ids:
+  - ingest_source_batch
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: validate_source_contract
+  disposition: service
+  intent_ids:
+  - validate_source_contract
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: detect_sensitive_fields
+  disposition: service
+  intent_ids:
+  - detect_sensitive_fields
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: apply_redaction_or_suppression
+  disposition: service
+  intent_ids:
+  - apply_redaction_or_suppression
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: create_human_review_packet
+  disposition: service
+  intent_ids:
+  - create_human_review_packet
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: evaluate_policy_or_risk
+  disposition: service
+  intent_ids:
+  - evaluate_policy_or_risk
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: route_approved_records
+  disposition: service
+  intent_ids:
+  - route_approved_records
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: route_exception_records
+  disposition: service
+  intent_ids:
+  - route_exception_records
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: merge_route_outcomes
+  disposition: service
+  intent_ids:
+  - merge_route_outcomes
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: publish_outputs
+  disposition: service
+  intent_ids:
+  - publish_outputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+control_flow:
+  edges:
+  - from: ingest_source_batch
+    to: validate_source_contract
+  - from: validate_source_contract
+    to: detect_sensitive_fields
+  - from: detect_sensitive_fields
+    to: apply_redaction_or_suppression
+  - from: apply_redaction_or_suppression
+    to: create_human_review_packet
+  - from: create_human_review_packet
+    to: evaluate_policy_or_risk
+  - from: evaluate_policy_or_risk
+    to: route_approved_records
+  - from: evaluate_policy_or_risk
+    to: route_exception_records
+  - from: route_approved_records
+    to: merge_route_outcomes
+  - from: route_exception_records
+    to: merge_route_outcomes
+  - from: merge_route_outcomes
+    to: publish_outputs
+  parallel_groups: []
+  branches:
+  - branch_id: evaluate_policy_or_risk_branch
+    decision_intent: evaluate_policy_or_risk
+    cases:
+    - case_id: approved
+      condition: decision.approved == true
+      next_intents:
+      - route_approved_records
+    - case_id: exception
+      condition: decision.exception == true
+      next_intents:
+      - route_exception_records
+    merge_intent: merge_route_outcomes
+  gates:
+  - gate_id: evaluate_policy_or_risk_gate
+    sensor_intent: evaluate_policy_or_risk
+    condition: policy, risk, confidence, or quality decision
+    gated_intents:
+    - route_approved_records
+    - route_exception_records
+artifacts:
+- artifact_id: source_bundle
+  name: Source Bundle
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - ingest_source_batch
+  sensitivity: internal
+  persistence: workflow
+  fixture_ref: fixtures/inputs/fixture.json
+- artifact_id: ingest_source_batch_artifact
+  name: Ingest Source Batch Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_source_batch
+  consumers:
+  - validate_source_contract
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_source_batch_status
+  name: Ingest Source Batch Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_source_batch
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: validate_source_contract_artifact
+  name: Validate Source Contract Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: validate_source_contract
+  consumers:
+  - detect_sensitive_fields
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validate_source_contract_status
+  name: Validate Source Contract Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: validate_source_contract
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: detect_sensitive_fields_artifact
+  name: Detect Sensitive Fields Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: detect_sensitive_fields
+  consumers:
+  - apply_redaction_or_suppression
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: detect_sensitive_fields_status
+  name: Detect Sensitive Fields Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: detect_sensitive_fields
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: apply_redaction_or_suppression_artifact
+  name: Apply Redaction Or Suppression Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: apply_redaction_or_suppression
+  consumers:
+  - create_human_review_packet
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: apply_redaction_or_suppression_status
+  name: Apply Redaction Or Suppression Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: apply_redaction_or_suppression
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: create_human_review_packet_artifact
+  name: Create Human Review Packet Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: create_human_review_packet
+  consumers:
+  - evaluate_policy_or_risk
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: create_human_review_packet_status
+  name: Create Human Review Packet Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: create_human_review_packet
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: evaluate_policy_or_risk_artifact
+  name: Evaluate Policy Or Risk Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: evaluate_policy_or_risk
+  consumers:
+  - route_approved_records
+  - route_exception_records
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: evaluate_policy_or_risk_status
+  name: Evaluate Policy Or Risk Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: evaluate_policy_or_risk
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: route_approved_records_artifact
+  name: Route Approved Records Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: route_approved_records
+  consumers:
+  - merge_route_outcomes
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: route_approved_records_status
+  name: Route Approved Records Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: route_approved_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: route_exception_records_artifact
+  name: Route Exception Records Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: route_exception_records
+  consumers:
+  - merge_route_outcomes
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: route_exception_records_status
+  name: Route Exception Records Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: route_exception_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: merge_route_outcomes_artifact
+  name: Merge Route Outcomes Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: merge_route_outcomes
+  consumers:
+  - publish_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: merge_route_outcomes_status
+  name: Merge Route Outcomes Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: merge_route_outcomes
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: publish_outputs_artifact
+  name: Publish Outputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: output
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publish_outputs_status
+  name: Publish Outputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+bindings:
+- intent_id: ingest_source_batch
+  service_id: clinical_note_batch_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_source_batch_artifact
+  - port: execution_report
+    artifact_id: ingest_source_batch_status
+  parameter_bindings:
+    operation_profile: ingest_source_batch
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: validate_source_contract
+  service_id: clinical_phi_contract_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: ingest_source_batch_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: validate_source_contract_artifact
+  - port: execution_report
+    artifact_id: validate_source_contract_status
+  parameter_bindings:
+    operation_profile: validate_source_contract
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: detect_sensitive_fields
+  service_id: clinical_phi_detector
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: detect_sensitive_fields_artifact
+  - port: execution_report
+    artifact_id: detect_sensitive_fields_status
+  parameter_bindings:
+    operation_profile: detect_sensitive_fields
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: apply_redaction_or_suppression
+  service_id: clinical_note_redaction_transformer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: detect_sensitive_fields_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: apply_redaction_or_suppression_artifact
+  - port: execution_report
+    artifact_id: apply_redaction_or_suppression_status
+  parameter_bindings:
+    operation_profile: apply_redaction_or_suppression
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: create_human_review_packet
+  service_id: clinical_phi_review_packet_builder
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: apply_redaction_or_suppression_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: create_human_review_packet_artifact
+  - port: execution_report
+    artifact_id: create_human_review_packet_status
+  parameter_bindings:
+    operation_profile: create_human_review_packet
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: evaluate_policy_or_risk
+  service_id: clinical_phi_policy_risk_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: create_human_review_packet_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: evaluate_policy_or_risk_artifact
+  - port: execution_report
+    artifact_id: evaluate_policy_or_risk_status
+  parameter_bindings:
+    operation_profile: evaluate_policy_or_risk
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: route_approved_records
+  service_id: clinical_phi_release_router
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: evaluate_policy_or_risk_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: route_approved_records_artifact
+  - port: execution_report
+    artifact_id: route_approved_records_status
+  parameter_bindings:
+    operation_profile: route_approved_records
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: route_exception_records
+  service_id: clinical_phi_review_queue_router
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: evaluate_policy_or_risk_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: route_exception_records_artifact
+  - port: execution_report
+    artifact_id: route_exception_records_status
+  parameter_bindings:
+    operation_profile: route_exception_records
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: merge_route_outcomes
+  service_id: policy_route_outcome_merger
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: route_approved_records_artifact
+  - port: input_artifacts
+    artifact_id: route_exception_records_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: merge_route_outcomes_artifact
+  - port: execution_report
+    artifact_id: merge_route_outcomes_status
+  parameter_bindings:
+    operation_profile: merge_route_outcomes
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: publish_outputs
+  service_id: policy_review_bundle_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: merge_route_outcomes_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: publish_outputs_artifact
+  - port: execution_report
+    artifact_id: publish_outputs_status
+  parameter_bindings:
+    operation_profile: publish_outputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - public
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Batch 01 mocks do not contact production image, document, or review systems.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 reviewed Batch 01 validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 reviewed Batch 01 validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 reviewed Batch 01 validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 reviewed Batch 01 validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 reviewed Batch 01 validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 reviewed Batch 01 validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 reviewed Batch 01 validation.

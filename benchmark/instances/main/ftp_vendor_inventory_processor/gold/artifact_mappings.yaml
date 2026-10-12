@@ -1,0 +1,28 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:ftp_vendor_inventory_processor
+mappings:
+- intent_id: wait_for_ftp_file
+  inputs:
+    file_location_resource: ftp_resource
+  outputs:
+    availability_decision: availability_decision
+    check_status: check_status
+- intent_id: download_vendor_file
+  inputs:
+    ftp_server: ftp_resource
+  outputs:
+    downloaded_file: downloaded_file
+    transfer_status: transfer_status
+- intent_id: cleanse_vendor_data
+  inputs:
+    source_csv: vendor_csv
+  outputs:
+    cleansed_dataset: cleansed_dataset
+    cleansed_data_object: cleansed_data_obj
+    cleanse_status: cleanse_status
+- intent_id: merge_with_internal_inventory
+  inputs:
+    ingested_data_object: cleansed_data_obj
+    target_database: db_resource
+  outputs:
+    load_status: load_status

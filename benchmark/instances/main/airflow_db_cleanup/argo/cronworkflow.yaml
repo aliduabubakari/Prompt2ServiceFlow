@@ -1,0 +1,522 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: airflow-db-cleanup
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters: []
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: airflow-db-cleanup-scripts
+    - name: fixtures
+      configMap:
+        name: airflow-db-cleanup-fixtures
+        items:
+        - key: fixture-0000
+          path: config.json
+        - key: fixture-0001
+          path: db.json
+        - key: fixture-0002
+          path: fixture.json
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: print-configuration
+          template: run-print-configuration
+        - name: cleanup-dag-run
+          template: run-cleanup-dag-run
+          depends: print-configuration.Succeeded
+        - name: cleanup-task-instance
+          template: run-cleanup-task-instance
+          depends: print-configuration.Succeeded
+        - name: cleanup-log
+          template: run-cleanup-log
+          depends: print-configuration.Succeeded
+        - name: cleanup-xcom
+          template: run-cleanup-xcom
+          depends: print-configuration.Succeeded
+        - name: cleanup-sla-miss
+          template: run-cleanup-sla-miss
+          depends: print-configuration.Succeeded
+        - name: cleanup-dag-model
+          template: run-cleanup-dag-model
+          depends: print-configuration.Succeeded
+        - name: cleanup-task-reschedule
+          template: run-cleanup-task-reschedule
+          depends: print-configuration.Succeeded
+        - name: cleanup-task-fail
+          template: run-cleanup-task-fail
+          depends: print-configuration.Succeeded
+        - name: cleanup-rendered-task-instance-fields
+          template: run-cleanup-rendered-task-instance-fields
+          depends: print-configuration.Succeeded
+        - name: cleanup-import-error
+          template: run-cleanup-import-error
+          depends: print-configuration.Succeeded
+        - name: cleanup-base-job
+          template: run-cleanup-base-job
+          depends: print-configuration.Succeeded
+        - name: cleanup-sessions
+          template: run-cleanup-sessions
+          depends: print-configuration.Succeeded
+        - name: analyze-query
+          template: run-analyze-query
+          depends: cleanup-dag-run.Succeeded && cleanup-task-instance.Succeeded && cleanup-log.Succeeded
+            && cleanup-xcom.Succeeded && cleanup-sla-miss.Succeeded && cleanup-dag-model.Succeeded &&
+            cleanup-task-reschedule.Succeeded && cleanup-task-fail.Succeeded && cleanup-rendered-task-instance-fields.Succeeded
+            && cleanup-import-error.Succeeded && cleanup-base-job.Succeeded && cleanup-sessions.Succeeded
+    - name: run-print-configuration
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: print_configuration
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - config
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-cleanup-dag-run
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanup_dag_run
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - cleanup_dag_run
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-cleanup-task-instance
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanup_task_instance
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - cleanup_task_instance
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-cleanup-log
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanup_log
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - cleanup_log
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-cleanup-xcom
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanup_xcom
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - cleanup_xcom
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-cleanup-sla-miss
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanup_sla_miss
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - cleanup_sla_miss
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-cleanup-dag-model
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanup_dag_model
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - cleanup_dag_model
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-cleanup-task-reschedule
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanup_task_reschedule
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - cleanup_task_reschedule
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-cleanup-task-fail
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanup_task_fail
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - cleanup_task_fail
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-cleanup-rendered-task-instance-fields
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanup_rendered_task_instance_fields
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - cleanup_rendered_task_instance_fields
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-cleanup-import-error
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanup_import_error
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - cleanup_import_error
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-cleanup-base-job
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanup_base_job
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - cleanup_base_job
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-cleanup-sessions
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanup_sessions
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - cleanup_sessions
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-analyze-query
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: analyze_query
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_run.py
+        - --workspace
+        - /workspace
+        - --step
+        - analyze
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError

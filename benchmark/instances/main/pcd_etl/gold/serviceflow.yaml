@@ -1,0 +1,2155 @@
+ir_version: 0.1.0
+composition_id: pcd_etl
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:pcd-etl
+  split: main
+  pipeline_id: pcd-etl
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/13_pcd_etl.txt
+  description_sha256: 7d542928815d8a6b7ac16be7c8760fe249eda3106ea9faba41d2c23fadd54330
+  internal_spec_path: source/internal_specs/main_40/13_pcd_etl.json
+  internal_spec_sha256: 873ca5fbedabe9ff329bbe18826b5b9303bec7a3d7d62e967aa3b10a5de2427c
+requirement:
+  name: PCD ETL
+  purpose: Healthcare ETL processing patient care data, financial reporting, and budget management.
+  domain: healthcare
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: high
+  notes:
+  - Massive 24-step healthcare ETL.
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: pcd_sftp
+  type: sftp
+  name: PCD SFTP drop zone
+  identifier: /data/pcd
+  access_mode: read
+  authentication: secret
+  mock_strategy: fixture
+- system_id: pcd_shared_folder
+  type: filesystem
+  name: PCD shared folder
+  identifier: /data/pcd
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: pcd_api
+  type: http_api
+  name: PCD API
+  identifier: https://pcd.example.test
+  access_mode: read
+  authentication: secret
+  mock_strategy: fixture
+- system_id: kubernetes_cluster
+  type: cloud_service
+  name: PCD Kubernetes cluster
+  identifier: pcd-jobs
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+- system_id: email_service
+  type: email
+  name: PCD notification service
+  identifier: pcd-email
+  access_mode: invoke
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: check_pcd_sftp_folder
+  name: Check Pcd Sftp Folder
+  category: Sensor
+  capability: Check whether the PCD SFTP location contains an available input batch.
+  source_step_refs:
+  - Check_PCD_SFTP_Folder
+  evidence:
+  - source: description
+    text: Check Pcd Sftp Folder
+  inputs:
+  - pcd_sftp_resource
+  outputs:
+  - check_pcd_sftp_folder_decision
+  - check_pcd_sftp_folder_status
+  external_system_refs:
+  - pcd_sftp
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: optional
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source Kubernetes check is represented as the reusable location sensor
+    effect.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: check_pcd_shared_folder
+  name: Check Pcd Shared Folder
+  category: Sensor
+  capability: Check whether the PCD shared folder contains an available input batch.
+  source_step_refs:
+  - Check_PCD_Shared_Folder
+  evidence:
+  - source: description
+    text: Check Pcd Shared Folder
+  inputs:
+  - pcd_shared_folder_resource
+  outputs:
+  - check_pcd_shared_folder_decision
+  - check_pcd_shared_folder_status
+  external_system_refs:
+  - pcd_shared_folder
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: optional
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source Kubernetes check is represented as the reusable location sensor
+    effect.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: financial_expense
+  name: Financial Expense
+  category: Extractor
+  capability: Extract the financial expense dataset from the PCD API.
+  source_step_refs:
+  - Financial_Expense
+  evidence:
+  - source: description
+    text: Financial Expense
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - financial_expense_result
+  - financial_expense_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: upcc_financial_reporting
+  name: Upcc Financial Reporting
+  category: Extractor
+  capability: Extract the upcc financial reporting dataset from the PCD API.
+  source_step_refs:
+  - UPCC_Financial_Reportingr
+  evidence:
+  - source: description
+    text: Upcc Financial Reporting
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - upcc_financial_reporting_result
+  - upcc_financial_reporting_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: chc_financial_reporting
+  name: Chc Financial Reporting
+  category: Extractor
+  capability: Extract the chc financial reporting dataset from the PCD API.
+  source_step_refs:
+  - CHC_Financial_reporting
+  evidence:
+  - source: description
+    text: Chc Financial Reporting
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - chc_financial_reporting_result
+  - chc_financial_reporting_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: pcn_financial_reporting
+  name: Pcn Financial Reporting
+  category: Extractor
+  capability: Extract the pcn financial reporting dataset from the PCD API.
+  source_step_refs:
+  - PCN_Financial_Reporting
+  evidence:
+  - source: description
+    text: Pcn Financial Reporting
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - pcn_financial_reporting_result
+  - pcn_financial_reporting_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: nppcc_financial_reporting
+  name: Nppcc Financial Reporting
+  category: Extractor
+  capability: Extract the nppcc financial reporting dataset from the PCD API.
+  source_step_refs:
+  - NPPCC_Financial_Reporting
+  evidence:
+  - source: description
+    text: Nppcc Financial Reporting
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - nppcc_financial_reporting_result
+  - nppcc_financial_reporting_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: fiscal_year_reporting_dates
+  name: Fiscal Year Reporting Dates
+  category: Extractor
+  capability: Extract the fiscal year reporting dates dataset from the PCD API.
+  source_step_refs:
+  - Fiscal_Year_Reporting_Dates
+  evidence:
+  - source: description
+    text: Fiscal Year Reporting Dates
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - fiscal_year_reporting_dates_result
+  - fiscal_year_reporting_dates_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: upcc_primary_care_patient_services
+  name: Upcc Primary Care Patient Services
+  category: Extractor
+  capability: Extract the upcc primary care patient services dataset from the PCD API.
+  source_step_refs:
+  - UPCC_Primary_Care_Patient_Services
+  evidence:
+  - source: description
+    text: Upcc Primary Care Patient Services
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - upcc_primary_care_patient_services_result
+  - upcc_primary_care_patient_services_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: chc_primary_care_patient_services
+  name: Chc Primary Care Patient Services
+  category: Extractor
+  capability: Extract the chc primary care patient services dataset from the PCD API.
+  source_step_refs:
+  - CHC_Primary_Care_Patient_Services
+  evidence:
+  - source: description
+    text: Chc Primary Care Patient Services
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - chc_primary_care_patient_services_result
+  - chc_primary_care_patient_services_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: practitioner_role_mapping
+  name: Practitioner Role Mapping
+  category: Extractor
+  capability: Extract the practitioner role mapping dataset from the PCD API.
+  source_step_refs:
+  - Practitioner_Role_Mapping
+  evidence:
+  - source: description
+    text: Practitioner Role Mapping
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - practitioner_role_mapping_result
+  - practitioner_role_mapping_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: status_tracker
+  name: Status Tracker
+  category: Extractor
+  capability: Extract the status tracker dataset from the PCD API.
+  source_step_refs:
+  - Status_Tracker
+  evidence:
+  - source: description
+    text: Status Tracker
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - status_tracker_result
+  - status_tracker_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: hr_records
+  name: Hr Records
+  category: Extractor
+  capability: Extract the hr records dataset from the PCD API.
+  source_step_refs:
+  - HR_Records
+  evidence:
+  - source: description
+    text: Hr Records
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - hr_records_result
+  - hr_records_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: provincial_risk_tracking
+  name: Provincial Risk Tracking
+  category: Extractor
+  capability: Extract the provincial risk tracking dataset from the PCD API.
+  source_step_refs:
+  - Provincial_Risk_Tracking
+  evidence:
+  - source: description
+    text: Provincial Risk Tracking
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - provincial_risk_tracking_result
+  - provincial_risk_tracking_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: decision_log
+  name: Decision Log
+  category: Extractor
+  capability: Extract the decision log dataset from the PCD API.
+  source_step_refs:
+  - Decision_Log
+  evidence:
+  - source: description
+    text: Decision Log
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - decision_log_result
+  - decision_log_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: ha_hierarchy
+  name: Ha Hierarchy
+  category: Extractor
+  capability: Extract the ha hierarchy dataset from the PCD API.
+  source_step_refs:
+  - HA_Hierarchy
+  evidence:
+  - source: description
+    text: Ha Hierarchy
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - ha_hierarchy_result
+  - ha_hierarchy_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: uppc_budget
+  name: Uppc Budget
+  category: Extractor
+  capability: Extract the uppc budget dataset from the PCD API.
+  source_step_refs:
+  - UPPC_Budget
+  evidence:
+  - source: description
+    text: Uppc Budget
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - uppc_budget_result
+  - uppc_budget_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: chc_budget
+  name: Chc Budget
+  category: Extractor
+  capability: Extract the chc budget dataset from the PCD API.
+  source_step_refs:
+  - CHC_Budget
+  evidence:
+  - source: description
+    text: Chc Budget
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - chc_budget_result
+  - chc_budget_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: pcn_budget
+  name: Pcn Budget
+  category: Extractor
+  capability: Extract the pcn budget dataset from the PCD API.
+  source_step_refs:
+  - PCN_Budget
+  evidence:
+  - source: description
+    text: Pcn Budget
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - pcn_budget_result
+  - pcn_budget_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: nppcc_budget
+  name: Nppcc Budget
+  category: Extractor
+  capability: Extract the nppcc budget dataset from the PCD API.
+  source_step_refs:
+  - NPPCC_Budget
+  evidence:
+  - source: description
+    text: Nppcc Budget
+  inputs:
+  - pcd_api_resource
+  outputs:
+  - nppcc_budget_result
+  - nppcc_budget_status
+  external_system_refs:
+  - pcd_api
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source mechanism is an HTTP request and returns an API response artifact.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: pcd_file_upload
+  name: PCD File Upload
+  category: ExternalWorkflowAdapter
+  capability: Submit and wait for the configured PCD file-processing Kubernetes Job.
+  source_step_refs:
+  - PCD_file_upload
+  evidence:
+  - source: description
+    text: PCD File Upload
+  inputs:
+  - kubernetes_cluster_resource
+  - pcd_job_template
+  outputs:
+  - pcd_file_upload_result
+  - pcd_file_upload_status
+  external_system_refs:
+  - kubernetes_cluster
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly invokes a caller-supplied Kubernetes Job template.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: etl_notification
+  name: ETL Notification
+  category: Notifier
+  capability: Send the PCD ETL completion notification.
+  source_step_refs:
+  - ETL_Notification
+  evidence:
+  - source: description
+    text: ETL Notification
+  inputs:
+  - email_resource
+  outputs:
+  - etl_notification_status
+  external_system_refs:
+  - email_service
+  preconditions: []
+  effects:
+  - Output emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The final source step is an email notification.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: check_pcd_sftp_folder
+    to: check_pcd_shared_folder
+  - from: check_pcd_shared_folder
+    to: status_tracker
+  - from: check_pcd_shared_folder
+    to: financial_expense
+  - from: check_pcd_shared_folder
+    to: upcc_financial_reporting
+  - from: check_pcd_shared_folder
+    to: chc_financial_reporting
+  - from: check_pcd_shared_folder
+    to: pcn_financial_reporting
+  - from: check_pcd_shared_folder
+    to: nppcc_financial_reporting
+  - from: check_pcd_shared_folder
+    to: fiscal_year_reporting_dates
+  - from: check_pcd_shared_folder
+    to: upcc_primary_care_patient_services
+  - from: check_pcd_shared_folder
+    to: chc_primary_care_patient_services
+  - from: check_pcd_shared_folder
+    to: practitioner_role_mapping
+  - from: status_tracker
+    to: provincial_risk_tracking
+  - from: status_tracker
+    to: decision_log
+  - from: status_tracker
+    to: ha_hierarchy
+  - from: status_tracker
+    to: hr_records
+  - from: status_tracker
+    to: uppc_budget
+  - from: status_tracker
+    to: chc_budget
+  - from: status_tracker
+    to: pcn_budget
+  - from: status_tracker
+    to: nppcc_budget
+  - from: financial_expense
+    to: provincial_risk_tracking
+  - from: financial_expense
+    to: decision_log
+  - from: financial_expense
+    to: ha_hierarchy
+  - from: financial_expense
+    to: hr_records
+  - from: financial_expense
+    to: uppc_budget
+  - from: financial_expense
+    to: chc_budget
+  - from: financial_expense
+    to: pcn_budget
+  - from: financial_expense
+    to: nppcc_budget
+  - from: upcc_financial_reporting
+    to: provincial_risk_tracking
+  - from: upcc_financial_reporting
+    to: decision_log
+  - from: upcc_financial_reporting
+    to: ha_hierarchy
+  - from: upcc_financial_reporting
+    to: hr_records
+  - from: upcc_financial_reporting
+    to: uppc_budget
+  - from: upcc_financial_reporting
+    to: chc_budget
+  - from: upcc_financial_reporting
+    to: pcn_budget
+  - from: upcc_financial_reporting
+    to: nppcc_budget
+  - from: chc_financial_reporting
+    to: provincial_risk_tracking
+  - from: chc_financial_reporting
+    to: decision_log
+  - from: chc_financial_reporting
+    to: ha_hierarchy
+  - from: chc_financial_reporting
+    to: hr_records
+  - from: chc_financial_reporting
+    to: uppc_budget
+  - from: chc_financial_reporting
+    to: chc_budget
+  - from: chc_financial_reporting
+    to: pcn_budget
+  - from: chc_financial_reporting
+    to: nppcc_budget
+  - from: pcn_financial_reporting
+    to: provincial_risk_tracking
+  - from: pcn_financial_reporting
+    to: decision_log
+  - from: pcn_financial_reporting
+    to: ha_hierarchy
+  - from: pcn_financial_reporting
+    to: hr_records
+  - from: pcn_financial_reporting
+    to: uppc_budget
+  - from: pcn_financial_reporting
+    to: chc_budget
+  - from: pcn_financial_reporting
+    to: pcn_budget
+  - from: pcn_financial_reporting
+    to: nppcc_budget
+  - from: nppcc_financial_reporting
+    to: provincial_risk_tracking
+  - from: nppcc_financial_reporting
+    to: decision_log
+  - from: nppcc_financial_reporting
+    to: ha_hierarchy
+  - from: nppcc_financial_reporting
+    to: hr_records
+  - from: nppcc_financial_reporting
+    to: uppc_budget
+  - from: nppcc_financial_reporting
+    to: chc_budget
+  - from: nppcc_financial_reporting
+    to: pcn_budget
+  - from: nppcc_financial_reporting
+    to: nppcc_budget
+  - from: fiscal_year_reporting_dates
+    to: provincial_risk_tracking
+  - from: fiscal_year_reporting_dates
+    to: decision_log
+  - from: fiscal_year_reporting_dates
+    to: ha_hierarchy
+  - from: fiscal_year_reporting_dates
+    to: hr_records
+  - from: fiscal_year_reporting_dates
+    to: uppc_budget
+  - from: fiscal_year_reporting_dates
+    to: chc_budget
+  - from: fiscal_year_reporting_dates
+    to: pcn_budget
+  - from: fiscal_year_reporting_dates
+    to: nppcc_budget
+  - from: upcc_primary_care_patient_services
+    to: provincial_risk_tracking
+  - from: upcc_primary_care_patient_services
+    to: decision_log
+  - from: upcc_primary_care_patient_services
+    to: ha_hierarchy
+  - from: upcc_primary_care_patient_services
+    to: hr_records
+  - from: upcc_primary_care_patient_services
+    to: uppc_budget
+  - from: upcc_primary_care_patient_services
+    to: chc_budget
+  - from: upcc_primary_care_patient_services
+    to: pcn_budget
+  - from: upcc_primary_care_patient_services
+    to: nppcc_budget
+  - from: chc_primary_care_patient_services
+    to: provincial_risk_tracking
+  - from: chc_primary_care_patient_services
+    to: decision_log
+  - from: chc_primary_care_patient_services
+    to: ha_hierarchy
+  - from: chc_primary_care_patient_services
+    to: hr_records
+  - from: chc_primary_care_patient_services
+    to: uppc_budget
+  - from: chc_primary_care_patient_services
+    to: chc_budget
+  - from: chc_primary_care_patient_services
+    to: pcn_budget
+  - from: chc_primary_care_patient_services
+    to: nppcc_budget
+  - from: practitioner_role_mapping
+    to: provincial_risk_tracking
+  - from: practitioner_role_mapping
+    to: decision_log
+  - from: practitioner_role_mapping
+    to: ha_hierarchy
+  - from: practitioner_role_mapping
+    to: hr_records
+  - from: practitioner_role_mapping
+    to: uppc_budget
+  - from: practitioner_role_mapping
+    to: chc_budget
+  - from: practitioner_role_mapping
+    to: pcn_budget
+  - from: practitioner_role_mapping
+    to: nppcc_budget
+  - from: provincial_risk_tracking
+    to: pcd_file_upload
+  - from: decision_log
+    to: pcd_file_upload
+  - from: ha_hierarchy
+    to: pcd_file_upload
+  - from: hr_records
+    to: pcd_file_upload
+  - from: uppc_budget
+    to: pcd_file_upload
+  - from: chc_budget
+    to: pcd_file_upload
+  - from: pcn_budget
+    to: pcd_file_upload
+  - from: nppcc_budget
+    to: pcd_file_upload
+  - from: pcd_file_upload
+    to: etl_notification
+  parallel_groups:
+  - group_id: first_extract_phase
+    intent_ids:
+    - status_tracker
+    - financial_expense
+    - upcc_financial_reporting
+    - chc_financial_reporting
+    - pcn_financial_reporting
+    - nppcc_financial_reporting
+    - fiscal_year_reporting_dates
+    - upcc_primary_care_patient_services
+    - chc_primary_care_patient_services
+    - practitioner_role_mapping
+  - group_id: second_extract_phase
+    intent_ids:
+    - provincial_risk_tracking
+    - decision_log
+    - ha_hierarchy
+    - hr_records
+    - uppc_budget
+    - chc_budget
+    - pcn_budget
+    - nppcc_budget
+  branches: []
+  gates:
+  - gate_id: pcd_input_available
+    sensor_intent: check_pcd_shared_folder
+    condition: available == true
+    gated_intents:
+    - status_tracker
+    - financial_expense
+    - upcc_financial_reporting
+    - chc_financial_reporting
+    - pcn_financial_reporting
+    - nppcc_financial_reporting
+    - fiscal_year_reporting_dates
+    - upcc_primary_care_patient_services
+    - chc_primary_care_patient_services
+    - practitioner_role_mapping
+    - provincial_risk_tracking
+    - decision_log
+    - ha_hierarchy
+    - hr_records
+    - uppc_budget
+    - chc_budget
+    - pcn_budget
+    - nppcc_budget
+    - pcd_file_upload
+    - etl_notification
+artifacts:
+- artifact_id: pcd_sftp_resource
+  name: PCD SFTP resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - check_pcd_sftp_folder
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/sftp.json
+- artifact_id: pcd_shared_folder_resource
+  name: PCD shared-folder resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - check_pcd_shared_folder
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/shared_folder.json
+- artifact_id: pcd_api_resource
+  name: PCD API resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - financial_expense
+  - upcc_financial_reporting
+  - chc_financial_reporting
+  - pcn_financial_reporting
+  - nppcc_financial_reporting
+  - fiscal_year_reporting_dates
+  - upcc_primary_care_patient_services
+  - chc_primary_care_patient_services
+  - practitioner_role_mapping
+  - status_tracker
+  - hr_records
+  - provincial_risk_tracking
+  - decision_log
+  - ha_hierarchy
+  - uppc_budget
+  - chc_budget
+  - pcn_budget
+  - nppcc_budget
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/api.json
+- artifact_id: kubernetes_cluster_resource
+  name: Kubernetes cluster resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - pcd_file_upload
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/kubernetes.json
+- artifact_id: pcd_job_template
+  name: PCD Kubernetes Job template
+  kind: artifact
+  data_type: text
+  media_type: application/yaml
+  role: config
+  producer: null
+  consumers:
+  - pcd_file_upload
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/pcd_job.yaml
+- artifact_id: email_resource
+  name: Email service resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - etl_notification
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/email.json
+- artifact_id: check_pcd_sftp_folder_decision
+  name: check_pcd_sftp_folder availability decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  role: decision
+  producer: check_pcd_sftp_folder
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/availability.schema.json
+- artifact_id: check_pcd_sftp_folder_status
+  name: check_pcd_sftp_folder check status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: check_pcd_sftp_folder
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: check_pcd_shared_folder_decision
+  name: check_pcd_shared_folder availability decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  role: decision
+  producer: check_pcd_shared_folder
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/availability.schema.json
+- artifact_id: check_pcd_shared_folder_status
+  name: check_pcd_shared_folder check status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: check_pcd_shared_folder
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: status_tracker_result
+  name: status_tracker API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: status_tracker
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: status_tracker_status
+  name: status_tracker extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: status_tracker
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: financial_expense_result
+  name: financial_expense API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: financial_expense
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: financial_expense_status
+  name: financial_expense extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: financial_expense
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: upcc_financial_reporting_result
+  name: upcc_financial_reporting API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: upcc_financial_reporting
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: upcc_financial_reporting_status
+  name: upcc_financial_reporting extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: upcc_financial_reporting
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: chc_financial_reporting_result
+  name: chc_financial_reporting API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: chc_financial_reporting
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: chc_financial_reporting_status
+  name: chc_financial_reporting extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: chc_financial_reporting
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: pcn_financial_reporting_result
+  name: pcn_financial_reporting API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: pcn_financial_reporting
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: pcn_financial_reporting_status
+  name: pcn_financial_reporting extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: pcn_financial_reporting
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: nppcc_financial_reporting_result
+  name: nppcc_financial_reporting API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: nppcc_financial_reporting
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: nppcc_financial_reporting_status
+  name: nppcc_financial_reporting extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: nppcc_financial_reporting
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: fiscal_year_reporting_dates_result
+  name: fiscal_year_reporting_dates API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: fiscal_year_reporting_dates
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: fiscal_year_reporting_dates_status
+  name: fiscal_year_reporting_dates extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: fiscal_year_reporting_dates
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: upcc_primary_care_patient_services_result
+  name: upcc_primary_care_patient_services API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: upcc_primary_care_patient_services
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: upcc_primary_care_patient_services_status
+  name: upcc_primary_care_patient_services extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: upcc_primary_care_patient_services
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: chc_primary_care_patient_services_result
+  name: chc_primary_care_patient_services API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: chc_primary_care_patient_services
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: chc_primary_care_patient_services_status
+  name: chc_primary_care_patient_services extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: chc_primary_care_patient_services
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: practitioner_role_mapping_result
+  name: practitioner_role_mapping API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: practitioner_role_mapping
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: practitioner_role_mapping_status
+  name: practitioner_role_mapping extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: practitioner_role_mapping
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: provincial_risk_tracking_result
+  name: provincial_risk_tracking API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: provincial_risk_tracking
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: provincial_risk_tracking_status
+  name: provincial_risk_tracking extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: provincial_risk_tracking
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: decision_log_result
+  name: decision_log API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: decision_log
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: decision_log_status
+  name: decision_log extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: decision_log
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: ha_hierarchy_result
+  name: ha_hierarchy API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ha_hierarchy
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: ha_hierarchy_status
+  name: ha_hierarchy extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ha_hierarchy
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: hr_records_result
+  name: hr_records API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: hr_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: hr_records_status
+  name: hr_records extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: hr_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: uppc_budget_result
+  name: uppc_budget API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: uppc_budget
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: uppc_budget_status
+  name: uppc_budget extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: uppc_budget
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: chc_budget_result
+  name: chc_budget API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: chc_budget
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: chc_budget_status
+  name: chc_budget extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: chc_budget
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: pcn_budget_result
+  name: pcn_budget API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: pcn_budget
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: pcn_budget_status
+  name: pcn_budget extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: pcn_budget
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: nppcc_budget_result
+  name: nppcc_budget API result
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: nppcc_budget
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/api_result.schema.json
+- artifact_id: nppcc_budget_status
+  name: nppcc_budget extraction status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: nppcc_budget
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: pcd_file_upload_result
+  name: PCD Kubernetes Job reference
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  role: intermediate
+  producer: pcd_file_upload
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/job_reference.schema.json
+- artifact_id: pcd_file_upload_status
+  name: PCD Kubernetes Job status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: pcd_file_upload
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: etl_notification_status
+  name: PCD ETL notification status
+  kind: artifact
+  data_type: notification
+  media_type: application/json
+  role: status
+  producer: etl_notification
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/notification.schema.json
+bindings:
+- intent_id: check_pcd_sftp_folder
+  service_id: file_location_availability_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: file_location_resource
+    artifact_id: pcd_sftp_resource
+  output_bindings:
+  - port: availability_decision
+    artifact_id: check_pcd_sftp_folder_decision
+  - port: check_status
+    artifact_id: check_pcd_sftp_folder_status
+  parameter_bindings:
+    location_type: sftp
+    path: /data/pcd
+    availability_condition: contains_matching_files
+    filename_pattern: '*.csv'
+  secret_bindings: []
+  rationale: Checks the exact SFTP drop-zone condition before the shared-folder check.
+  confidence: explicit
+- intent_id: check_pcd_shared_folder
+  service_id: file_location_availability_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: file_location_resource
+    artifact_id: pcd_shared_folder_resource
+  output_bindings:
+  - port: availability_decision
+    artifact_id: check_pcd_shared_folder_decision
+  - port: check_status
+    artifact_id: check_pcd_shared_folder_status
+  parameter_bindings:
+    location_type: filesystem
+    path: /data/pcd
+    availability_condition: contains_matching_files
+    filename_pattern: '*.csv'
+  secret_bindings: []
+  rationale: Checks the exact shared-folder condition before the extraction phases.
+  confidence: explicit
+- intent_id: status_tracker
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: status_tracker_result
+  - port: extraction_status
+    artifact_id: status_tracker_status
+  parameter_bindings:
+    endpoint: /status_tracker
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: status_tracker.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for status_tracker.
+  confidence: explicit
+- intent_id: financial_expense
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: financial_expense_result
+  - port: extraction_status
+    artifact_id: financial_expense_status
+  parameter_bindings:
+    endpoint: /financial_expense
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: financial_expense.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for financial_expense.
+  confidence: explicit
+- intent_id: upcc_financial_reporting
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: upcc_financial_reporting_result
+  - port: extraction_status
+    artifact_id: upcc_financial_reporting_status
+  parameter_bindings:
+    endpoint: /upcc_financial_reporting
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: upcc_financial_reporting.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for upcc_financial_reporting.
+  confidence: explicit
+- intent_id: chc_financial_reporting
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: chc_financial_reporting_result
+  - port: extraction_status
+    artifact_id: chc_financial_reporting_status
+  parameter_bindings:
+    endpoint: /chc_financial_reporting
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: chc_financial_reporting.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for chc_financial_reporting.
+  confidence: explicit
+- intent_id: pcn_financial_reporting
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: pcn_financial_reporting_result
+  - port: extraction_status
+    artifact_id: pcn_financial_reporting_status
+  parameter_bindings:
+    endpoint: /pcn_financial_reporting
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: pcn_financial_reporting.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for pcn_financial_reporting.
+  confidence: explicit
+- intent_id: nppcc_financial_reporting
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: nppcc_financial_reporting_result
+  - port: extraction_status
+    artifact_id: nppcc_financial_reporting_status
+  parameter_bindings:
+    endpoint: /nppcc_financial_reporting
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: nppcc_financial_reporting.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for nppcc_financial_reporting.
+  confidence: explicit
+- intent_id: fiscal_year_reporting_dates
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: fiscal_year_reporting_dates_result
+  - port: extraction_status
+    artifact_id: fiscal_year_reporting_dates_status
+  parameter_bindings:
+    endpoint: /fiscal_year_reporting_dates
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: fiscal_year_reporting_dates.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for fiscal_year_reporting_dates.
+  confidence: explicit
+- intent_id: upcc_primary_care_patient_services
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: upcc_primary_care_patient_services_result
+  - port: extraction_status
+    artifact_id: upcc_primary_care_patient_services_status
+  parameter_bindings:
+    endpoint: /upcc_primary_care_patient_services
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: upcc_primary_care_patient_services.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for upcc_primary_care_patient_services.
+  confidence: explicit
+- intent_id: chc_primary_care_patient_services
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: chc_primary_care_patient_services_result
+  - port: extraction_status
+    artifact_id: chc_primary_care_patient_services_status
+  parameter_bindings:
+    endpoint: /chc_primary_care_patient_services
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: chc_primary_care_patient_services.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for chc_primary_care_patient_services.
+  confidence: explicit
+- intent_id: practitioner_role_mapping
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: practitioner_role_mapping_result
+  - port: extraction_status
+    artifact_id: practitioner_role_mapping_status
+  parameter_bindings:
+    endpoint: /practitioner_role_mapping
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: practitioner_role_mapping.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for practitioner_role_mapping.
+  confidence: explicit
+- intent_id: provincial_risk_tracking
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: provincial_risk_tracking_result
+  - port: extraction_status
+    artifact_id: provincial_risk_tracking_status
+  parameter_bindings:
+    endpoint: /provincial_risk_tracking
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: provincial_risk_tracking.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for provincial_risk_tracking.
+  confidence: explicit
+- intent_id: decision_log
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: decision_log_result
+  - port: extraction_status
+    artifact_id: decision_log_status
+  parameter_bindings:
+    endpoint: /decision_log
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: decision_log.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for decision_log.
+  confidence: explicit
+- intent_id: ha_hierarchy
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: ha_hierarchy_result
+  - port: extraction_status
+    artifact_id: ha_hierarchy_status
+  parameter_bindings:
+    endpoint: /ha_hierarchy
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: ha_hierarchy.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for ha_hierarchy.
+  confidence: explicit
+- intent_id: hr_records
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: hr_records_result
+  - port: extraction_status
+    artifact_id: hr_records_status
+  parameter_bindings:
+    endpoint: /hr_records
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: hr_records.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for hr_records.
+  confidence: explicit
+- intent_id: uppc_budget
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: uppc_budget_result
+  - port: extraction_status
+    artifact_id: uppc_budget_status
+  parameter_bindings:
+    endpoint: /uppc_budget
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: uppc_budget.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for uppc_budget.
+  confidence: explicit
+- intent_id: chc_budget
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: chc_budget_result
+  - port: extraction_status
+    artifact_id: chc_budget_status
+  parameter_bindings:
+    endpoint: /chc_budget
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: chc_budget.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for chc_budget.
+  confidence: explicit
+- intent_id: pcn_budget
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: pcn_budget_result
+  - port: extraction_status
+    artifact_id: pcn_budget_status
+  parameter_bindings:
+    endpoint: /pcn_budget
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: pcn_budget.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for pcn_budget.
+  confidence: explicit
+- intent_id: nppcc_budget
+  service_id: http_api_request_artifact_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: http_api_resource
+    artifact_id: pcd_api_resource
+  output_bindings:
+  - port: response_artifact
+    artifact_id: nppcc_budget_result
+  - port: extraction_status
+    artifact_id: nppcc_budget_status
+  parameter_bindings:
+    endpoint: /nppcc_budget
+    method: GET
+    expected_content_types:
+    - application/json
+    output_name: nppcc_budget.json
+  secret_bindings: []
+  rationale: Executes the source HTTP request for nppcc_budget.
+  confidence: explicit
+- intent_id: pcd_file_upload
+  service_id: kubernetes_job_template_executor
+  service_version: 1.0.0
+  input_bindings:
+  - port: kubernetes_cluster
+    artifact_id: kubernetes_cluster_resource
+  - port: job_template
+    artifact_id: pcd_job_template
+  output_bindings:
+  - port: job_reference
+    artifact_id: pcd_file_upload_result
+  - port: job_status
+    artifact_id: pcd_file_upload_status
+  parameter_bindings:
+    job_name_prefix: pcd-file-upload
+    namespace: pcd
+    wait_for_completion: true
+    expected_success_condition: Complete
+  secret_bindings:
+  - secret: kubernetes_access_credentials
+    kubernetes_secret: pcd-kubernetes-access
+    key: kubeconfig
+  rationale: Submits the reviewed PCD processing Job template and waits for success.
+  confidence: explicit
+- intent_id: etl_notification
+  service_id: email_notification_sender
+  service_version: 1.0.0
+  input_bindings:
+  - port: email_service
+    artifact_id: email_resource
+  output_bindings:
+  - port: notification_status
+    artifact_id: etl_notification_status
+  parameter_bindings:
+    to: pcd-operations@example.test
+    subject: PCD ETL completed
+    body: All PCD extraction phases and the processing Job completed.
+  secret_bindings: []
+  rationale: Sends the final deterministic completion notification.
+  confidence: explicit
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock PCD ETL.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Gate 0
+- gate: G1
+  expected_status: pass
+  checks:
+  - Gate 1
+- gate: G2
+  expected_status: pass
+  checks:
+  - Gate 2
+- gate: G3
+  expected_status: pass
+  checks:
+  - Gate 3
+- gate: G4
+  expected_status: pass
+  checks:
+  - Gate 4
+- gate: G5
+  expected_status: pass
+  checks:
+  - Gate 5
+- gate: G6
+  expected_status: pass
+  checks:
+  - Gate 6
+source_step_accounting:
+- source_step_ref: Check_PCD_SFTP_Folder
+  disposition: service
+  intent_ids:
+  - check_pcd_sftp_folder
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: Check_PCD_Shared_Folder
+  disposition: service
+  intent_ids:
+  - check_pcd_shared_folder
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: Start_PCD_Extract_1
+  disposition: orchestration
+  intent_ids: []
+  rationale: The source step controls workflow sequencing or failure handling and does not invoke a reusable
+    catalogue service.
+- source_step_ref: Start_PCD_Extract_2
+  disposition: orchestration
+  intent_ids: []
+  rationale: The source step controls workflow sequencing or failure handling and does not invoke a reusable
+    catalogue service.
+- source_step_ref: Financial_Expense
+  disposition: service
+  intent_ids:
+  - financial_expense
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: UPCC_Financial_Reportingr
+  disposition: service
+  intent_ids:
+  - upcc_financial_reporting
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: CHC_Financial_reporting
+  disposition: service
+  intent_ids:
+  - chc_financial_reporting
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: PCN_Financial_Reporting
+  disposition: service
+  intent_ids:
+  - pcn_financial_reporting
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: NPPCC_Financial_Reporting
+  disposition: service
+  intent_ids:
+  - nppcc_financial_reporting
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: Fiscal_Year_Reporting_Dates
+  disposition: service
+  intent_ids:
+  - fiscal_year_reporting_dates
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: UPCC_Primary_Care_Patient_Services
+  disposition: service
+  intent_ids:
+  - upcc_primary_care_patient_services
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: CHC_Primary_Care_Patient_Services
+  disposition: service
+  intent_ids:
+  - chc_primary_care_patient_services
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: Practitioner_Role_Mapping
+  disposition: service
+  intent_ids:
+  - practitioner_role_mapping
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: Status_Tracker
+  disposition: service
+  intent_ids:
+  - status_tracker
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: HR_Records
+  disposition: service
+  intent_ids:
+  - hr_records
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: Provincial_Risk_Tracking
+  disposition: service
+  intent_ids:
+  - provincial_risk_tracking
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: Decision_Log
+  disposition: service
+  intent_ids:
+  - decision_log
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: HA_Hierarchy
+  disposition: service
+  intent_ids:
+  - ha_hierarchy
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: UPPC_Budget
+  disposition: service
+  intent_ids:
+  - uppc_budget
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: CHC_Budget
+  disposition: service
+  intent_ids:
+  - chc_budget
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: PCN_Budget
+  disposition: service
+  intent_ids:
+  - pcn_budget
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: NPPCC_Budget
+  disposition: service
+  intent_ids:
+  - nppcc_budget
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: PCD_file_upload
+  disposition: service
+  intent_ids:
+  - pcd_file_upload
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: ETL_Notification
+  disposition: service
+  intent_ids:
+  - etl_notification
+  rationale: The source step invokes the reviewed service intent or intents listed.

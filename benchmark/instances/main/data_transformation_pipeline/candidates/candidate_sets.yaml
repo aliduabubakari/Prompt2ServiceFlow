@@ -1,0 +1,66 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:data-transformation-pipeline
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_data_transformation_pipeline_workflow_load_id_generator_candidates
+  source_step_refs:
+  - start
+  service_ids:
+  - workflow_load_id_generator
+  - retention_cutoff_config_resolver
+  - execution_date_backup_strategy_decider
+  - runtime_parameter_allowed_values_validator
+  - dataform_compilation_config_builder
+  - reviewed_domain_adapter
+- candidate_set_id: main_data_transformation_pipeline_dataform_compilation_config_builder_candidates
+  source_step_refs:
+  - parse_input_params
+  service_ids:
+  - dataform_compilation_config_builder
+  - runtime_parameter_allowed_values_validator
+  - json_field_projection_transformer
+  - retention_cutoff_config_resolver
+  - google_dataform_compilation_result_creator
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_data_transformation_pipeline_google_dataform_compilation_result_creator_candidates
+  source_step_refs:
+  - create_compilation_result
+  service_ids:
+  - google_dataform_compilation_result_creator
+  - google_dataform_workflow_invocation_creator
+  - external_workflow_run_trigger
+  - http_json_request_extractor
+  - google_dataform_workflow_invocation_sensor
+  - reviewed_domain_adapter
+- candidate_set_id: main_data_transformation_pipeline_google_dataform_workflow_invocation_creator_candidates
+  source_step_refs:
+  - create_workflow_invocation
+  service_ids:
+  - google_dataform_workflow_invocation_creator
+  - google_dataform_compilation_result_creator
+  - external_workflow_run_trigger
+  - google_dataform_workflow_invocation_sensor
+  - databricks_notebook_run_executor
+  - reviewed_domain_adapter
+- candidate_set_id: main_data_transformation_pipeline_google_dataform_workflow_invocation_sensor_candidates
+  source_step_refs:
+  - is_workflow_invocation_done
+  service_ids:
+  - google_dataform_workflow_invocation_sensor
+  - google_dataform_workflow_invocation_creator
+  - external_workflow_completion_sensor
+  - external_workflow_task_completion_sensor
+  - sql_query_readiness_sensor
+  - reviewed_domain_adapter
+- candidate_set_id: main_data_transformation_pipeline_temporary_resource_cleanup_candidates
+  source_step_refs:
+  - end
+  service_ids:
+  - temporary_resource_cleanup
+  - filesystem_retention_cleanup_with_lock
+  - redis_key_cleanup
+  - database_expired_session_cleanup
+  - airflow_metadata_retention_cleaner
+  - dataset_quarantine_zone_writer

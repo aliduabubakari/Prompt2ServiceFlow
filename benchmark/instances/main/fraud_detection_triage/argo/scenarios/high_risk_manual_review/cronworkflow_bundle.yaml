@@ -1,0 +1,359 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fraud-detection-triage-high-risk-manual-review-scripts
+  namespace: prompt2serviceflow
+data:
+  01_analyze_transactions.py: "#!/usr/bin/env python3\n\"\"\"Mock fraud risk analyzer for daily transaction\
+    \ CSV batches.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport csv\nimport\
+    \ json\nimport shutil\nfrom pathlib import Path\n\n# Merchant categories with elevated risk weights\n\
+    HIGH_RISK_CATEGORIES = {\"crypto_exchange\", \"money_transfer\", \"gambling\", \"prepaid_card\"}\n\
+    HIGH_AMOUNT_THRESHOLD = 5000.0\n\n\ndef compute_row_score(amount: float, category: str) -> float:\n\
+    \    score = 0.0\n    if amount > HIGH_AMOUNT_THRESHOLD:\n        score += min(0.6, amount / 20000.0)\n\
+    \    if category.lower() in HIGH_RISK_CATEGORIES:\n        score += 0.4\n    return min(round(score,\
+    \ 4), 1.0)\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--execution-time\", type=str, default=None)\n    args = parser.parse_args()\n\
+    \n    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True, exist_ok=True)\n\
+    \    dataset_path = artifacts / \"transactions.csv\"\n    shutil.copyfile(args.fixture, dataset_path)\n\
+    \n    with dataset_path.open(encoding=\"utf-8\", newline=\"\") as handle:\n        reader = csv.DictReader(handle)\n\
+    \        rows = list(reader)\n\n    scored_transactions: list[dict] = []\n    for row in rows:\n \
+    \       amount = float(row[\"amount\"])\n        category = row[\"merchant_category\"]\n        score\
+    \ = compute_row_score(amount, category)\n        scored_transactions.append(\n            {\n    \
+    \            \"transaction_id\": row[\"transaction_id\"],\n                \"score\": score,\n   \
+    \             \"features\": {\n                    \"amount\": amount,\n                    \"merchant_category\"\
+    : category,\n                    \"customer_id\": row[\"customer_id\"],\n                },\n    \
+    \        }\n        )\n\n    max_score = max((txn[\"score\"] for txn in scored_transactions), default=0.0)\n\
+    \n    risk_score = {\n        \"score\": round(max_score, 4),\n        \"score_range\": \"0_to_1\"\
+    ,\n        \"transactions_scored\": len(scored_transactions),\n        \"aggregate_score_method\"\
+    : \"max\",\n        \"risk_model_profile\": \"deterministic_rule_based_v1\",\n    }\n    (artifacts\
+    \ / \"risk_score.json\").write_text(\n        json.dumps(risk_score, indent=2) + \"\\n\", encoding=\"\
+    utf-8\"\n    )\n\n    scored_doc = {\"transactions\": scored_transactions}\n    (artifacts / \"scored_transactions.json\"\
+    ).write_text(\n        json.dumps(scored_doc, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n \
+    \   scoring_status = {\n        \"success\": True,\n        \"rows_read\": len(rows),\n        \"\
+    rows_scored\": len(scored_transactions),\n        \"risk_model_profile\": \"deterministic_rule_based_v1\"\
+    ,\n        \"execution_time\": args.execution_time,\n        \"errors\": [],\n    }\n    (artifacts\
+    \ / \"scoring_status.json\").write_text(\n        json.dumps(scoring_status, indent=2) + \"\\n\",\
+    \ encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  02_route_transaction.py: "#!/usr/bin/env python3\n\"\"\"Apply risk threshold and emit deterministic\
+    \ routing decision.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\n\
+    from pathlib import Path\n\n\nTHRESHOLD = 0.8\nMANUAL_REVIEW_LABEL = \"manual_review\"\nAUTO_APPROVE_LABEL\
+    \ = \"auto_approve\"\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace\
+    \ / \"artifacts\"\n    risk_score = json.loads((artifacts / \"risk_score.json\").read_text(encoding=\"\
+    utf-8\"))\n    score = risk_score[\"score\"]\n    manual_review = score > THRESHOLD\n    auto_approve\
+    \ = score <= THRESHOLD\n    route = MANUAL_REVIEW_LABEL if manual_review else AUTO_APPROVE_LABEL\n\
+    \n    decision = {\n        \"score\": score,\n        \"risk_threshold\": THRESHOLD,\n        \"\
+    route\": route,\n        \"manual_review\": manual_review,\n        \"auto_approve\": auto_approve,\n\
+    \        \"reason\": f\"Score {score} {'>' if manual_review else '<='} threshold {THRESHOLD}\",\n\
+    \    }\n    (artifacts / \"routing_decision.json\").write_text(\n        json.dumps(decision, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts / \"route.txt\").write_text(route, encoding=\"\
+    utf-8\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  03_route_to_manual_review.py: "#!/usr/bin/env python3\n\"\"\"Record manual-review branch processing\
+    \ status.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib\
+    \ import Path\n\nTHRESHOLD = 0.8\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \n    artifacts = args.workspace / \"artifacts\"\n    routing = json.loads((artifacts / \"routing_decision.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    scored = json.loads((artifacts / \"scored_transactions.json\"\
+    ).read_text(encoding=\"utf-8\"))\n\n    # Validate that manual review route was selected\n    if not\
+    \ routing[\"manual_review\"]:\n        raise SystemExit(\"Manual review route not selected in routing\
+    \ decision\")\n\n    transactions = scored[\"transactions\"]\n    bounded_refs = [\n        txn[\"\
+    transaction_id\"] for txn in transactions if txn[\"score\"] > THRESHOLD\n    ][:100]\n\n    status\
+    \ = {\n        \"success\": True,\n        \"route\": routing[\"route\"],\n        \"manual_review_requested\"\
+    : routing[\"manual_review\"],\n        \"transactions_marked_for_review\": len(transactions),\n  \
+    \      \"bounded_transaction_refs\": bounded_refs,\n        \"errors\": [],\n    }\n    (artifacts\
+    \ / \"manual_review_status.json\").write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"\
+    utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  04_route_to_auto_approve.py: "#!/usr/bin/env python3\n\"\"\"Record auto-approval branch processing status.\"\
+    \"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib import Path\n\
+    \n\nTHRESHOLD = 0.8\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace\
+    \ / \"artifacts\"\n    routing = json.loads((artifacts / \"routing_decision.json\").read_text(encoding=\"\
+    utf-8\"))\n    scored = json.loads((artifacts / \"scored_transactions.json\").read_text(encoding=\"\
+    utf-8\"))\n\n    # Validate that auto-approval route was selected\n    if not routing[\"auto_approve\"\
+    ]:\n        raise SystemExit(\"Auto-approval route not selected in routing decision\")\n\n    transactions\
+    \ = scored[\"transactions\"]\n    bounded_refs = [\n        txn[\"transaction_id\"] for txn in transactions\
+    \ if txn[\"score\"] <= THRESHOLD\n    ][:100]\n\n    status = {\n        \"success\": True,\n    \
+    \    \"route\": routing[\"route\"],\n        \"auto_approval_recorded\": routing[\"auto_approve\"\
+    ],\n        \"transactions_auto_approved\": len(transactions),\n        \"bounded_transaction_refs\"\
+    : bounded_refs,\n        \"errors\": [],\n    }\n    (artifacts / \"auto_approval_status.json\").write_text(\n\
+    \        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"\
+    __main__\":\n    main()\n"
+  05_send_notification.py: "#!/usr/bin/env python3\n\"\"\"Record a deterministic mock email delivery receipt\
+    \ at the merge point.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\n\
+    from pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--execution-time\", type=str,\
+    \ default=None)\n    args = parser.parse_args()\n\n    artifacts = args.workspace / \"artifacts\"\n\
+    \    exec_ts = args.execution_time or \"unknown\"\n\n    # Check which branch completed\n    manual_path\
+    \ = artifacts / \"manual_review_status.json\"\n    auto_path = artifacts / \"auto_approval_status.json\"\
+    \n    branch_info = []\n    if manual_path.is_file():\n        branch_info.append(\"manual_review\"\
+    )\n    if auto_path.is_file():\n        branch_info.append(\"auto_approve\")\n\n    status = {\n \
+    \       \"sent\": True,\n        \"recipients\": [\"fraud-team@company.com\"],\n        \"subject\"\
+    : \"Fraud Detection Triage Complete\",\n        \"message_id\": f\"mock-fraud-triage-{'-'.join(branch_info)}-{exec_ts[:10]}\"\
+    ,\n        \"execution_time\": exec_ts,\n        \"errors\": [],\n    }\n    (artifacts / \"notification_status.json\"\
+    ).write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__\
+    \ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fraud-detection-triage-high-risk-manual-review-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"driver\": \"filesystem-mock\",\n  \"target\": \"artifacts/notification_status.json\"\
+    \n}\n"
+  fixture-0001: "{\n  \"pipeline_id\": \"fraud_detection_triage\",\n  \"input_modalities\": [\"csv\"],\n\
+    \  \"systems\": [\n    \"email notification service\"\n  ],\n  \"scenarios\": {\n    \"high_risk_manual_review\"\
+    : {\n      \"fixture_file\": \"transactions_high_risk.csv\",\n      \"description\": \"Transactions\
+    \ with a crypto_exchange high-amount entry triggering manual review\",\n      \"expected_route\":\
+    \ \"manual_review\",\n      \"risk_threshold\": 0.8\n    },\n    \"low_risk_auto_approve\": {\n  \
+    \    \"fixture_file\": \"transactions_low_risk.csv\",\n      \"description\": \"Low-value grocery/coffee\
+    \ transactions all passing auto-approval\",\n      \"expected_route\": \"auto_approve\",\n      \"\
+    risk_threshold\": 0.8\n    }\n  },\n  \"risk_model\": {\n    \"profile\": \"deterministic_rule_based_v1\"\
+    ,\n    \"high_risk_categories\": [\"crypto_exchange\", \"money_transfer\", \"gambling\", \"prepaid_card\"\
+    ],\n    \"high_amount_threshold\": 5000.0,\n    \"category_weight\": 0.4,\n    \"amount_weight_max\"\
+    : 0.6\n  }\n}\n"
+  fixture-0002: 'transaction_id,amount,merchant_category,customer_id,timestamp
+
+    T001,10000.00,crypto_exchange,C001,2024-01-15T08:30:00Z
+
+    T002,500.00,grocery,C002,2024-01-15T09:00:00Z
+
+    T003,200.00,coffee_shop,C003,2024-01-15T09:15:00Z
+
+    '
+  fixture-0003: 'transaction_id,amount,merchant_category,customer_id,timestamp
+
+    T101,150.00,grocery,C101,2024-01-15T10:00:00Z
+
+    T102,75.00,coffee_shop,C102,2024-01-15T10:15:00Z
+
+    T103,200.00,restaurant,C103,2024-01-15T11:00:00Z
+
+    '
+---
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: fraud-detection-triage-high-risk-manual-review
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: fixture-file
+        value: transactions_high_risk.csv
+      - name: execution-time
+        value: '2024-01-16T00:00:00Z'
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: fraud-detection-triage-high-risk-manual-review-scripts
+    - name: fixtures
+      configMap:
+        name: fraud-detection-triage-high-risk-manual-review-fixtures
+        items:
+        - key: fixture-0000
+          path: email_service.json
+        - key: fixture-0001
+          path: fixture.json
+        - key: fixture-0002
+          path: transactions_high_risk.csv
+        - key: fixture-0003
+          path: transactions_low_risk.csv
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: analyze-transactions
+          template: run-analyze-transactions
+        - name: route-transaction
+          template: run-route-transaction
+          depends: analyze-transactions.Succeeded
+        - name: route-to-manual-review
+          template: run-route-to-manual-review
+          depends: route-transaction.Succeeded
+          when: '{{tasks.route-transaction.outputs.parameters.route}} == manual_review'
+        - name: route-to-auto-approve
+          template: run-route-to-auto-approve
+          depends: route-transaction.Succeeded
+          when: '{{tasks.route-transaction.outputs.parameters.route}} == auto_approve'
+        - name: send-notification
+          template: run-send-notification
+          depends: (route-to-manual-review.Succeeded || route-to-auto-approve.Succeeded)
+    - name: run-analyze-transactions
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: analyze_transactions
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_analyze_transactions.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+        - --execution-time
+        - '{{workflow.parameters.execution-time}}'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-route-transaction
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: route_transaction
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_route_transaction.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      outputs:
+        parameters:
+        - name: route
+          valueFrom:
+            path: /workspace/artifacts/route.txt
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-route-to-manual-review
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: route_to_manual_review
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_route_to_manual_review.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-route-to-auto-approve
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: route_to_auto_approve
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_route_to_auto_approve.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-send-notification
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: send_notification
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/05_send_notification.py
+        - --workspace
+        - /workspace
+        - --execution-time
+        - '{{workflow.parameters.execution-time}}'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

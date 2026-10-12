@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-dbx-aws-dag-reuse-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"DBX AWS DAG mock.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json, uuid\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"--step\",type=str,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    st={\"\
+    success\":True,\"errors\":[]}\n    if a.step==\"start\":\n        (art/\"run_id.txt\").write_text(\"\
+    dbx-run-\"+uuid.uuid4().hex[:8]+\"\\n\",encoding=\"utf-8\")\n        (art/\"gen_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    elif a.step==\"nb1\":\n        (art/\"notebook_result.json\").write_text(json.dumps({\"\
+    output\":\"done\",\"success\":True},indent=2)+\"\\n\",encoding=\"utf-8\")\n        (art/\"notebook_status.json\"\
+    ).write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\")\n    elif a.step==\"d1\":\n     \
+    \   (art/\"d1_cleanup.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\")\n   \
+    \ elif a.step==\"branch\":\n        (art/\"branch_decision.json\").write_text(json.dumps({\"selected_strategy\"\
+    :\"incremental\",\"branch_label\":\"skip\",\"success\":True},indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n        (art/\"route.txt\").write_text(\"skip\",encoding=\"utf-8\")\n    elif a.step==\"nb2\":\n\
+    \        (art/\"nb2_result.json\").write_text(json.dumps({\"output\":\"done2\",\"success\":True},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n        (art/\"nb2_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    elif a.step==\"d2\":\n        (art/\"d2_cleanup.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    elif a.step==\"d3\":\n        (art/\"d3_cleanup.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    elif a.step==\"end\":\n        (art/\"cleanup_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-dbx-aws-dag-reuse-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock","workspace":"databricks"}'
+  fixture-0001: "{\n  \"pipeline_id\": \"test_dbx_aws_dag_reuse\",\n  \"inputs\": {\n    \"dbx\": \"dbx.json\"\
+    \n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n  ],\n  \"systems\": [\n    \"system_a\"\
+    ,\n    \"system_b\"\n  ]\n}"

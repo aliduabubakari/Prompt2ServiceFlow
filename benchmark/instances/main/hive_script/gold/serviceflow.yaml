@@ -1,0 +1,235 @@
+ir_version: 0.1.0
+composition_id: hive_script
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:hive_script
+  split: main
+  pipeline_id: hive_script
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/01_hive_script.txt
+  description_sha256: f582336b86b546b0c6592b224b30a96f651d42f175bb3b7b220d7ea41843c10c
+  internal_spec_path: source/internal_specs/main_40/01_hive_script.json
+  internal_spec_sha256: a25b851ffbb61abb0860bd056c296559b0dc23173d9ad2487f2ad53d7e04c510
+requirement:
+  name: Hive Script
+  purpose: Processing pipeline.
+  domain: data_platform
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes: []
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems: []
+service_intents:
+- intent_id: run_after_loop
+  name: Run after loop
+  category: Maintenance
+  capability: Run shell command after loop.
+  source_step_refs:
+  - run_after_loop
+  evidence:
+  - source: description
+    text: Shell command.
+  inputs: []
+  outputs:
+  - cleanup_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Cleanup done.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Shell cleanup.
+  confidence: strongly_inferred
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: hive_script_task
+  name: Hive SQL
+  category: Loader
+  capability: Execute Hive SQL.
+  source_step_refs:
+  - hive_script_task
+  evidence:
+  - source: description
+    text: Hive SQL.
+  inputs:
+  - hive_resource
+  outputs:
+  - hive_result
+  - hive_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Hive SQL executed.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Hive execution.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: run_after_loop
+    to: hive_script_task
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: cleanup_status
+  name: Cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: output
+  producer: run_after_loop
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: hive_resource
+  name: Hive resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - hive_script_task
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/hive.json
+- artifact_id: hive_result
+  name: Hive result
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  role: output
+  producer: hive_script_task
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: hive_status
+  name: Hive status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: hive_script_task
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: run_after_loop
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: cleanup_status
+  parameter_bindings:
+    targets:
+    - /tmp
+    ignore_missing: true
+  secret_bindings: []
+  rationale: Cleanup temporary resources after loop completion.
+  confidence: strongly_inferred
+- intent_id: hive_script_task
+  service_id: hive_hql_script_executor
+  service_version: 1.0.0
+  input_bindings:
+  - port: hive_database
+    artifact_id: hive_resource
+  output_bindings:
+  - port: affected_tables
+    artifact_id: hive_result
+  - port: execution_status
+    artifact_id: hive_status
+  parameter_bindings:
+    hql_script: SELECT * FROM test
+  secret_bindings:
+  - secret: hive_connection_credentials
+    kubernetes_secret: hive-secrets
+    key: creds
+  rationale: Execute Hive HQL script against Hive database.
+  confidence: explicit
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Gate 0
+- gate: G1
+  expected_status: pass
+  checks:
+  - Gate 1
+- gate: G2
+  expected_status: pass
+  checks:
+  - Gate 2
+- gate: G3
+  expected_status: pass
+  checks:
+  - Gate 3
+- gate: G4
+  expected_status: pass
+  checks:
+  - Gate 4
+- gate: G5
+  expected_status: pass
+  checks:
+  - Gate 5
+- gate: G6
+  expected_status: pass
+  checks:
+  - Gate 6
+source_step_accounting:
+- source_step_ref: run_after_loop
+  disposition: service
+  intent_ids:
+  - run_after_loop
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: hive_script_task
+  disposition: service
+  intent_ids:
+  - hive_script_task
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

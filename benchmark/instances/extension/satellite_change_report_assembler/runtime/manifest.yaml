@@ -1,0 +1,77 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: satellite_change_report_assembler
+image: python:3.12-slim
+workflow_parameters:
+- name: execution-time
+  default: '2026-07-20T12:00:00Z'
+tasks:
+- intent_id: ingest_source_batch
+  script: scripts/01_ingest_source_batch.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  - --execution-time
+  - '{execution-time}'
+- intent_id: validate_source_contract
+  script: scripts/02_validate_source_contract.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - ingest_source_batch
+- intent_id: stage_raw_artifacts
+  script: scripts/03_stage_raw_artifacts.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - validate_source_contract
+- intent_id: normalize_records
+  script: scripts/04_normalize_records.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - stage_raw_artifacts
+- intent_id: extract_visual_text_features
+  script: scripts/05_extract_visual_text_features.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - normalize_records
+- intent_id: join_reference_metadata
+  script: scripts/06_join_reference_metadata.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - extract_visual_text_features
+- intent_id: publish_outputs
+  script: scripts/07_publish_outputs.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  - --execution-time
+  - '{execution-time}'
+  dependencies:
+  - join_reference_metadata
+scenarios:
+- name: nominal
+  parameters:
+    execution-time: '2026-07-20T12:00:00Z'
+  fixture_root: fixtures/scenarios/nominal

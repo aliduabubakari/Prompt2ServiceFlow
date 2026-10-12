@@ -1,0 +1,595 @@
+ir_version: 0.1.0
+composition_id: data_transformation_pipeline
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:data-transformation-pipeline
+  split: main
+  pipeline_id: data-transformation-pipeline
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/06_data_transformation_pipeline.txt
+  description_sha256: 7a5a2ca0e4b204945547c0973841dac97cef9525e2e10068ee89fd4b989a1a2f
+  internal_spec_path: source/internal_specs/main_40/06_data_transformation_pipeline.json
+  internal_spec_sha256: 30f58c8814ecdbd7df3d03a9be1f711f066dc004843ace734dc59535c4f8228d
+requirement:
+  name: Data Transformation Pipeline
+  purpose: 'Run a Google Cloud Dataform pipeline: parse params, compile, invoke workflow, monitor completion.'
+  domain: data_platform
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes:
+  - Linear six-step Dataform pipeline with bookend markers.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: dataform_platform
+  type: cloud_service
+  name: Google Cloud Dataform
+  identifier: whejna-modelling-sandbox
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+- system_id: local_filesystem
+  type: filesystem
+  name: Workflow filesystem
+  identifier: /workspace
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: start
+  name: Start pipeline
+  category: Transformer
+  capability: Initialize the Dataform pipeline session.
+  source_step_refs:
+  - start
+  evidence:
+  - source: description
+    text: Pipeline start marker.
+  inputs: []
+  outputs:
+  - run_id
+  - gen_status
+  external_system_refs:
+  - local_filesystem
+  preconditions: []
+  effects:
+  - Run ID emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Bookend start step.
+  confidence: strongly_inferred
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: parse_input_params
+  name: Parse input params
+  category: Transformer
+  capability: Build Dataform compilation configuration from input parameters.
+  source_step_refs:
+  - parse_input_params
+  evidence:
+  - source: description
+    text: Parse input parameters.
+  inputs:
+  - description_param_input
+  - logical_date_input
+  outputs:
+  - compilation_config
+  - build_status
+  external_system_refs: []
+  preconditions:
+  - Params available.
+  effects:
+  - Compilation config emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step parses and builds config.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: create_compilation_result
+  name: Create compilation result
+  category: ExternalWorkflowAdapter
+  capability: Create a Dataform compilation result from the configuration.
+  source_step_refs:
+  - create_compilation_result
+  evidence:
+  - source: description
+    text: Create Dataform compilation result.
+  inputs:
+  - dataform_repo_resource
+  - compilation_config
+  outputs:
+  - compilation_result_ref
+  - creation_status
+  external_system_refs:
+  - dataform_platform
+  preconditions:
+  - Config available.
+  effects:
+  - Compilation result reference emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: Source step creates compilation result.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: create_workflow_invocation
+  name: Create workflow invocation
+  category: ExternalWorkflowAdapter
+  capability: Trigger a Dataform workflow invocation from the compilation result.
+  source_step_refs:
+  - create_workflow_invocation
+  evidence:
+  - source: description
+    text: Create and trigger Dataform workflow invocation.
+  inputs:
+  - dataform_repo_resource
+  - compilation_result_ref
+  outputs:
+  - workflow_invocation_ref
+  - invocation_status
+  external_system_refs:
+  - dataform_platform
+  preconditions:
+  - Compilation result available.
+  effects:
+  - Workflow invocation reference emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: Source step triggers workflow.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: is_workflow_invocation_done
+  name: Monitor workflow invocation
+  category: Sensor
+  capability: Poll for Dataform workflow invocation completion status.
+  source_step_refs:
+  - is_workflow_invocation_done
+  evidence:
+  - source: description
+    text: Monitor Dataform workflow invocation completion status.
+  inputs:
+  - dataform_repo_resource
+  - workflow_invocation_ref
+  outputs:
+  - invocation_status_result
+  external_system_refs:
+  - dataform_platform
+  preconditions:
+  - Workflow invocation reference available.
+  effects:
+  - Completion status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step monitors completion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: end
+  name: End pipeline
+  category: Maintenance
+  capability: Finalize the pipeline by cleaning up temporary resources.
+  source_step_refs:
+  - end
+  evidence:
+  - source: description
+    text: Pipeline completion marker.
+  inputs: []
+  outputs:
+  - cleanup_status
+  external_system_refs:
+  - local_filesystem
+  preconditions:
+  - Workflow complete.
+  effects:
+  - Cleanup status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Bookend end step.
+  confidence: strongly_inferred
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: start
+    to: parse_input_params
+  - from: parse_input_params
+    to: create_compilation_result
+  - from: create_compilation_result
+    to: create_workflow_invocation
+  - from: create_workflow_invocation
+    to: is_workflow_invocation_done
+  - from: is_workflow_invocation_done
+    to: end
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: run_id
+  name: Run ID
+  kind: artifact
+  data_type: string
+  media_type: text/plain
+  role: output
+  producer: start
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: gen_status
+  name: Generation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: start
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: description_param_input
+  name: Description param
+  kind: external_resource
+  data_type: string
+  media_type: text/plain
+  role: config
+  producer: null
+  consumers:
+  - parse_input_params
+  sensitivity: internal
+  persistence: external
+- artifact_id: logical_date_input
+  name: Logical date
+  kind: external_resource
+  data_type: string
+  media_type: text/plain
+  role: config
+  producer: null
+  consumers:
+  - parse_input_params
+  sensitivity: internal
+  persistence: external
+- artifact_id: compilation_config
+  name: Compilation config
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: parse_input_params
+  consumers:
+  - create_compilation_result
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: build_status
+  name: Build status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: parse_input_params
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: dataform_repo_resource
+  name: Dataform repo
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - create_compilation_result
+  - create_workflow_invocation
+  - is_workflow_invocation_done
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/dataform_repo.json
+  external_system_ref: dataform_platform
+- artifact_id: compilation_result_ref
+  name: Compilation result ref
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: create_compilation_result
+  consumers:
+  - create_workflow_invocation
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: creation_status
+  name: Creation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: create_compilation_result
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: workflow_invocation_ref
+  name: Workflow invocation ref
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: create_workflow_invocation
+  consumers:
+  - is_workflow_invocation_done
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: invocation_status
+  name: Invocation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: create_workflow_invocation
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: invocation_status_result
+  name: Completion result
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: output
+  producer: is_workflow_invocation_done
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: cleanup_status
+  name: Cleanup status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: end
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: start
+  service_id: workflow_load_id_generator
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: load_id
+    artifact_id: run_id
+  - port: generation_status
+    artifact_id: gen_status
+  parameter_bindings:
+    generation_strategy: uuid
+    prefix: dataform-run-
+  secret_bindings: []
+  rationale: Generates a session ID.
+  confidence: strongly_inferred
+- intent_id: parse_input_params
+  service_id: dataform_compilation_config_builder
+  service_version: 1.0.0
+  input_bindings:
+  - port: description_param
+    artifact_id: description_param_input
+  - port: logical_date
+    artifact_id: logical_date_input
+  output_bindings:
+  - port: compilation_config
+    artifact_id: compilation_config
+  - port: build_status
+    artifact_id: build_status
+  parameter_bindings:
+    git_commitish: full-version
+  secret_bindings: []
+  rationale: Builds Dataform compilation config.
+  confidence: explicit
+- intent_id: create_compilation_result
+  service_id: google_dataform_compilation_result_creator
+  service_version: 1.0.0
+  input_bindings:
+  - port: dataform_repository
+    artifact_id: dataform_repo_resource
+  - port: compilation_config
+    artifact_id: compilation_config
+  output_bindings:
+  - port: compilation_result_reference
+    artifact_id: compilation_result_ref
+  - port: creation_status
+    artifact_id: creation_status
+  parameter_bindings:
+    project_id: whejna-modelling-sandbox
+    region: europe-west3
+    repository_id: training-repo
+  secret_bindings: []
+  rationale: Creates Dataform compilation result.
+  confidence: explicit
+- intent_id: create_workflow_invocation
+  service_id: google_dataform_workflow_invocation_creator
+  service_version: 1.0.0
+  input_bindings:
+  - port: dataform_repository
+    artifact_id: dataform_repo_resource
+  - port: compilation_result_reference
+    artifact_id: compilation_result_ref
+  output_bindings:
+  - port: workflow_invocation_reference
+    artifact_id: workflow_invocation_ref
+  - port: invocation_creation_status
+    artifact_id: invocation_status
+  parameter_bindings:
+    project_id: whejna-modelling-sandbox
+    region: europe-west3
+    repository_id: training-repo
+    asynchronous: true
+  secret_bindings: []
+  rationale: Triggers Dataform workflow invocation.
+  confidence: explicit
+- intent_id: is_workflow_invocation_done
+  service_id: google_dataform_workflow_invocation_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: dataform_repository
+    artifact_id: dataform_repo_resource
+  - port: workflow_invocation_reference
+    artifact_id: workflow_invocation_ref
+  output_bindings:
+  - port: invocation_status
+    artifact_id: invocation_status_result
+  parameter_bindings:
+    project_id: whejna-modelling-sandbox
+    region: europe-west3
+    repository_id: training-repo
+    expected_statuses:
+    - SUCCEEDED
+    - FAILED
+  secret_bindings: []
+  rationale: Monitors Dataform invocation completion.
+  confidence: explicit
+- intent_id: end
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: cleanup_status
+    artifact_id: cleanup_status
+  parameter_bindings:
+    targets:
+    - /workspace/tmp
+    ignore_missing: true
+  secret_bindings: []
+  rationale: Cleans up at end.
+  confidence: strongly_inferred
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - All Dataform API calls are mocked.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All six source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Six exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Linear Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Single scenario executes all six steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - All Dataform and cleanup invariants hold
+source_step_accounting:
+- source_step_ref: start
+  disposition: service
+  intent_ids:
+  - start
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: parse_input_params
+  disposition: service
+  intent_ids:
+  - parse_input_params
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: create_compilation_result
+  disposition: service
+  intent_ids:
+  - create_compilation_result
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: create_workflow_invocation
+  disposition: service
+  intent_ids:
+  - create_workflow_invocation
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: is_workflow_invocation_done
+  disposition: service
+  intent_ids:
+  - is_workflow_invocation_done
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: end
+  disposition: service
+  intent_ids:
+  - end
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

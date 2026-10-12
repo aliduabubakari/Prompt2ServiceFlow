@@ -1,0 +1,660 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: global-dag-death-records-empty-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: global-dag-death-records-empty
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: death-records-empty
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: death-records-available
+      value: 'True'
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: global-dag-death-records-empty-scripts
+  - name: fixtures
+    configMap:
+      name: global-dag-death-records-empty-fixtures
+      items:
+      - key: fixture-0000
+        path: city_geo.csv
+      - key: fixture-0001
+        path: clean_power_plants.csv
+      - key: fixture-0002
+        path: create_deaths.sql
+      - key: fixture-0003
+        path: create_power_plants.sql
+      - key: fixture-0004
+        path: db.json
+      - key: fixture-0005
+        path: death_records.txt
+      - key: fixture-0006
+        path: death_sql_location.json
+      - key: fixture-0007
+        path: http.json
+      - key: fixture-0008
+        path: nuclear_raw.csv
+      - key: fixture-0009
+        path: redis.json
+      - key: fixture-0010
+        path: thermal_raw.csv
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-get-city-code-geo
+        template: run-ingest-get-city-code-geo
+      - name: ingest-get-nuclear-json
+        template: run-ingest-get-nuclear-json
+      - name: ingest-get-nuclear-data
+        template: run-ingest-get-nuclear-data
+        depends: ingest-get-nuclear-json.Succeeded
+      - name: ingest-get-death-resource-list
+        template: run-ingest-get-death-resource-list
+      - name: ingest-get-death-resources
+        template: run-ingest-get-death-resources
+        depends: ingest-get-death-resource-list.Succeeded
+      - name: ingest-get-thermal-json
+        template: run-ingest-get-thermal-json
+      - name: ingest-get-thermal-data
+        template: run-ingest-get-thermal-data
+        depends: ingest-get-thermal-json.Succeeded
+      - name: stage-import-nuclear-clean-data
+        template: run-stage-import-nuclear-clean-data
+        depends: ingest-get-city-code-geo.Succeeded && ingest-get-nuclear-data.Succeeded && ingest-get-death-resources.Succeeded
+          && ingest-get-thermal-data.Succeeded
+      - name: stage-import-thermal-clean-data
+        template: run-stage-import-thermal-clean-data
+        depends: ingest-get-city-code-geo.Succeeded && ingest-get-nuclear-data.Succeeded && ingest-get-death-resources.Succeeded
+          && ingest-get-thermal-data.Succeeded && stage-import-nuclear-clean-data.Succeeded
+      - name: stage-create-power-plants-table
+        template: run-stage-create-power-plants-table
+        depends: ingest-get-city-code-geo.Succeeded && ingest-get-nuclear-data.Succeeded && ingest-get-death-resources.Succeeded
+          && ingest-get-thermal-data.Succeeded && stage-import-thermal-clean-data.Succeeded
+      - name: stage-create-death-table
+        template: run-stage-create-death-table
+        depends: ingest-get-city-code-geo.Succeeded && ingest-get-nuclear-data.Succeeded && ingest-get-death-resources.Succeeded
+          && ingest-get-thermal-data.Succeeded
+      - name: stage-load-data-from-ingestion
+        template: run-stage-load-data-from-ingestion
+        depends: stage-create-death-table.Succeeded
+      - name: stage-cleanse-death-data
+        template: run-stage-cleanse-death-data
+        depends: stage-load-data-from-ingestion.Succeeded
+      - name: stage-death-emptiness-check
+        template: run-stage-death-emptiness-check
+        depends: stage-cleanse-death-data.Succeeded
+      - name: stage-store-deaths-in-postgres
+        template: run-stage-store-deaths-in-postgres
+        depends: stage-death-emptiness-check.Succeeded
+        when: '{{tasks.stage-death-emptiness-check.outputs.parameters.has-content}} == true'
+      - name: stage-clean-tmp-death-files
+        template: run-stage-clean-tmp-death-files
+        depends: stage-store-deaths-in-postgres.Succeeded
+        when: '{{tasks.stage-death-emptiness-check.outputs.parameters.has-content}} == true'
+      - name: stage-create-plant-persist-sql-query
+        template: run-stage-create-plant-persist-sql-query
+        depends: stage-create-power-plants-table.Succeeded
+      - name: stage-store-plants-in-postgres
+        template: run-stage-store-plants-in-postgres
+        depends: stage-create-plant-persist-sql-query.Succeeded
+      - name: stage-clean-tmp-death-redis
+        template: run-stage-clean-tmp-death-redis
+        depends: stage-store-deaths-in-postgres.Succeeded
+        when: '{{tasks.stage-death-emptiness-check.outputs.parameters.has-content}} == true'
+  - name: run-ingest-get-city-code-geo
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_get_city_code_geo
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - ingest_get_city_code_geo
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-ingest-get-nuclear-json
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_get_nuclear_json
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - ingest_get_nuclear_json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-ingest-get-nuclear-data
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_get_nuclear_data
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - ingest_get_nuclear_data
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-ingest-get-death-resource-list
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_get_death_resource_list
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - ingest_get_death_resource_list
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-ingest-get-death-resources
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_get_death_resources
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - ingest_get_death_resources
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-ingest-get-thermal-json
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_get_thermal_json
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - ingest_get_thermal_json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-ingest-get-thermal-data
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_get_thermal_data
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - ingest_get_thermal_data
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-import-nuclear-clean-data
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_import_nuclear_clean_data
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - stage_import_nuclear_clean_data
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-import-thermal-clean-data
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_import_thermal_clean_data
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - stage_import_thermal_clean_data
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-create-power-plants-table
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_create_power_plants_table
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - stage_create_power_plants_table
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-create-death-table
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_create_death_table
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - stage_create_death_table
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-load-data-from-ingestion
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_load_data_from_ingestion
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - stage_load_data_from_ingestion
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-cleanse-death-data
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_cleanse_death_data
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - stage_cleanse_death_data
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-death-emptiness-check
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_death_emptiness_check
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - stage_death_emptiness_check
+      - --death-records-available
+      - '{{workflow.parameters.death-records-available}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    outputs:
+      parameters:
+      - name: has-content
+        valueFrom:
+          path: /workspace/artifacts/death_sql_has_content.txt
+  - name: run-stage-store-deaths-in-postgres
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_store_deaths_in_postgres
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - stage_store_deaths_in_postgres
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-clean-tmp-death-files
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_clean_tmp_death_files
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - stage_clean_tmp_death_files
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-create-plant-persist-sql-query
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_create_plant_persist_sql_query
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - stage_create_plant_persist_sql_query
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-store-plants-in-postgres
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_store_plants_in_postgres
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - stage_store_plants_in_postgres
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-clean-tmp-death-redis
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_clean_tmp_death_redis
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - stage_clean_tmp_death_redis
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

@@ -1,0 +1,99 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: supply_chain_disruption_triage
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: ingest_source_batch
+  script: scripts/01_ingest_source_batch.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: validate_source_contract
+  script: scripts/02_validate_source_contract.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - ingest_source_batch
+- intent_id: normalize_partition_a
+  script: scripts/03_normalize_partition_a.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - validate_source_contract
+- intent_id: normalize_partition_b
+  script: scripts/04_normalize_partition_b.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - validate_source_contract
+- intent_id: normalize_partition_c
+  script: scripts/05_normalize_partition_c.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - validate_source_contract
+- intent_id: fuse_partitions
+  script: scripts/06_fuse_partitions.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - normalize_partition_a
+  - normalize_partition_b
+  - normalize_partition_c
+- intent_id: standardize_cross_domain_entities
+  script: scripts/07_standardize_cross_domain_entities.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - fuse_partitions
+- intent_id: resolve_entity_conflicts
+  script: scripts/08_resolve_entity_conflicts.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - standardize_cross_domain_entities
+- intent_id: score_operational_priority
+  script: scripts/09_score_operational_priority.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - resolve_entity_conflicts
+- intent_id: publish_outputs
+  script: scripts/10_publish_outputs.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - score_operational_priority
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal

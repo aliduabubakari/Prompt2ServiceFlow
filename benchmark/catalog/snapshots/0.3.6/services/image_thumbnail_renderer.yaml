@@ -1,0 +1,97 @@
+schema_version: 0.1.0
+service_id: image_thumbnail_renderer
+version: 1.0.0
+display_name: Image Thumbnail Renderer
+category: Transformer
+capability:
+  summary: Renders a configured thumbnail size from a batch of product images.
+  operations:
+  - Renders a configured thumbnail size from a batch of product images.
+  keywords:
+  - image
+  - thumbnail
+  - renderer
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: raw_product_images
+    description: Reviewed raw product images value.
+    channel: artifact
+    data_type: array
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: thumbnail_bundle
+    description: Reviewed thumbnail bundle value.
+    channel: artifact
+    data_type: binary
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: render_status
+    description: Reviewed render status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: size_label
+    description: Configuration for size label.
+    type: string
+    required: true
+  - name: width
+    description: Configuration for width.
+    type: integer
+    required: true
+  - name: height
+    description: Configuration for height.
+    type: integer
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: image-thumbnail-renderer
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.1
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.image_thumbnail_renderer
+  implementation_ref: services/implementations/image_thumbnail_renderer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-02:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 02 descriptions; bindings retain inference confidence.

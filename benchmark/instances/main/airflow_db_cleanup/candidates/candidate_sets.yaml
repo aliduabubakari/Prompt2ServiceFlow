@@ -1,0 +1,52 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:airflow_db_cleanup
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_airflow_db_cleanup_retention_cutoff_config_resolver_candidates
+  source_step_refs:
+  - print_configuration
+  service_ids:
+  - retention_cutoff_config_resolver
+  - runtime_parameter_allowed_values_validator
+  - execution_date_backup_strategy_decider
+  - temporary_resource_cleanup
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_airflow_db_cleanup_airflow_metadata_retention_cleaner_candidates
+  source_step_refs:
+  - cleanup_DagRun
+  - cleanup_TaskInstance
+  - cleanup_Log
+  - cleanup_XCom
+  - cleanup_SlaMiss
+  - cleanup_DagModel
+  - cleanup_TaskReschedule
+  - cleanup_TaskFail
+  - cleanup_RenderedTaskInstanceFields
+  - cleanup_ImportError
+  - cleanup_BaseJob
+  service_ids:
+  - airflow_metadata_retention_cleaner
+  - database_expired_session_cleanup
+  - postgres_parameterized_sql_executor
+  - filesystem_retention_cleanup_with_lock
+  - database_statistics_analyzer
+- candidate_set_id: main_airflow_db_cleanup_database_expired_session_cleanup_candidates
+  source_step_refs:
+  - cleanup_sessions
+  service_ids:
+  - database_expired_session_cleanup
+  - airflow_metadata_retention_cleaner
+  - postgres_parameterized_sql_executor
+  - temporary_resource_cleanup
+  - database_statistics_analyzer
+- candidate_set_id: main_airflow_db_cleanup_database_statistics_analyzer_candidates
+  source_step_refs:
+  - analyze_query
+  service_ids:
+  - database_statistics_analyzer
+  - postgres_parameterized_sql_executor
+  - airflow_metadata_retention_cleaner
+  - database_expired_session_cleanup
+  - sql_query_readiness_sensor

@@ -1,0 +1,377 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-11T20:35:08.054002+00:00",
+  "instance": "benchmark/instances/validation/val_hospital_capacity_command_center",
+  "workspace": "experiments/workspaces/validation/val_hospital_capacity_command_center",
+  "submission": "results/paper/runs/m4__validation__val_hospital_capacity_command_center__deepinfra-qwen3-coder-480b-turbo__s2__20261011T202938.500098Z__b5bcea57/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G1",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 0.8,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-11T20:35:06.417841+00:00",
+    "workspace": "experiments/workspaces/validation/val_hospital_capacity_command_center",
+    "submission": "results/paper/runs/m4__validation__val_hospital_capacity_command_center__deepinfra-qwen3-coder-480b-turbo__s2__20261011T202938.500098Z__b5bcea57/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G1",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "fail",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "intent 'send_escalation_alert_intent' input references unknown artifact 'alerting_service'",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'alerting_service_resource' names consumer 'send_escalation_alert_intent', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "binding 'send_escalation_alert_intent' maps input artifact 'alerting_service_resource' that is not declared by the intent",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_REQUIRED_INPUT_UNBOUND",
+            "message": "wait_for_census_snapshot_intent: required input port 'resource_group' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "extract_admissions_intent: input 'hospital_source' expects object, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "extract_bed_status_intent: input 'hospital_source' expects object, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "extract_staffing_roster_intent: input 'hospital_source' expects object, got json"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "extract_discharge_forecast_intent: input 'hospital_source' expects object, got json"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "send_escalation_alert_intent: bound input artifacts do not exactly match the intent inputs"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "val-hospital-capacity-command-center-scripts",
+              "scenario": "base",
+              "data_size_bytes": 20840,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-hospital-capacity-command-center-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 297,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-hospital-capacity-command-center-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 20840,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-hospital-capacity-command-center-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 297,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "wait_for_census_snapshot_intent",
+                "extract_admissions_intent",
+                "extract_bed_status_intent",
+                "extract_staffing_roster_intent",
+                "extract_discharge_forecast_intent",
+                "merge_operational_state_intent",
+                "compute_capacity_risk_intent",
+                "route_alert_level_intent",
+                "publish_dashboard_intent",
+                "send_escalation_alert_intent"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 10,
+      "submission_intents": 10,
+      "gold_intents": 10,
+      "mapping": {
+        "compute_capacity_risk_intent": "compute_capacity_risk",
+        "extract_admissions_intent": "extract_admissions",
+        "extract_bed_status_intent": "extract_bed_status",
+        "extract_discharge_forecast_intent": "extract_discharge_forecast",
+        "extract_staffing_roster_intent": "extract_staffing_roster",
+        "merge_operational_state_intent": "merge_operational_state",
+        "publish_dashboard_intent": "publish_dashboard",
+        "route_alert_level_intent": "route_alert_level",
+        "send_escalation_alert_intent": "send_escalation_alert",
+        "wait_for_census_snapshot_intent": "wait_for_census_snapshot"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 10
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 12,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 10,
+      "total": 10,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 10,
+    "correct": 10,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "compute_capacity_risk",
+        "gold_service": "capacity_risk_calculator",
+        "submission_intent": "compute_capacity_risk_intent",
+        "submission_service": "capacity_risk_calculator",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "extract_admissions",
+        "gold_service": "hospital_operational_feed_extractor",
+        "submission_intent": "extract_admissions_intent",
+        "submission_service": "hospital_operational_feed_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "extract_bed_status",
+        "gold_service": "hospital_operational_feed_extractor",
+        "submission_intent": "extract_bed_status_intent",
+        "submission_service": "hospital_operational_feed_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "extract_discharge_forecast",
+        "gold_service": "hospital_operational_feed_extractor",
+        "submission_intent": "extract_discharge_forecast_intent",
+        "submission_service": "hospital_operational_feed_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "extract_staffing_roster",
+        "gold_service": "hospital_operational_feed_extractor",
+        "submission_intent": "extract_staffing_roster_intent",
+        "submission_service": "hospital_operational_feed_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "merge_operational_state",
+        "gold_service": "hospital_operational_state_merger",
+        "submission_intent": "merge_operational_state_intent",
+        "submission_service": "hospital_operational_state_merger",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_dashboard",
+        "gold_service": "capacity_dashboard_publisher",
+        "submission_intent": "publish_dashboard_intent",
+        "submission_service": "capacity_dashboard_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "route_alert_level",
+        "gold_service": "alert_level_route_decider",
+        "submission_intent": "route_alert_level_intent",
+        "submission_service": "alert_level_route_decider",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "send_escalation_alert",
+        "gold_service": "escalation_alert_sender",
+        "submission_intent": "send_escalation_alert_intent",
+        "submission_service": "escalation_alert_sender",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "wait_for_census_snapshot",
+        "gold_service": "multi_resource_readiness_sensor",
+        "submission_intent": "wait_for_census_snapshot_intent",
+        "submission_service": "multi_resource_readiness_sensor",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 0.6666666666666666,
+    "recall": 1.0,
+    "f1": 0.8,
+    "applicable": true,
+    "true_positives": 8,
+    "false_positives": 4,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "source_fixture_loaded",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-37upkaaf/artifacts/census_ready_status.json"
+          },
+          {
+            "assertion_id": "source_files_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-37upkaaf/artifacts/census_ready_status.json"
+          },
+          {
+            "assertion_id": "source_records_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-37upkaaf/artifacts/census_ready_status.json"
+          },
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-37upkaaf/artifacts/alert_status.json"
+          },
+          {
+            "assertion_id": "final_artifact_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-37upkaaf/artifacts/alert_status.json"
+          },
+          {
+            "assertion_id": "upstream_evidence_propagated",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-37upkaaf/artifacts/alert_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 6,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

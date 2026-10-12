@@ -1,0 +1,8 @@
+assertions_version: 0.1.0
+pipeline_id: procurement_supplier_validation_v1
+scenarios:
+  - scenario: three_suppliers
+    assertions:
+      - {assertion_id: format_ok, type: json_path_equals, path: artifacts/format_status.json, json_path: success, expected: true}
+      - {assertion_id: reconcile_ok, type: json_path_equals, path: artifacts/reconciliation_status.json, json_path: success, expected: true}
+      - {assertion_id: export_ok, type: json_path_equals, path: artifacts/export_status.json, json_path: success, expected: true}

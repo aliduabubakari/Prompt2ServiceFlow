@@ -1,0 +1,28 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_weekly_report_packager
+mappings:
+- intent_id: collect_kpi_extracts
+  inputs:
+    source_database: warehouse_resource
+  outputs:
+    csv_snapshot: kpi_extract
+    export_status: extract_status
+- intent_id: render_pdf_report
+  inputs:
+    kpi_extract: kpi_extract
+  outputs:
+    pdf_report: weekly_report_pdf
+    render_status: render_status
+- intent_id: compress_report_bundle
+  inputs:
+    report_file: weekly_report_pdf
+    archive_destination: report_storage_resource
+  outputs:
+    report_bundle: report_bundle
+    archive_status: archive_status
+- intent_id: publish_bundle
+  inputs:
+    report_bundle: report_bundle
+    publish_destination: report_storage_resource
+  outputs:
+    publication_status: publication_status

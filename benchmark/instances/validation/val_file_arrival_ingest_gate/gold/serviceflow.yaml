@@ -1,0 +1,386 @@
+ir_version: 0.1.0
+composition_id: val_file_arrival_ingest_gate
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.1
+  sha256: 1b343511eb11bdaac318a5be39f384dda55f001773a7b37f2dc2572c9ff6b4e5
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_file_arrival_ingest_gate
+  split: validation
+  pipeline_id: val_file_arrival_ingest_gate
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/08_val_file_arrival_ingest_gate.txt
+  description_sha256: 6f7b403f659fde8087552cb5d25ecfdc88114fd8fb46d4310edc89b86a87fad5
+  internal_spec_path: source/internal_specs/validation_20/08_val_file_arrival_ingest_gate.json
+  internal_spec_sha256: 24793e640b3f5360c7d19eb92d25a9ef4ba6fd1d4faf1f478c81a31328fb9b1e
+requirement:
+  name: Val File Arrival Ingest Gate
+  purpose: Wait for an expected partner file, validate its checksum, and load the verified file into staging.
+  domain: validation_holdout
+  execution_model: batch
+  topology: sensor_gated
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: partner_sftp
+  type: sftp
+  name: Partner SFTP
+  identifier: partner_sftp
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: staging_database
+  type: database
+  name: Staging database
+  identifier: staging_database
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: wait_for_partner_file
+  name: Wait For Partner File
+  category: Sensor
+  capability: Perform the reviewed wait for partner file capability.
+  source_step_refs:
+  - wait_for_partner_file
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: wait_for_partner_file.'
+  inputs:
+  - partner_sftp_resource
+  outputs:
+  - partner_file_available
+  - availability_status
+  external_system_refs:
+  - partner_sftp
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared partner_file_available, availability_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: validate_file_checksum
+  name: Validate File Checksum
+  category: QualityCheck
+  capability: Perform the reviewed validate file checksum capability.
+  source_step_refs:
+  - validate_file_checksum
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: validate_file_checksum.'
+  inputs:
+  - partner_file_csv
+  - checksum_record
+  outputs:
+  - verified_partner_file
+  - checksum_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared verified_partner_file, checksum_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: load_file_to_staging
+  name: Load File To Staging
+  category: Loader
+  capability: Perform the reviewed load file to staging capability.
+  source_step_refs:
+  - load_file_to_staging
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: load_file_to_staging.'
+  inputs:
+  - verified_partner_file
+  - staging_database_resource
+  outputs:
+  - staging_table
+  - staging_load_status
+  external_system_refs:
+  - staging_database
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared staging_table, staging_load_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: wait_for_partner_file
+  disposition: service
+  intent_ids:
+  - wait_for_partner_file
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: validate_file_checksum
+  disposition: service
+  intent_ids:
+  - validate_file_checksum
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: load_file_to_staging
+  disposition: service
+  intent_ids:
+  - load_file_to_staging
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: wait_for_partner_file
+    to: validate_file_checksum
+  - from: validate_file_checksum
+    to: load_file_to_staging
+  parallel_groups: []
+  branches: []
+  gates:
+  - gate_id: partner_file_arrival_gate
+    sensor_intent: wait_for_partner_file
+    condition: partner_file_exists == true
+    gated_intents:
+    - validate_file_checksum
+    - load_file_to_staging
+artifacts:
+- artifact_id: partner_sftp_resource
+  name: Partner Sftp Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: partner_sftp
+- artifact_id: partner_file_csv
+  name: Partner File Csv
+  kind: artifact
+  data_type: csv
+  role: intermediate
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: checksum_record
+  name: Checksum Record
+  kind: artifact
+  data_type: object
+  role: intermediate
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: staging_database_resource
+  name: Staging Database Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: staging_database
+- artifact_id: partner_file_available
+  name: Partner File Available
+  kind: artifact
+  data_type: decision
+  role: output
+  producer: wait_for_partner_file
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: availability_status
+  name: Availability Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: wait_for_partner_file
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: verified_partner_file
+  name: Verified Partner File
+  kind: artifact
+  data_type: csv
+  role: intermediate
+  producer: validate_file_checksum
+  consumers:
+  - load_file_to_staging
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: checksum_status
+  name: Checksum Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: validate_file_checksum
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: staging_table
+  name: Staging Table
+  kind: artifact
+  data_type: object
+  role: output
+  producer: load_file_to_staging
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: staging_load_status
+  name: Staging Load Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: load_file_to_staging
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: wait_for_partner_file
+  service_id: file_location_availability_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: file_location_resource
+    artifact_id: partner_sftp_resource
+  output_bindings:
+  - port: availability_decision
+    artifact_id: partner_file_available
+  - port: check_status
+    artifact_id: availability_status
+  parameter_bindings:
+    location_type: sftp
+    path: /incoming
+    availability_condition: partner_file_exists
+    filename_pattern: partner_file.csv
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: validate_file_checksum
+  service_id: partner_file_checksum_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: partner_file
+    artifact_id: partner_file_csv
+  - port: checksum_record
+    artifact_id: checksum_record
+  output_bindings:
+  - port: verified_partner_file
+    artifact_id: verified_partner_file
+  - port: checksum_status
+    artifact_id: checksum_status
+  parameter_bindings:
+    algorithm: sha256
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: load_file_to_staging
+  service_id: database_csv_snapshot_importer
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_snapshot
+    artifact_id: verified_partner_file
+  - port: target_database
+    artifact_id: staging_database_resource
+  output_bindings:
+  - port: target_database_reference
+    artifact_id: staging_table
+  - port: load_status
+    artifact_id: staging_load_status
+  parameter_bindings:
+    import_spec:
+      target_table: partner_staging
+    load_mode: replace
+    target_label: staging
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

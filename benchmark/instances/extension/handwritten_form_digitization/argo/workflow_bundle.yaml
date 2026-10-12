@@ -1,0 +1,430 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: handwritten-form-digitization-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_source_batch.py: "#!/usr/bin/env python3\n\"\"\"Ingest form submissions JSON and form templates\
+    \ CSV.\"\"\"  \nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib import\
+    \ Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True)\n\
+    \    p.add_argument(\"--fixture\",type=Path,required=True); p.add_argument(\"--execution-time\",type=str,default=None)\n\
+    \    a=p.parse_args(); r=a.workspace; art=r/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n\
+    \    fx=json.loads(a.fixture.read_text(encoding=\"utf-8\")); fd=a.fixture.parent\n    forms=json.loads((fd/fx[\"\
+    inputs\"][\"forms\"]).read_text(encoding=\"utf-8\"))\n    templates={}\n    with (fd/fx[\"inputs\"\
+    ][\"templates\"]).open(encoding=\"utf-8\",newline=\"\") as f:\n        for row in csv.DictReader(f):\
+    \ templates[row[\"form_type\"]]=row\n    (art/\"ingest_source_batch_artifact.json\").write_text(json.dumps({\"\
+    forms\":forms,\"templates\":templates,\"total\":len(forms),\"ingested_at\":a.execution_time},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"ingest_source_batch_status.json\").write_text(json.dumps({\"\
+    success\":True,\"forms\":len(forms),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"\
+    __main__\": main()\n"
+  02_validate_source_contract.py: "#!/usr/bin/env python3\n\"\"\"Validate: required fields, form type\
+    \ existence, OCR & scan quality minimums.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    forms,templates=ingested[\"forms\"],ingested[\"templates\"];\
+    \ required={\"form_id\",\"form_type\",\"ocr_confidence\",\"scan_quality\"}\n    errors=[]; valid=[]\n\
+    \    for f in forms:\n        issues=[]\n        if required-set(f.keys()): issues.append(f\"missing_fields:\
+    \ {required-set(f.keys())}\")\n        tmpl=templates.get(f.get(\"form_type\",\"\"),{})\n        if\
+    \ not tmpl: issues.append(f\"unknown_form_type: {f.get('form_type')}\")\n        else:\n         \
+    \   min_ocr=float(tmpl.get(\"min_ocr_confidence\",0.6))\n            if f.get(\"ocr_confidence\",0)<min_ocr:\
+    \ issues.append(f\"low_ocr: {f.get('ocr_confidence')}<{min_ocr}\")\n            min_rec=float(tmpl.get(\"\
+    min_field_recognition_pct\",70))\n            rec_pct=f.get(\"fields_recognized\",0)/max(f.get(\"\
+    field_count\",1),1)*100\n            if rec_pct<min_rec: issues.append(f\"low_recognition: {rec_pct:.0f}%<{min_rec}%\"\
+    )\n        if issues: errors.append({\"form_id\":f.get(\"form_id\",\"?\"),\"issues\":issues})\n  \
+    \      else: valid.append(f)\n    result={\"valid\":valid,\"errors\":errors,\"total_valid\":len(valid),\"\
+    total_rejected\":len(errors)}\n    (art/\"validate_source_contract_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"validate_source_contract_status.json\").write_text(json.dumps({\"\
+    success\":True,\"valid\":len(valid),\"rejected\":len(errors),\"errors\":errors},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_stage_raw_artifacts.py: "#!/usr/bin/env python3\n\"\"\"Stage: join validated forms with template\
+    \ metadata.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import\
+    \ Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    templates=ingested[\"templates\"]; staged=[]\n    for f in validated[\"valid\"]:\n\
+    \        t=templates.get(f[\"form_type\"],{})\n        staged.append({**f,\"department\":t.get(\"\
+    department\",\"?\"),\"routing_queue\":t.get(\"routing_queue\",\"auto_process\"),\n               \
+    \        \"requires_sig\":t.get(\"requires_signature\")==\"true\"})\n    (art/\"stage_raw_artifacts_artifact.json\"\
+    ).write_text(json.dumps({\"staged\":staged,\"total\":len(staged)},indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    (art/\"stage_raw_artifacts_status.json\").write_text(json.dumps({\"success\":True,\"staged\"\
+    :len(staged),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_normalize_records.py: "#!/usr/bin/env python3\n\"\"\"Normalize: compute recognition rate and signature\
+    \ compliance.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import\
+    \ Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    staged=json.loads((art/\"stage_raw_artifacts_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    norm=[]\n    for s in staged[\"staged\"]:\n        rec_rate=round(s[\"fields_recognized\"\
+    ]/max(s[\"field_count\"],1)*100,1)\n        sig_ok=not s.get(\"requires_sig\") or s.get(\"has_signature\"\
+    )\n        issues=sum([not sig_ok])\n        norm.append({**s,\"recognition_rate\":rec_rate,\"signature_ok\"\
+    :sig_ok,\"issue_count\":issues})\n    (art/\"normalize_records_artifact.json\").write_text(json.dumps({\"\
+    normalized\":norm,\"total\":len(norm)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"normalize_records_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"normalized\":len(norm),\"errors\":[]},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  05_extract_visual_text_features.py: "#!/usr/bin/env python3\n\"\"\"Extract visual/text features: classify\
+    \ quality and assign confidence tier.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    norm=json.loads((art/\"normalize_records_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    visual=[]\n    for n in norm[\"normalized\"]:\n        ocr=n[\"\
+    ocr_confidence\"]\n        tier=\"high\" if ocr>=0.85 else (\"medium\" if ocr>=0.65 else \"low\")\n\
+    \        visual.append({**n,\"confidence_tier\":tier,\"needs_manual\":n[\"issue_count\"]>0 or tier==\"\
+    low\"})\n    (art/\"extract_visual_text_features_artifact.json\").write_text(json.dumps({\"visual\"\
+    :visual,\"total\":len(visual)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"extract_visual_text_features_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"extracted\":len(visual),\"errors\":[]},indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  06_join_reference_metadata.py: "#!/usr/bin/env python3\n\"\"\"Join reference: route to department queue\
+    \ based on confidence and issues.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    visual=json.loads((art/\"extract_visual_text_features_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    joined=[]\n    for v in visual[\"visual\"]:\n        queue=v.get(\"\
+    routing_queue\",\"auto_process\")\n        if v.get(\"needs_manual\"): queue=\"manual_review\"\n \
+    \       joined.append({**v,\"final_queue\":queue})\n    (art/\"join_reference_metadata_artifact.json\"\
+    ).write_text(json.dumps({\"joined\":joined,\"total\":len(joined)},indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    (art/\"join_reference_metadata_status.json\").write_text(json.dumps({\"success\":True,\"joined\"\
+    :len(joined),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  07_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish: digitization report CSV + audit manifest.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib import Path\n\n\
+    def main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    p.add_argument(\"--execution-time\",type=str,default=None);\
+    \ a=p.parse_args(); art=a.workspace/\"artifacts\"\n    et=a.execution_time or \"2026-07-20T12:00:00Z\"\
+    ; fx=json.loads(a.fixture.read_text(encoding=\"utf-8\"))\n    joined=json.loads((art/\"join_reference_metadata_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    val=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    summary={\"total\":joined[\"total\"]+val[\"total_rejected\"\
+    ],\"valid\":joined[\"total\"],\"rejected\":val[\"total_rejected\"],\n             \"auto_process\"\
+    :sum(1 for j in joined[\"joined\"] if j[\"final_queue\"]==\"auto_process\"),\n             \"manual_review\"\
+    :sum(1 for j in joined[\"joined\"] if j[\"final_queue\"]==\"manual_review\")}\n    manifest={\"checkpoint_id\"\
+    :f\"ckpt_form_{et[:10].replace('-','_')}\",\"checkpoint_time\":et,\n              \"pipeline_id\"\
+    :fx[\"pipeline_id\"],\"summary\":summary,\"output_files\":[\"form_digitization.csv\",\"audit_manifest.json\"\
+    ],\"status\":\"completed\"}\n    (art/\"audit_manifest.json\").write_text(json.dumps(manifest,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    csv_rel=\"form_digitization.csv\"\n    with (art/csv_rel).open(\"w\"\
+    ,encoding=\"utf-8\",newline=\"\") as f:\n        w=csv.DictWriter(f,fieldnames=[\"form_id\",\"form_type\"\
+    ,\"submitter_name\",\"ocr_confidence\",\"recognition_rate\",\"confidence_tier\",\"signature_ok\",\"\
+    final_queue\",\"department\"],extrasaction='ignore')\n        w.writeheader()\n        for j in joined[\"\
+    joined\"]: w.writerow(j)\n    (art/\"publish_outputs_artifact.json\").write_text(json.dumps({\"manifest\"\
+    :manifest,\"csv\":csv_rel},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"publish_outputs_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"csv\":csv_rel,\"summary\":summary,\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: handwritten-form-digitization-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"input_modalities\": [\n    \"image\",\n    \"pdf\",\n    \"table\"\n  ],\n  \"\
+    inputs\": {\n    \"forms\": \"form_submissions.json\",\n    \"templates\": \"form_templates.csv\"\n\
+    \  },\n  \"pipeline_id\": \"handwritten_form_digitization\",\n  \"quality_grades\": {\n    \"auto_process\"\
+    : 80,\n    \"manual_review\": 50\n  },\n  \"sample_media\": {\n    \"image\": \"sample_image.png\"\
+    ,\n    \"pdf\": \"sample_document.pdf\"\n  },\n  \"systems\": [\n    \"document intake system\",\n\
+    \    \"case management system\"\n  ]\n}\n"
+  fixture-0001: "[\n  {\"form_id\": \"FRM-001\", \"form_type\": \"tax_return\", \"submitter_name\": \"\
+    James Wilson\", \"submission_date\": \"2026-07-18\", \"ocr_confidence\": 0.92, \"field_count\": 15,\
+    \ \"fields_recognized\": 14, \"has_signature\": true, \"scan_quality\": 0.88},\n  {\"form_id\": \"\
+    FRM-002\", \"form_type\": \"benefit_application\", \"submitter_name\": \"Maria Gonzales\", \"submission_date\"\
+    : \"2026-07-19\", \"ocr_confidence\": 0.78, \"field_count\": 20, \"fields_recognized\": 16, \"has_signature\"\
+    : false, \"scan_quality\": 0.72},\n  {\"form_id\": \"FRM-003\", \"form_type\": \"tax_return\", \"\
+    submitter_name\": \"Ahmed Khan\", \"submission_date\": \"2026-07-20\", \"ocr_confidence\": 0.55, \"\
+    field_count\": 15, \"fields_recognized\": 8, \"has_signature\": true, \"scan_quality\": 0.50},\n \
+    \ {\"form_id\": \"FRM-004\", \"form_type\": \"permit_application\", \"submitter_name\": \"Li Wei\"\
+    , \"submission_date\": \"2026-07-15\", \"ocr_confidence\": 0.95, \"field_count\": 10, \"fields_recognized\"\
+    : 10, \"has_signature\": true, \"scan_quality\": 0.94},\n  {\"form_id\": \"FRM-005\", \"form_type\"\
+    : \"benefit_application\", \"submitter_name\": \"Sarah Johnson\", \"submission_date\": \"2026-07-20\"\
+    , \"ocr_confidence\": 0.35, \"field_count\": 20, \"fields_recognized\": 5, \"has_signature\": false,\
+    \ \"scan_quality\": 0.30}\n]\n"
+  fixture-0002: 'form_type,min_ocr_confidence,min_field_recognition_pct,requires_signature,department,routing_queue
+
+    tax_return,0.60,70,true,Revenue,auto_process
+
+    benefit_application,0.65,75,true,Social Services,manual_review
+
+    permit_application,0.70,80,true,Planning,auto_process
+
+    '
+  fixture-0003: "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages\
+    \ /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]\
+    \ /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n4 0 obj\n<< /Length 101 >>\n\
+    stream\nBT /F1 12 Tf 50 740 Td (ServiceComposeBench-ETL sample: handwritten_form_digitization:nominal)\
+    \ Tj ET\nendstream\nendobj\n5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n\
+    xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000241\
+    \ 00000 n \n0000000392 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n462\n%%EOF\n"
+binaryData:
+  fixture-0004: iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGUlEQVR42mOYJi//nxLMMGrAqAGjBgwXAwA2HNMQ3ou15gAAAABJRU5ErkJggg==
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: handwritten-form-digitization-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: handwritten-form-digitization
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: nominal
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: execution-time
+      value: '2026-07-20T12:00:00Z'
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: handwritten-form-digitization-scripts
+  - name: fixtures
+    configMap:
+      name: handwritten-form-digitization-fixtures
+      items:
+      - key: fixture-0000
+        path: fixture.json
+      - key: fixture-0001
+        path: form_submissions.json
+      - key: fixture-0002
+        path: form_templates.csv
+      - key: fixture-0003
+        path: sample_document.pdf
+      - key: fixture-0004
+        path: sample_image.png
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-source-batch
+        template: run-ingest-source-batch
+      - name: validate-source-contract
+        template: run-validate-source-contract
+        depends: ingest-source-batch.Succeeded
+      - name: stage-raw-artifacts
+        template: run-stage-raw-artifacts
+        depends: validate-source-contract.Succeeded
+      - name: normalize-records
+        template: run-normalize-records
+        depends: stage-raw-artifacts.Succeeded
+      - name: extract-visual-text-features
+        template: run-extract-visual-text-features
+        depends: normalize-records.Succeeded
+      - name: join-reference-metadata
+        template: run-join-reference-metadata
+        depends: extract-visual-text-features.Succeeded
+      - name: publish-outputs
+        template: run-publish-outputs
+        depends: join-reference-metadata.Succeeded
+  - name: run-ingest-source-batch
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_source_batch
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_ingest_source_batch.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-validate-source-contract
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: validate_source_contract
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_validate_source_contract.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-stage-raw-artifacts
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: stage_raw_artifacts
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_stage_raw_artifacts.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-normalize-records
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: normalize_records
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_normalize_records.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-extract-visual-text-features
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: extract_visual_text_features
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_extract_visual_text_features.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-join-reference-metadata
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: join_reference_metadata
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/06_join_reference_metadata.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-publish-outputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: publish_outputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/07_publish_outputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

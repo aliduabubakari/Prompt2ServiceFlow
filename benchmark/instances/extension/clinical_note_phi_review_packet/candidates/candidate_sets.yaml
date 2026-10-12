@@ -1,0 +1,86 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:clinical_note_phi_review_packet
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.6
+candidate_sets:
+- candidate_set_id: extension_clinical_note_phi_review_packet_clinical_note_batch_ingestor_candidates
+  source_step_refs:
+  - ingest_source_batch
+  service_ids:
+  - clinical_note_batch_ingestor
+  - redaction_only_text_filter
+  - generic_human_review_ticket_creator
+  - audit_log_append_only_writer
+- candidate_set_id: extension_clinical_note_phi_review_packet_clinical_phi_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contract
+  service_ids:
+  - clinical_phi_contract_validator
+  - generic_human_review_ticket_creator
+  - audit_log_append_only_writer
+  - privacy_policy_table_loader
+- candidate_set_id: extension_clinical_note_phi_review_packet_clinical_phi_detector_candidates
+  source_step_refs:
+  - detect_sensitive_fields
+  service_ids:
+  - clinical_phi_detector
+  - audit_log_append_only_writer
+  - privacy_policy_table_loader
+  - case_status_notifier
+- candidate_set_id: extension_clinical_note_phi_review_packet_clinical_note_redaction_transformer_candidates
+  source_step_refs:
+  - apply_redaction_or_suppression
+  service_ids:
+  - clinical_note_redaction_transformer
+  - privacy_policy_table_loader
+  - case_status_notifier
+  - reviewed_domain_adapter
+- candidate_set_id: extension_clinical_note_phi_review_packet_clinical_phi_review_packet_builder_candidates
+  source_step_refs:
+  - create_human_review_packet
+  service_ids:
+  - clinical_phi_review_packet_builder
+  - case_status_notifier
+  - reviewed_domain_adapter
+  - redaction_only_text_filter
+- candidate_set_id: extension_clinical_note_phi_review_packet_clinical_phi_policy_risk_decider_candidates
+  source_step_refs:
+  - evaluate_policy_or_risk
+  service_ids:
+  - clinical_phi_policy_risk_decider
+  - reviewed_domain_adapter
+  - redaction_only_text_filter
+  - generic_human_review_ticket_creator
+- candidate_set_id: extension_clinical_note_phi_review_packet_clinical_phi_release_router_candidates
+  source_step_refs:
+  - route_approved_records
+  service_ids:
+  - clinical_phi_release_router
+  - redaction_only_text_filter
+  - generic_human_review_ticket_creator
+  - audit_log_append_only_writer
+- candidate_set_id: extension_clinical_note_phi_review_packet_clinical_phi_review_queue_router_candidates
+  source_step_refs:
+  - route_exception_records
+  service_ids:
+  - clinical_phi_review_queue_router
+  - generic_human_review_ticket_creator
+  - audit_log_append_only_writer
+  - privacy_policy_table_loader
+- candidate_set_id: extension_clinical_note_phi_review_packet_policy_route_outcome_merger_candidates
+  source_step_refs:
+  - merge_route_outcomes
+  service_ids:
+  - policy_route_outcome_merger
+  - audit_log_append_only_writer
+  - privacy_policy_table_loader
+  - case_status_notifier
+- candidate_set_id: extension_clinical_note_phi_review_packet_policy_review_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - policy_review_bundle_publisher
+  - privacy_policy_table_loader
+  - case_status_notifier
+  - reviewed_domain_adapter

@@ -1,0 +1,120 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:global_dag
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_global_dag_http_api_request_artifact_extractor_candidates
+  source_step_refs:
+  - ingestion_pipeline.get_city_code_geo
+  service_ids:
+  - http_api_request_artifact_extractor
+  - http_json_request_extractor
+  - data_gouv_dataset_resource_downloader
+  - ftp_file_artifact_downloader
+  - open_network_http_json_requester
+- candidate_set_id: main_global_dag_http_json_request_extractor_candidates
+  source_step_refs:
+  - ingestion_pipeline.get_nuclear_json
+  - ingestion_pipeline.get_death_resource_list
+  - ingestion_pipeline.get_thermal_json
+  service_ids:
+  - http_json_request_extractor
+  - http_api_request_artifact_extractor
+  - airvisual_nearest_city_json_extractor
+  - graphql_json_operation_executor
+  - data_gouv_dataset_resource_downloader
+  - legacy_http_json_extractor
+- candidate_set_id: main_global_dag_data_gouv_dataset_resource_downloader_candidates
+  source_step_refs:
+  - ingestion_pipeline.get_nuclear_data
+  - ingestion_pipeline.get_death_resources
+  - ingestion_pipeline.get_thermal_data
+  service_ids:
+  - data_gouv_dataset_resource_downloader
+  - http_api_request_artifact_extractor
+  - http_json_request_extractor
+  - checksum_manifest_object_storage_file_sync
+  - ftp_file_artifact_downloader
+  - reviewed_domain_adapter
+- candidate_set_id: main_global_dag_power_plant_csv_standardizer_candidates
+  source_step_refs:
+  - staging_pipeline.import_nuclear_clean_data
+  - staging_pipeline.import_thermal_clean_data
+  service_ids:
+  - power_plant_csv_standardizer
+  - csv_to_structured_json_standardizer
+  - weather_station_csv_standard_normalizer
+  - inventory_sku_csv_normalizer
+  - legacy_csv_schema_validator
+- candidate_set_id: main_global_dag_postgres_sql_file_executor_candidates
+  source_step_refs:
+  - staging_pipeline.create_power_plants_table
+  - staging_pipeline.create_death_table
+  - staging_pipeline.store_deaths_in_postgres
+  - staging_pipeline.store_plants_in_postgres
+  service_ids:
+  - postgres_sql_file_executor
+  - postgres_parameterized_sql_executor
+  - postgres_readonly_query_result_extractor
+  - hive_hql_script_executor
+  - tabular_dataset_database_loader
+  - unreviewed_postgres_sql_executor
+- candidate_set_id: main_global_dag_redis_file_batch_loader_candidates
+  source_step_refs:
+  - staging_pipeline.load_data_from_ingestion
+  service_ids:
+  - redis_file_batch_loader
+  - redis_key_cleanup
+  - ftp_file_artifact_downloader
+  - tabular_dataset_database_loader
+  - french_death_records_sql_script_generator
+  - legacy_database_table_loader
+- candidate_set_id: main_global_dag_french_death_records_sql_script_generator_candidates
+  source_step_refs:
+  - staging_pipeline.cleanse_death_data
+  service_ids:
+  - french_death_records_sql_script_generator
+  - redis_file_batch_loader
+  - tabular_csv_postgres_insert_sql_generator
+  - postgres_sql_file_executor
+  - power_plant_csv_standardizer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_global_dag_file_location_availability_sensor_candidates
+  source_step_refs:
+  - staging_pipeline.death_emptiness_check
+  service_ids:
+  - file_location_availability_sensor
+  - sql_query_readiness_sensor
+  - external_workflow_completion_sensor
+  - filesystem_retention_cleanup_with_lock
+  - ftp_file_artifact_downloader
+  - reviewed_domain_adapter
+- candidate_set_id: main_global_dag_temporary_resource_cleanup_candidates
+  source_step_refs:
+  - staging_pipeline.clean_tmp_death_files
+  service_ids:
+  - temporary_resource_cleanup
+  - filesystem_retention_cleanup_with_lock
+  - redis_key_cleanup
+  - file_location_availability_sensor
+  - database_expired_session_cleanup
+- candidate_set_id: main_global_dag_redis_key_cleanup_candidates
+  source_step_refs:
+  - staging_pipeline.clean_tmp_death_files
+  service_ids:
+  - redis_key_cleanup
+  - temporary_resource_cleanup
+  - redis_file_batch_loader
+  - database_expired_session_cleanup
+  - file_location_availability_sensor
+- candidate_set_id: main_global_dag_tabular_csv_postgres_insert_sql_generator_candidates
+  source_step_refs:
+  - staging_pipeline.create_plant_persist_sql_query
+  service_ids:
+  - tabular_csv_postgres_insert_sql_generator
+  - postgres_sql_file_executor
+  - structured_json_to_csv_exporter
+  - power_plant_csv_standardizer
+  - database_csv_snapshot_importer
+  - reviewed_python_udf_transformer

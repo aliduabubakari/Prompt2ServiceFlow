@@ -1,0 +1,191 @@
+schema_version: 0.1.0
+service_id: weather_station_csv_parquet_fusion_aggregator
+version: 1.0.0
+display_name: Weather Station CSV Parquet Fusion Aggregator
+category: Aggregator
+capability:
+  summary: Merges one or more normalized weather station CSV artifacts into a unified
+    Parquet climate dataset with optional deduplication and emits fusion status.
+  operations:
+  - Read multiple normalized weather station CSV artifacts.
+  - Validate each input against configured required standard columns.
+  - Combine station rows across agencies using configured merge and deduplication
+    rules.
+  - Write a unified Parquet dataset artifact and emit row-count/status diagnostics.
+  keywords:
+  - climate
+  - weather stations
+  - csv merge
+  - parquet
+  - data fusion
+  - aggregator
+  limitations:
+  - Does not download or normalize agency-specific raw files.
+  - Does not infer the standard schema; required columns and deduplication keys must
+    be supplied.
+  - Does not implement fan-in dependency edges or workflow retries.
+  - Does not publish the Parquet dataset externally.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: normalized_station_csvs
+    description: Normalized weather station CSV artifacts from one or more source
+      agencies.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://normalized_weather_station_csv/v1
+    required: true
+    cardinality: many
+    sensitivity: public
+  outputs:
+  - name: unified_climate_dataset
+    description: Unified climate/weather station dataset written as a Parquet artifact.
+    channel: artifact
+    data_type: parquet
+    media_type: application/vnd.apache.parquet
+    schema_ref: schema://unified_climate_station_dataset_parquet/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  - name: fusion_status
+    description: Observable fusion status with input file count, rows read/written,
+      duplicate handling counts, and output URI.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://weather_station_fusion_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: required_standard_columns
+    description: Columns required in every normalized input CSV before fusion.
+    type: array
+    required: true
+  - name: dedupe_key_columns
+    description: Columns used to identify duplicate station records across agencies.
+    type: array
+    required: false
+  - name: merge_rules
+    description: Declarative rules for agency precedence, conflict resolution, row
+      filtering, and output column ordering.
+    type: object
+    required: false
+  - name: output_path
+    description: Deterministic output artifact path or name for the unified Parquet
+      dataset.
+    type: string
+    required: true
+  - name: delimiter
+    description: CSV delimiter for normalized inputs.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  - name: compression
+    description: Parquet compression codec to request when supported.
+    type: string
+    required: false
+    enum:
+    - snappy
+    - gzip
+    - zstd
+    - none
+  secrets: []
+contracts:
+- contract_id: weather_station_fusion_inputs_present
+  type: precondition
+  applies_to: input
+  target: normalized_station_csvs
+  description: At least one normalized CSV input must be supplied and all inputs must
+    be readable and parseable.
+  expression: length(normalized_station_csvs) > 0 and all(readable(f) and csv_parseable(f,
+    delimiter, true) for f in normalized_station_csvs)
+- contract_id: weather_station_fusion_required_columns
+  type: precondition
+  applies_to: parameter
+  target: required_standard_columns
+  description: Required standard columns must be non-empty and present in each normalized
+    input.
+  expression: length(required_standard_columns) > 0 and all(columns(f) contains all
+    required_standard_columns for f in normalized_station_csvs)
+- contract_id: unified_climate_parquet_schema
+  type: json_schema
+  applies_to: output
+  target: unified_climate_dataset
+  description: Unified output is a Parquet dataset reference containing required standard
+    columns and row-count metadata.
+  schema_ref: schema://unified_climate_station_dataset_parquet/v1
+  expression: '{"type":"object","required":["uri","format","columns","row_count"],"properties":{"uri":{"type":"string"},"format":{"const":"parquet"},"columns":{"type":"array","items":{"type":"string"}},"row_count":{"type":"integer","minimum":0}}}'
+- contract_id: weather_station_fusion_status_schema
+  type: json_schema
+  applies_to: output
+  target: fusion_status
+  description: Status exposes merge/fusion effect for workflow validation.
+  schema_ref: schema://weather_station_fusion_status/v1
+  expression: '{"type":"object","required":["success","input_files_read","rows_read","rows_written","output_uri"],"properties":{"success":{"type":"boolean"},"input_files_read":{"type":"integer","minimum":1},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"duplicates_removed":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: weather_station_fusion_effect
+  type: effect
+  applies_to: service
+  target: weather_station_csv_parquet_fusion_aggregator
+  description: On success, the unified Parquet dataset exists and fusion status reports
+    all read inputs and written rows.
+  expression: fusion_status.success == true implies exists(unified_climate_dataset)
+    and fusion_status.input_files_read == length(normalized_station_csvs)
+invocation:
+  type: argo_workflow_template
+  template_name: weather-station-csv-parquet-fusion-aggregator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.weather_station_csv_parquet_fusion_aggregator
+  implementation_ref: services/implementations/weather_station_csv_parquet_fusion_aggregator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - public
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full station rows; emit counts, columns, duplicate counts, and bounded
+    diagnostics only.
+  - Workflow fan-in, scheduling, and retry policy remain outside the service catalogue.
+  idempotency_notes: Same normalized inputs and merge/deduplication rules produce
+    the same unified Parquet dataset.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:climate_data_fusion_pipeline#merge_climate_data
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service merges normalized climate station CSV
+    files into a unified Parquet artifact with a climate-station schema and observable
+    fusion status.'
+  - 'Evidence status: strongly_inferred.'

@@ -1,0 +1,52 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:manufacturing_telemetry_quality_scoring
+candidate_sets:
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_source_bundle_ingestor_candidates
+  required_service_id: timeseries_source_bundle_ingestor
+  labels:
+    timeseries_source_bundle_ingestor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    sensor_window_alignment_fuser: contract_mismatch
+    iot_anomaly_feature_calculator: format_mismatch
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_source_contract_validator_candidates
+  required_service_id: timeseries_source_contract_validator
+  labels:
+    timeseries_source_contract_validator: gold
+    sensor_window_alignment_fuser: semantic_mismatch
+    iot_anomaly_feature_calculator: contract_mismatch
+    event_record_cleaner: format_mismatch
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_branch_feature_extractor_candidates
+  required_service_id: timeseries_branch_feature_extractor
+  labels:
+    timeseries_branch_feature_extractor: gold
+    iot_anomaly_feature_calculator: semantic_mismatch
+    event_record_cleaner: contract_mismatch
+    feature_table_drift_validator: format_mismatch
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_context_enricher_candidates
+  required_service_id: timeseries_context_enricher
+  labels:
+    timeseries_context_enricher: gold
+    event_record_cleaner: semantic_mismatch
+    feature_table_drift_validator: contract_mismatch
+    api_table_conflict_reconciler: format_mismatch
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_quality_scorer_candidates
+  required_service_id: timeseries_quality_scorer
+  labels:
+    timeseries_quality_scorer: gold
+    feature_table_drift_validator: semantic_mismatch
+    api_table_conflict_reconciler: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_branch_output_merger_candidates
+  required_service_id: timeseries_branch_output_merger
+  labels:
+    timeseries_branch_output_merger: gold
+    api_table_conflict_reconciler: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    sensor_window_alignment_fuser: format_mismatch
+- candidate_set_id: extension_manufacturing_telemetry_quality_scoring_timeseries_output_bundle_publisher_candidates
+  required_service_id: timeseries_output_bundle_publisher
+  labels:
+    timeseries_output_bundle_publisher: gold
+    reviewed_domain_adapter: semantic_mismatch
+    sensor_window_alignment_fuser: contract_mismatch
+    iot_anomaly_feature_calculator: format_mismatch

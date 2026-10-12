@@ -1,0 +1,98 @@
+schema_version: 0.1.0
+service_id: feature_store_table_publisher
+version: 1.0.0
+display_name: Feature Store Table Publisher
+category: Publisher
+capability:
+  summary: Publishes a validated feature table to a bound feature store.
+  operations:
+  - Publishes a validated feature table to a bound feature store.
+  keywords:
+  - feature
+  - store
+  - table
+  - publisher
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: validated_feature_table
+    description: Reviewed validated feature table value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: feature_store
+    description: Reviewed feature store value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: feature_publication_status
+    description: Reviewed feature publication status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: feature_table_name
+    description: Configuration for feature table name.
+    type: string
+    required: true
+  - name: write_mode
+    description: Configuration for write mode.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: feature-store-table-publisher
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.2
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.feature_store_table_publisher
+  implementation_ref: services/implementations/feature_store_table_publisher
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-03:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 03 descriptions; bindings retain inference confidence.

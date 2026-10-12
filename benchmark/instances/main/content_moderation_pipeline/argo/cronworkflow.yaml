@@ -1,0 +1,212 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: content-moderation-pipeline
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: fixture-file
+        value: user_content_toxic.csv
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: content-moderation-pipeline-scripts
+    - name: fixtures
+      configMap:
+        name: content-moderation-pipeline-fixtures
+        items:
+        - key: fixture-0000
+          path: user_content_safe.csv
+        - key: fixture-0001
+          path: user_content_toxic.csv
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: scan-csv
+          template: run-scan-csv
+        - name: toxicity-check
+          template: run-toxicity-check
+          depends: scan-csv.Succeeded
+        - name: remove-and-flag-content
+          template: run-remove-and-flag-content
+          depends: toxicity-check.Succeeded
+          when: '{{tasks.toxicity-check.outputs.parameters.route}} == remove_flag'
+        - name: publish-content
+          template: run-publish-content
+          depends: toxicity-check.Succeeded
+          when: '{{tasks.toxicity-check.outputs.parameters.route}} == publish'
+        - name: audit-log
+          template: run-audit-log
+          depends: (remove-and-flag-content.Succeeded || publish-content.Succeeded)
+    - name: run-scan-csv
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: scan_csv
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_scan_csv.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-toxicity-check
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: toxicity_check
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_toxicity_check.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      outputs:
+        parameters:
+        - name: route
+          valueFrom:
+            path: /workspace/artifacts/toxicity_route.txt
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-remove-and-flag-content
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: remove_and_flag_content
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_remove_and_flag_content.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-publish-content
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: publish_content
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_publish_content.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-audit-log
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: audit_log
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/05_audit_log.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError

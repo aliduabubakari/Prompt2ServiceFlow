@@ -1,0 +1,39 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: extension:clickstream_session_window_batch
+mappings:
+- intent_id: ingest_bounded_events
+  inputs:
+    input_artifacts: source_bundle
+  outputs:
+    output_artifacts: ingest_bounded_events_artifact
+    execution_report: ingest_bounded_events_status
+- intent_id: validate_checkpoint_inputs
+  inputs:
+    input_artifacts: ingest_bounded_events_artifact
+  outputs:
+    output_artifacts: validate_checkpoint_inputs_artifact
+    execution_report: validate_checkpoint_inputs_status
+- intent_id: sort_and_deduplicate_records
+  inputs:
+    input_artifacts: validate_checkpoint_inputs_artifact
+  outputs:
+    output_artifacts: sort_and_deduplicate_records_artifact
+    execution_report: sort_and_deduplicate_records_status
+- intent_id: build_analysis_windows
+  inputs:
+    input_artifacts: sort_and_deduplicate_records_artifact
+  outputs:
+    output_artifacts: build_analysis_windows_artifact
+    execution_report: build_analysis_windows_status
+- intent_id: compute_window_metrics
+  inputs:
+    input_artifacts: build_analysis_windows_artifact
+  outputs:
+    output_artifacts: compute_window_metrics_artifact
+    execution_report: compute_window_metrics_status
+- intent_id: publish_outputs
+  inputs:
+    input_artifacts: compute_window_metrics_artifact
+  outputs:
+    output_artifacts: publish_outputs_artifact
+    execution_report: publish_outputs_status

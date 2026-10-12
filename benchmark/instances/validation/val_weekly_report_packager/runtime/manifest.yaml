@@ -1,0 +1,46 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_weekly_report_packager
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: collect_kpi_extracts
+  script: scripts/01_collect_kpi_extracts.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: render_pdf_report
+  script: scripts/02_render_pdf_report.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - collect_kpi_extracts
+- intent_id: compress_report_bundle
+  script: scripts/03_compress_report_bundle.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - render_pdf_report
+- intent_id: publish_bundle
+  script: scripts/04_publish_bundle.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - compress_report_bundle
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

@@ -1,0 +1,165 @@
+schema_version: 0.1.0
+service_id: bulk_sms_campaign_sender
+version: 1.0.0
+display_name: Bulk SMS Campaign Sender
+category: Notifier
+capability:
+  summary: Sends a templated bulk SMS campaign to phone numbers selected from a customer
+    segment dataset through a bound SMS HTTP/API resource.
+  operations:
+  - Read customer segment data containing phone numbers and segment labels.
+  - Filter recipients using a configured segment selector.
+  - Render SMS message text for selected recipients.
+  - Submit messages to a bound SMS delivery API and emit aggregate delivery results.
+  keywords:
+  - sms
+  - bulk campaign
+  - marketing
+  - customer segment
+  - http api
+  - notification
+  - pii
+  limitations:
+  - Does not load customer data from CSV.
+  - Does not perform workflow fan-out or retries.
+  - Repeated invocations may send duplicate SMS messages unless provider idempotency
+    is configured.
+  - Provider-specific delivery receipts beyond request acceptance are not guaranteed.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: customer_segments
+    description: Structured customer segment dataset containing phone and segment
+      fields.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://customer_segment_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: sms_api_resource
+    description: Bound SMS delivery HTTP API resource.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://http_api_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: sms_campaign_results
+    description: Aggregate SMS campaign notification result with selected, attempted,
+      sent/accepted, skipped, and failed counts.
+    channel: artifact
+    data_type: notification
+    media_type: application/json
+    schema_ref: schema://bulk_campaign_delivery_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: segment_selector
+    description: Selector for customer records eligible for the SMS campaign.
+    type: object
+    required: true
+  - name: phone_column
+    description: Column containing recipient phone numbers.
+    type: string
+    required: true
+  - name: message_template
+    description: SMS message template.
+    type: string
+    required: true
+  - name: campaign_id
+    description: Optional campaign identifier included in status and provider metadata.
+    type: string
+    required: false
+  - name: endpoint
+    description: SMS API endpoint path or absolute URL.
+    type: string
+    required: true
+  secrets: []
+contracts:
+- contract_id: bulk_sms_campaign_input_contract
+  type: precondition
+  applies_to: input
+  target: customer_segments
+  description: Customer segment data must include the configured phone column.
+  expression: phone_column in customer_segments.columns
+- contract_id: bulk_sms_campaign_message_contract
+  type: precondition
+  applies_to: parameter
+  target: message_template
+  description: SMS message template must be non-empty.
+  expression: length(trim(message_template)) > 0
+- contract_id: bulk_sms_campaign_status_schema
+  type: json_schema
+  applies_to: output
+  target: sms_campaign_results
+  description: Campaign delivery status exposes SMS send effect for workflow validation.
+  schema_ref: schema://bulk_campaign_delivery_status/v1
+  expression: '{"type":"object","required":["success","channel","recipients_selected","messages_attempted","messages_sent","messages_failed"],"properties":{"success":{"type":"boolean"},"channel":{"type":"string"},"campaign_id":{"type":["string","null"]},"recipients_selected":{"type":"integer","minimum":0},"messages_attempted":{"type":"integer","minimum":0},"messages_sent":{"type":"integer","minimum":0},"messages_failed":{"type":"integer","minimum":0},"messages_skipped":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: bulk_sms_campaign_effect
+  type: effect
+  applies_to: service
+  target: bulk_sms_campaign_sender
+  description: On success, selected SMS recipients were attempted or explicitly skipped
+    and an aggregate notification status was emitted.
+  expression: sms_campaign_results.success == true implies sms_campaign_results.channel
+    == 'sms'
+invocation:
+  type: argo_workflow_template
+  template_name: bulk-sms-campaign-sender-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.bulk_sms_campaign_sender
+  implementation_ref: services/implementations/bulk_sms_campaign_sender
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - https://*
+  - http://*
+  secret_access: required
+  retry_safe: false
+  idempotency: non_idempotent
+  data_sensitivity:
+  - pii
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit raw phone numbers or credentials in status or logs.
+  - Bind only approved SMS API resources.
+  - Expose aggregate delivery counts for validation.
+  idempotency_notes: Retries may send duplicate SMS messages unless the SMS API supports
+    idempotency keys and they are bound by the workflow.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:multi_channel_marketing_campaign#send_sms_campaign
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing service models bulk SMS campaign delivery from customer
+    segment data through an HTTP API.'
+  - 'Evidence status: explicit.'

@@ -1,0 +1,213 @@
+{
+  "report_version": "0.1.0",
+  "pipeline_id": "extension:research_data_lake_publication_gate",
+  "generated_at": "2026-07-21T09:37:01.922733+00:00",
+  "overall_status": "pass",
+  "gates": [
+    {
+      "gate": "G0",
+      "status": "pass",
+      "checks": [
+        "Parse, schema, required files, and checksums"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G1",
+      "status": "pass",
+      "checks": [
+        "Graph integrity and complete source-step accounting"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G2",
+      "status": "pass",
+      "checks": [
+        "Catalog service/version/lifecycle resolution"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G3",
+      "status": "pass",
+      "checks": [
+        "Interface, parameter, secret, artifact, and policy closure"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G4",
+      "status": "pass",
+      "checks": [
+        "Exact gold-to-runtime task identities, dependency edges, and script syntax"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G5",
+      "status": "pass",
+      "checks": [
+        "Deterministic Argo projection, deployable bundles, ConfigMap-size checks, and structural lint"
+      ],
+      "errors": [],
+      "details": {
+        "configmap_payloads": [
+          {
+            "name": "research-data-lake-publication-gate-scripts",
+            "data_size_bytes": 43045,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "research-data-lake-publication-gate-fixtures",
+            "data_size_bytes": 1156,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "research-data-lake-publication-gate-nominal-scripts",
+            "scenario": "nominal",
+            "data_size_bytes": 43045,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "research-data-lake-publication-gate-nominal-fixtures",
+            "scenario": "nominal",
+            "data_size_bytes": 1156,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          }
+        ]
+      }
+    },
+    {
+      "gate": "G6",
+      "status": "pass",
+      "checks": [
+        "Execute every declared scenario and evaluate reviewed semantic assertions and artifact schemas"
+      ],
+      "errors": []
+    }
+  ],
+  "scenario_results": [
+    {
+      "scenario": "nominal",
+      "status": "pass",
+      "executed_tasks": [
+        "ingest_source_batch",
+        "validate_source_contract",
+        "standardize_cross_domain_entities",
+        "resolve_entity_conflicts",
+        "score_operational_priority",
+        "apply_publication_or_routing_gate",
+        "create_stakeholder_packet",
+        "publish_notifications",
+        "evaluate_policy_or_risk",
+        "route_approved_records",
+        "route_exception_records",
+        "merge_route_outcomes",
+        "publish_outputs"
+      ],
+      "skipped_tasks": [],
+      "assertions": [
+        {
+          "assertion_id": "source_fixture_loaded",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "source_files_present",
+          "status": "pass",
+          "message": "value=3, minimum=1"
+        },
+        {
+          "assertion_id": "source_records_present",
+          "status": "pass",
+          "message": "value=9, minimum=1"
+        },
+        {
+          "assertion_id": "final_status_succeeds",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "final_artifact_exists",
+          "status": "pass",
+          "message": "publish_outputs_status.json exists and is non-empty"
+        },
+        {
+          "assertion_id": "upstream_evidence_propagated",
+          "status": "pass",
+          "message": "value=24, minimum=1"
+        },
+        {
+          "assertion_id": "schema_ingest_source_batch_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_validate_source_contract_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_standardize_cross_domain_entities_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_resolve_entity_conflicts_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_score_operational_priority_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_apply_publication_or_routing_gate_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_create_stakeholder_packet_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_publish_notifications_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_evaluate_policy_or_risk_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_route_approved_records_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_route_exception_records_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_merge_route_outcomes_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_publish_outputs_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "pipeline_id": "log_window_alert_digest",
+  "inputs": {"logs": "log_entries.jsonl"},
+  "input_modalities": ["text", "jsonl"],
+  "systems": ["log aggregation system", "alerting platform"],
+  "batch_window_start": "2026-07-20T08:00:00Z",
+  "batch_window_end": "2026-07-20T09:00:00Z",
+  "window_size_minutes": 15,
+  "alert_rules": {
+    "CRITICAL": {"min_occurrences": 1, "action": "page_oncall"},
+    "ERROR": {"min_occurrences": 2, "action": "create_ticket"},
+    "WARN": {"min_occurrences": 3, "action": "log_only"}
+  }
+}

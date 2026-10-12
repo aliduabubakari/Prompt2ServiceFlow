@@ -1,0 +1,34 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_customer_profile_refresh
+mappings:
+- intent_id: extract_crm_records
+  inputs:
+    crm_api: crm_api_resource
+  outputs:
+    crm_records: crm_records
+    extraction_status: crm_extraction_status
+- intent_id: normalize_profile_fields
+  inputs:
+    crm_records: crm_records
+  outputs:
+    normalized_profiles: normalized_profiles
+    normalization_status: normalization_status
+- intent_id: deduplicate_customers
+  inputs:
+    normalized_profiles: normalized_profiles
+  outputs:
+    deduplicated_profiles: deduplicated_profiles
+    dedup_status: dedup_status
+- intent_id: load_profile_table
+  inputs:
+    deduplicated_profiles: deduplicated_profiles
+    customer_warehouse: customer_warehouse_resource
+  outputs:
+    profile_table: profile_table
+    load_status: profile_load_status
+- intent_id: emit_refresh_summary
+  inputs:
+    profile_table: profile_table
+  outputs:
+    refresh_summary: refresh_summary
+    summary_status: summary_status

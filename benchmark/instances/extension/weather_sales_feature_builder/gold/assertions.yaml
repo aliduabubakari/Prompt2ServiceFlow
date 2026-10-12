@@ -1,0 +1,47 @@
+assertions_version: 0.1.0
+pipeline_id: weather_sales_feature_builder
+scenarios:
+- scenario: nominal
+  assertions:
+  - assertion_id: ingest_weather_count
+    type: json_path_equals
+    path: artifacts/ingest_source_batch_status.json
+    json_path: weather_obs
+    expected: 6
+  - assertion_id: ingest_sales_count
+    type: json_path_equals
+    path: artifacts/ingest_source_batch_status.json
+    json_path: sales_rows
+    expected: 8
+
+  - assertion_id: validation_orphan_found
+    type: json_path_equals
+    path: artifacts/validate_source_contract_artifact.json
+    json_path: orphan_stores
+    expected: ["STORE-FRA-01"]
+
+  - assertion_id: staging_count
+    type: json_path_gte
+    path: artifacts/stage_raw_artifacts_status.json
+    json_path: records_staged
+    minimum: 6
+
+  - assertion_id: normalize_has_features
+    type: json_path_gte
+    path: artifacts/normalize_records_status.json
+    json_path: records_normalized
+    minimum: 6
+
+  - assertion_id: publish_succeeds
+    type: json_path_equals
+    path: artifacts/publish_outputs_status.json
+    json_path: success
+    expected: true
+  - assertion_id: feature_csv_exists
+    type: file_exists
+    path: artifacts/weather_sales_features.csv
+  - assertion_id: manifest_completed
+    type: json_path_equals
+    path: artifacts/feature_manifest.json
+    json_path: status
+    expected: completed

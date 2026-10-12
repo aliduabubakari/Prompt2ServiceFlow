@@ -1,0 +1,86 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:late_record_replay_quarantine
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.5
+candidate_sets:
+- candidate_set_id: extension_late_record_replay_quarantine_late_record_replay_batch_ingestor_candidates
+  source_step_refs:
+  - ingest_source_batch
+  service_ids:
+  - late_record_replay_batch_ingestor
+  - checkpoint_position_only_loader
+  - checkpoint_event_sort_deduplicator
+  - append_only_event_archiver
+- candidate_set_id: extension_late_record_replay_quarantine_retention_policy_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contract
+  service_ids:
+  - retention_policy_contract_validator
+  - checkpoint_event_sort_deduplicator
+  - append_only_event_archiver
+  - generic_queue_metric_counter
+- candidate_set_id: extension_late_record_replay_quarantine_checkpoint_manifest_loader_candidates
+  source_step_refs:
+  - load_previous_checkpoint
+  service_ids:
+  - checkpoint_manifest_loader
+  - append_only_event_archiver
+  - generic_queue_metric_counter
+  - audit_log_redaction_only_filter
+- candidate_set_id: extension_late_record_replay_quarantine_checkpoint_state_transition_applier_candidates
+  source_step_refs:
+  - apply_batch_to_checkpoint
+  service_ids:
+  - checkpoint_state_transition_applier
+  - generic_queue_metric_counter
+  - audit_log_redaction_only_filter
+  - reviewed_domain_adapter
+- candidate_set_id: extension_late_record_replay_quarantine_late_event_quarantine_writer_candidates
+  source_step_refs:
+  - quarantine_late_or_invalid_records
+  service_ids:
+  - late_event_quarantine_writer
+  - audit_log_redaction_only_filter
+  - reviewed_domain_adapter
+  - checkpoint_position_only_loader
+- candidate_set_id: extension_late_record_replay_quarantine_retention_policy_risk_decider_candidates
+  source_step_refs:
+  - evaluate_policy_or_risk
+  service_ids:
+  - retention_policy_risk_decider
+  - reviewed_domain_adapter
+  - checkpoint_position_only_loader
+  - checkpoint_event_sort_deduplicator
+- candidate_set_id: extension_late_record_replay_quarantine_compliance_approved_record_router_candidates
+  source_step_refs:
+  - route_approved_records
+  service_ids:
+  - compliance_approved_record_router
+  - checkpoint_position_only_loader
+  - checkpoint_event_sort_deduplicator
+  - append_only_event_archiver
+- candidate_set_id: extension_late_record_replay_quarantine_compliance_exception_review_router_candidates
+  source_step_refs:
+  - route_exception_records
+  service_ids:
+  - compliance_exception_review_router
+  - checkpoint_event_sort_deduplicator
+  - append_only_event_archiver
+  - generic_queue_metric_counter
+- candidate_set_id: extension_late_record_replay_quarantine_checkpoint_route_outcome_merger_candidates
+  source_step_refs:
+  - merge_route_outcomes
+  service_ids:
+  - checkpoint_route_outcome_merger
+  - append_only_event_archiver
+  - generic_queue_metric_counter
+  - audit_log_redaction_only_filter
+- candidate_set_id: extension_late_record_replay_quarantine_checkpoint_output_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - checkpoint_output_bundle_publisher
+  - generic_queue_metric_counter
+  - audit_log_redaction_only_filter
+  - reviewed_domain_adapter

@@ -1,0 +1,42 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:clinical_note_deidentification_summary
+bindings:
+- intent_id: ingest_source_batch
+  service_id: clinical_note_ai_batch_ingestor
+  service_version: 1.0.0
+- intent_id: validate_source_contract
+  service_id: clinical_note_deid_contract_validator
+  service_version: 1.0.0
+- intent_id: extract_or_parse_text
+  service_id: clinical_note_text_parser
+  service_version: 1.0.0
+- intent_id: chunk_documents
+  service_id: semantic_document_chunker
+  service_version: 1.0.0
+- intent_id: generate_embeddings
+  service_id: deterministic_text_embedding_generator
+  service_version: 1.0.0
+- intent_id: write_vector_index
+  service_id: fixture_vector_index_writer
+  service_version: 1.0.0
+- intent_id: retrieve_grounding_context
+  service_id: grounding_context_retriever
+  service_version: 1.0.0
+- intent_id: run_structured_extraction
+  service_id: clinical_note_deid_summary_extractor
+  service_version: 1.0.0
+- intent_id: evaluate_policy_or_risk
+  service_id: clinical_note_deid_policy_decider
+  service_version: 1.0.0
+- intent_id: route_approved_records
+  service_id: clinical_note_safe_summary_router
+  service_version: 1.0.0
+- intent_id: route_exception_records
+  service_id: clinical_note_phi_review_router
+  service_version: 1.0.0
+- intent_id: merge_route_outcomes
+  service_id: ai_route_outcome_merger
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: ai_completion_bundle_publisher
+  service_version: 1.0.0

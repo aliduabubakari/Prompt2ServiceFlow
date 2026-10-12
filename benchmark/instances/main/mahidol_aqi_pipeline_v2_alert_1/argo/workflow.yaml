@@ -1,0 +1,75 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: mahidol-aqi-pipeline-v2-alert-1-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: mahidol-aqi-pipeline-v2-alert-1
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: aqi-alert
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters: []
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: mahidol-aqi-pipeline-v2-alert-1-scripts
+  - name: fixtures
+    configMap:
+      name: mahidol-aqi-pipeline-v2-alert-1-fixtures
+      items:
+      - key: fixture-0000
+        path: aqi_data.json
+      - key: fixture-0001
+        path: email_config.txt
+      - key: fixture-0002
+        path: email_service.json
+      - key: fixture-0003
+        path: fixture.json
+      - key: fixture-0004
+        path: recipients.txt
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: alert-email
+        template: run-alert-email
+  - name: run-alert-email
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: alert_email
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_alert.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

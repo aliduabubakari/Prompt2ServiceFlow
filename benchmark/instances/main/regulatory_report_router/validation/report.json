@@ -1,0 +1,250 @@
+{
+  "report_version": "0.1.0",
+  "pipeline_id": "main:regulatory_report_router",
+  "generated_at": "2026-07-21T09:37:18.232743+00:00",
+  "overall_status": "pass",
+  "gates": [
+    {
+      "gate": "G0",
+      "status": "pass",
+      "checks": [
+        "Parse, schema, required files, and checksums"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G1",
+      "status": "pass",
+      "checks": [
+        "Graph integrity and complete source-step accounting"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G2",
+      "status": "pass",
+      "checks": [
+        "Catalog service/version/lifecycle resolution"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G3",
+      "status": "pass",
+      "checks": [
+        "Interface, parameter, secret, artifact, and policy closure"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G4",
+      "status": "pass",
+      "checks": [
+        "Exact gold-to-runtime task identities, dependency edges, and script syntax"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G5",
+      "status": "pass",
+      "checks": [
+        "Deterministic Argo projection, deployable bundles, ConfigMap-size checks, and structural lint"
+      ],
+      "errors": [],
+      "details": {
+        "configmap_payloads": [
+          {
+            "name": "regulatory-report-router-scripts",
+            "data_size_bytes": 4750,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "regulatory-report-router-fixtures",
+            "data_size_bytes": 354,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "regulatory-report-router-international-fatca-scripts",
+            "scenario": "international_fatca",
+            "data_size_bytes": 4750,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "regulatory-report-router-international-fatca-fixtures",
+            "scenario": "international_fatca",
+            "data_size_bytes": 354,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "regulatory-report-router-domestic-irs-scripts",
+            "scenario": "domestic_irs",
+            "data_size_bytes": 4750,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "regulatory-report-router-domestic-irs-fixtures",
+            "scenario": "domestic_irs",
+            "data_size_bytes": 354,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          }
+        ]
+      }
+    },
+    {
+      "gate": "G6",
+      "status": "pass",
+      "checks": [
+        "Execute every declared scenario and evaluate reviewed semantic assertions and artifact schemas"
+      ],
+      "errors": []
+    }
+  ],
+  "scenario_results": [
+    {
+      "scenario": "international_fatca",
+      "status": "pass",
+      "executed_tasks": [
+        "read_csv",
+        "account_check",
+        "route_to_fatca",
+        "archive_reports"
+      ],
+      "skipped_tasks": [
+        "route_to_irs"
+      ],
+      "assertions": [
+        {
+          "assertion_id": "csv_read",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "fatca_route",
+          "status": "pass",
+          "message": "value='fatca', expected='fatca'"
+        },
+        {
+          "assertion_id": "fatca_report_generated",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "irs_not_written",
+          "status": "pass",
+          "message": "irs_report_status.json is absent"
+        },
+        {
+          "assertion_id": "archive_success",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "schema_transaction_dataset",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_read_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_routing_decision",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_fatca_report",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_fatca_report_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_archive_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        }
+      ]
+    },
+    {
+      "scenario": "domestic_irs",
+      "status": "pass",
+      "executed_tasks": [
+        "read_csv",
+        "account_check",
+        "route_to_irs",
+        "archive_reports"
+      ],
+      "skipped_tasks": [
+        "route_to_fatca"
+      ],
+      "assertions": [
+        {
+          "assertion_id": "csv_read",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "irs_route",
+          "status": "pass",
+          "message": "value='irs', expected='irs'"
+        },
+        {
+          "assertion_id": "irs_report_generated",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "fatca_not_written",
+          "status": "pass",
+          "message": "fatca_report_status.json is absent"
+        },
+        {
+          "assertion_id": "archive_success",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "schema_transaction_dataset",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_read_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_routing_decision",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_irs_report",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_irs_report_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_archive_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        }
+      ]
+    }
+  ]
+}

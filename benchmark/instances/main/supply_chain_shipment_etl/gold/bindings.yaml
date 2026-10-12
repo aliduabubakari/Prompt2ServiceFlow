@@ -1,0 +1,21 @@
+binding_gold_version: 0.1.0
+benchmark_id: main:supply_chain_shipment_etl
+bindings:
+- intent_id: ingest_vendor_a
+  service_id: csv_tabular_schema_validating_loader
+  service_version: 1.0.0
+- intent_id: ingest_vendor_b
+  service_id: csv_tabular_schema_validating_loader
+  service_version: 1.0.0
+- intent_id: ingest_vendor_c
+  service_id: csv_tabular_schema_validating_loader
+  service_version: 1.0.0
+- intent_id: cleanse_data
+  service_id: shipment_data_standardization_enricher
+  service_version: 1.0.0
+- intent_id: load_to_db
+  service_id: tabular_dataset_database_loader
+  service_version: 1.0.0
+- intent_id: send_summary_email
+  service_id: status_context_email_summary_notifier
+  service_version: 1.0.0

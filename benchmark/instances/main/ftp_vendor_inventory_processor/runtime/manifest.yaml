@@ -1,0 +1,42 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: ftp_vendor_inventory_processor
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: wait_for_ftp_file
+  script: scripts/01_wait_ftp.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: download_vendor_file
+  script: scripts/02_download.py
+  dependencies:
+  - wait_for_ftp_file
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: cleanse_vendor_data
+  script: scripts/03_cleanse.py
+  dependencies:
+  - download_vendor_file
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: merge_with_internal_inventory
+  script: scripts/04_merge.py
+  dependencies:
+  - cleanse_vendor_data
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+scenarios:
+- name: ftp_file_arrives
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

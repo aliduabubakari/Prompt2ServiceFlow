@@ -1,0 +1,403 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_stream_batch_fraud_bridge",
+  "pipeline_name": "Stream-Batch Fraud Bridge",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_stream_batch_fraud_bridge.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Wait for stream checkpoints and batch settlement files, combine online transaction events with batch history, branch suspicious accounts to investigation, and update monitoring outputs.",
+    "business_domain": "Fraud Detection",
+    "execution_model": "Hybrid",
+    "topology_pattern": "Mixed",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "wait_for_stream_checkpoint",
+        "to": "load_stream_events"
+      },
+      {
+        "from": "wait_for_stream_checkpoint",
+        "to": "load_batch_settlements"
+      },
+      {
+        "from": "load_stream_events",
+        "to": "join_transaction_context"
+      },
+      {
+        "from": "load_batch_settlements",
+        "to": "join_transaction_context"
+      },
+      {
+        "from": "load_account_history",
+        "to": "join_transaction_context"
+      },
+      {
+        "from": "join_transaction_context",
+        "to": "score_fraud_risk"
+      },
+      {
+        "from": "score_fraud_risk",
+        "to": "route_risk_action"
+      },
+      {
+        "from": "route_risk_action",
+        "to": "update_monitoring_table"
+      },
+      {
+        "from": "route_risk_action",
+        "to": "open_investigation_case"
+      },
+      {
+        "from": "update_monitoring_table",
+        "to": "publish_risk_metrics"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "steps": [
+          "load_stream_events",
+          "load_batch_settlements",
+          "load_account_history"
+        ]
+      }
+    ],
+    "branch_points": [
+      {
+        "step": "route_risk_action",
+        "conditions": [
+          "low_risk",
+          "high_risk"
+        ],
+        "merge_step": null
+      }
+    ],
+    "gates": [
+      {
+        "step": "wait_for_stream_checkpoint",
+        "condition": "checkpoint_committed"
+      }
+    ]
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Kafka topic",
+      "identifier": "kafka_topic",
+      "details": [
+        "Validation external dependency: Kafka topic"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Settlement warehouse",
+      "identifier": "settlement_warehouse",
+      "details": [
+        "Validation external dependency: Settlement warehouse"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Account database",
+      "identifier": "account_database",
+      "details": [
+        "Validation external dependency: Account database"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Case management system",
+      "identifier": "case_management_system",
+      "details": [
+        "Validation external dependency: Case management system"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "stream_events",
+        "description": "Validation artifact: stream_events"
+      },
+      {
+        "identifier": "settlement_file",
+        "description": "Validation artifact: settlement_file"
+      },
+      {
+        "identifier": "account_history",
+        "description": "Validation artifact: account_history"
+      },
+      {
+        "identifier": "risk_scores",
+        "description": "Validation artifact: risk_scores"
+      },
+      {
+        "identifier": "investigation_cases",
+        "description": "Validation artifact: investigation_cases"
+      },
+      {
+        "identifier": "risk_metrics",
+        "description": "Validation artifact: risk_metrics"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "wait_for_stream_checkpoint",
+      "name": "wait_for_stream_checkpoint",
+      "objective": "Wait for stream checkpoint",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "load_stream_events",
+      "name": "load_stream_events",
+      "objective": "Load stream events",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "load_batch_settlements",
+      "name": "load_batch_settlements",
+      "objective": "Load batch settlements",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "load_account_history",
+      "name": "load_account_history",
+      "objective": "Load account history",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "join_transaction_context",
+      "name": "join_transaction_context",
+      "objective": "Join transaction context",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "score_fraud_risk",
+      "name": "score_fraud_risk",
+      "objective": "Score fraud risk",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "route_risk_action",
+      "name": "route_risk_action",
+      "objective": "Route risk action",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "update_monitoring_table",
+      "name": "update_monitoring_table",
+      "objective": "Update monitoring table",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "open_investigation_case",
+      "name": "open_investigation_case",
+      "objective": "Open investigation case",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_risk_metrics",
+      "name": "publish_risk_metrics",
+      "objective": "Publish risk metrics",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

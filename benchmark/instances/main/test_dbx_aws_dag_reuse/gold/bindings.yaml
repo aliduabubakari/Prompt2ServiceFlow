@@ -1,0 +1,27 @@
+binding_gold_version: 0.1.0
+benchmark_id: main:test_dbx_aws_dag_reuse
+bindings:
+- intent_id: start_task
+  service_id: workflow_load_id_generator
+  service_version: 1.0.0
+- intent_id: spark_jar_task
+  service_id: databricks_notebook_run_executor
+  service_version: 1.0.0
+- intent_id: dummy_task_1
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0
+- intent_id: branch_task
+  service_id: execution_date_backup_strategy_decider
+  service_version: 1.0.0
+- intent_id: spark_jar_task_2
+  service_id: databricks_notebook_run_executor
+  service_version: 1.0.0
+- intent_id: dummy_task_2
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0
+- intent_id: dummy_task_3
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0
+- intent_id: end_task
+  service_id: temporary_resource_cleanup
+  service_version: 1.0.0

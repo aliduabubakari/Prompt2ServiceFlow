@@ -1,0 +1,46 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:daily_sales_report
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_daily_sales_report_postgres_readonly_query_result_extractor_candidates
+  source_step_refs:
+  - query_sales_data
+  service_ids:
+  - postgres_readonly_query_result_extractor
+  - postgres_parameterized_sql_executor
+  - sql_incremental_table_extractor
+  - database_csv_snapshot_exporter
+  - sql_query_readiness_sensor
+  - unreviewed_postgres_sql_executor
+- candidate_set_id: main_daily_sales_report_tabular_query_result_csv_writer_candidates
+  source_step_refs:
+  - transform_to_csv
+  service_ids:
+  - tabular_query_result_csv_writer
+  - structured_json_to_csv_exporter
+  - csv_to_structured_json_standardizer
+  - csv_tabular_schema_validating_loader
+  - tabular_dashboard_report_generator
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_daily_sales_report_csv_chart_pdf_report_generator_candidates
+  source_step_refs:
+  - generate_pdf_chart
+  service_ids:
+  - csv_chart_pdf_report_generator
+  - inventory_reconciliation_pdf_report_generator
+  - tabular_dashboard_report_generator
+  - validated_parquet_to_csv_report_exporter
+  - csv_tabular_schema_validating_loader
+  - reviewed_domain_adapter
+- candidate_set_id: main_daily_sales_report_email_notification_sender_candidates
+  source_step_refs:
+  - email_sales_report
+  service_ids:
+  - email_notification_sender
+  - email_attachment_notification_sender
+  - status_context_email_summary_notifier
+  - aqi_threshold_email_alert_notifier
+  - bulk_email_campaign_sender
+  - slack_notification_sender

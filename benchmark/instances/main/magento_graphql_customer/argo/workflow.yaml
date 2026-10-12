@@ -1,0 +1,142 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: magento-graphql-customer-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: magento-graphql-customer
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: magento-customer-flow
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters: []
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: magento-graphql-customer-scripts
+  - name: fixtures
+    configMap:
+      name: magento-graphql-customer-fixtures
+      items:
+      - key: fixture-0000
+        path: fixture.json
+      - key: fixture-0001
+        path: graphql_endpoint.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: create-customer
+        template: run-create-customer
+      - name: generate-customer-token
+        template: run-generate-customer-token
+        depends: create-customer.Succeeded
+      - name: get-customer-info
+        template: run-get-customer-info
+        depends: generate-customer-token.Succeeded
+  - name: run-create-customer
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: create_customer
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_graphql.py
+      - --workspace
+      - /workspace
+      - --op
+      - create
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-generate-customer-token
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: generate_customer_token
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_graphql.py
+      - --workspace
+      - /workspace
+      - --op
+      - token
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-get-customer-info
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: get_customer_info
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_graphql.py
+      - --workspace
+      - /workspace
+      - --op
+      - get
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError

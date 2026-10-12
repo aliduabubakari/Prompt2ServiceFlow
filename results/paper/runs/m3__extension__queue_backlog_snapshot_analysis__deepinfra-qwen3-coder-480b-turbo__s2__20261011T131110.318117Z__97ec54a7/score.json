@@ -1,0 +1,401 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-11T13:13:02.725428+00:00",
+  "instance": "benchmark/instances/extension/queue_backlog_snapshot_analysis",
+  "workspace": "experiments/workspaces/extension/queue_backlog_snapshot_analysis",
+  "submission": "results/paper/runs/m3__extension__queue_backlog_snapshot_analysis__deepinfra-qwen3-coder-480b-turbo__s2__20261011T131110.318117Z__97ec54a7/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G1",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 0.4000000000000001,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-11T13:12:45.748739+00:00",
+    "workspace": "experiments/workspaces/extension/queue_backlog_snapshot_analysis",
+    "submission": "results/paper/runs/m3__extension__queue_backlog_snapshot_analysis__deepinfra-qwen3-coder-480b-turbo__s2__20261011T131110.318117Z__97ec54a7/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G1",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "fail",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'prepared_outputs_2' names producer 'sort_and_deduplicate_records', but the producer does not list it as an output",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'prepared_outputs_2' names consumer 'build_analysis_windows', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'prepared_outputs_3' names producer 'build_analysis_windows', but the producer does not list it as an output",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'prepared_outputs_3' names consumer 'compute_window_metrics', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'prepared_outputs_4' names producer 'compute_window_metrics', but the producer does not list it as an output",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'prepared_outputs_4' names consumer 'publish_outputs', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "binding 'sort_and_deduplicate_records' maps output artifact 'prepared_outputs_2' that is not declared by the intent",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "binding 'build_analysis_windows' maps input artifact 'prepared_outputs_2' that is not declared by the intent",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "binding 'build_analysis_windows' maps output artifact 'prepared_outputs_3' that is not declared by the intent",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "binding 'compute_window_metrics' maps input artifact 'prepared_outputs_3' that is not declared by the intent",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "binding 'compute_window_metrics' maps output artifact 'prepared_outputs_4' that is not declared by the intent",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "binding 'publish_outputs' maps input artifact 'prepared_outputs_4' that is not declared by the intent",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "ingest_bounded_events: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "validate_checkpoint_inputs: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "sort_and_deduplicate_records: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_OUTPUT_ARTIFACT_MISMATCH",
+            "message": "sort_and_deduplicate_records: bound output artifacts do not exactly match the intent outputs"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "build_analysis_windows: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "build_analysis_windows: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_OUTPUT_ARTIFACT_MISMATCH",
+            "message": "build_analysis_windows: bound output artifacts do not exactly match the intent outputs"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "compute_window_metrics: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "compute_window_metrics: bound input artifacts do not exactly match the intent inputs"
+          },
+          {
+            "code": "G3_OUTPUT_ARTIFACT_MISMATCH",
+            "message": "compute_window_metrics: bound output artifacts do not exactly match the intent outputs"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "publish_outputs: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "publish_outputs: bound input artifacts do not exactly match the intent inputs"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "extension-v1-queue-backlog-snapshot-analysis-scripts",
+              "scenario": "base",
+              "data_size_bytes": 12033,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-queue-backlog-snapshot-analysis-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 2126,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-queue-backlog-snapshot-analysis-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 12033,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-queue-backlog-snapshot-analysis-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 2126,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_bounded_events",
+                "validate_checkpoint_inputs",
+                "sort_and_deduplicate_records",
+                "build_analysis_windows",
+                "compute_window_metrics",
+                "publish_outputs"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 6,
+      "submission_intents": 6,
+      "gold_intents": 6,
+      "mapping": {
+        "build_analysis_windows": "build_analysis_windows",
+        "compute_window_metrics": "compute_window_metrics",
+        "ingest_bounded_events": "ingest_bounded_events",
+        "publish_outputs": "publish_outputs",
+        "sort_and_deduplicate_records": "sort_and_deduplicate_records",
+        "validate_checkpoint_inputs": "validate_checkpoint_inputs"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 6
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 5,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 6,
+      "total": 6,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 6,
+    "correct": 6,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "build_analysis_windows",
+        "gold_service": "checkpoint_window_builder",
+        "submission_intent": "build_analysis_windows",
+        "submission_service": "checkpoint_window_builder",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "compute_window_metrics",
+        "gold_service": "queue_backlog_capacity_risk_scorer",
+        "submission_intent": "compute_window_metrics",
+        "submission_service": "queue_backlog_capacity_risk_scorer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_bounded_events",
+        "gold_service": "queue_snapshot_json_ingestor",
+        "submission_intent": "ingest_bounded_events",
+        "submission_service": "queue_snapshot_json_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_outputs",
+        "gold_service": "checkpoint_alert_digest_publisher",
+        "submission_intent": "publish_outputs",
+        "submission_service": "checkpoint_alert_digest_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "sort_and_deduplicate_records",
+        "gold_service": "checkpoint_event_sort_deduplicator",
+        "submission_intent": "sort_and_deduplicate_records",
+        "submission_service": "checkpoint_event_sort_deduplicator",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "validate_checkpoint_inputs",
+        "gold_service": "queue_capacity_checkpoint_validator",
+        "submission_intent": "validate_checkpoint_inputs",
+        "submission_service": "queue_capacity_checkpoint_validator",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 0.4,
+    "recall": 0.4,
+    "f1": 0.4000000000000001,
+    "applicable": true,
+    "true_positives": 2,
+    "false_positives": 3,
+    "false_negatives": 3
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "ingest_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-3n77bmox/artifacts/ingest_bounded_events_status.json"
+          },
+          {
+            "assertion_id": "dedup_removed",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-3n77bmox/artifacts/sort_and_deduplicate_records_status.json"
+          },
+          {
+            "assertion_id": "windows_built",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-3n77bmox/artifacts/build_analysis_windows_status.json"
+          },
+          {
+            "assertion_id": "publish_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-3n77bmox/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "csv_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-3n77bmox/artifacts/queue_backlog_report.csv"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 5,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

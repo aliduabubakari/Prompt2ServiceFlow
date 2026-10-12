@@ -1,0 +1,186 @@
+schema_version: 0.1.0
+service_id: financial_transaction_regulatory_report_generator
+version: 1.0.0
+display_name: Financial Transaction Regulatory Report Generator
+category: ReportGenerator
+capability:
+  summary: Generates a configured regulatory report artifact, such as FATCA XML for
+    international accounts or IRS 1099-style data for domestic accounts, from a financial
+    transaction dataset.
+  operations:
+  - Read a structured financial transaction dataset.
+  - Filter rows by configured account-type values.
+  - Render a report using the configured regulatory report profile.
+  - Emit the report artifact and a status object with included record counts and profile
+    information.
+  keywords:
+  - finance
+  - regulatory reporting
+  - fatca
+  - irs
+  - '1099'
+  - report generation
+  - xml
+  limitations:
+  - Does not perform workflow branching or branch validation unless routing_decision
+    is bound and checked by parameters.
+  - Does not submit reports to external regulatory systems; it generates artifacts
+    for downstream handling.
+  - Exact field-level regulatory schemas must be supplied by report_profile, report_schema_version,
+    or implementation binding.
+  - Does not archive generated reports.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: transaction_dataset
+    description: Validated financial transaction dataset used as report source.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://validated_tabular_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  - name: routing_decision
+    description: Optional routing decision used to validate that the configured report
+      branch is applicable.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://financial_regulatory_routing_decision/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: regulatory_report
+    description: Rendered regulatory report artifact for the configured report profile.
+    channel: artifact
+    data_type: text
+    schema_ref: schema://financial_regulatory_report_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  - name: report_status
+    description: Observable report generation status including report profile, format,
+      records included, output URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://financial_regulatory_report_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: report_profile
+    description: Regulatory report profile to render.
+    type: string
+    required: true
+    enum:
+    - fatca_xml
+    - irs_1099
+  - name: account_type_column
+    description: Column containing account type values for report filtering.
+    type: string
+    required: true
+  - name: account_type_values
+    description: Account type values included in this report invocation.
+    type: array
+    required: true
+  - name: output_path
+    description: Deterministic artifact path or name for the generated report.
+    type: string
+    required: true
+  - name: report_schema_version
+    description: Optional regulatory schema/profile version used by the renderer.
+    type: string
+    required: false
+  - name: fail_if_route_not_selected
+    description: When true, fail if routing_decision indicates the requested report
+      path is not applicable.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: regulatory_report_dataset_schema
+  type: json_schema
+  applies_to: input
+  target: transaction_dataset
+  description: Input dataset must expose columns and rows.
+  schema_ref: schema://validated_tabular_dataset/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}}}}'
+- contract_id: regulatory_report_profile_contract
+  type: precondition
+  applies_to: parameter
+  target: report_profile
+  description: Report profile must be one of the supported regulatory report renderers.
+  expression: report_profile in ['fatca_xml','irs_1099'] and length(account_type_values)
+    > 0 and account_type_column in transaction_dataset.columns
+- contract_id: financial_regulatory_report_status_schema
+  type: json_schema
+  applies_to: output
+  target: report_status
+  description: Status exposes report rendering effect for workflow validation.
+  schema_ref: schema://financial_regulatory_report_status/v1
+  expression: '{"type":"object","required":["success","report_profile","report_format","records_included","output_uri"],"properties":{"success":{"type":"boolean"},"report_profile":{"type":"string"},"report_format":{"type":"string"},"records_included":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"schema_version":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: regulatory_report_generation_effect
+  type: effect
+  applies_to: service
+  target: financial_transaction_regulatory_report_generator
+  description: On success, a report artifact exists and status.success is true; included
+    records are drawn only from configured account-type values.
+  expression: report_status.success == true implies exists(regulatory_report) and
+    report_status.records_included >= 0
+invocation:
+  type: argo_workflow_template
+  template_name: financial-transaction-regulatory-report-generator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.financial_transaction_regulatory_report_generator
+  implementation_ref: services/implementations/financial_transaction_regulatory_report_generator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - financial
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Generated regulatory reports contain financial data and must not be logged as
+    raw content.
+  - External submission to FATCA or IRS systems would require a separate publisher/adapter
+    if specified.
+  idempotency_notes: Same input dataset, profile, schema version, and output path
+    produce the same report artifact.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:regulatory_report_router#route_to_fatca
+  - main:regulatory_report_router#route_to_irs
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service generates configurable FATCA/IRS regulatory
+    report artifacts from financial transactions.'
+  - 'Evidence status: strongly_inferred.'

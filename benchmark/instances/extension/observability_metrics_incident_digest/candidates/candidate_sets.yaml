@@ -1,0 +1,62 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:observability_metrics_incident_digest
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.4
+candidate_sets:
+- candidate_set_id: extension_observability_metrics_incident_digest_bounded_timeseries_event_ingestor_candidates
+  source_step_refs:
+  - ingest_bounded_events
+  service_ids:
+  - bounded_timeseries_event_ingestor
+  - reviewed_domain_adapter
+  - bounded_window_checkpoint_validator
+  - event_record_cleaner
+- candidate_set_id: extension_observability_metrics_incident_digest_bounded_window_checkpoint_validator_candidates
+  source_step_refs:
+  - validate_checkpoint_inputs
+  service_ids:
+  - bounded_window_checkpoint_validator
+  - event_record_cleaner
+  - external_workflow_completion_sensor
+  - iot_anomaly_feature_calculator
+- candidate_set_id: extension_observability_metrics_incident_digest_timeseries_record_sort_deduplicator_candidates
+  source_step_refs:
+  - sort_and_deduplicate_records
+  service_ids:
+  - timeseries_record_sort_deduplicator
+  - event_record_cleaner
+  - external_workflow_completion_sensor
+  - iot_anomaly_feature_calculator
+- candidate_set_id: extension_observability_metrics_incident_digest_bounded_analysis_window_builder_candidates
+  source_step_refs:
+  - build_analysis_windows
+  service_ids:
+  - bounded_analysis_window_builder
+  - external_workflow_completion_sensor
+  - iot_anomaly_feature_calculator
+  - dataset_quarantine_zone_writer
+- candidate_set_id: extension_observability_metrics_incident_digest_window_metric_aggregator_candidates
+  source_step_refs:
+  - compute_window_metrics
+  service_ids:
+  - window_metric_aggregator
+  - iot_anomaly_feature_calculator
+  - dataset_quarantine_zone_writer
+  - reviewed_domain_adapter
+- candidate_set_id: extension_observability_metrics_incident_digest_timeseries_index_alignment_transformer_candidates
+  source_step_refs:
+  - align_time_index
+  service_ids:
+  - timeseries_index_alignment_transformer
+  - dataset_quarantine_zone_writer
+  - reviewed_domain_adapter
+  - bounded_window_checkpoint_validator
+- candidate_set_id: extension_observability_metrics_incident_digest_timeseries_output_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - timeseries_output_bundle_publisher
+  - reviewed_domain_adapter
+  - bounded_window_checkpoint_validator
+  - event_record_cleaner

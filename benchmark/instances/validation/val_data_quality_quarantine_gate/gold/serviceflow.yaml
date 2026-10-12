@@ -1,0 +1,563 @@
+ir_version: 0.1.0
+composition_id: val_data_quality_quarantine_gate
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.2
+  sha256: 68ddbc259a9fa94eb8ee32f5a2f18163ba2a9e1fe3178ecdf3db70fa9a368fbe
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_data_quality_quarantine_gate
+  split: validation
+  pipeline_id: val_data_quality_quarantine_gate
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/14_val_data_quality_quarantine_gate.txt
+  description_sha256: fba9ba4d6961fc48578c33200a60d012bf54c640530c5e805276fa146fe58080
+  internal_spec_path: source/internal_specs/validation_20/14_val_data_quality_quarantine_gate.json
+  internal_spec_sha256: deeb36af11813790cd554d028c5b6129828ffb74b70616a7edcd05ff46db69d5
+requirement:
+  name: Val Data Quality Quarantine Gate
+  purpose: Profile a customer extract, evaluate quality rules, load valid records, quarantine invalid
+    records, and write an audit summary.
+  domain: validation_holdout
+  execution_model: batch
+  topology: branch_merge
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: customer_warehouse
+  type: database
+  name: Customer warehouse
+  identifier: customer_warehouse
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: quarantine_bucket
+  type: object_storage
+  name: Quarantine bucket
+  identifier: quarantine_bucket
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: profile_customer_extract
+  name: Profile Customer Extract
+  category: DataProfiler
+  capability: Perform the reviewed profile customer extract capability.
+  source_step_refs:
+  - profile_customer_extract
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: profile_customer_extract.'
+  inputs:
+  - customer_extract
+  outputs:
+  - profile_report
+  - profile_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared profile_report, profile_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: evaluate_quality_rules
+  name: Evaluate Quality Rules
+  category: QualityCheck
+  capability: Perform the reviewed evaluate quality rules capability.
+  source_step_refs:
+  - evaluate_quality_rules
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: evaluate_quality_rules.'
+  inputs:
+  - profile_report
+  - customer_extract
+  outputs:
+  - valid_records
+  - invalid_records
+  - quality_decision
+  - quality_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared valid_records, invalid_records, quality_decision, quality_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: load_valid_records
+  name: Load Valid Records
+  category: Loader
+  capability: Perform the reviewed load valid records capability.
+  source_step_refs:
+  - load_valid_records
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: load_valid_records.'
+  inputs:
+  - valid_records
+  - customer_warehouse_resource
+  outputs:
+  - valid_load_status
+  external_system_refs:
+  - customer_warehouse
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared valid_load_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: quarantine_invalid_records
+  name: Quarantine Invalid Records
+  category: Publisher
+  capability: Perform the reviewed quarantine invalid records capability.
+  source_step_refs:
+  - quarantine_invalid_records
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: quarantine_invalid_records.'
+  inputs:
+  - invalid_records
+  - quarantine_bucket_resource
+  outputs:
+  - quarantine_reference
+  - quarantine_status
+  external_system_refs:
+  - quarantine_bucket
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared quarantine_reference, quarantine_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: write_quality_audit
+  name: Write Quality Audit
+  category: ReportGenerator
+  capability: Perform the reviewed write quality audit capability.
+  source_step_refs:
+  - write_quality_audit
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: write_quality_audit.'
+  inputs:
+  - valid_load_status
+  - quarantine_status
+  outputs:
+  - quality_audit
+  - audit_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared quality_audit, audit_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: profile_customer_extract
+  disposition: service
+  intent_ids:
+  - profile_customer_extract
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: evaluate_quality_rules
+  disposition: service
+  intent_ids:
+  - evaluate_quality_rules
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: load_valid_records
+  disposition: service
+  intent_ids:
+  - load_valid_records
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: quarantine_invalid_records
+  disposition: service
+  intent_ids:
+  - quarantine_invalid_records
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: write_quality_audit
+  disposition: service
+  intent_ids:
+  - write_quality_audit
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: profile_customer_extract
+    to: evaluate_quality_rules
+  - from: evaluate_quality_rules
+    to: load_valid_records
+  - from: evaluate_quality_rules
+    to: quarantine_invalid_records
+  - from: load_valid_records
+    to: write_quality_audit
+  - from: quarantine_invalid_records
+    to: write_quality_audit
+  parallel_groups: []
+  branches:
+  - branch_id: quality_route
+    decision_intent: evaluate_quality_rules
+    decision_artifact: quality_decision
+    cases:
+    - case_id: quality_pass
+      condition: quality_decision.route == load_valid_records
+      next_intents:
+      - load_valid_records
+    - case_id: quality_fail
+      condition: quality_decision.route == quarantine_invalid_records
+      next_intents:
+      - quarantine_invalid_records
+    merge_intent: write_quality_audit
+  gates:
+  - gate_id: quality_score_gate
+    sensor_intent: evaluate_quality_rules
+    condition: quality_score_available == true
+    gated_intents:
+    - load_valid_records
+    - quarantine_invalid_records
+    - write_quality_audit
+artifacts:
+- artifact_id: customer_extract
+  name: Customer Extract
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: customer_warehouse_resource
+  name: Customer Warehouse Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: customer_warehouse
+- artifact_id: quarantine_bucket_resource
+  name: Quarantine Bucket Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: quarantine_bucket
+- artifact_id: profile_report
+  name: Profile Report
+  kind: artifact
+  data_type: json
+  role: intermediate
+  producer: profile_customer_extract
+  consumers:
+  - evaluate_quality_rules
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: profile_status
+  name: Profile Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: profile_customer_extract
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: valid_records
+  name: Valid Records
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: evaluate_quality_rules
+  consumers:
+  - load_valid_records
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: invalid_records
+  name: Invalid Records
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: evaluate_quality_rules
+  consumers:
+  - quarantine_invalid_records
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: quality_decision
+  name: Quality Decision
+  kind: artifact
+  data_type: json
+  role: output
+  producer: evaluate_quality_rules
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: quality_status
+  name: Quality Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: evaluate_quality_rules
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: valid_load_status
+  name: Valid Load Status
+  kind: artifact
+  data_type: status
+  role: intermediate
+  producer: load_valid_records
+  consumers:
+  - write_quality_audit
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: quarantine_reference
+  name: Quarantine Reference
+  kind: artifact
+  data_type: object
+  role: output
+  producer: quarantine_invalid_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: quarantine_status
+  name: Quarantine Status
+  kind: artifact
+  data_type: status
+  role: intermediate
+  producer: quarantine_invalid_records
+  consumers:
+  - write_quality_audit
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: quality_audit
+  name: Quality Audit
+  kind: artifact
+  data_type: json
+  role: output
+  producer: write_quality_audit
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: audit_status
+  name: Audit Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: write_quality_audit
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: profile_customer_extract
+  service_id: customer_extract_profiler
+  service_version: 1.0.0
+  input_bindings:
+  - port: customer_extract
+    artifact_id: customer_extract
+  output_bindings:
+  - port: profile_report
+    artifact_id: profile_report
+  - port: profile_status
+    artifact_id: profile_status
+  parameter_bindings:
+    profile_rules:
+      null_threshold: 0.05
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: evaluate_quality_rules
+  service_id: customer_quality_rule_evaluator
+  service_version: 1.0.0
+  input_bindings:
+  - port: profile_report
+    artifact_id: profile_report
+  - port: customer_extract
+    artifact_id: customer_extract
+  output_bindings:
+  - port: valid_records
+    artifact_id: valid_records
+  - port: invalid_records
+    artifact_id: invalid_records
+  - port: quality_decision
+    artifact_id: quality_decision
+  - port: quality_status
+    artifact_id: quality_status
+  parameter_bindings:
+    quality_rules:
+      required:
+      - customer_id
+      - email
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: load_valid_records
+  service_id: valid_customer_records_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: valid_records
+    artifact_id: valid_records
+  - port: customer_warehouse
+    artifact_id: customer_warehouse_resource
+  output_bindings:
+  - port: valid_load_status
+    artifact_id: valid_load_status
+  parameter_bindings:
+    target_table: customer_validated
+    write_mode: upsert
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: quarantine_invalid_records
+  service_id: invalid_customer_records_quarantine_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: invalid_records
+    artifact_id: invalid_records
+  - port: quarantine_bucket
+    artifact_id: quarantine_bucket_resource
+  output_bindings:
+  - port: quarantine_reference
+    artifact_id: quarantine_reference
+  - port: quarantine_status
+    artifact_id: quarantine_status
+  parameter_bindings:
+    quarantine_prefix: customer_extract/
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: write_quality_audit
+  service_id: quality_audit_summary_writer
+  service_version: 1.0.0
+  input_bindings:
+  - port: valid_load_status
+    artifact_id: valid_load_status
+  - port: quarantine_status
+    artifact_id: quarantine_status
+  output_bindings:
+  - port: quality_audit
+    artifact_id: quality_audit
+  - port: audit_status
+    artifact_id: audit_status
+  parameter_bindings:
+    audit_name: customer_quality_audit
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

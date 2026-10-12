@@ -1,0 +1,57 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:data-transformation-pipeline
+candidate_sets:
+- candidate_set_id: main_data_transformation_pipeline_workflow_load_id_generator_candidates
+  required_service_id: workflow_load_id_generator
+  labels:
+    workflow_load_id_generator: gold
+    retention_cutoff_config_resolver: missing_required_output
+    execution_date_backup_strategy_decider: semantic_mismatch
+    runtime_parameter_allowed_values_validator: missing_required_output
+    dataform_compilation_config_builder: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_data_transformation_pipeline_dataform_compilation_config_builder_candidates
+  required_service_id: dataform_compilation_config_builder
+  labels:
+    dataform_compilation_config_builder: gold
+    runtime_parameter_allowed_values_validator: missing_required_output
+    json_field_projection_transformer: format_mismatch
+    retention_cutoff_config_resolver: semantic_mismatch
+    google_dataform_compilation_result_creator: target_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_data_transformation_pipeline_google_dataform_compilation_result_creator_candidates
+  required_service_id: google_dataform_compilation_result_creator
+  labels:
+    google_dataform_compilation_result_creator: gold
+    google_dataform_workflow_invocation_creator: target_mismatch
+    external_workflow_run_trigger: contract_mismatch
+    http_json_request_extractor: contract_mismatch
+    google_dataform_workflow_invocation_sensor: missing_required_output
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_data_transformation_pipeline_google_dataform_workflow_invocation_creator_candidates
+  required_service_id: google_dataform_workflow_invocation_creator
+  labels:
+    google_dataform_workflow_invocation_creator: gold
+    google_dataform_compilation_result_creator: target_mismatch
+    external_workflow_run_trigger: contract_mismatch
+    google_dataform_workflow_invocation_sensor: missing_required_output
+    databricks_notebook_run_executor: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_data_transformation_pipeline_google_dataform_workflow_invocation_sensor_candidates
+  required_service_id: google_dataform_workflow_invocation_sensor
+  labels:
+    google_dataform_workflow_invocation_sensor: gold
+    google_dataform_workflow_invocation_creator: target_mismatch
+    external_workflow_completion_sensor: contract_mismatch
+    external_workflow_task_completion_sensor: contract_mismatch
+    sql_query_readiness_sensor: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_data_transformation_pipeline_temporary_resource_cleanup_candidates
+  required_service_id: temporary_resource_cleanup
+  labels:
+    temporary_resource_cleanup: gold
+    filesystem_retention_cleanup_with_lock: contract_mismatch
+    redis_key_cleanup: target_mismatch
+    database_expired_session_cleanup: target_mismatch
+    airflow_metadata_retention_cleaner: target_mismatch
+    dataset_quarantine_zone_writer: semantic_mismatch

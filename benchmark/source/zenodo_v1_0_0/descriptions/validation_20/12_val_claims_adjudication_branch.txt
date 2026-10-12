@@ -1,0 +1,77 @@
+Pipeline Summary:
+- Pipeline ID: val_claims_adjudication_branch
+- Name: Claims Adjudication Branch
+- Purpose: Score insurance claims, route high-risk claims to manual adjudication, auto-approve low-risk claims, and produce a settlement summary.
+- Execution model: Batch
+- Topology pattern: Branch/merge
+- Business domain: Insurance
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_claims -> score_claim_risk
+  - score_claim_risk -> route_claim
+  - route_claim -> manual_adjudication
+  - route_claim -> auto_approve_claim
+  - manual_adjudication -> write_settlement_summary
+  - auto_approve_claim -> write_settlement_summary
+- Parallel groups:
+  - none
+- Branch points:
+  - {'step': 'route_claim', 'conditions': ['risk_score >= 0.75', 'risk_score < 0.75'], 'merge_step': 'write_settlement_summary'}
+- Gate or sensor dependencies:
+  - none
+
+Data Artifacts / I-O Identifiers:
+  - data_object: claim_batch
+  - data_object: risk_scores
+  - data_object: settlement_summary
+
+External Systems:
+  - external_service: Claims database
+  - external_service: Risk scoring service
+
+Pipeline Steps:
+1. ingest_claims - ingest claims
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. score_claim_risk - score claim risk
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. route_claim - route claim
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+4. manual_adjudication - manual adjudication
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+5. auto_approve_claim - auto approve claim
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+6. write_settlement_summary - write settlement summary
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

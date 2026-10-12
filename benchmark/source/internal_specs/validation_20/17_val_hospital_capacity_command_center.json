@@ -1,0 +1,412 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_hospital_capacity_command_center",
+  "pipeline_name": "Hospital Capacity Command Center",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_hospital_capacity_command_center.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Wait for clinical census data, combine admissions, bed status, staffing, and discharge forecasts, then publish capacity alerts.",
+    "business_domain": "Healthcare Operations",
+    "execution_model": "Batch",
+    "topology_pattern": "Mixed",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "wait_for_census_snapshot",
+        "to": "extract_admissions"
+      },
+      {
+        "from": "wait_for_census_snapshot",
+        "to": "extract_bed_status"
+      },
+      {
+        "from": "wait_for_census_snapshot",
+        "to": "extract_staffing_roster"
+      },
+      {
+        "from": "wait_for_census_snapshot",
+        "to": "extract_discharge_forecast"
+      },
+      {
+        "from": "extract_admissions",
+        "to": "merge_operational_state"
+      },
+      {
+        "from": "extract_bed_status",
+        "to": "merge_operational_state"
+      },
+      {
+        "from": "extract_staffing_roster",
+        "to": "merge_operational_state"
+      },
+      {
+        "from": "extract_discharge_forecast",
+        "to": "merge_operational_state"
+      },
+      {
+        "from": "merge_operational_state",
+        "to": "compute_capacity_risk"
+      },
+      {
+        "from": "compute_capacity_risk",
+        "to": "route_alert_level"
+      },
+      {
+        "from": "route_alert_level",
+        "to": "publish_dashboard"
+      },
+      {
+        "from": "route_alert_level",
+        "to": "send_escalation_alert"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "steps": [
+          "extract_admissions",
+          "extract_bed_status",
+          "extract_staffing_roster",
+          "extract_discharge_forecast"
+        ]
+      }
+    ],
+    "branch_points": [
+      {
+        "step": "route_alert_level",
+        "conditions": [
+          "normal",
+          "critical"
+        ],
+        "merge_step": null
+      }
+    ],
+    "gates": [
+      {
+        "step": "wait_for_census_snapshot",
+        "condition": "census_snapshot_ready"
+      }
+    ]
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "EHR database",
+      "identifier": "ehr_database",
+      "details": [
+        "Validation external dependency: EHR database"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Staffing system",
+      "identifier": "staffing_system",
+      "details": [
+        "Validation external dependency: Staffing system"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Forecast API",
+      "identifier": "forecast_api",
+      "details": [
+        "Validation external dependency: Forecast API"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Alerting service",
+      "identifier": "alerting_service",
+      "details": [
+        "Validation external dependency: Alerting service"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "census_snapshot",
+        "description": "Validation artifact: census_snapshot"
+      },
+      {
+        "identifier": "bed_status",
+        "description": "Validation artifact: bed_status"
+      },
+      {
+        "identifier": "staffing_roster",
+        "description": "Validation artifact: staffing_roster"
+      },
+      {
+        "identifier": "capacity_dashboard",
+        "description": "Validation artifact: capacity_dashboard"
+      },
+      {
+        "identifier": "alert_payload",
+        "description": "Validation artifact: alert_payload"
+      },
+      {
+        "identifier": "risk_report",
+        "description": "Validation artifact: risk_report"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "wait_for_census_snapshot",
+      "name": "wait_for_census_snapshot",
+      "objective": "Wait for census snapshot",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "extract_admissions",
+      "name": "extract_admissions",
+      "objective": "Extract admissions",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "extract_bed_status",
+      "name": "extract_bed_status",
+      "objective": "Extract bed status",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "extract_staffing_roster",
+      "name": "extract_staffing_roster",
+      "objective": "Extract staffing roster",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "extract_discharge_forecast",
+      "name": "extract_discharge_forecast",
+      "objective": "Extract discharge forecast",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "merge_operational_state",
+      "name": "merge_operational_state",
+      "objective": "Merge operational state",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "compute_capacity_risk",
+      "name": "compute_capacity_risk",
+      "objective": "Compute capacity risk",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "route_alert_level",
+      "name": "route_alert_level",
+      "objective": "Route alert level",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_dashboard",
+      "name": "publish_dashboard",
+      "objective": "Publish dashboard",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "send_escalation_alert",
+      "name": "send_escalation_alert",
+      "objective": "Send escalation alert",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

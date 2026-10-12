@@ -1,0 +1,30 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:procurement_supplier_validation_v1
+candidate_sets:
+- candidate_set_id: main_procurement_supplier_validation_v1_csv_to_structured_json_table_formatter_candidates
+  required_service_id: csv_to_structured_json_table_formatter
+  labels:
+    csv_to_structured_json_table_formatter: gold
+    csv_to_structured_json_standardizer: contract_mismatch
+    csv_tabular_schema_validating_loader: missing_required_output
+    customer_segment_csv_loader: target_mismatch
+    delimited_file_tabular_dataset_loader: format_mismatch
+    legacy_csv_schema_validator: deprecated_or_incompatible
+- candidate_set_id: main_procurement_supplier_validation_v1_wikidata_entity_reconciliation_transformer_candidates
+  required_service_id: wikidata_entity_reconciliation_transformer
+  labels:
+    wikidata_entity_reconciliation_transformer: gold
+    tabular_entity_reconciliation_enricher: target_mismatch
+    tabular_http_property_extension_enricher: semantic_mismatch
+    graphql_json_operation_executor: contract_mismatch
+    http_json_request_extractor: missing_required_output
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_procurement_supplier_validation_v1_structured_json_to_csv_exporter_candidates
+  required_service_id: structured_json_to_csv_exporter
+  labels:
+    structured_json_to_csv_exporter: gold
+    tabular_query_result_csv_writer: format_mismatch
+    structured_json_batch_to_csv_exporter: contract_mismatch
+    validated_parquet_to_csv_report_exporter: format_mismatch
+    csv_to_structured_json_standardizer: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch

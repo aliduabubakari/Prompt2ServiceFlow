@@ -1,0 +1,599 @@
+ir_version: 0.1.0
+composition_id: val_iot_sensor_fusion
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.2
+  sha256: 68ddbc259a9fa94eb8ee32f5a2f18163ba2a9e1fe3178ecdf3db70fa9a368fbe
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_iot_sensor_fusion
+  split: validation
+  pipeline_id: val_iot_sensor_fusion
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/11_val_iot_sensor_fusion.txt
+  description_sha256: 41f9db18d5a63e8e0ae34bdece33a994c3bddc1603ca907c958f637eceb27b7f
+  internal_spec_path: source/internal_specs/validation_20/11_val_iot_sensor_fusion.json
+  internal_spec_sha256: dbb507142f9d5456d39125a5be5e0f570bf5dba5973f3d5767d00e5f23b8b3f9
+requirement:
+  name: Val Iot Sensor Fusion
+  purpose: Collect temperature, vibration, and pressure sensor feeds in parallel, align them by timestamp,
+    compute anomaly features, and write a fused dataset.
+  domain: validation_holdout
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: iot_broker
+  type: http_api
+  name: IoT broker
+  identifier: iot_broker
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: timeseries_database
+  type: database
+  name: Time-series database
+  identifier: timeseries_database
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: collect_temperature_feed
+  name: Collect Temperature Feed
+  category: Extractor
+  capability: Perform the reviewed collect temperature feed capability.
+  source_step_refs:
+  - collect_temperature_feed
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: collect_temperature_feed.'
+  inputs:
+  - iot_broker_resource
+  outputs:
+  - temperature_feed
+  - temperature_collection_status
+  external_system_refs:
+  - iot_broker
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared temperature_feed, temperature_collection_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: collect_vibration_feed
+  name: Collect Vibration Feed
+  category: Extractor
+  capability: Perform the reviewed collect vibration feed capability.
+  source_step_refs:
+  - collect_vibration_feed
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: collect_vibration_feed.'
+  inputs:
+  - iot_broker_resource
+  outputs:
+  - vibration_feed
+  - vibration_collection_status
+  external_system_refs:
+  - iot_broker
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared vibration_feed, vibration_collection_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: collect_pressure_feed
+  name: Collect Pressure Feed
+  category: Extractor
+  capability: Perform the reviewed collect pressure feed capability.
+  source_step_refs:
+  - collect_pressure_feed
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: collect_pressure_feed.'
+  inputs:
+  - iot_broker_resource
+  outputs:
+  - pressure_feed
+  - pressure_collection_status
+  external_system_refs:
+  - iot_broker
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared pressure_feed, pressure_collection_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: align_sensor_windows
+  name: Align Sensor Windows
+  category: Integrator
+  capability: Perform the reviewed align sensor windows capability.
+  source_step_refs:
+  - align_sensor_windows
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: align_sensor_windows.'
+  inputs:
+  - temperature_feed
+  - vibration_feed
+  - pressure_feed
+  outputs:
+  - aligned_sensor_windows
+  - alignment_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared aligned_sensor_windows, alignment_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: compute_anomaly_features
+  name: Compute Anomaly Features
+  category: Transformer
+  capability: Perform the reviewed compute anomaly features capability.
+  source_step_refs:
+  - compute_anomaly_features
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: compute_anomaly_features.'
+  inputs:
+  - aligned_sensor_windows
+  outputs:
+  - anomaly_features
+  - anomaly_feature_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared anomaly_features, anomaly_feature_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: write_fused_dataset
+  name: Write Fused Dataset
+  category: Loader
+  capability: Perform the reviewed write fused dataset capability.
+  source_step_refs:
+  - write_fused_dataset
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: write_fused_dataset.'
+  inputs:
+  - anomaly_features
+  - timeseries_database_resource
+  outputs:
+  - fused_dataset_reference
+  - fused_write_status
+  external_system_refs:
+  - timeseries_database
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared fused_dataset_reference, fused_write_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: collect_temperature_feed
+  disposition: service
+  intent_ids:
+  - collect_temperature_feed
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: collect_vibration_feed
+  disposition: service
+  intent_ids:
+  - collect_vibration_feed
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: collect_pressure_feed
+  disposition: service
+  intent_ids:
+  - collect_pressure_feed
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: align_sensor_windows
+  disposition: service
+  intent_ids:
+  - align_sensor_windows
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: compute_anomaly_features
+  disposition: service
+  intent_ids:
+  - compute_anomaly_features
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: write_fused_dataset
+  disposition: service
+  intent_ids:
+  - write_fused_dataset
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: collect_temperature_feed
+    to: align_sensor_windows
+  - from: collect_vibration_feed
+    to: align_sensor_windows
+  - from: collect_pressure_feed
+    to: align_sensor_windows
+  - from: align_sensor_windows
+    to: compute_anomaly_features
+  - from: compute_anomaly_features
+    to: write_fused_dataset
+  parallel_groups:
+  - group_id: sensor_feed_collection
+    intent_ids:
+    - collect_temperature_feed
+    - collect_vibration_feed
+    - collect_pressure_feed
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: iot_broker_resource
+  name: Iot Broker Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: iot_broker
+- artifact_id: timeseries_database_resource
+  name: Timeseries Database Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: timeseries_database
+- artifact_id: temperature_feed
+  name: Temperature Feed
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: collect_temperature_feed
+  consumers:
+  - align_sensor_windows
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: temperature_collection_status
+  name: Temperature Collection Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: collect_temperature_feed
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: vibration_feed
+  name: Vibration Feed
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: collect_vibration_feed
+  consumers:
+  - align_sensor_windows
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: vibration_collection_status
+  name: Vibration Collection Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: collect_vibration_feed
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: pressure_feed
+  name: Pressure Feed
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: collect_pressure_feed
+  consumers:
+  - align_sensor_windows
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: pressure_collection_status
+  name: Pressure Collection Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: collect_pressure_feed
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: aligned_sensor_windows
+  name: Aligned Sensor Windows
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: align_sensor_windows
+  consumers:
+  - compute_anomaly_features
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: alignment_status
+  name: Alignment Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: align_sensor_windows
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: anomaly_features
+  name: Anomaly Features
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: compute_anomaly_features
+  consumers:
+  - write_fused_dataset
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: anomaly_feature_status
+  name: Anomaly Feature Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: compute_anomaly_features
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: fused_dataset_reference
+  name: Fused Dataset Reference
+  kind: artifact
+  data_type: object
+  role: output
+  producer: write_fused_dataset
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: fused_write_status
+  name: Fused Write Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: write_fused_dataset
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: collect_temperature_feed
+  service_id: iot_broker_sensor_feed_collector
+  service_version: 1.0.0
+  input_bindings:
+  - port: iot_broker
+    artifact_id: iot_broker_resource
+  output_bindings:
+  - port: sensor_feed
+    artifact_id: temperature_feed
+  - port: collection_status
+    artifact_id: temperature_collection_status
+  parameter_bindings:
+    feed_type: temperature
+    window_minutes: 60
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: collect_vibration_feed
+  service_id: iot_broker_sensor_feed_collector
+  service_version: 1.0.0
+  input_bindings:
+  - port: iot_broker
+    artifact_id: iot_broker_resource
+  output_bindings:
+  - port: sensor_feed
+    artifact_id: vibration_feed
+  - port: collection_status
+    artifact_id: vibration_collection_status
+  parameter_bindings:
+    feed_type: vibration
+    window_minutes: 60
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: collect_pressure_feed
+  service_id: iot_broker_sensor_feed_collector
+  service_version: 1.0.0
+  input_bindings:
+  - port: iot_broker
+    artifact_id: iot_broker_resource
+  output_bindings:
+  - port: sensor_feed
+    artifact_id: pressure_feed
+  - port: collection_status
+    artifact_id: pressure_collection_status
+  parameter_bindings:
+    feed_type: pressure
+    window_minutes: 60
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: align_sensor_windows
+  service_id: sensor_window_alignment_fuser
+  service_version: 1.0.0
+  input_bindings:
+  - port: temperature_feed
+    artifact_id: temperature_feed
+  - port: vibration_feed
+    artifact_id: vibration_feed
+  - port: pressure_feed
+    artifact_id: pressure_feed
+  output_bindings:
+  - port: aligned_sensor_windows
+    artifact_id: aligned_sensor_windows
+  - port: alignment_status
+    artifact_id: alignment_status
+  parameter_bindings:
+    timestamp_column: event_ts
+    window_seconds: 60
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: compute_anomaly_features
+  service_id: iot_anomaly_feature_calculator
+  service_version: 1.0.0
+  input_bindings:
+  - port: aligned_sensor_windows
+    artifact_id: aligned_sensor_windows
+  output_bindings:
+  - port: anomaly_features
+    artifact_id: anomaly_features
+  - port: feature_status
+    artifact_id: anomaly_feature_status
+  parameter_bindings:
+    feature_profile:
+      rolling_window: 5
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: write_fused_dataset
+  service_id: timeseries_fused_dataset_writer
+  service_version: 1.0.0
+  input_bindings:
+  - port: anomaly_features
+    artifact_id: anomaly_features
+  - port: timeseries_database
+    artifact_id: timeseries_database_resource
+  output_bindings:
+  - port: fused_dataset_reference
+    artifact_id: fused_dataset_reference
+  - port: write_status
+    artifact_id: fused_write_status
+  parameter_bindings:
+    measurement_name: fused_anomalies
+    write_mode: upsert
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

@@ -1,0 +1,65 @@
+Pipeline Summary:
+- Pipeline ID: diversity-v1__energy_tariff_stage_load.py
+- Name: energy_tariff_stage_load
+- Purpose: Energy Tariff Stage Load is a synthetic data-preparation workflow for Environmental/Energy.
+- Execution model: batch
+- Topology pattern: staged
+- Business domain: Environmental/Energy
+- Notes: Synthetic Diversity-40 source; use only as benchmark input and not as hidden gold evidence.
+
+Control Flow:
+- Dependencies (directed edges):
+  - extract_source -> validate_schema
+  - validate_schema -> stage_raw_data
+  - stage_raw_data -> transform_stage
+  - transform_stage -> quality_gate
+  - quality_gate -> publish_dataset
+
+Data Artifacts / I-O Identifiers:
+- file: raw_input.csv (Synthetic input data)
+- file: prepared_output.parquet (Prepared output dataset)
+
+External Systems:
+- object_storage: Fixture-backed source and publication location
+
+Pipeline Steps:
+1. extract_source — extract_source
+  - Objective: Extract the source dataset into a raw tabular artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_schema — validate_schema
+  - Objective: Validate required columns, formats, and record identity.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. stage_raw_data — stage_raw_data
+  - Objective: Persist validated data to an auditable staging area.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. transform_stage — transform_stage
+  - Objective: Transform staged records into the canonical data model.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. quality_gate — quality_gate
+  - Objective: Assess transformed data before promotion.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. publish_dataset — publish_dataset
+  - Objective: Promote approved records to the final dataset.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

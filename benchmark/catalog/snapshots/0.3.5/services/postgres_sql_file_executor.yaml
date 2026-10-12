@@ -1,0 +1,174 @@
+schema_version: 0.1.0
+service_id: postgres_sql_file_executor
+version: 1.0.0
+display_name: PostgreSQL SQL File Executor
+category: Loader
+capability:
+  summary: Reads a SQL script artifact and executes its statements against a bound
+    PostgreSQL database, emitting affected table references and execution status.
+  operations:
+  - Read SQL text from an artifact file.
+  - Split or submit SQL statements in configured transaction mode.
+  - Execute statements against a bound PostgreSQL-compatible database.
+  - Emit affected table references and execution status.
+  keywords:
+  - postgresql
+  - sql file
+  - script
+  - ddl
+  - dml
+  - database mutation
+  - loader
+  limitations:
+  - Targets PostgreSQL-compatible databases only.
+  - Does not validate arbitrary business SQL semantics.
+  - Idempotency depends on supplied SQL.
+  - Does not manage workflow retries or branch routing.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: sql_script_file
+    description: SQL script file artifact to execute.
+    channel: artifact
+    data_type: text
+    media_type: text/plain
+    schema_ref: schema://sql_script_file/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: postgres_database
+    description: PostgreSQL-compatible database resource.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://postgres_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: affected_tables
+    description: Logical references to PostgreSQL tables affected or expected to be
+      affected.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://sql_affected_table_references/v1
+    required: true
+    cardinality: many
+    sensitivity: internal
+  - name: execution_status
+    description: Observable SQL execution status.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://postgres_sql_file_execution_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: target_tables
+    description: Expected affected table names, optionally schema-qualified.
+    type: array
+    required: false
+  - name: transaction_mode
+    description: Transaction behavior for the script.
+    type: string
+    required: false
+    enum:
+    - single_transaction
+    - autocommit
+  - name: statement_type
+    description: Declared statement class for policy/mock validation.
+    type: string
+    required: false
+    enum:
+    - ddl
+    - dml
+    - mixed
+  secrets: []
+contracts:
+- contract_id: postgres_sql_file_readable_non_empty
+  type: precondition
+  applies_to: input
+  target: sql_script_file
+  description: SQL file must be readable and contain at least one non-empty statement.
+  expression: readable(sql_script_file) and length(trim(read_text(sql_script_file)))
+    > 0
+- contract_id: postgres_sql_file_target_table_contract
+  type: precondition
+  applies_to: parameter
+  target: target_tables
+  description: Configured target table names must be identifier-like names.
+  expression: target_tables == null or all(t matches '^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)?$'
+    for t in target_tables)
+- contract_id: postgres_sql_file_execution_status_schema
+  type: json_schema
+  applies_to: output
+  target: execution_status
+  description: Status exposes script execution outcome.
+  schema_ref: schema://postgres_sql_file_execution_status/v1
+  expression: '{"type":"object","required":["success","statements_submitted","statements_succeeded","affected_tables"],"properties":{"success":{"type":"boolean"},"statements_submitted":{"type":"integer","minimum":0},"statements_succeeded":{"type":"integer","minimum":0},"rows_affected":{"type":["integer","null"],"minimum":0},"affected_tables":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: postgres_sql_file_execution_effect
+  type: effect
+  applies_to: service
+  target: postgres_sql_file_executor
+  description: On success, all submitted SQL statements completed and status.success
+    is true.
+  expression: execution_status.success == true implies execution_status.statements_succeeded
+    == execution_status.statements_submitted
+invocation:
+  type: argo_workflow_template
+  template_name: postgres-sql-file-executor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.postgres_sql_file_executor
+  implementation_ref: services/implementations/postgres_sql_file_executor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - postgresql://*
+  secret_access: required
+  retry_safe: false
+  idempotency: unknown
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit PostgreSQL credentials or full SQL contents in status.
+  - Caller-supplied SQL should be reviewed or constrained before binding.
+  idempotency_notes: DDL may be idempotent if written with IF NOT EXISTS; insert scripts
+    can duplicate rows unless constrained.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:global_dag#staging_pipeline.create_death_table
+  - main:global_dag#staging_pipeline.create_power_plants_table
+  - main:global_dag#staging_pipeline.store_deaths_in_postgres
+  - main:global_dag#staging_pipeline.store_plants_in_postgres
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing PostgreSQL SQL executor accepts SQL statements as parameters,
+    not script file artifacts; preserving the SQL file boundary is required for this
+    pipeline.'
+  - 'Evidence status: explicit.'

@@ -1,0 +1,55 @@
+Pipeline Summary:
+- Pipeline ID: val_csv_to_warehouse_daily
+- Name: Daily CSV to Warehouse Load
+- Purpose: Load a daily sales CSV, validate required columns, and write clean rows into a warehouse table.
+- Execution model: Batch
+- Topology pattern: Linear
+- Business domain: Retail Analytics
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - detect_daily_file -> validate_columns
+  - validate_columns -> load_sales_table
+- Parallel groups:
+  - none
+- Branch points:
+  - none
+- Gate or sensor dependencies:
+  - none
+
+Data Artifacts / I-O Identifiers:
+  - data_object: daily_sales.csv
+  - data_object: validated_sales_frame
+  - data_object: sales_fact_table
+
+External Systems:
+  - external_service: SFTP drop zone
+  - external_service: PostgreSQL warehouse
+
+Pipeline Steps:
+1. detect_daily_file - detect daily file
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. validate_columns - validate columns
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. load_sales_table - load sales table
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

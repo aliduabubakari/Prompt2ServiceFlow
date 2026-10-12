@@ -1,0 +1,77 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: supply_chain_shipment_etl
+image: python:3.12-slim
+workflow_parameters:
+- name: vendor-a-fixture
+  default: vendor_a_shipments.csv
+- name: vendor-b-fixture
+  default: vendor_b_shipments.csv
+- name: vendor-c-fixture
+  default: vendor_c_shipments.csv
+tasks:
+- intent_id: ingest_vendor_a
+  script: scripts/01_ingest_vendor_a.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{vendor-a-fixture}'
+  - --vendor
+  - vendor_a
+  retries: 2
+- intent_id: ingest_vendor_b
+  script: scripts/02_ingest_vendor_b.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{vendor-b-fixture}'
+  - --vendor
+  - vendor_b
+  retries: 2
+- intent_id: ingest_vendor_c
+  script: scripts/03_ingest_vendor_c.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{vendor-c-fixture}'
+  - --vendor
+  - vendor_c
+  retries: 2
+- intent_id: cleanse_data
+  script: scripts/04_cleanse_data.py
+  dependencies:
+  - ingest_vendor_a
+  - ingest_vendor_b
+  - ingest_vendor_c
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: load_to_db
+  script: scripts/05_load_to_db.py
+  dependencies:
+  - cleanse_data
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: send_summary_email
+  script: scripts/06_send_summary_email.py
+  dependencies:
+  - load_to_db
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+scenarios:
+- name: three_vendor_etl
+  parameters:
+    vendor-a-fixture: vendor_a_shipments.csv
+    vendor-b-fixture: vendor_b_shipments.csv
+    vendor-c-fixture: vendor_c_shipments.csv
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

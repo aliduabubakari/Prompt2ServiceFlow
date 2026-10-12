@@ -1,0 +1,18 @@
+binding_gold_version: 0.1.0
+benchmark_id: main:content_moderation_pipeline
+bindings:
+- intent_id: scan_csv
+  service_id: user_content_csv_scanner
+  service_version: 1.0.0
+- intent_id: toxicity_check
+  service_id: content_toxicity_route_decider
+  service_version: 1.0.0
+- intent_id: remove_and_flag_content
+  service_id: moderated_content_action_transformer
+  service_version: 1.0.0
+- intent_id: publish_content
+  service_id: safe_content_publication_publisher
+  service_version: 1.0.0
+- intent_id: audit_log
+  service_id: moderation_audit_log_entry_creator
+  service_version: 1.0.0

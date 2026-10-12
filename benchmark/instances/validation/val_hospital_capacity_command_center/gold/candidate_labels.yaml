@@ -1,0 +1,45 @@
+candidate_label_version: 0.1.0
+benchmark_id: validation:val_hospital_capacity_command_center
+candidate_sets:
+- candidate_set_id: validation_val_hospital_capacity_command_center_multi_resource_readiness_sensor_candidates
+  required_service_id: multi_resource_readiness_sensor
+  labels:
+    multi_resource_readiness_sensor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    temporary_resource_cleanup: generic_escape_hatch
+- candidate_set_id: validation_val_hospital_capacity_command_center_hospital_operational_feed_extractor_candidates
+  required_service_id: hospital_operational_feed_extractor
+  labels:
+    hospital_operational_feed_extractor: gold
+    temporary_resource_cleanup: semantic_mismatch
+    http_json_request_extractor: generic_escape_hatch
+- candidate_set_id: validation_val_hospital_capacity_command_center_hospital_operational_state_merger_candidates
+  required_service_id: hospital_operational_state_merger
+  labels:
+    hospital_operational_state_merger: gold
+    http_json_request_extractor: semantic_mismatch
+    tabular_dataset_database_loader: generic_escape_hatch
+- candidate_set_id: validation_val_hospital_capacity_command_center_capacity_risk_calculator_candidates
+  required_service_id: capacity_risk_calculator
+  labels:
+    capacity_risk_calculator: gold
+    tabular_dataset_database_loader: semantic_mismatch
+    bi_dashboard_refresh_trigger: generic_escape_hatch
+- candidate_set_id: validation_val_hospital_capacity_command_center_alert_level_route_decider_candidates
+  required_service_id: alert_level_route_decider
+  labels:
+    alert_level_route_decider: gold
+    bi_dashboard_refresh_trigger: semantic_mismatch
+    parquet_tabular_data_profiler: generic_escape_hatch
+- candidate_set_id: validation_val_hospital_capacity_command_center_capacity_dashboard_publisher_candidates
+  required_service_id: capacity_dashboard_publisher
+  labels:
+    capacity_dashboard_publisher: gold
+    parquet_tabular_data_profiler: semantic_mismatch
+    bulk_email_campaign_sender: generic_escape_hatch
+- candidate_set_id: validation_val_hospital_capacity_command_center_escalation_alert_sender_candidates
+  required_service_id: escalation_alert_sender
+  labels:
+    escalation_alert_sender: gold
+    bulk_email_campaign_sender: semantic_mismatch
+    file_location_availability_sensor: generic_escape_hatch

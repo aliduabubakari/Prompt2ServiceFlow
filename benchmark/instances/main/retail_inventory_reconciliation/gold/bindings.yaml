@@ -1,0 +1,33 @@
+binding_gold_version: 0.1.0
+benchmark_id: main:retail_inventory_reconciliation
+bindings:
+- intent_id: fetch_north_warehouse_csv
+  service_id: warehouse_inventory_csv_extractor
+  service_version: 1.0.0
+- intent_id: fetch_south_warehouse_csv
+  service_id: warehouse_inventory_csv_extractor
+  service_version: 1.0.0
+- intent_id: fetch_east_warehouse_csv
+  service_id: warehouse_inventory_csv_extractor
+  service_version: 1.0.0
+- intent_id: fetch_west_warehouse_csv
+  service_id: warehouse_inventory_csv_extractor
+  service_version: 1.0.0
+- intent_id: normalize_north_skus
+  service_id: inventory_sku_csv_normalizer
+  service_version: 1.0.0
+- intent_id: normalize_south_skus
+  service_id: inventory_sku_csv_normalizer
+  service_version: 1.0.0
+- intent_id: normalize_east_skus
+  service_id: inventory_sku_csv_normalizer
+  service_version: 1.0.0
+- intent_id: normalize_west_skus
+  service_id: inventory_sku_csv_normalizer
+  service_version: 1.0.0
+- intent_id: reconcile_all_inventories
+  service_id: multi_warehouse_inventory_discrepancy_reconciler
+  service_version: 1.0.0
+- intent_id: generate_final_report
+  service_id: inventory_reconciliation_pdf_report_generator
+  service_version: 1.0.0

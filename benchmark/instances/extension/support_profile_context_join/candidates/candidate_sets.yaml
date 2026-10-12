@@ -1,0 +1,62 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:support_profile_context_join
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.3
+candidate_sets:
+- candidate_set_id: extension_support_profile_context_join_api_table_primary_source_ingestor_candidates
+  source_step_refs:
+  - ingest_primary_source
+  service_ids:
+  - api_table_primary_source_ingestor
+  - reviewed_domain_adapter
+  - sensor_window_alignment_fuser
+  - iot_anomaly_feature_calculator
+- candidate_set_id: extension_support_profile_context_join_api_table_secondary_source_ingestor_candidates
+  source_step_refs:
+  - ingest_secondary_source
+  service_ids:
+  - api_table_secondary_source_ingestor
+  - sensor_window_alignment_fuser
+  - iot_anomaly_feature_calculator
+  - event_record_cleaner
+- candidate_set_id: extension_support_profile_context_join_api_table_reference_source_ingestor_candidates
+  source_step_refs:
+  - ingest_reference_source
+  service_ids:
+  - api_table_reference_source_ingestor
+  - iot_anomaly_feature_calculator
+  - event_record_cleaner
+  - feature_table_drift_validator
+- candidate_set_id: extension_support_profile_context_join_api_table_multi_source_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contracts
+  service_ids:
+  - api_table_multi_source_contract_validator
+  - event_record_cleaner
+  - feature_table_drift_validator
+  - api_table_conflict_reconciler
+- candidate_set_id: extension_support_profile_context_join_api_table_multi_source_normalizer_candidates
+  source_step_refs:
+  - normalize_sources
+  service_ids:
+  - api_table_multi_source_normalizer
+  - feature_table_drift_validator
+  - api_table_conflict_reconciler
+  - reviewed_domain_adapter
+- candidate_set_id: extension_support_profile_context_join_api_table_source_fusion_reconciler_candidates
+  source_step_refs:
+  - fuse_sources
+  service_ids:
+  - api_table_source_fusion_reconciler
+  - api_table_conflict_reconciler
+  - reviewed_domain_adapter
+  - sensor_window_alignment_fuser
+- candidate_set_id: extension_support_profile_context_join_api_table_output_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - api_table_output_bundle_publisher
+  - reviewed_domain_adapter
+  - sensor_window_alignment_fuser
+  - iot_anomaly_feature_calculator

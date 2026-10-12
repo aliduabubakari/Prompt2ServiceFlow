@@ -1,0 +1,178 @@
+{
+  "run_id": "m4__main__pcd_etl__deepinfra-qwen3-coder-480b-turbo__s0__20261008T222359.274301Z__5fe7491c",
+  "batch_id": "frozen__freeze-2026-10-08.deepinfra.v21__20261008T100403.597052Z__486e18ae",
+  "sample_index": 0,
+  "ablation": null,
+  "harness_version": "2.2.2",
+  "method": {
+    "id": "m4",
+    "name": "Contract-first ServiceFlowIR + repair"
+  },
+  "prompt_version": "2.1.0",
+  "runtime_compiler_version": "1.0.0",
+  "model": {
+    "model_id": "deepinfra-qwen3-coder-480b-turbo",
+    "model_name": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+    "base_url": "https://api.deepinfra.com/v1/openai",
+    "temperature": 0.2,
+    "top_p": 1.0,
+    "seed": 101,
+    "max_tokens": 16384,
+    "context_window": 262144
+  },
+  "instance": {
+    "id": "pcd_etl",
+    "split": "main",
+    "benchmark_id": "main:pcd-etl"
+  },
+  "catalog": {
+    "version": "0.1.0",
+    "pinned_catalog_yaml_sha256": "63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446",
+    "sanitized_catalog_yaml_sha256": "f39b7877afbbbba24e88bc51a59726d8681c9ae395dfbffa5f284943b02da309",
+    "descriptor_count": 137
+  },
+  "roster_sha256": "d5bf5f5475a7e7d7d0b700605a07745176858a4f5b5dbadf3cd7b6692e851b83",
+  "workspace_manifest_sha256": "f324045bda769e651363037c47836d9ffb4bea1ea3b4f8d1a1a31fafd0efc36b",
+  "freeze": {
+    "freeze_id": "freeze-2026-10-08.deepinfra.v21",
+    "status": "frozen",
+    "sha256": "cb1b4cf348bd948f1117a641b0d22b6c079fc93023faadf7e805b9f4124e0471"
+  },
+  "visible_input_policy": {
+    "method_view": [
+      "task.md",
+      "candidates/",
+      "catalog/",
+      "contracts/",
+      "schemas/",
+      "fixtures/"
+    ],
+    "workspace_manifest": "experiments/workspaces/main/pcd_etl/workspace.yaml"
+  },
+  "repair": {
+    "budget": 3,
+    "execution_feedback": true
+  },
+  "environment": {
+    "python": "3.12.3",
+    "platform": "macOS-15.6.1-arm64-arm-64bit",
+    "git_revision": "a0a9a18"
+  },
+  "started_at": "2026-10-08T22:23:59.275555+00:00",
+  "method_status": "parse_error",
+  "method_error": "parse-seed repair 3 is not a ServiceFlowIR YAML document: YAML parse error: while parsing a flow node\nexpected the node content, but found '<stream end>'\n  in \"<unicode string>\", line 2227, column 9:\n          ],\n            ^",
+  "evaluation": {
+    "repair_attempts": [
+      {
+        "attempt": 0,
+        "overall_status": "fail",
+        "first_failing_gate": "G0",
+        "gate_statuses": {
+          "G0": "fail"
+        },
+        "selected_as_best": false,
+        "repeated_state": false,
+        "synthetic": true
+      },
+      {
+        "attempt": 1,
+        "overall_status": "fail",
+        "first_failing_gate": "G0",
+        "gate_statuses": {
+          "G0": "fail"
+        },
+        "selected_as_best": false,
+        "repeated_state": false,
+        "synthetic": true
+      },
+      {
+        "attempt": 2,
+        "overall_status": "fail",
+        "first_failing_gate": "G0",
+        "gate_statuses": {
+          "G0": "fail"
+        },
+        "selected_as_best": false,
+        "repeated_state": false,
+        "synthetic": true
+      },
+      {
+        "attempt": 3,
+        "overall_status": "fail",
+        "first_failing_gate": "G0",
+        "gate_statuses": {
+          "G0": "fail"
+        },
+        "selected_as_best": false,
+        "repeated_state": false,
+        "synthetic": true
+      }
+    ]
+  },
+  "usage": {
+    "llm_calls": 4,
+    "prompt_tokens": 120112,
+    "completion_tokens": 65536,
+    "reasoning_tokens": 0,
+    "total_tokens": 185648,
+    "latency_s": 295.031,
+    "validator_calls": 0,
+    "evaluation_validator_calls": 0,
+    "cost_usd": 0.10157,
+    "per_stage": [
+      {
+        "stage": "m3_ir",
+        "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+        "usage": {
+          "prompt_tokens": 44221,
+          "completion_tokens": 16384,
+          "total_tokens": 60605,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 101.737,
+        "finish_reason": "length",
+        "cost_usd": 0.02965
+      },
+      {
+        "stage": "m4_repair_parse",
+        "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+        "usage": {
+          "prompt_tokens": 25213,
+          "completion_tokens": 16384,
+          "total_tokens": 41597,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 59.977,
+        "finish_reason": "length",
+        "cost_usd": 0.023948
+      },
+      {
+        "stage": "m4_repair_parse_2",
+        "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+        "usage": {
+          "prompt_tokens": 25298,
+          "completion_tokens": 16384,
+          "total_tokens": 41682,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 55.974,
+        "finish_reason": "length",
+        "cost_usd": 0.023973
+      },
+      {
+        "stage": "m4_repair_parse_3",
+        "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+        "usage": {
+          "prompt_tokens": 25380,
+          "completion_tokens": 16384,
+          "total_tokens": 41764,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 77.344,
+        "finish_reason": "length",
+        "cost_usd": 0.023998
+      }
+    ]
+  },
+  "finished_at": "2026-10-08T22:28:57.306073+00:00"
+}

@@ -1,0 +1,67 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_hospital_capacity_command_center
+mappings:
+- intent_id: wait_for_census_snapshot
+  inputs:
+    resource_group: hospital_sources
+  outputs:
+    readiness_decision: census_ready
+    readiness_status: census_ready_status
+- intent_id: extract_admissions
+  inputs:
+    hospital_source: hospital_sources
+  outputs:
+    operational_feed: admissions
+    extraction_status: admissions_status
+- intent_id: extract_bed_status
+  inputs:
+    hospital_source: hospital_sources
+  outputs:
+    operational_feed: bed_status
+    extraction_status: bed_status_extract_status
+- intent_id: extract_staffing_roster
+  inputs:
+    hospital_source: hospital_sources
+  outputs:
+    operational_feed: staffing_roster
+    extraction_status: staffing_status
+- intent_id: extract_discharge_forecast
+  inputs:
+    hospital_source: hospital_sources
+  outputs:
+    operational_feed: discharge_forecast
+    extraction_status: forecast_status
+- intent_id: merge_operational_state
+  inputs:
+    admissions: admissions
+    bed_status: bed_status
+    staffing_roster: staffing_roster
+    discharge_forecast: discharge_forecast
+  outputs:
+    operational_state: operational_state
+    merge_status: operational_merge_status
+- intent_id: compute_capacity_risk
+  inputs:
+    operational_state: operational_state
+  outputs:
+    risk_report: risk_report
+    risk_status: capacity_risk_status
+- intent_id: route_alert_level
+  inputs:
+    risk_report: risk_report
+  outputs:
+    alert_route: alert_route
+    routing_status: alert_route_status
+- intent_id: publish_dashboard
+  inputs:
+    risk_report: risk_report
+  outputs:
+    capacity_dashboard: capacity_dashboard
+    dashboard_status: dashboard_status
+- intent_id: send_escalation_alert
+  inputs:
+    risk_report: risk_report
+    alerting_service: alerting_service
+  outputs:
+    alert_payload: alert_payload
+    alert_status: alert_status

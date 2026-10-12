@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prompt2serviceflow"
+version = "0.0.1"
+description = "Contract-grounded service-composition benchmark and Argo compiler"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Abubakari Alidu" },
+]
+dependencies = [
+  "jsonschema>=4.23",
+  "openai>=1.91.0",
+  "pydantic>=2.11",
+  "python-dotenv>=1.0",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+]
+analysis = [
+  "numpy>=1.26",
+]
+
+[project.scripts]
+prompt2serviceflow-prepare-sources = "prompt2serviceflow.source_ingestion:main"
+prompt2serviceflow-validate = "prompt2serviceflow.validators.schema_validation:main"
+prompt2serviceflow-generate-catalog = "prompt2serviceflow.catalog.generator:main"
+prompt2serviceflow-compile-instance = "prompt2serviceflow.compiler.argo:main"
+prompt2serviceflow-validate-instance = "prompt2serviceflow.validators.instance_validation:main"
+prompt2serviceflow-build-workspaces = "prompt2serviceflow.experiments.workspace:main"
+prompt2serviceflow-check-leakage = "prompt2serviceflow.experiments.leakage:main"
+prompt2serviceflow-validate-submission = "prompt2serviceflow.experiments.submission:validate_main"
+prompt2serviceflow-compile-submission = "prompt2serviceflow.experiments.submission:compile_main"
+prompt2serviceflow-score-submission = "prompt2serviceflow.experiments.scoring:score_main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

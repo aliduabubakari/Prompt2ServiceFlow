@@ -1,0 +1,36 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:medical_facility_accessibility_v1
+mappings:
+- intent_id: load_and_modify_facilities
+  inputs:
+    csv_file: facilities_csv
+  outputs:
+    structured_json: formatted_facilities_json
+    transform_status: format_status
+- intent_id: geocode_facilities
+  inputs:
+    structured_json: formatted_facilities_json
+    geocoding_api_resource: geocoding_api_resource
+  outputs:
+    geocoded_json: geocoded_facilities_json
+    geocoding_status: geocoding_status
+- intent_id: calc_distance_public_transport
+  inputs:
+    source_tabular_json: geocoded_facilities_json
+    target_layer_geojson: transport_stops_geojson
+  outputs:
+    extended_tabular_json: pt_distance_json
+    distance_status: pt_distance_status
+- intent_id: calc_distance_residential
+  inputs:
+    source_tabular_json: pt_distance_json
+    target_layer_geojson: residential_areas_geojson
+  outputs:
+    extended_tabular_json: residential_distance_json
+    distance_status: residential_distance_status
+- intent_id: save_accessibility_data
+  inputs:
+    structured_json: residential_distance_json
+  outputs:
+    csv_file: enriched_facilities_csv
+    export_status: export_status

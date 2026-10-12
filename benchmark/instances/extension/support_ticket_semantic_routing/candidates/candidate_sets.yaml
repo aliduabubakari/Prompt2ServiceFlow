@@ -1,0 +1,110 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:support_ticket_semantic_routing
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.8
+candidate_sets:
+- candidate_set_id: extension_support_ticket_semantic_routing_support_ticket_text_batch_ingestor_candidates
+  source_step_refs:
+  - ingest_source_batch
+  service_ids:
+  - support_ticket_text_batch_ingestor
+  - keyword_only_document_searcher
+  - embedding_index_manifest_archiver
+  - generic_llm_prompt_runner
+- candidate_set_id: extension_support_ticket_semantic_routing_support_ticket_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contract
+  service_ids:
+  - support_ticket_contract_validator
+  - embedding_index_manifest_archiver
+  - generic_llm_prompt_runner
+  - chunk_count_quality_checker
+- candidate_set_id: extension_support_ticket_semantic_routing_support_ticket_text_parser_candidates
+  source_step_refs:
+  - extract_or_parse_text
+  service_ids:
+  - support_ticket_text_parser
+  - generic_llm_prompt_runner
+  - chunk_count_quality_checker
+  - uncontextualized_summary_generator
+- candidate_set_id: extension_support_ticket_semantic_routing_semantic_document_chunker_candidates
+  source_step_refs:
+  - chunk_documents
+  service_ids:
+  - semantic_document_chunker
+  - chunk_count_quality_checker
+  - uncontextualized_summary_generator
+  - reviewed_domain_adapter
+- candidate_set_id: extension_support_ticket_semantic_routing_deterministic_text_embedding_generator_candidates
+  source_step_refs:
+  - generate_embeddings
+  service_ids:
+  - deterministic_text_embedding_generator
+  - uncontextualized_summary_generator
+  - reviewed_domain_adapter
+  - keyword_only_document_searcher
+- candidate_set_id: extension_support_ticket_semantic_routing_fixture_vector_index_writer_candidates
+  source_step_refs:
+  - write_vector_index
+  service_ids:
+  - fixture_vector_index_writer
+  - reviewed_domain_adapter
+  - keyword_only_document_searcher
+  - embedding_index_manifest_archiver
+- candidate_set_id: extension_support_ticket_semantic_routing_grounding_context_retriever_candidates
+  source_step_refs:
+  - retrieve_grounding_context
+  service_ids:
+  - grounding_context_retriever
+  - keyword_only_document_searcher
+  - embedding_index_manifest_archiver
+  - generic_llm_prompt_runner
+- candidate_set_id: extension_support_ticket_semantic_routing_support_ticket_intent_classifier_candidates
+  source_step_refs:
+  - run_structured_extraction
+  service_ids:
+  - support_ticket_intent_classifier
+  - embedding_index_manifest_archiver
+  - generic_llm_prompt_runner
+  - chunk_count_quality_checker
+- candidate_set_id: extension_support_ticket_semantic_routing_support_ticket_routing_policy_decider_candidates
+  source_step_refs:
+  - evaluate_policy_or_risk
+  service_ids:
+  - support_ticket_routing_policy_decider
+  - generic_llm_prompt_runner
+  - chunk_count_quality_checker
+  - uncontextualized_summary_generator
+- candidate_set_id: extension_support_ticket_semantic_routing_support_ticket_auto_route_publisher_candidates
+  source_step_refs:
+  - route_approved_records
+  service_ids:
+  - support_ticket_auto_route_publisher
+  - chunk_count_quality_checker
+  - uncontextualized_summary_generator
+  - reviewed_domain_adapter
+- candidate_set_id: extension_support_ticket_semantic_routing_support_ticket_manual_review_router_candidates
+  source_step_refs:
+  - route_exception_records
+  service_ids:
+  - support_ticket_manual_review_router
+  - uncontextualized_summary_generator
+  - reviewed_domain_adapter
+  - keyword_only_document_searcher
+- candidate_set_id: extension_support_ticket_semantic_routing_ai_route_outcome_merger_candidates
+  source_step_refs:
+  - merge_route_outcomes
+  service_ids:
+  - ai_route_outcome_merger
+  - reviewed_domain_adapter
+  - keyword_only_document_searcher
+  - embedding_index_manifest_archiver
+- candidate_set_id: extension_support_ticket_semantic_routing_ai_completion_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - ai_completion_bundle_publisher
+  - keyword_only_document_searcher
+  - embedding_index_manifest_archiver
+  - generic_llm_prompt_runner

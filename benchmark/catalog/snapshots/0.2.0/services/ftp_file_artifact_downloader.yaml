@@ -1,0 +1,158 @@
+schema_version: 0.1.0
+service_id: ftp_file_artifact_downloader
+version: 1.0.0
+display_name: FTP File Artifact Downloader
+category: Extractor
+capability:
+  summary: Downloads a configured file from a bound FTP server or drop-zone resource
+    to a deterministic workflow artifact path and emits transfer status.
+  operations:
+  - Resolve a bound FTP server or drop-zone resource.
+  - Validate the configured remote path or filename within the bound FTP resource.
+  - Download the remote file to a deterministic artifact path.
+  - Record response metadata such as bytes transferred, source path, destination URI,
+    and action taken.
+  keywords:
+  - ftp
+  - file download
+  - drop zone
+  - artifact extraction
+  - inventory file
+  - csv
+  limitations:
+  - Does not schedule polling, retries, or dependency gating.
+  - Does not transform or validate file contents.
+  - Does not infer remote paths or authentication; these must be supplied by workflow
+    binding.
+  - Only downloads explicitly configured files or patterns within the bound FTP resource.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: ftp_server
+    description: Bound FTP server or drop-zone resource containing the source file.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://ftp_server_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: downloaded_file
+    description: Downloaded file artifact written to the configured output path.
+    channel: artifact
+    data_type: binary
+    media_type: application/octet-stream
+    schema_ref: schema://file_artifact_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: transfer_status
+    description: Observable transfer status including source path, output URI, bytes
+      transferred, success flag, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://ftp_file_download_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: remote_path
+    description: Remote FTP file path or filename to download, resolved within the
+      bound FTP resource.
+    type: string
+    required: true
+  - name: output_path
+    description: Deterministic local or artifact path for the downloaded file.
+    type: string
+    required: true
+  - name: expected_media_type
+    description: Expected media type for the downloaded file, such as text/csv.
+    type: string
+    required: false
+  - name: overwrite_output
+    description: Whether an existing artifact at output_path may be overwritten.
+    type: boolean
+    required: false
+  - name: fail_if_missing
+    description: Whether absence of the remote file should fail the service invocation.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: ftp_download_remote_path_contract
+  type: precondition
+  applies_to: parameter
+  target: remote_path
+  description: Remote path must be non-empty and must resolve under the bound FTP
+    resource.
+  expression: length(trim(remote_path)) > 0 and resolves_under(ftp_server, remote_path)
+- contract_id: ftp_download_status_schema
+  type: json_schema
+  applies_to: output
+  target: transfer_status
+  description: Transfer status exposes download effect for workflow validation.
+  schema_ref: schema://ftp_file_download_status/v1
+  expression: '{"type":"object","required":["success","remote_path","output_uri","download_attempted"],"properties":{"success":{"type":"boolean"},"remote_path":{"type":"string"},"output_uri":{"type":"string"},"download_attempted":{"type":"boolean"},"bytes_transferred":{"type":["integer","null"],"minimum":0},"media_type":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: ftp_download_effect
+  type: effect
+  applies_to: service
+  target: ftp_file_artifact_downloader
+  description: On success, the configured FTP file is downloaded and the output artifact
+    exists.
+  expression: transfer_status.success == true implies exists(downloaded_file) and
+    transfer_status.download_attempted == true
+invocation:
+  type: argo_workflow_template
+  template_name: ftp-file-artifact-downloader-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.ftp_file_artifact_downloader
+  implementation_ref: services/implementations/ftp_file_artifact_downloader
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - ftp://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit FTP credentials in status or logs.
+  - Restrict downloads to explicitly bound FTP resources and paths.
+  idempotency_notes: Retry-safe when remote file contents and output_path are stable
+    and overwrite_output or identical-artifact handling is enabled.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:climate_data_fusion_pipeline#download_noaa
+  - main:ftp_vendor_inventory_processor#download_vendor_file
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The active pipeline requires FTP download after a sensor gate; existing
+    registry services cover FTP sensing but not generic FTP artifact download.'
+  - 'Evidence status: explicit.'

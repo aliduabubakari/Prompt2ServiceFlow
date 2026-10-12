@@ -1,0 +1,42 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:access_entitlement_recertification
+bindings:
+- intent_id: ingest_primary_source
+  service_id: identity_provider_export_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_secondary_source
+  service_id: resource_entitlement_table_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_reference_source
+  service_id: manager_directory_reference_ingestor
+  service_version: 1.0.0
+- intent_id: validate_source_contracts
+  service_id: entitlement_recertification_contract_validator
+  service_version: 1.0.0
+- intent_id: normalize_sources
+  service_id: entitlement_identity_normalizer
+  service_version: 1.0.0
+- intent_id: fuse_sources
+  service_id: entitlement_identity_resource_fuser
+  service_version: 1.0.0
+- intent_id: detect_sensitive_fields
+  service_id: entitlement_sensitive_attribute_detector
+  service_version: 1.0.0
+- intent_id: apply_redaction_or_suppression
+  service_id: entitlement_minimization_transformer
+  service_version: 1.0.0
+- intent_id: create_human_review_packet
+  service_id: entitlement_recertification_packet_builder
+  service_version: 1.0.0
+- intent_id: record_policy_decision
+  service_id: policy_decision_audit_recorder
+  service_version: 1.0.0
+- intent_id: write_audit_log
+  service_id: policy_audit_log_writer
+  service_version: 1.0.0
+- intent_id: notify_reviewer_or_owner
+  service_id: reviewer_notification_publisher
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: policy_review_bundle_publisher
+  service_version: 1.0.0

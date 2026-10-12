@@ -1,0 +1,174 @@
+schema_version: 0.1.0
+service_id: tabular_text_sentiment_scorer
+version: 1.0.0
+display_name: Tabular Text Sentiment Scorer
+category: ScoringService
+capability:
+  summary: Scores text sentiment for rows in a structured tabular JSON artifact using
+    a configured model and appends a sentiment output column.
+  operations:
+  - Read language-enriched or generic structured tabular JSON rows.
+  - Validate configured text column and sentiment output column.
+  - Apply configured sentiment model to each eligible text value.
+  - Write sentiment-enriched JSON and emit scoring status.
+  keywords:
+  - sentiment analysis
+  - text classification
+  - product reviews
+  - tabular json
+  - model scoring
+  limitations:
+  - Does not detect language; expects upstream language enrichment when needed.
+  - Does not download or provision model weights; runtime image/model availability
+    is outside the catalogue contract.
+  - Does not extract product features.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_tabular_json
+    description: Structured tabular JSON containing review text and optional detected
+      language codes.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://language_detected_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: sentiment_scored_json
+    description: Structured tabular JSON with the configured sentiment score column
+      added or updated.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://sentiment_scored_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: scoring_status
+    description: Observable sentiment scoring status with model name, row counts,
+      output URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://tabular_sentiment_scoring_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: model_name
+    description: Sentiment model identifier used by the scorer.
+    type: string
+    required: true
+  - name: text_column
+    description: Input column containing text to score.
+    type: string
+    required: true
+  - name: output_column
+    description: Output column for sentiment score or label value.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: output_path
+    description: Deterministic output artifact path or name.
+    type: string
+    required: true
+  secrets: []
+contracts:
+- contract_id: sentiment_scorer_input_schema
+  type: json_schema
+  applies_to: input
+  target: source_tabular_json
+  description: Input must contain tabular rows and columns, including the configured
+    text column.
+  schema_ref: schema://language_detected_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}}}}
+    and text_column in source_tabular_json.columns'
+- contract_id: sentiment_model_name_non_empty
+  type: precondition
+  applies_to: parameter
+  target: model_name
+  description: Model name must be non-empty.
+  expression: length(trim(model_name)) > 0
+- contract_id: sentiment_output_column_contract
+  type: precondition
+  applies_to: parameter
+  target: output_column
+  description: Sentiment output column must be identifier-like.
+  expression: output_column matches '^[A-Za-z_][A-Za-z0-9_]*$'
+- contract_id: sentiment_scored_output_schema
+  type: json_schema
+  applies_to: output
+  target: sentiment_scored_json
+  description: Output preserves tabular structure and includes the configured sentiment
+    output column.
+  schema_ref: schema://sentiment_scored_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0}}}'
+- contract_id: sentiment_scoring_status_schema
+  type: json_schema
+  applies_to: output
+  target: scoring_status
+  description: Status exposes sentiment scoring outcome.
+  schema_ref: schema://tabular_sentiment_scoring_status/v1
+  expression: '{"type":"object","required":["success","model_name","rows_processed","rows_scored","rows_failed","output_uri"],"properties":{"success":{"type":"boolean"},"model_name":{"type":"string"},"rows_processed":{"type":"integer","minimum":0},"rows_scored":{"type":"integer","minimum":0},"rows_failed":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: sentiment_scorer_effect
+  type: effect
+  applies_to: service
+  target: tabular_text_sentiment_scorer
+  description: On success, a sentiment-scored JSON artifact exists and includes the
+    configured output column.
+  expression: scoring_status.success == true implies exists(sentiment_scored_json)
+    and output_column in sentiment_scored_json.columns
+invocation:
+  type: argo_workflow_template
+  template_name: tabular-text-sentiment-scorer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.tabular_text_sentiment_scorer
+  implementation_ref: services/implementations/tabular_text_sentiment_scorer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - pii
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full review text values or model internals; expose aggregate row counts
+    and bounded diagnostics.
+  - Model/image provisioning is runtime configuration, not catalogue semantics.
+  idempotency_notes: Retry-safe and repeatable when the configured model and runtime
+    implementation are stable.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:multilingual_product_review_analysis_v1#analyze_sentiment
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service provides configurable tabular sentiment
+    scoring with model and output-column contracts.'
+  - 'Evidence status: explicit.'

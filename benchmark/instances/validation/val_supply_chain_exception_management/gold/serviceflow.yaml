@@ -1,0 +1,1064 @@
+ir_version: 0.1.0
+composition_id: val_supply_chain_exception_management
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.3
+  sha256: 0807f68e6a990b9818c6f954c7089ae99a57b570a33b9f9ce5e6e32ffda8a150
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_supply_chain_exception_management
+  split: validation
+  pipeline_id: val_supply_chain_exception_management
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/19_val_supply_chain_exception_management.txt
+  description_sha256: b18fcdb9f833fb31f4bee392b0993f2b1cabf354ad9ec1e6c39dd311e823a92c
+  internal_spec_path: source/internal_specs/validation_20/19_val_supply_chain_exception_management.json
+  internal_spec_sha256: 7181dbf33c1814d313275acce3b14d12aff42f7a56db6495d101409d8f73b4f3
+requirement:
+  name: Val Supply Chain Exception Management
+  purpose: Ingest supply-chain feeds, detect disruption risk, branch severe exceptions to response planning,
+    and publish operations outputs.
+  domain: validation_holdout
+  execution_model: batch
+  topology: mixed
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: supply_sources
+  type: other
+  name: Supply-chain sources
+  identifier: supply_sources
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: notification_service
+  type: http_api
+  name: Notification service
+  identifier: notification_service
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: wait_for_supplier_feeds
+  name: Wait For Supplier Feeds
+  category: Sensor
+  capability: Perform the reviewed wait for supplier feeds capability.
+  source_step_refs:
+  - wait_for_supplier_feeds
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: wait_for_supplier_feeds.'
+  inputs:
+  - supply_sources
+  outputs:
+  - supplier_feeds_ready
+  - supplier_feed_status
+  external_system_refs:
+  - supply_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared supplier_feeds_ready, supplier_feed_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: ingest_inventory
+  name: Ingest Inventory
+  category: Extractor
+  capability: Perform the reviewed ingest inventory capability.
+  source_step_refs:
+  - ingest_inventory
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: ingest_inventory.'
+  inputs:
+  - supply_sources
+  outputs:
+  - inventory_snapshot
+  - inventory_status
+  external_system_refs:
+  - supply_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared inventory_snapshot, inventory_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: ingest_shipments
+  name: Ingest Shipments
+  category: Extractor
+  capability: Perform the reviewed ingest shipments capability.
+  source_step_refs:
+  - ingest_shipments
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: ingest_shipments.'
+  inputs:
+  - supply_sources
+  outputs:
+  - shipment_events
+  - shipment_status
+  external_system_refs:
+  - supply_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared shipment_events, shipment_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: ingest_weather_alerts
+  name: Ingest Weather Alerts
+  category: Extractor
+  capability: Perform the reviewed ingest weather alerts capability.
+  source_step_refs:
+  - ingest_weather_alerts
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: ingest_weather_alerts.'
+  inputs:
+  - supply_sources
+  outputs:
+  - weather_alerts
+  - weather_status
+  external_system_refs:
+  - supply_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared weather_alerts, weather_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: ingest_supplier_capacity
+  name: Ingest Supplier Capacity
+  category: Extractor
+  capability: Perform the reviewed ingest supplier capacity capability.
+  source_step_refs:
+  - ingest_supplier_capacity
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: ingest_supplier_capacity.'
+  inputs:
+  - supply_sources
+  outputs:
+  - supplier_capacity
+  - capacity_status
+  external_system_refs:
+  - supply_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared supplier_capacity, capacity_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: harmonize_supply_state
+  name: Harmonize Supply State
+  category: Integrator
+  capability: Perform the reviewed harmonize supply state capability.
+  source_step_refs:
+  - harmonize_supply_state
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: harmonize_supply_state.'
+  inputs:
+  - inventory_snapshot
+  - shipment_events
+  - weather_alerts
+  - supplier_capacity
+  outputs:
+  - supply_state
+  - supply_harmonization_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared supply_state, supply_harmonization_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: detect_disruption_risk
+  name: Detect Disruption Risk
+  category: ScoringService
+  capability: Perform the reviewed detect disruption risk capability.
+  source_step_refs:
+  - detect_disruption_risk
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: detect_disruption_risk.'
+  inputs:
+  - supply_state
+  outputs:
+  - disruption_risk
+  - disruption_risk_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared disruption_risk, disruption_risk_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: route_exception_severity
+  name: Route Exception Severity
+  category: DomainAdapter
+  capability: Perform the reviewed route exception severity capability.
+  source_step_refs:
+  - route_exception_severity
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: route_exception_severity.'
+  inputs:
+  - disruption_risk
+  outputs:
+  - severity_route
+  - severity_route_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared severity_route, severity_route_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: generate_response_plan
+  name: Generate Response Plan
+  category: DomainAdapter
+  capability: Perform the reviewed generate response plan capability.
+  source_step_refs:
+  - generate_response_plan
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: generate_response_plan.'
+  inputs:
+  - disruption_risk
+  outputs:
+  - response_plan
+  - response_plan_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared response_plan, response_plan_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: publish_operations_dashboard
+  name: Publish Operations Dashboard
+  category: Publisher
+  capability: Perform the reviewed publish operations dashboard capability.
+  source_step_refs:
+  - publish_operations_dashboard
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: publish_operations_dashboard.'
+  inputs:
+  - disruption_risk
+  outputs:
+  - operations_dashboard
+  - dashboard_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared operations_dashboard, dashboard_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: notify_regional_teams
+  name: Notify Regional Teams
+  category: Notifier
+  capability: Perform the reviewed notify regional teams capability.
+  source_step_refs:
+  - notify_regional_teams
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: notify_regional_teams.'
+  inputs:
+  - response_plan
+  - notification_service
+  outputs:
+  - notification_status
+  external_system_refs:
+  - notification_service
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared notification_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: archive_exception_snapshot
+  name: Archive Exception Snapshot
+  category: Publisher
+  capability: Perform the reviewed archive exception snapshot capability.
+  source_step_refs:
+  - archive_exception_snapshot
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: archive_exception_snapshot.'
+  inputs:
+  - operations_dashboard
+  outputs:
+  - exception_archive
+  - archive_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared exception_archive, archive_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: wait_for_supplier_feeds
+  disposition: service
+  intent_ids:
+  - wait_for_supplier_feeds
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: ingest_inventory
+  disposition: service
+  intent_ids:
+  - ingest_inventory
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: ingest_shipments
+  disposition: service
+  intent_ids:
+  - ingest_shipments
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: ingest_weather_alerts
+  disposition: service
+  intent_ids:
+  - ingest_weather_alerts
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: ingest_supplier_capacity
+  disposition: service
+  intent_ids:
+  - ingest_supplier_capacity
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: harmonize_supply_state
+  disposition: service
+  intent_ids:
+  - harmonize_supply_state
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: detect_disruption_risk
+  disposition: service
+  intent_ids:
+  - detect_disruption_risk
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: route_exception_severity
+  disposition: service
+  intent_ids:
+  - route_exception_severity
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: generate_response_plan
+  disposition: service
+  intent_ids:
+  - generate_response_plan
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: publish_operations_dashboard
+  disposition: service
+  intent_ids:
+  - publish_operations_dashboard
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: notify_regional_teams
+  disposition: service
+  intent_ids:
+  - notify_regional_teams
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: archive_exception_snapshot
+  disposition: service
+  intent_ids:
+  - archive_exception_snapshot
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: wait_for_supplier_feeds
+    to: ingest_inventory
+  - from: wait_for_supplier_feeds
+    to: ingest_shipments
+  - from: wait_for_supplier_feeds
+    to: ingest_weather_alerts
+  - from: wait_for_supplier_feeds
+    to: ingest_supplier_capacity
+  - from: ingest_inventory
+    to: harmonize_supply_state
+  - from: ingest_shipments
+    to: harmonize_supply_state
+  - from: ingest_weather_alerts
+    to: harmonize_supply_state
+  - from: ingest_supplier_capacity
+    to: harmonize_supply_state
+  - from: harmonize_supply_state
+    to: detect_disruption_risk
+  - from: detect_disruption_risk
+    to: route_exception_severity
+  - from: route_exception_severity
+    to: generate_response_plan
+  - from: route_exception_severity
+    to: publish_operations_dashboard
+  - from: generate_response_plan
+    to: notify_regional_teams
+  - from: publish_operations_dashboard
+    to: archive_exception_snapshot
+  parallel_groups:
+  - group_id: supply_feed_ingestion
+    intent_ids:
+    - ingest_inventory
+    - ingest_shipments
+    - ingest_weather_alerts
+    - ingest_supplier_capacity
+  branches:
+  - branch_id: exception_severity_route
+    decision_intent: route_exception_severity
+    decision_artifact: severity_route
+    cases:
+    - case_id: normal
+      condition: severity_route.route == publish_operations_dashboard
+      next_intents:
+      - publish_operations_dashboard
+    - case_id: severe
+      condition: severity_route.route == generate_response_plan
+      next_intents:
+      - generate_response_plan
+  gates:
+  - gate_id: supplier_feed_gate
+    sensor_intent: wait_for_supplier_feeds
+    condition: minimum_feed_count_met == true
+    gated_intents:
+    - ingest_inventory
+    - ingest_shipments
+    - ingest_weather_alerts
+    - ingest_supplier_capacity
+artifacts:
+- artifact_id: supply_sources
+  name: Supply Sources
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: supply_sources
+- artifact_id: notification_service
+  name: Notification Service
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: notification_service
+- artifact_id: supplier_feeds_ready
+  name: Supplier Feeds Ready
+  kind: artifact
+  data_type: json
+  role: output
+  producer: wait_for_supplier_feeds
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: supplier_feed_status
+  name: Supplier Feed Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: wait_for_supplier_feeds
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: inventory_snapshot
+  name: Inventory Snapshot
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: ingest_inventory
+  consumers:
+  - harmonize_supply_state
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: inventory_status
+  name: Inventory Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: ingest_inventory
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: shipment_events
+  name: Shipment Events
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: ingest_shipments
+  consumers:
+  - harmonize_supply_state
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: shipment_status
+  name: Shipment Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: ingest_shipments
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: weather_alerts
+  name: Weather Alerts
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: ingest_weather_alerts
+  consumers:
+  - harmonize_supply_state
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: weather_status
+  name: Weather Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: ingest_weather_alerts
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: supplier_capacity
+  name: Supplier Capacity
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: ingest_supplier_capacity
+  consumers:
+  - harmonize_supply_state
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: capacity_status
+  name: Capacity Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: ingest_supplier_capacity
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: supply_state
+  name: Supply State
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: harmonize_supply_state
+  consumers:
+  - detect_disruption_risk
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: supply_harmonization_status
+  name: Supply Harmonization Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: harmonize_supply_state
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: disruption_risk
+  name: Disruption Risk
+  kind: artifact
+  data_type: json
+  role: intermediate
+  producer: detect_disruption_risk
+  consumers:
+  - route_exception_severity
+  - generate_response_plan
+  - publish_operations_dashboard
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: disruption_risk_status
+  name: Disruption Risk Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: detect_disruption_risk
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: severity_route
+  name: Severity Route
+  kind: artifact
+  data_type: json
+  role: output
+  producer: route_exception_severity
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: severity_route_status
+  name: Severity Route Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: route_exception_severity
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: response_plan
+  name: Response Plan
+  kind: artifact
+  data_type: json
+  role: intermediate
+  producer: generate_response_plan
+  consumers:
+  - notify_regional_teams
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: response_plan_status
+  name: Response Plan Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: generate_response_plan
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: operations_dashboard
+  name: Operations Dashboard
+  kind: artifact
+  data_type: json
+  role: intermediate
+  producer: publish_operations_dashboard
+  consumers:
+  - archive_exception_snapshot
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: dashboard_status
+  name: Dashboard Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: publish_operations_dashboard
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: notification_status
+  name: Notification Status
+  kind: artifact
+  data_type: notification
+  role: output
+  producer: notify_regional_teams
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: exception_archive
+  name: Exception Archive
+  kind: artifact
+  data_type: object
+  role: output
+  producer: archive_exception_snapshot
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: archive_status
+  name: Archive Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: archive_exception_snapshot
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: wait_for_supplier_feeds
+  service_id: multi_resource_readiness_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: resource_group
+    artifact_id: supply_sources
+  output_bindings:
+  - port: readiness_decision
+    artifact_id: supplier_feeds_ready
+  - port: readiness_status
+    artifact_id: supplier_feed_status
+  parameter_bindings:
+    readiness_condition: minimum_feed_count_met
+    minimum_ready_count: 3
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: ingest_inventory
+  service_id: supply_chain_feed_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: supply_source
+    artifact_id: supply_sources
+  output_bindings:
+  - port: supply_feed
+    artifact_id: inventory_snapshot
+  - port: extraction_status
+    artifact_id: inventory_status
+  parameter_bindings:
+    feed_name: inventory
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: ingest_shipments
+  service_id: supply_chain_feed_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: supply_source
+    artifact_id: supply_sources
+  output_bindings:
+  - port: supply_feed
+    artifact_id: shipment_events
+  - port: extraction_status
+    artifact_id: shipment_status
+  parameter_bindings:
+    feed_name: shipments
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: ingest_weather_alerts
+  service_id: supply_chain_feed_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: supply_source
+    artifact_id: supply_sources
+  output_bindings:
+  - port: supply_feed
+    artifact_id: weather_alerts
+  - port: extraction_status
+    artifact_id: weather_status
+  parameter_bindings:
+    feed_name: weather_alerts
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: ingest_supplier_capacity
+  service_id: supply_chain_feed_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: supply_source
+    artifact_id: supply_sources
+  output_bindings:
+  - port: supply_feed
+    artifact_id: supplier_capacity
+  - port: extraction_status
+    artifact_id: capacity_status
+  parameter_bindings:
+    feed_name: supplier_capacity
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: harmonize_supply_state
+  service_id: supply_state_harmonizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: inventory_snapshot
+    artifact_id: inventory_snapshot
+  - port: shipment_events
+    artifact_id: shipment_events
+  - port: weather_alerts
+    artifact_id: weather_alerts
+  - port: supplier_capacity
+    artifact_id: supplier_capacity
+  output_bindings:
+  - port: supply_state
+    artifact_id: supply_state
+  - port: harmonization_status
+    artifact_id: supply_harmonization_status
+  parameter_bindings:
+    state_profile:
+      grain: sku_region
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: detect_disruption_risk
+  service_id: disruption_risk_detector
+  service_version: 1.0.0
+  input_bindings:
+  - port: supply_state
+    artifact_id: supply_state
+  output_bindings:
+  - port: disruption_risk
+    artifact_id: disruption_risk
+  - port: risk_status
+    artifact_id: disruption_risk_status
+  parameter_bindings:
+    risk_profile: global_supply
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: route_exception_severity
+  service_id: exception_severity_route_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: disruption_risk
+    artifact_id: disruption_risk
+  output_bindings:
+  - port: severity_route
+    artifact_id: severity_route
+  - port: routing_status
+    artifact_id: severity_route_status
+  parameter_bindings:
+    severe_threshold: 0.8
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: generate_response_plan
+  service_id: response_plan_generator
+  service_version: 1.0.0
+  input_bindings:
+  - port: disruption_risk
+    artifact_id: disruption_risk
+  output_bindings:
+  - port: response_plan
+    artifact_id: response_plan
+  - port: plan_status
+    artifact_id: response_plan_status
+  parameter_bindings:
+    planning_profile: regional
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: publish_operations_dashboard
+  service_id: operations_dashboard_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: disruption_risk
+    artifact_id: disruption_risk
+  output_bindings:
+  - port: operations_dashboard
+    artifact_id: operations_dashboard
+  - port: dashboard_status
+    artifact_id: dashboard_status
+  parameter_bindings:
+    dashboard_name: global_supply
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: notify_regional_teams
+  service_id: regional_team_notifier
+  service_version: 1.0.0
+  input_bindings:
+  - port: response_plan
+    artifact_id: response_plan
+  - port: notification_service
+    artifact_id: notification_service
+  output_bindings:
+  - port: notification_status
+    artifact_id: notification_status
+  parameter_bindings:
+    recipient_group: regional_ops
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: archive_exception_snapshot
+  service_id: exception_snapshot_archiver
+  service_version: 1.0.0
+  input_bindings:
+  - port: operations_dashboard
+    artifact_id: operations_dashboard
+  output_bindings:
+  - port: exception_archive
+    artifact_id: exception_archive
+  - port: archive_status
+    artifact_id: archive_status
+  parameter_bindings:
+    archive_name: exception_snapshot
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

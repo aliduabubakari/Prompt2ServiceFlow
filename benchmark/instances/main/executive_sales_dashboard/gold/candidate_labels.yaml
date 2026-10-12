@@ -1,0 +1,30 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:executive_sales_dashboard
+candidate_sets:
+- candidate_set_id: main_executive_sales_dashboard_sql_query_readiness_sensor_candidates
+  required_service_id: sql_query_readiness_sensor
+  labels:
+    sql_query_readiness_sensor: gold
+    postgres_readonly_query_result_extractor: missing_required_output
+    sql_incremental_table_extractor: semantic_mismatch
+    external_workflow_completion_sensor: target_mismatch
+    postgres_parameterized_sql_executor: policy_incompatible
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_executive_sales_dashboard_csv_tabular_schema_validating_loader_candidates
+  required_service_id: csv_tabular_schema_validating_loader
+  labels:
+    csv_tabular_schema_validating_loader: gold
+    csv_artifact_profile_ingestor: missing_required_output
+    csv_to_structured_json_standardizer: format_mismatch
+    customer_segment_csv_loader: target_mismatch
+    tabular_query_result_csv_writer: semantic_mismatch
+    legacy_csv_schema_validator: deprecated_or_incompatible
+- candidate_set_id: main_executive_sales_dashboard_tabular_dashboard_report_generator_candidates
+  required_service_id: tabular_dashboard_report_generator
+  labels:
+    tabular_dashboard_report_generator: gold
+    csv_chart_pdf_report_generator: contract_mismatch
+    bi_dashboard_refresh_trigger: semantic_mismatch
+    inventory_reconciliation_pdf_report_generator: target_mismatch
+    trade_order_csv_report_generator: format_mismatch
+    reviewed_domain_adapter: generic_escape_hatch

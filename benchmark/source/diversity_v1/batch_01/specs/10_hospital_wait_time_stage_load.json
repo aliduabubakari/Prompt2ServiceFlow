@@ -1,0 +1,223 @@
+{
+  "spec_version": "1.0",
+  "pipeline_id": "hospital_wait_time_stage_load",
+  "pipeline_name": "Hospital Wait-Time Stage Load",
+  "source": {
+    "unique_key": null,
+    "repo": "prompt2serviceflow-diversity-v1",
+    "file_path": "synthetic/hospital_wait_time_stage_load.py",
+    "repo_url": null,
+    "detected_airflow_version": "2.x",
+    "sampled_version": null,
+    "sampled_commit": null,
+    "sampled_time": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Synthetic data-preparation workflow for Healthcare/Public Health",
+    "business_domain": "Healthcare/Public Health",
+    "execution_model": "batch",
+    "topology_pattern": "staged",
+    "notes": "Synthetic Diversity-40 source package."
+  },
+  "schedule": {
+    "schedule_type": "manual",
+    "schedule_expression": null,
+    "timezone": null,
+    "start_date": null,
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "extract_source",
+        "to": "validate_schema"
+      },
+      {
+        "from": "validate_schema",
+        "to": "stage_raw_data"
+      },
+      {
+        "from": "stage_raw_data",
+        "to": "transform_stage"
+      },
+      {
+        "from": "transform_stage",
+        "to": "quality_gate"
+      },
+      {
+        "from": "quality_gate",
+        "to": "publish_dataset"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "object_storage",
+      "name": "Fixture-backed object storage",
+      "identifier": "synthetic://diversity-v1",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "raw_input.csv",
+        "description": "Synthetic tabular input"
+      },
+      {
+        "identifier": "prepared_output.parquet",
+        "description": "Synthetic prepared output"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "extract_source",
+      "name": "extract_source",
+      "objective": "Extract the source dataset into a raw tabular artifact.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "validate_schema",
+      "name": "validate_schema",
+      "objective": "Validate required columns, formats, and record identity.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "stage_raw_data",
+      "name": "stage_raw_data",
+      "objective": "Persist validated data to an auditable staging area.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "transform_stage",
+      "name": "transform_stage",
+      "objective": "Transform staged records into the canonical data model.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "quality_gate",
+      "name": "quality_gate",
+      "objective": "Assess transformed data before promotion.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_dataset",
+      "name": "publish_dataset",
+      "objective": "Promote approved records to the final dataset.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

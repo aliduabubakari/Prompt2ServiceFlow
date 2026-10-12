@@ -1,0 +1,29 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:backup_strategy_selector
+mappings:
+- intent_id: date_check_task
+  inputs:
+    execution_date: execution_date
+  outputs:
+    backup_strategy_decision: backup_strategy_decision
+- intent_id: full_backup_task
+  inputs:
+    source_database: database_resource
+  outputs:
+    backup_file: backup_file
+    backup_manifest: backup_manifest
+    backup_status: backup_status
+- intent_id: incremental_backup_task
+  inputs:
+    source_database: database_resource
+  outputs:
+    backup_file: backup_file
+    backup_manifest: backup_manifest
+    backup_status: backup_status
+- intent_id: verify_backup_task
+  inputs:
+    backup_file: backup_file
+    backup_manifest: backup_manifest
+  outputs:
+    verification_result: verification_result
+    verification_status: verification_status

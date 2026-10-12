@@ -1,0 +1,336 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: etl-import-mondo-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Deterministic Mondo release synchronization and publication\
+    \ mock.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib\
+    \ import Path\n\n\ndef boolean(value: str) -> bool:\n    return value.lower() in {\"1\", \"true\"\
+    , \"yes\"}\n\n\ndef write_json(path: Path, document: object) -> None:\n    path.write_text(json.dumps(document,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--step\"\
+    , required=True)\n    parser.add_argument(\"--new-release\", type=boolean, default=True)\n    args\
+    \ = parser.parse_args()\n    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True,\
+    \ exist_ok=True)\n\n    if args.step == \"validate\":\n        write_json(\n            artifacts\
+    \ / \"validation_decision.json\",\n            {\"valid\": True, \"success\": True, \"color\": \"\
+    blue\"},\n        )\n    elif args.step == \"download\":\n        (artifacts / \"mondo_asset.bin\"\
+    ).write_bytes(b\"format-version: 1.2\\n\")\n        write_json(\n            artifacts / \"mondo_asset_metadata.json\"\
+    ,\n            {\n                \"asset_name\": \"mondo-base.obo\",\n                \"version\"\
+    : \"v2026-01\",\n                \"object_uri\": \"s3://cqgc-app-datalake/raw/landing/mondo/mondo-base.obo\"\
+    ,\n            },\n        )\n        write_json(\n            artifacts / \"download_status.json\"\
+    ,\n            {\"success\": True, \"errors\": [], \"updated\": args.new_release},\n        )\n  \
+    \      (artifacts / \"mondo_asset_updated.txt\").write_text(\n            str(args.new_release).lower(),\
+    \ encoding=\"utf-8\"\n        )\n    elif args.step == \"normalize\":\n        dataset = artifacts\
+    \ / \"normalized_dataset\"\n        dataset.mkdir(parents=True, exist_ok=True)\n        write_json(\n\
+    \            dataset / \"manifest.json\",\n            {\"version\": \"v2026-01\", \"term_count\"\
+    : 2, \"excluded_roots\": [\"MONDO:0700096\"]},\n        )\n        write_json(\n            artifacts\
+    \ / \"normalize_status.json\",\n            {\"success\": True, \"errors\": [], \"term_count\": 2},\n\
+    \        )\n    elif args.step == \"index\":\n        write_json(\n            artifacts / \"mondo_index_reference.json\"\
+    ,\n            {\"index_name\": \"mondo-v2026-01\", \"document_count\": 2},\n        )\n        write_json(\n\
+    \            artifacts / \"load_status.json\",\n            {\"success\": True, \"errors\": [], \"\
+    documents_written\": 2},\n        )\n    elif args.step == \"publish\":\n        write_json(\n   \
+    \         artifacts / \"published_mondo_index.json\",\n            {\"index_name\": \"mondo-v2026-01\"\
+    , \"alias\": \"mondo\", \"version\": \"v2026-01\"},\n        )\n        write_json(\n            artifacts\
+    \ / \"publish_status.json\",\n            {\"success\": True, \"errors\": [], \"publication_mode\"\
+    : \"color_slot\"},\n        )\n    elif args.step == \"slack\":\n        write_json(\n           \
+    \ artifacts / \"slack_notification_status.json\",\n            {\"sent\": True, \"success\": True,\
+    \ \"channel\": \"#mondo-etl\"},\n        )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: etl-import-mondo-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock"}
+
+    '
+  fixture-0001: '{"driver":"filesystem-mock","cluster":"mondo"}
+
+    '
+  fixture-0002: '{"driver":"filesystem-mock"}
+
+    '
+  fixture-0003: '{"driver":"filesystem-mock","repository":"monarch-initiative/mondo"}
+
+    '
+  fixture-0004: '{"driver":"filesystem-mock"}'
+  fixture-0005: '{"index_patterns":["mondo-*"],"mappings":{"properties":{"id":{"type":"keyword"}}}}
+
+    '
+  fixture-0006: '{"driver":"filesystem-mock","bucket":"cqgc-app-datalake"}
+
+    '
+  fixture-0007: '{"version":"v1","format":"json"}'
+  fixture-0008: '{"driver":"filesystem-mock"}'
+  fixture-0009: '["s3://cqgc-app-datalake/raw/landing/mondo/mondo-base.obo"]
+
+    '
+  fixture-0010: '{"driver":"filesystem-mock","context":"ETL"}
+
+    '
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: etl-import-mondo-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: etl-import-mondo
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: new-release
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: new-release
+      value: 'True'
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: etl-import-mondo-scripts
+  - name: fixtures
+    configMap:
+      name: etl-import-mondo-fixtures
+      items:
+      - key: fixture-0000
+        path: db.json
+      - key: fixture-0001
+        path: elasticsearch.json
+      - key: fixture-0002
+        path: email.json
+      - key: fixture-0003
+        path: github.json
+      - key: fixture-0004
+        path: http.json
+      - key: fixture-0005
+        path: index_template.json
+      - key: fixture-0006
+        path: object_storage.json
+      - key: fixture-0007
+        path: params.json
+      - key: fixture-0008
+        path: slack.json
+      - key: fixture-0009
+        path: source_objects.json
+      - key: fixture-0010
+        path: spark.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: params-validate
+        template: run-params-validate
+      - name: download-mondo-terms
+        template: run-download-mondo-terms
+        depends: params-validate.Succeeded
+      - name: normalized-mondo-terms
+        template: run-normalized-mondo-terms
+        depends: download-mondo-terms.Succeeded
+        when: '{{tasks.download-mondo-terms.outputs.parameters.updated}} == true'
+      - name: index-mondo-terms
+        template: run-index-mondo-terms
+        depends: normalized-mondo-terms.Succeeded
+        when: '{{tasks.download-mondo-terms.outputs.parameters.updated}} == true'
+      - name: publish-mondo
+        template: run-publish-mondo
+        depends: index-mondo-terms.Succeeded
+        when: '{{tasks.download-mondo-terms.outputs.parameters.updated}} == true'
+      - name: slack
+        template: run-slack
+        depends: publish-mondo.Succeeded
+        when: '{{tasks.download-mondo-terms.outputs.parameters.updated}} == true'
+  - name: run-params-validate
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: params_validate
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - validate
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-download-mondo-terms
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: download_mondo_terms
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - download
+      - --new-release
+      - '{{workflow.parameters.new-release}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    outputs:
+      parameters:
+      - name: updated
+        valueFrom:
+          path: /workspace/artifacts/mondo_asset_updated.txt
+  - name: run-normalized-mondo-terms
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: normalized_mondo_terms
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - normalize
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-index-mondo-terms
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: index_mondo_terms
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - index
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-publish-mondo
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: publish_mondo
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - publish
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-slack
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: slack
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - slack
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

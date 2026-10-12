@@ -1,0 +1,937 @@
+ir_version: 0.1.0
+composition_id: public_benefits_case_review_notification
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.7
+  sha256: bca4eef4774e1e834ffe7ce1061d4027eeb904bd0a92db33a79b1b90a23b942b
+source:
+  dataset_id: prompt2serviceflow_extension_sources
+  dataset_version: extension_v1
+  benchmark_id: extension:public_benefits_case_review_notification
+  split: extension
+  pipeline_id: public_benefits_case_review_notification
+  description_path: source/extension_v1/batch_08/descriptions/40_public_benefits_case_review_notification.txt
+  description_sha256: 6057ca9433461e016b08a70f5fc7b5a353b79d29604a21ce9482c9a5ca59e5d4
+  internal_spec_path: source/extension_v1/batch_08/specs/40_public_benefits_case_review_notification.json
+  internal_spec_sha256: f07d0f4229e9e64c4c4311dbd0f6a13c36977680dbba49061bb37c589bd0a4eb
+requirement:
+  name: Public Benefits Case Review Notification
+  purpose: Prepare eligibility review packets and notification records from mixed case evidence.
+  domain: Public Sector/Geospatial
+  execution_model: batch
+  topology: branch_merge
+  information_sufficiency: high
+  notes:
+  - Extension-50 Batch 01 synthetic source.
+  - Event and external-system behavior is represented as bounded fixture-backed batch execution.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: case_review_queue
+  type: other
+  name: case review queue
+  identifier: synthetic://extension-v1/public_benefits_case_review_notification/1
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+- system_id: applicant_notification_endpoint
+  type: object_storage
+  name: applicant notification endpoint
+  identifier: synthetic://extension-v1/public_benefits_case_review_notification/2
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_source_batch
+  name: Ingest Source Batch
+  category: Extractor
+  capability: Ingest the bounded input batch for public-benefits case review notification.
+  source_step_refs:
+  - ingest_source_batch
+  evidence:
+  - source: internal_spec
+    text: Ingest the bounded input batch for public-benefits case review notification.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_source_batch_artifact
+  - ingest_source_batch_status
+  external_system_refs: &id001
+  - case_review_queue
+  - applicant_notification_endpoint
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_source_batch_artifact, ingest_source_batch_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: validate_source_contract
+  name: Validate Source Contract
+  category: QualityCheck
+  capability: Validate required fields, identities, and policy inputs for public-benefits case review
+    notification.
+  source_step_refs:
+  - validate_source_contract
+  evidence:
+  - source: internal_spec
+    text: Validate required fields, identities, and policy inputs for public-benefits case review notification.
+  inputs:
+  - ingest_source_batch_artifact
+  outputs:
+  - validate_source_contract_artifact
+  - validate_source_contract_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces validate_source_contract_artifact, validate_source_contract_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: standardize_cross_domain_entities
+  name: Standardize Cross Domain Entities
+  category: Transformer
+  capability: Standardize cross-domain entities for public-benefits case review notification.
+  source_step_refs:
+  - standardize_cross_domain_entities
+  evidence:
+  - source: internal_spec
+    text: Standardize cross-domain entities for public-benefits case review notification.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - standardize_cross_domain_entities_artifact
+  - standardize_cross_domain_entities_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces standardize_cross_domain_entities_artifact, standardize_cross_domain_entities_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: resolve_entity_conflicts
+  name: Resolve Entity Conflicts
+  category: Reconciler
+  capability: Resolve entity conflicts across modalities and systems for public-benefits case review notification.
+  source_step_refs:
+  - resolve_entity_conflicts
+  evidence:
+  - source: internal_spec
+    text: Resolve entity conflicts across modalities and systems for public-benefits case review notification.
+  inputs:
+  - standardize_cross_domain_entities_artifact
+  outputs:
+  - resolve_entity_conflicts_artifact
+  - resolve_entity_conflicts_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces resolve_entity_conflicts_artifact, resolve_entity_conflicts_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: score_operational_priority
+  name: Score Operational Priority
+  category: ScoringService
+  capability: Score operational priority or risk for public-benefits case review notification.
+  source_step_refs:
+  - score_operational_priority
+  evidence:
+  - source: internal_spec
+    text: Score operational priority or risk for public-benefits case review notification.
+  inputs:
+  - resolve_entity_conflicts_artifact
+  outputs:
+  - score_operational_priority_artifact
+  - score_operational_priority_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces score_operational_priority_artifact, score_operational_priority_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: evaluate_policy_or_risk
+  name: Evaluate Policy Or Risk
+  category: DomainAdapter
+  capability: Evaluate quality, policy, risk, or confidence rules for public-benefits case review notification.
+  source_step_refs:
+  - evaluate_policy_or_risk
+  evidence:
+  - source: internal_spec
+    text: Evaluate quality, policy, risk, or confidence rules for public-benefits case review notification.
+  inputs:
+  - score_operational_priority_artifact
+  outputs:
+  - evaluate_policy_or_risk_artifact
+  - evaluate_policy_or_risk_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces evaluate_policy_or_risk_artifact, evaluate_policy_or_risk_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: route_approved_records
+  name: Route Approved Records
+  category: Publisher
+  capability: Route approved or low-risk public-benefits case review notification records.
+  source_step_refs:
+  - route_approved_records
+  evidence:
+  - source: internal_spec
+    text: Route approved or low-risk public-benefits case review notification records.
+  inputs:
+  - evaluate_policy_or_risk_artifact
+  outputs:
+  - route_approved_records_artifact
+  - route_approved_records_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces route_approved_records_artifact, route_approved_records_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: route_exception_records
+  name: Route Exception Records
+  category: Publisher
+  capability: Route exception, high-risk, or low-confidence public-benefits case review notification records.
+  source_step_refs:
+  - route_exception_records
+  evidence:
+  - source: internal_spec
+    text: Route exception, high-risk, or low-confidence public-benefits case review notification records.
+  inputs:
+  - evaluate_policy_or_risk_artifact
+  outputs:
+  - route_exception_records_artifact
+  - route_exception_records_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces route_exception_records_artifact, route_exception_records_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: merge_route_outcomes
+  name: Merge Route Outcomes
+  category: Aggregator
+  capability: Merge routed outcomes into a complete public-benefits case review notification disposition
+    artifact.
+  source_step_refs:
+  - merge_route_outcomes
+  evidence:
+  - source: internal_spec
+    text: Merge routed outcomes into a complete public-benefits case review notification disposition artifact.
+  inputs:
+  - route_approved_records_artifact
+  - route_exception_records_artifact
+  outputs:
+  - merge_route_outcomes_artifact
+  - merge_route_outcomes_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces merge_route_outcomes_artifact, merge_route_outcomes_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: publish_outputs
+  name: Publish Outputs
+  category: Publisher
+  capability: Publish public-benefits case review notification outputs, review status, and completion
+    metadata.
+  source_step_refs:
+  - publish_outputs
+  evidence:
+  - source: internal_spec
+    text: Publish public-benefits case review notification outputs, review status, and completion metadata.
+  inputs:
+  - merge_route_outcomes_artifact
+  outputs:
+  - publish_outputs_artifact
+  - publish_outputs_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces publish_outputs_artifact, publish_outputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+source_step_accounting:
+- source_step_ref: ingest_source_batch
+  disposition: service
+  intent_ids:
+  - ingest_source_batch
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: validate_source_contract
+  disposition: service
+  intent_ids:
+  - validate_source_contract
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: standardize_cross_domain_entities
+  disposition: service
+  intent_ids:
+  - standardize_cross_domain_entities
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: resolve_entity_conflicts
+  disposition: service
+  intent_ids:
+  - resolve_entity_conflicts
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: score_operational_priority
+  disposition: service
+  intent_ids:
+  - score_operational_priority
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: evaluate_policy_or_risk
+  disposition: service
+  intent_ids:
+  - evaluate_policy_or_risk
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: route_approved_records
+  disposition: service
+  intent_ids:
+  - route_approved_records
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: route_exception_records
+  disposition: service
+  intent_ids:
+  - route_exception_records
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: merge_route_outcomes
+  disposition: service
+  intent_ids:
+  - merge_route_outcomes
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: publish_outputs
+  disposition: service
+  intent_ids:
+  - publish_outputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+control_flow:
+  edges:
+  - from: ingest_source_batch
+    to: validate_source_contract
+  - from: validate_source_contract
+    to: standardize_cross_domain_entities
+  - from: standardize_cross_domain_entities
+    to: resolve_entity_conflicts
+  - from: resolve_entity_conflicts
+    to: score_operational_priority
+  - from: score_operational_priority
+    to: evaluate_policy_or_risk
+  - from: evaluate_policy_or_risk
+    to: route_approved_records
+  - from: evaluate_policy_or_risk
+    to: route_exception_records
+  - from: route_approved_records
+    to: merge_route_outcomes
+  - from: route_exception_records
+    to: merge_route_outcomes
+  - from: merge_route_outcomes
+    to: publish_outputs
+  parallel_groups: []
+  branches:
+  - branch_id: evaluate_policy_or_risk_branch
+    decision_intent: evaluate_policy_or_risk
+    cases:
+    - case_id: approved
+      condition: decision.approved == true
+      next_intents:
+      - route_approved_records
+    - case_id: exception
+      condition: decision.exception == true
+      next_intents:
+      - route_exception_records
+    merge_intent: merge_route_outcomes
+  gates:
+  - gate_id: evaluate_policy_or_risk_gate
+    sensor_intent: evaluate_policy_or_risk
+    condition: policy, risk, confidence, or quality decision
+    gated_intents:
+    - route_approved_records
+    - route_exception_records
+artifacts:
+- artifact_id: source_bundle
+  name: Source Bundle
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - ingest_source_batch
+  sensitivity: internal
+  persistence: workflow
+  fixture_ref: fixtures/inputs/fixture.json
+- artifact_id: ingest_source_batch_artifact
+  name: Ingest Source Batch Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_source_batch
+  consumers:
+  - validate_source_contract
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_source_batch_status
+  name: Ingest Source Batch Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_source_batch
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: validate_source_contract_artifact
+  name: Validate Source Contract Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: validate_source_contract
+  consumers:
+  - standardize_cross_domain_entities
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validate_source_contract_status
+  name: Validate Source Contract Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: validate_source_contract
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: standardize_cross_domain_entities_artifact
+  name: Standardize Cross Domain Entities Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: standardize_cross_domain_entities
+  consumers:
+  - resolve_entity_conflicts
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: standardize_cross_domain_entities_status
+  name: Standardize Cross Domain Entities Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: standardize_cross_domain_entities
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: resolve_entity_conflicts_artifact
+  name: Resolve Entity Conflicts Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: resolve_entity_conflicts
+  consumers:
+  - score_operational_priority
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: resolve_entity_conflicts_status
+  name: Resolve Entity Conflicts Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: resolve_entity_conflicts
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: score_operational_priority_artifact
+  name: Score Operational Priority Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: score_operational_priority
+  consumers:
+  - evaluate_policy_or_risk
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: score_operational_priority_status
+  name: Score Operational Priority Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: score_operational_priority
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: evaluate_policy_or_risk_artifact
+  name: Evaluate Policy Or Risk Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: evaluate_policy_or_risk
+  consumers:
+  - route_approved_records
+  - route_exception_records
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: evaluate_policy_or_risk_status
+  name: Evaluate Policy Or Risk Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: evaluate_policy_or_risk
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: route_approved_records_artifact
+  name: Route Approved Records Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: route_approved_records
+  consumers:
+  - merge_route_outcomes
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: route_approved_records_status
+  name: Route Approved Records Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: route_approved_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: route_exception_records_artifact
+  name: Route Exception Records Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: route_exception_records
+  consumers:
+  - merge_route_outcomes
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: route_exception_records_status
+  name: Route Exception Records Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: route_exception_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: merge_route_outcomes_artifact
+  name: Merge Route Outcomes Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: merge_route_outcomes
+  consumers:
+  - publish_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: merge_route_outcomes_status
+  name: Merge Route Outcomes Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: merge_route_outcomes
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: publish_outputs_artifact
+  name: Publish Outputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: output
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publish_outputs_status
+  name: Publish Outputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+bindings:
+- intent_id: ingest_source_batch
+  service_id: benefits_case_batch_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_source_batch_artifact
+  - port: execution_report
+    artifact_id: ingest_source_batch_status
+  parameter_bindings:
+    operation_profile: ingest_source_batch
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: validate_source_contract
+  service_id: benefits_case_contract_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: ingest_source_batch_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: validate_source_contract_artifact
+  - port: execution_report
+    artifact_id: validate_source_contract_status
+  parameter_bindings:
+    operation_profile: validate_source_contract
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: standardize_cross_domain_entities
+  service_id: mixed_domain_entity_standardizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: standardize_cross_domain_entities_artifact
+  - port: execution_report
+    artifact_id: standardize_cross_domain_entities_status
+  parameter_bindings:
+    operation_profile: standardize_cross_domain_entities
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: resolve_entity_conflicts
+  service_id: cross_modal_entity_conflict_resolver
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: standardize_cross_domain_entities_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: resolve_entity_conflicts_artifact
+  - port: execution_report
+    artifact_id: resolve_entity_conflicts_status
+  parameter_bindings:
+    operation_profile: resolve_entity_conflicts
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: score_operational_priority
+  service_id: benefits_case_priority_scorer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: resolve_entity_conflicts_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: score_operational_priority_artifact
+  - port: execution_report
+    artifact_id: score_operational_priority_status
+  parameter_bindings:
+    operation_profile: score_operational_priority
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: evaluate_policy_or_risk
+  service_id: benefits_eligibility_policy_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: score_operational_priority_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: evaluate_policy_or_risk_artifact
+  - port: execution_report
+    artifact_id: evaluate_policy_or_risk_status
+  parameter_bindings:
+    operation_profile: evaluate_policy_or_risk
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: route_approved_records
+  service_id: benefits_approved_notification_router
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: evaluate_policy_or_risk_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: route_approved_records_artifact
+  - port: execution_report
+    artifact_id: route_approved_records_status
+  parameter_bindings:
+    operation_profile: route_approved_records
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: route_exception_records
+  service_id: benefits_case_review_router
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: evaluate_policy_or_risk_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: route_exception_records_artifact
+  - port: execution_report
+    artifact_id: route_exception_records_status
+  parameter_bindings:
+    operation_profile: route_exception_records
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: merge_route_outcomes
+  service_id: mixed_domain_route_outcome_merger
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: route_approved_records_artifact
+  - port: input_artifacts
+    artifact_id: route_exception_records_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: merge_route_outcomes_artifact
+  - port: execution_report
+    artifact_id: merge_route_outcomes_status
+  parameter_bindings:
+    operation_profile: merge_route_outcomes
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: publish_outputs
+  service_id: mixed_domain_completion_bundle_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: merge_route_outcomes_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: publish_outputs_artifact
+  - port: execution_report
+    artifact_id: publish_outputs_status
+  parameter_bindings:
+    operation_profile: publish_outputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - public
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Batch 01 mocks do not contact production image, document, or review systems.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 reviewed Batch 01 validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 reviewed Batch 01 validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 reviewed Batch 01 validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 reviewed Batch 01 validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 reviewed Batch 01 validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 reviewed Batch 01 validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 reviewed Batch 01 validation.

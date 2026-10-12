@@ -1,0 +1,33 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:multimodal_product_listing_ai_enrichment
+bindings:
+- intent_id: ingest_source_batch
+  service_id: product_multimodal_batch_ingestor
+  service_version: 1.0.0
+- intent_id: validate_source_contract
+  service_id: product_listing_contract_validator
+  service_version: 1.0.0
+- intent_id: normalize_partition_a
+  service_id: product_image_partition_normalizer
+  service_version: 1.0.0
+- intent_id: normalize_partition_b
+  service_id: product_text_partition_normalizer
+  service_version: 1.0.0
+- intent_id: normalize_partition_c
+  service_id: product_taxonomy_partition_normalizer
+  service_version: 1.0.0
+- intent_id: fuse_partitions
+  service_id: product_listing_context_fuser
+  service_version: 1.0.0
+- intent_id: extract_or_parse_text
+  service_id: product_listing_summary_parser
+  service_version: 1.0.0
+- intent_id: chunk_documents
+  service_id: semantic_document_chunker
+  service_version: 1.0.0
+- intent_id: generate_embeddings
+  service_id: deterministic_text_embedding_generator
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: product_listing_enrichment_publisher
+  service_version: 1.0.0

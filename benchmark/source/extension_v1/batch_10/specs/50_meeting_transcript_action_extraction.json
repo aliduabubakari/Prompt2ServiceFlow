@@ -1,0 +1,471 @@
+{
+  "spec_version": "1.0",
+  "corpus": "Prompt2ServiceFlow Extension-50",
+  "corpus_version": "extension_v1",
+  "pipeline_id": "meeting_transcript_action_extraction",
+  "pipeline_name": "Meeting Transcript Action Extraction",
+  "source": {
+    "unique_key": null,
+    "repo": "prompt2serviceflow-extension-v1",
+    "file_path": "synthetic/meeting_transcript_action_extraction.py",
+    "repo_url": null,
+    "detected_airflow_version": "2.x",
+    "sampled_version": null,
+    "sampled_commit": null,
+    "sampled_time": null,
+    "source_fingerprint_sha256": null,
+    "source_type": "synthetic_provenance_marked"
+  },
+  "summary": {
+    "purpose": "Segment meeting transcripts, extract decisions and actions, assign owners, and publish follow-up records.",
+    "business_domain": "Education/Research",
+    "execution_model": "bounded_batch",
+    "topology_pattern": "staged",
+    "extension_track": "ai_llm_nlp",
+    "complexity_band": "very_complex",
+    "input_modalities": [
+      "text",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "action_register",
+      "summary",
+      "notification"
+    ],
+    "notes": "Synthetic Extension-50 source package. No hidden gold annotations are included."
+  },
+  "schedule": {
+    "schedule_type": "manual",
+    "schedule_expression": null,
+    "timezone": null,
+    "start_date": null,
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "ingest_source_batch",
+        "to": "validate_source_contract"
+      },
+      {
+        "from": "validate_source_contract",
+        "to": "stage_raw_artifacts"
+      },
+      {
+        "from": "stage_raw_artifacts",
+        "to": "normalize_records"
+      },
+      {
+        "from": "normalize_records",
+        "to": "extract_or_parse_text"
+      },
+      {
+        "from": "extract_or_parse_text",
+        "to": "chunk_documents"
+      },
+      {
+        "from": "chunk_documents",
+        "to": "generate_embeddings"
+      },
+      {
+        "from": "generate_embeddings",
+        "to": "write_vector_index"
+      },
+      {
+        "from": "write_vector_index",
+        "to": "retrieve_grounding_context"
+      },
+      {
+        "from": "retrieve_grounding_context",
+        "to": "run_structured_extraction"
+      },
+      {
+        "from": "run_structured_extraction",
+        "to": "score_confidence_and_policy"
+      },
+      {
+        "from": "score_confidence_and_policy",
+        "to": "create_human_review_packet"
+      },
+      {
+        "from": "create_human_review_packet",
+        "to": "publish_outputs"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "fixture_backed_system",
+      "name": "collaboration archive",
+      "identifier": "synthetic://extension-v1/meeting_transcript_action_extraction/1",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    },
+    {
+      "type": "fixture_backed_system",
+      "name": "task notification staging",
+      "identifier": "synthetic://extension-v1/meeting_transcript_action_extraction/2",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "source_bundle",
+        "description": "Fixture-backed source input bundle"
+      },
+      {
+        "identifier": "prepared_outputs",
+        "description": "Validated workflow output bundle"
+      },
+      {
+        "identifier": "audit_manifest",
+        "description": "Provenance, checksum, quality, and routing evidence"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": [],
+    "modalities": [
+      "text",
+      "json",
+      "table"
+    ]
+  },
+  "steps": [
+    {
+      "step_id": "ingest_source_batch",
+      "name": "Ingest Source Batch",
+      "objective": "Ingest all bounded inputs for meeting transcript decisions and actions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "validate_source_contract",
+      "name": "Validate Source Contract",
+      "objective": "Validate required schemas, identifiers, and modality assumptions for meeting transcript decisions and actions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "stage_raw_artifacts",
+      "name": "Stage Raw Artifacts",
+      "objective": "Stage validated raw artifacts for auditable meeting transcript decisions and actions processing.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "normalize_records",
+      "name": "Normalize Records",
+      "objective": "Normalize staged records and derived fields for meeting transcript decisions and actions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "extract_or_parse_text",
+      "name": "Extract Or Parse Text",
+      "objective": "Extract, parse, or transcribe text for meeting transcript decisions and actions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "chunk_documents",
+      "name": "Chunk Documents",
+      "objective": "Chunk documents or transcript segments for meeting transcript decisions and actions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "generate_embeddings",
+      "name": "Generate Embeddings",
+      "objective": "Generate embeddings for chunks or text spans in meeting transcript decisions and actions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "write_vector_index",
+      "name": "Write Vector Index",
+      "objective": "Write or update a fixture-backed vector index for meeting transcript decisions and actions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "retrieve_grounding_context",
+      "name": "Retrieve Grounding Context",
+      "objective": "Retrieve grounding context for meeting transcript decisions and actions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "run_structured_extraction",
+      "name": "Run Structured Extraction",
+      "objective": "Run structured extraction, classification, or summarization for meeting transcript decisions and actions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "score_confidence_and_policy",
+      "name": "Score Confidence And Policy",
+      "objective": "Score confidence, grounding, and policy constraints for meeting transcript decisions and actions.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "create_human_review_packet",
+      "name": "Create Human Review Packet",
+      "objective": "Create review packets for low-confidence or high-risk meeting transcript decisions and actions outputs.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "publish_outputs",
+      "name": "Publish Outputs",
+      "objective": "Publish prepared meeting transcript decisions and actions outputs and completion status.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    }
+  ]
+}

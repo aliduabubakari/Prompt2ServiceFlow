@@ -1,0 +1,137 @@
+{
+  "freeze_id": "freeze-2026-10-10.deepinfra.ablation.v24",
+  "status": "frozen",
+  "prompt_version": "2.1.0",
+  "ablation_protocol_version": "1.1.0",
+  "harness_version": "2.2.2",
+  "runtime_compiler_version": "1.0.0",
+  "primary_methods": ["m0", "m1", "m2", "m3", "m4"],
+  "compared_methods": ["m3", "m4"],
+  "exploratory_methods": [],
+  "repair_budget": 3,
+  "validator_budget_derivation": "repair_budget + 1",
+  "pilot_samples_per_instance": 1,
+  "samples_per_instance": 3,
+  "robustness_samples_per_instance": 3,
+  "roster_sha256": "3ed5509009ae44983ff2fc95595ca45538cc38b6759bf9deecb72138e20a58d3",
+  "model_roster": ["deepinfra-qwen3-coder-480b-turbo"],
+  "endpoint": {
+    "provider": "deepinfra",
+    "base_url": "https://api.deepinfra.com/v1/openai",
+    "api_key_env": "DEEPINFRA_TOKEN",
+    "cost_basis": "provider_token_pricing",
+    "pricing_observed_at": "2026-09-10"
+  },
+  "corpus": {
+    "total_instances": 110,
+    "splits": {"main": 40, "validation": 20, "extension": 50},
+    "execution_order": ["main", "extension", "validation"],
+    "batch_policy": "each split is an independent resumable publication batch",
+    "fallback_reporting": "Main-40 is the predeclared minimum confirmatory ablation; completed Extension-50 and Validation-20 batches expand the analysis without changing Main-40 outcomes"
+  },
+  "model_artifacts": {
+    "deepinfra-qwen3-coder-480b-turbo": {
+      "api_identifier": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+      "quantization": "fp4",
+      "maximum_context_length": 262144,
+      "input_price_per_mtok_usd": 0.30,
+      "output_price_per_mtok_usd": 1.00,
+      "catalog_tags": ["openai-compatible", "tools", "json", "structured-output", "non-reasoning"]
+    }
+  },
+  "retrieval": {
+    "embedding_model": "text-embedding-nomic-embed-text-v1.5",
+    "top_k": 5,
+    "hybrid_reciprocal_rank_constant": 60,
+    "runtime_probe_required": false,
+    "note": "Confirmatory conditions use frozen candidate-set inputs; retrieval is not rerun."
+  },
+  "m4_execution_feedback": true,
+  "m4_repair_controller": {
+    "repair_budget_scope": "all repair completions, including parse-seed repairs",
+    "candidate_selection": "lexicographic public-gate rank: overall pass, consecutive passed prefix G0..G6, total passed gates, fewer diagnostics",
+    "repair_base": "best validated candidate",
+    "diagnostic_memory": "up to 60 unique public diagnostics across prior states",
+    "cycle_detection": "exact failed-gate diagnostic fingerprint",
+    "regressions": "audited but never replace a better candidate"
+  },
+  "ablation": {
+    "reference_condition": "full M4 from the frozen v21 primary batch",
+    "model": "deepinfra-qwen3-coder-480b-turbo",
+    "confirmatory_conditions": [
+      "a1_no_contracts",
+      "a2_no_policies",
+      "a3_no_g5_repair_feedback",
+      "a5_no_repair",
+      "a6_unstructured_diagnostics"
+    ],
+    "condition_definitions": {
+      "a1_no_contracts": "withhold contract context and contract details; expose only failed gate identities during repair",
+      "a2_no_policies": "withhold lifecycle/policy context; expose only failed gate identities during repair",
+      "a3_no_g5_repair_feedback": "retain G5 validation and final scoring but redact G5 diagnostic codes, messages, and paths from repair prompts",
+      "a5_no_repair": "M3 pre-repair pipeline with the same visible inputs and no diagnostic repair",
+      "a6_unstructured_diagnostics": "retain M4 repair opportunities but expose only failed gate identities for every actionable gate"
+    },
+    "stage_removal_sensitivity": {
+      "status": "separate_nonconfirmatory_analysis",
+      "contrast": "v21 M2 catalog-grounded direct Argo versus v21 full M4",
+      "source_batch": "experiments/runs/qwen480-v21/frozen__freeze-2026-10-08.deepinfra.v21__20261008T100403.597052Z__486e18ae.json",
+      "interpretation": "bundled removal of ServiceFlowIR assembly, deterministic projection, IR validation, and IR-local repair; not an IR-only causal effect",
+      "applicable_outcomes": ["G0", "G1", "G2", "G5", "node F1", "edge F1", "service grounding", "LLM calls", "tokens", "latency", "API cost"],
+      "not_comparable": ["G3", "G4", "G6-Exec", "G6-Assert", "end-to-end full pass"]
+    },
+    "held_constant": [
+      "model identifier and decoding settings",
+      "public workspace and candidate sets",
+      "external evaluation obligations",
+      "three-repetition seed schedule",
+      "repair budget except for the declared no-repair condition"
+    ],
+    "analysis": {
+      "statistical_unit": "pipeline instance",
+      "repetition_aggregation": "aggregate three repetitions within each instance before inference",
+      "comparison": "paired difference versus full M4",
+      "confidence_interval": "95% BCa paired bootstrap over instances",
+      "hypothesis_test": "two-sided paired permutation test",
+      "multiplicity": "Holm correction across five confirmatory contrasts",
+      "primary_outcomes": ["G0-G5 executable validity", "G6 semantic success"],
+      "efficiency_outcomes": ["LLM calls", "prompt tokens", "completion tokens", "latency", "API cost"]
+    }
+  },
+  "scoring": {
+    "empty_wiring_policy": "not_applicable when both gold and submission have no producer-consumer pairs",
+    "truncation_finish_reasons": ["length", "max_tokens"]
+  },
+  "decoding": {
+    "temperature": 0.2,
+    "top_p": 1.0,
+    "sample_seeds": [101, 202, 303],
+    "max_tokens": 16384,
+    "context_window": "per_model",
+    "parallel_predictions": 1
+  },
+  "execution": {
+    "max_workers": 4,
+    "scope": "within one split batch",
+    "scheduling": "bounded concurrent condition cells",
+    "model_blocks_sequential": true,
+    "model_blocks": [["deepinfra-qwen3-coder-480b-turbo"]]
+  },
+  "design": {
+    "cell_count": 1650,
+    "formula": "110 instances x 1 model x 5 confirmatory conditions x 3 seeds",
+    "split_cells": {"main": 600, "extension": 750, "validation": 300},
+    "primary_unit": "condition x split x instance x seed",
+    "minimum_publishable_batch": "main",
+    "pooled_analysis_requires": ["main", "extension", "validation"]
+  },
+  "notes": [
+    "V24 supersedes v23 after its one-instance pilot showed that direct-Argo M2 does not define G3, G4, G6, or an end-to-end full-pass outcome comparable with M4.",
+    "The v23 pilot and freeze remain immutable audit artifacts and are excluded from publication inference.",
+    "This freeze is independent of and does not mutate the completed v21 primary batch.",
+    "Main-40 is run first, Extension-50 second, and Validation-20 last.",
+    "Stopping after Main-40 because of a pre-existing deadline is permitted, but the paper must report that scope and must not pool partially completed later strata.",
+    "Infrastructure failures remain pending cells and are retried only by resuming the same immutable batch summary.",
+    "No condition may be added, removed, or redefined after inspecting confirmatory v24 outcomes."
+  ]
+}

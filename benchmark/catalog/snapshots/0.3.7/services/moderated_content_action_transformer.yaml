@@ -1,0 +1,168 @@
+schema_version: 0.1.0
+service_id: moderated_content_action_transformer
+version: 1.0.0
+display_name: Moderated Content Action Transformer
+category: Transformer
+capability:
+  summary: Creates artifact-level moderation action results by removing, quarantining,
+    or marking toxic content records and flagging associated accounts when identifiers
+    are available.
+  operations:
+  - Read toxicity-scored content records and routing context.
+  - Select records matching configured moderation action criteria.
+  - Emit action results for removed/flagged content and user/account flags.
+  - Emit status with action counts and skipped counts.
+  keywords:
+  - content moderation
+  - remove content
+  - flag account
+  - toxic content
+  - artifact transform
+  limitations:
+  - Does not mutate an external content platform; it emits action-result artifacts
+    for downstream handling.
+  - Does not decide branch routing or compute toxicity scores.
+  - Account flagging is represented in output data only unless a separate platform
+    adapter is bound downstream.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: scored_content_dataset
+    description: Toxicity-scored content records.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://toxicity_scored_content_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: routing_decision
+    description: Routing decision from the toxicity decider.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://content_toxicity_routing_decision/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: moderation_action_results
+    description: Structured results describing content removed/quarantined and user
+      accounts flagged for review.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://moderation_action_results/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: action_status
+    description: Observable moderation action status with counts and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://moderation_action_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: action_type
+    description: Moderation action to apply to selected content records.
+    type: string
+    required: true
+    enum:
+    - remove_and_flag
+    - quarantine
+    - mark_for_review
+  - name: score_field
+    description: Field containing toxicity score in the scored dataset.
+    type: string
+    required: false
+  - name: toxicity_threshold
+    description: Threshold used to select records when routing decision is not sufficient.
+    type: number
+    required: true
+    minimum: 0.0
+    maximum: 1.0
+  - name: content_id_field
+    description: Field containing content identifier.
+    type: string
+    required: false
+  - name: user_id_field
+    description: Field containing user/account identifier for flagging.
+    type: string
+    required: false
+  secrets: []
+contracts:
+- contract_id: moderation_action_type_contract
+  type: precondition
+  applies_to: parameter
+  target: action_type
+  description: Action type must be one of the supported artifact-level moderation
+    actions.
+  expression: action_type in ['remove_and_flag','quarantine','mark_for_review']
+- contract_id: moderation_action_results_schema
+  type: json_schema
+  applies_to: output
+  target: moderation_action_results
+  description: Action results expose affected content/account counts and bounded references.
+  schema_ref: schema://moderation_action_results/v1
+  expression: '{"type":"object","required":["action_type","content_items_selected","content_items_actioned","accounts_flagged"],"properties":{"action_type":{"type":"string"},"content_items_selected":{"type":"integer","minimum":0},"content_items_actioned":{"type":"integer","minimum":0},"accounts_flagged":{"type":"integer","minimum":0},"actioned_content_refs":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: moderation_action_effect
+  type: effect
+  applies_to: service
+  target: moderated_content_action_transformer
+  description: On success, action status is emitted and selected toxic content is
+    represented in the action results.
+  expression: action_status.success == true implies moderation_action_results.content_items_actioned
+    >= 0
+invocation:
+  type: argo_workflow_template
+  template_name: moderated-content-action-transformer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.moderated_content_action_transformer
+  implementation_ref: services/implementations/moderated_content_action_transformer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - pii
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw content text or full account identifiers in status outputs.
+  idempotency_notes: Same scored dataset and action parameters produce the same action-result
+    artifact.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:content_moderation_pipeline#remove_and_flag_content
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing registry lacks artifact-level content removal/account flagging
+    semantics.'
+  - 'Evidence status: strongly_inferred.'

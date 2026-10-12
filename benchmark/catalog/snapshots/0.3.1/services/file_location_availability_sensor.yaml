@@ -1,0 +1,186 @@
+schema_version: 0.1.0
+service_id: file_location_availability_sensor
+version: 1.0.0
+display_name: File Location Availability Sensor
+category: Sensor
+capability:
+  summary: Checks whether an explicitly bound SFTP or filesystem location satisfies
+    a configured availability condition, such as exists, non-empty, empty, or contains
+    matching files, and emits a decision/status artifact.
+  operations:
+  - Resolve the bound SFTP, FTP, or filesystem location resource.
+  - Evaluate the configured path and optional filename pattern.
+  - Compare observed state with the configured availability condition.
+  - Emit an availability decision and check status without moving or transforming
+    files.
+  keywords:
+  - file availability
+  - sftp
+  - ftp
+  - shared folder
+  - readiness check
+  - sensor
+  - filesystem
+  limitations:
+  - Does not schedule polling or retries.
+  - Does not download, move, or transform files.
+  - Does not infer the expected path or filename pattern; caller must bind them.
+  - Exact permissions and authentication depend on the bound resource.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: file_location_resource
+    description: Bound SFTP/FTP server or filesystem/shared-folder resource to inspect.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://file_location_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: availability_decision
+    description: Decision showing observed file-location state and whether it satisfies
+      the configured availability condition.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://file_location_availability_decision/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: check_status
+    description: Observable sensor status with success flag, path checked, candidate
+      count, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://file_location_check_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: location_type
+    description: Type of location being checked.
+    type: string
+    required: true
+    enum:
+    - sftp
+    - ftp
+    - filesystem
+  - name: path
+    description: Directory or file path to check within the bound resource.
+    type: string
+    required: true
+  - name: availability_condition
+    description: Condition that must be satisfied for availability to be true.
+    type: string
+    required: true
+    enum:
+    - exists
+    - non_empty
+    - empty
+    - contains_matching_files
+  - name: filename_pattern
+    description: Optional glob or regex-like filename pattern used when availability_condition
+      is contains_matching_files.
+    type: string
+    required: false
+  - name: recursive
+    description: Whether to inspect subdirectories when listing candidate files.
+    type: boolean
+    required: false
+  secrets:
+  - name: file_location_credentials
+    description: Optional credentials required by the bound SFTP/FTP or protected
+      filesystem resource.
+    required: false
+contracts:
+- contract_id: file_location_sensor_path_contract
+  type: precondition
+  applies_to: parameter
+  target: path
+  description: The path parameter must be non-empty and resolved only within the bound
+    file-location resource.
+  expression: length(trim(path)) > 0 and resolves_under(file_location_resource, path)
+- contract_id: file_location_sensor_decision_schema
+  type: json_schema
+  applies_to: output
+  target: availability_decision
+  description: Availability decision exposes the observed state and boolean result.
+  schema_ref: schema://file_location_availability_decision/v1
+  expression: '{"type":"object","required":["available","condition","path","candidate_count"],"properties":{"available":{"type":"boolean"},"condition":{"type":"string"},"path":{"type":"string"},"candidate_count":{"type":"integer","minimum":0},"matched_files_sample":{"type":"array","items":{"type":"string"}},"reason":{"type":"string"}}}'
+- contract_id: file_location_sensor_status_schema
+  type: json_schema
+  applies_to: output
+  target: check_status
+  description: Check status exposes sensor execution outcome.
+  schema_ref: schema://file_location_check_status/v1
+  expression: '{"type":"object","required":["success","location_type","path_checked","errors"],"properties":{"success":{"type":"boolean"},"location_type":{"type":"string"},"path_checked":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: file_location_sensor_effect
+  type: effect
+  applies_to: service
+  target: file_location_availability_sensor
+  description: The service is read-only and emits available=true exactly when the
+    observed location state satisfies the configured condition.
+  expression: no_external_mutation
+invocation:
+  type: argo_workflow_template
+  template_name: file-location-availability-sensor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.file_location_availability_sensor
+  implementation_ref: services/implementations/file_location_availability_sensor
+  mock_supported: true
+policies:
+  network_access: optional
+  allowed_network_targets:
+  - sftp://*
+  - ftp://*
+  - file://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit credentials or raw file contents in status outputs.
+  - Restrict path resolution to the explicitly bound location resource.
+  idempotency_notes: For a fixed external file-location state and parameters, the
+    same decision is emitted; the observed external state may change over time.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:file_arrival_watcher#wait_for_file
+  - main:ftp_vendor_inventory_processor#wait_for_ftp_file
+  - main:global_dag#staging_pipeline.death_emptiness_check
+  - main:pcd-etl#Check_PCD_SFTP_Folder
+  - main:pcd-etl#Check_PCD_Shared_Folder
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The registry lacks a reusable readiness sensor for SFTP/shared-folder
+    availability. The source Kubernetes jobs appear to implement such checks, but
+    the reusable catalogue capability is the file-location readiness decision, not
+    the orchestration mechanism.'
+  - 'Evidence status: strongly_inferred.'

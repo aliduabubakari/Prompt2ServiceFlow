@@ -1,0 +1,98 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:global_dag
+candidate_sets:
+- candidate_set_id: main_global_dag_http_api_request_artifact_extractor_candidates
+  required_service_id: http_api_request_artifact_extractor
+  labels:
+    http_api_request_artifact_extractor: gold
+    http_json_request_extractor: format_mismatch
+    data_gouv_dataset_resource_downloader: contract_mismatch
+    ftp_file_artifact_downloader: target_mismatch
+    open_network_http_json_requester: policy_incompatible
+- candidate_set_id: main_global_dag_http_json_request_extractor_candidates
+  required_service_id: http_json_request_extractor
+  labels:
+    http_json_request_extractor: gold
+    http_api_request_artifact_extractor: missing_required_output
+    airvisual_nearest_city_json_extractor: target_mismatch
+    graphql_json_operation_executor: contract_mismatch
+    data_gouv_dataset_resource_downloader: semantic_mismatch
+    legacy_http_json_extractor: deprecated_or_incompatible
+- candidate_set_id: main_global_dag_data_gouv_dataset_resource_downloader_candidates
+  required_service_id: data_gouv_dataset_resource_downloader
+  labels:
+    data_gouv_dataset_resource_downloader: gold
+    http_api_request_artifact_extractor: missing_required_output
+    http_json_request_extractor: semantic_mismatch
+    checksum_manifest_object_storage_file_sync: contract_mismatch
+    ftp_file_artifact_downloader: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_global_dag_power_plant_csv_standardizer_candidates
+  required_service_id: power_plant_csv_standardizer
+  labels:
+    power_plant_csv_standardizer: gold
+    csv_to_structured_json_standardizer: format_mismatch
+    weather_station_csv_standard_normalizer: semantic_mismatch
+    inventory_sku_csv_normalizer: semantic_mismatch
+    legacy_csv_schema_validator: deprecated_or_incompatible
+- candidate_set_id: main_global_dag_postgres_sql_file_executor_candidates
+  required_service_id: postgres_sql_file_executor
+  labels:
+    postgres_sql_file_executor: gold
+    postgres_parameterized_sql_executor: format_mismatch
+    postgres_readonly_query_result_extractor: semantic_mismatch
+    hive_hql_script_executor: target_mismatch
+    tabular_dataset_database_loader: contract_mismatch
+    unreviewed_postgres_sql_executor: policy_incompatible
+- candidate_set_id: main_global_dag_redis_file_batch_loader_candidates
+  required_service_id: redis_file_batch_loader
+  labels:
+    redis_file_batch_loader: gold
+    redis_key_cleanup: semantic_mismatch
+    ftp_file_artifact_downloader: semantic_mismatch
+    tabular_dataset_database_loader: target_mismatch
+    french_death_records_sql_script_generator: contract_mismatch
+    legacy_database_table_loader: deprecated_or_incompatible
+- candidate_set_id: main_global_dag_french_death_records_sql_script_generator_candidates
+  required_service_id: french_death_records_sql_script_generator
+  labels:
+    french_death_records_sql_script_generator: gold
+    redis_file_batch_loader: missing_required_output
+    tabular_csv_postgres_insert_sql_generator: format_mismatch
+    postgres_sql_file_executor: semantic_mismatch
+    power_plant_csv_standardizer: semantic_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_global_dag_file_location_availability_sensor_candidates
+  required_service_id: file_location_availability_sensor
+  labels:
+    file_location_availability_sensor: gold
+    sql_query_readiness_sensor: target_mismatch
+    external_workflow_completion_sensor: target_mismatch
+    filesystem_retention_cleanup_with_lock: policy_incompatible
+    ftp_file_artifact_downloader: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_global_dag_temporary_resource_cleanup_candidates
+  required_service_id: temporary_resource_cleanup
+  labels:
+    temporary_resource_cleanup: gold
+    filesystem_retention_cleanup_with_lock: contract_mismatch
+    redis_key_cleanup: target_mismatch
+    file_location_availability_sensor: missing_required_output
+    database_expired_session_cleanup: target_mismatch
+- candidate_set_id: main_global_dag_redis_key_cleanup_candidates
+  required_service_id: redis_key_cleanup
+  labels:
+    redis_key_cleanup: gold
+    temporary_resource_cleanup: target_mismatch
+    redis_file_batch_loader: semantic_mismatch
+    database_expired_session_cleanup: target_mismatch
+    file_location_availability_sensor: policy_incompatible
+- candidate_set_id: main_global_dag_tabular_csv_postgres_insert_sql_generator_candidates
+  required_service_id: tabular_csv_postgres_insert_sql_generator
+  labels:
+    tabular_csv_postgres_insert_sql_generator: gold
+    postgres_sql_file_executor: semantic_mismatch
+    structured_json_to_csv_exporter: format_mismatch
+    power_plant_csv_standardizer: missing_required_output
+    database_csv_snapshot_importer: contract_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch

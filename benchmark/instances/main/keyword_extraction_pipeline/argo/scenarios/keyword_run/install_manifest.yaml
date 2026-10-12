@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keyword-extraction-pipeline-keyword-run-scripts
+  namespace: prompt2serviceflow
+data:
+  01_gen.py: "#!/usr/bin/env python3\n\"\"\"Generate mock document parquet data (as JSON).\"\"\"\nfrom\
+    \ __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\ndef main():\n  \
+    \  p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    docs=[{\"doc_id\":f\"\
+    D{i:03d}\",\"title\":f\"Document {i}\",\"content\":f\"This is document {i} about machine learning\
+    \ and NLP keywords extraction.\"} for i in range(1,6)]\n    (art/\"documents.parquet\").write_text(json.dumps({\"\
+    columns\":[\"doc_id\",\"title\",\"content\"],\"rows\":docs},indent=2)+\"\\n\",encoding=\"utf-8\")\n\
+    \    (art/\"gen_status.json\").write_text(json.dumps({\"success\":True,\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  02_explore.py: "#!/usr/bin/env python3\n\"\"\"Profile documents.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"artifacts\"\n    ds=json.loads((art/\"\
+    documents.parquet\").read_text(encoding=\"utf-8\"))\n    (art/\"profile_report.json\").write_text(json.dumps({\"\
+    row_count\":len(ds[\"rows\"]),\"columns\":ds[\"columns\"],\"success\":True},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    (art/\"profile_status.json\").write_text(json.dumps({\"success\":True,\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_clean.py: "#!/usr/bin/env python3\n\"\"\"Clean documents.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"artifacts\"\n    ds=json.loads((art/\"\
+    documents.parquet\").read_text(encoding=\"utf-8\"))\n    for r in ds[\"rows\"]: r[\"content\"]=r[\"\
+    content\"].lower().strip()\n    (art/\"cleaned.parquet\").write_text(json.dumps(ds,indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\n    (art/\"clean_status.json\").write_text(json.dumps({\"success\":True,\"\
+    errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_extract.py: "#!/usr/bin/env python3\n\"\"\"Extract keywords.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json\nfrom pathlib import Path\nKW=[\"machine\",\"learning\",\"nlp\",\"keywords\"\
+    ,\"extraction\",\"data\",\"process\"]\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"artifacts\"\n    ds=json.loads((art/\"\
+    cleaned.parquet\").read_text(encoding=\"utf-8\"))\n    for r in ds[\"rows\"]:\n        words=r[\"\
+    content\"].split()\n        r[\"keywords\"]=\",\".join(w for w in words if w.strip(\",.\") in KW)\n\
+    \    ds[\"columns\"]=ds[\"columns\"]+[\"keywords\"]\n    (art/\"featured.parquet\").write_text(json.dumps(ds,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"feature_status.json\").write_text(json.dumps({\"success\":True,\"\
+    errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  05_validate.py: "#!/usr/bin/env python3\n\"\"\"Validate keyword extraction.\"\"\"\nfrom __future__ import\
+    \ annotations\nimport argparse, json\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"\n    ds=json.loads((art/\"featured.parquet\").read_text(encoding=\"utf-8\"))\n    ok=all(r.get(\"\
+    keywords\",\"\")!=\"\" for r in ds[\"rows\"])\n    (art/\"validation_result.json\").write_text(json.dumps({\"\
+    valid\":ok,\"success\":True},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"validation_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif\
+    \ __name__==\"__main__\": main()\n"
+  06_report.py: "#!/usr/bin/env python3\n\"\"\"Export keyword report to CSV.\"\"\"\nfrom __future__ import\
+    \ annotations\nimport argparse, csv, json\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"\n    ds=json.loads((art/\"featured.parquet\").read_text(encoding=\"utf-8\"))\n    out=art/\"\
+    keyword_report.csv\"\n    with out.open(\"w\",encoding=\"utf-8\",newline=\"\") as f:\n        w=csv.DictWriter(f,fieldnames=ds[\"\
+    columns\"]); w.writeheader(); w.writerows(ds[\"rows\"])\n    (art/\"report_status.json\").write_text(json.dumps({\"\
+    success\":True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keyword-extraction-pipeline-keyword-run-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: 'id,value
+
+    1,100
+
+    '
+  fixture-0001: "{\n  \"pipeline_id\": \"keyword_extraction_pipeline\",\n  \"inputs\": {\n    \"placeholder\"\
+    : \"data.csv\"\n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n  ],\n  \"systems\"\
+    : [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"

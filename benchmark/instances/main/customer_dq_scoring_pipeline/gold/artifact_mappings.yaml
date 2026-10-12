@@ -1,0 +1,40 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:customer_dq_scoring_pipeline
+mappings:
+- intent_id: generate_synthetic_data
+  inputs: {}
+  outputs:
+    customer_parquet: raw_customer_parquet
+    generation_status: generation_status
+- intent_id: explore_raw_data
+  inputs:
+    document_parquet: raw_customer_parquet
+  outputs:
+    profile_report: profile_report
+    profile_status: profile_status
+- intent_id: clean_data
+  inputs:
+    raw_customer_parquet: raw_customer_parquet
+  outputs:
+    cleaned_customer_parquet: cleaned_customer_parquet
+    cleaning_status: cleaning_status
+- intent_id: calculate_quality_score
+  inputs:
+    cleaned_customer_parquet: cleaned_customer_parquet
+  outputs:
+    dq_scores: dq_scores
+    scoring_status: scoring_status
+- intent_id: feature_engineering
+  inputs:
+    source_parquet: cleaned_customer_parquet
+  outputs:
+    feature_enriched_parquet: feature_enriched_parquet
+    feature_status: feature_status
+- intent_id: save_and_report
+  inputs:
+    feature_enriched_parquet: feature_enriched_parquet
+    dq_scores: dq_scores
+  outputs:
+    csv_export: final_csv_export
+    dq_report_json: dq_report_json
+    report_status: report_status

@@ -1,0 +1,99 @@
+schema_version: 0.1.0
+service_id: iot_broker_sensor_feed_collector
+version: 1.0.0
+display_name: Iot Broker Sensor Feed Collector
+category: Extractor
+capability:
+  summary: Collects one configured industrial IoT sensor feed from a bound broker.
+  operations:
+  - Collects one configured industrial IoT sensor feed from a bound broker.
+  keywords:
+  - iot
+  - broker
+  - sensor
+  - feed
+  - collector
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: iot_broker
+    description: Reviewed iot broker value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: sensor_feed
+    description: Reviewed sensor feed value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: collection_status
+    description: Reviewed collection status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: feed_type
+    description: Configuration for feed type.
+    type: string
+    required: true
+  - name: window_minutes
+    description: Configuration for window minutes.
+    type: integer
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: iot-broker-sensor-feed-collector
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.2
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.iot_broker_sensor_feed_collector
+  implementation_ref: services/implementations/iot_broker_sensor_feed_collector
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-03:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 03 descriptions; bindings retain inference confidence.

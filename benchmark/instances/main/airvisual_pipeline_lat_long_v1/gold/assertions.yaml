@@ -1,0 +1,35 @@
+assertions_version: 0.1.0
+pipeline_id: airvisual_pipeline_lat_long_v1
+scenarios:
+  - scenario: nominal_observation
+    assertions:
+      - assertion_id: extraction_succeeded
+        type: json_path_equals
+        path: artifacts/extraction_status.json
+        json_path: success
+        expected: true
+      - assertion_id: response_valid
+        type: json_path_equals
+        path: artifacts/validation_result.json
+        json_path: valid
+        expected: true
+      - assertion_id: one_observation_validated
+        type: json_path_equals
+        path: artifacts/validation_result.json
+        json_path: record_count
+        expected: 1
+      - assertion_id: four_tables_declared
+        type: json_array_length
+        path: artifacts/loaded_tables.json
+        json_path: tables
+        expected: 4
+      - assertion_id: dimensional_load_succeeded
+        type: json_path_equals
+        path: artifacts/dimensional_load_status.json
+        json_path: success
+        expected: true
+      - assertion_id: one_fact_row_written
+        type: json_path_equals
+        path: artifacts/dimensional_load_status.json
+        json_path: rows_inserted
+        expected: 1

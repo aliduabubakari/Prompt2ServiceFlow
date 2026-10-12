@@ -1,0 +1,161 @@
+schema_version: 0.1.0
+service_id: tabular_text_language_detector
+version: 1.0.0
+display_name: Tabular Text Language Detector
+category: ScoringService
+capability:
+  summary: Detects language for text values in a structured tabular JSON artifact
+    and appends a configured language-code column.
+  operations:
+  - Read structured tabular JSON rows.
+  - Validate configured text and output language-code columns.
+  - Run language detection for each eligible text value.
+  - Write enriched tabular JSON and emit detection status with row counts and diagnostics.
+  keywords:
+  - language detection
+  - multilingual text
+  - tabular json
+  - product reviews
+  - text enrichment
+  limitations:
+  - Does not translate text.
+  - Does not perform sentiment analysis or feature extraction.
+  - Detection algorithm/model is selected by implementation or caller parameters;
+    external model acquisition is not part of the service.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: structured_json
+    description: Structured tabular JSON containing review text.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://structured_tabular_json_with_table_metadata/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: language_detected_json
+    description: Structured tabular JSON with the configured language-code column
+      added or updated.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://language_detected_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: detection_status
+    description: Observable language detection status with processed/detected/failed
+      row counts and output URI.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://tabular_language_detection_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: text_column
+    description: Input column containing text to classify.
+    type: string
+    required: true
+  - name: lang_code_column
+    description: Output column for detected language codes.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: output_path
+    description: Deterministic output artifact path or name.
+    type: string
+    required: true
+  secrets: []
+contracts:
+- contract_id: language_detector_input_schema
+  type: json_schema
+  applies_to: input
+  target: structured_json
+  description: Input must contain tabular rows and columns, including the configured
+    text column.
+  schema_ref: schema://structured_tabular_json_with_table_metadata/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}}}}
+    and text_column in structured_json.columns'
+- contract_id: language_code_column_contract
+  type: precondition
+  applies_to: parameter
+  target: lang_code_column
+  description: Language-code output column must be an identifier-like column name.
+  expression: lang_code_column matches '^[A-Za-z_][A-Za-z0-9_]*$'
+- contract_id: language_detected_output_schema
+  type: json_schema
+  applies_to: output
+  target: language_detected_json
+  description: Output preserves tabular structure and includes the configured language-code
+    column.
+  schema_ref: schema://language_detected_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0}}}'
+- contract_id: language_detection_status_schema
+  type: json_schema
+  applies_to: output
+  target: detection_status
+  description: Status exposes language detection outcome.
+  schema_ref: schema://tabular_language_detection_status/v1
+  expression: '{"type":"object","required":["success","rows_processed","rows_detected","rows_failed","output_uri"],"properties":{"success":{"type":"boolean"},"rows_processed":{"type":"integer","minimum":0},"rows_detected":{"type":"integer","minimum":0},"rows_failed":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: language_detector_effect
+  type: effect
+  applies_to: service
+  target: tabular_text_language_detector
+  description: On success, every processed row is detected or reported failed/skipped
+    and output includes the language-code column.
+  expression: detection_status.success == true implies exists(language_detected_json)
+    and lang_code_column in language_detected_json.columns
+invocation:
+  type: argo_workflow_template
+  template_name: tabular-text-language-detector-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.tabular_text_language_detector
+  implementation_ref: services/implementations/tabular_text_language_detector
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - pii
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full review text values; expose counts and bounded diagnostics only.
+  idempotency_notes: Same input text and detector implementation produce the same
+    language codes.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:multilingual_product_review_analysis_v1#detect_language
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service provides tabular language detection with
+    observable enriched artifact/status outputs.'
+  - 'Evidence status: explicit.'

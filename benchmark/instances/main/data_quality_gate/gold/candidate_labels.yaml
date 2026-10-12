@@ -1,0 +1,57 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:data_quality_gate
+candidate_sets:
+  - candidate_set_id: main_data_quality_gate_csv_artifact_profile_ingestor_candidates
+    required_service_id: csv_artifact_profile_ingestor
+    labels:
+      csv_artifact_profile_ingestor: gold
+      csv_tabular_schema_validating_loader: contract_mismatch
+      customer_segment_csv_loader: semantic_mismatch
+      delimited_file_tabular_dataset_loader: format_mismatch
+      csv_to_structured_json_standardizer: missing_required_output
+      reviewed_domain_adapter: generic_escape_hatch
+  - candidate_set_id: main_data_quality_gate_tabular_quality_score_gate_candidates
+    required_service_id: tabular_quality_score_gate
+    labels:
+      tabular_quality_score_gate: gold
+      parquet_customer_quality_score_calculator: format_mismatch
+      airvisual_json_response_validator: target_mismatch
+      document_feature_validation_quality_check: format_mismatch
+      content_toxicity_route_decider: semantic_mismatch
+      reviewed_python_udf_transformer: generic_escape_hatch
+  - candidate_set_id: main_data_quality_gate_tabular_dataset_database_loader_candidates
+    required_service_id: tabular_dataset_database_loader
+    labels:
+      tabular_dataset_database_loader: gold
+      postgres_parameterized_sql_executor: contract_mismatch
+      database_csv_snapshot_importer: format_mismatch
+      multi_table_analytics_warehouse_loader: contract_mismatch
+      air_quality_dimensional_postgres_loader: target_mismatch
+      legacy_database_table_loader: deprecated_or_incompatible
+  - candidate_set_id: main_data_quality_gate_dataset_quarantine_zone_writer_candidates
+    required_service_id: dataset_quarantine_zone_writer
+    labels:
+      dataset_quarantine_zone_writer: gold
+      temporary_resource_cleanup: semantic_mismatch
+      report_artifact_object_storage_archiver: target_mismatch
+      file_location_availability_sensor: missing_required_output
+      tabular_dataset_database_loader: target_mismatch
+      legacy_database_table_loader: deprecated_or_incompatible
+  - candidate_set_id: main_data_quality_gate_email_notification_sender_candidates
+    required_service_id: email_notification_sender
+    labels:
+      email_notification_sender: gold
+      email_attachment_notification_sender: contract_mismatch
+      status_context_email_summary_notifier: contract_mismatch
+      aqi_threshold_email_alert_notifier: semantic_mismatch
+      bulk_email_campaign_sender: semantic_mismatch
+      slack_notification_sender: target_mismatch
+  - candidate_set_id: main_data_quality_gate_temporary_resource_cleanup_candidates
+    required_service_id: temporary_resource_cleanup
+    labels:
+      temporary_resource_cleanup: gold
+      filesystem_retention_cleanup_with_lock: contract_mismatch
+      redis_key_cleanup: target_mismatch
+      database_expired_session_cleanup: target_mismatch
+      airflow_metadata_retention_cleaner: target_mismatch
+      dataset_quarantine_zone_writer: semantic_mismatch

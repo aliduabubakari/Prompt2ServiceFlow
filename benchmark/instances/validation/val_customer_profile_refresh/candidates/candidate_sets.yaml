@@ -1,0 +1,41 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_customer_profile_refresh
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.1
+candidate_sets:
+- candidate_set_id: validation_val_customer_profile_refresh_crm_api_record_extractor_candidates
+  source_step_refs:
+  - extract_crm_records
+  service_ids:
+  - crm_api_record_extractor
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_customer_profile_refresh_customer_profile_field_normalizer_candidates
+  source_step_refs:
+  - normalize_profile_fields
+  service_ids:
+  - customer_profile_field_normalizer
+  - temporary_resource_cleanup
+  - csv_to_structured_json_standardizer
+- candidate_set_id: validation_val_customer_profile_refresh_customer_profile_deduplicator_candidates
+  source_step_refs:
+  - deduplicate_customers
+  service_ids:
+  - customer_profile_deduplicator
+  - csv_to_structured_json_standardizer
+  - tabular_dataset_database_loader
+- candidate_set_id: validation_val_customer_profile_refresh_customer_profile_table_loader_candidates
+  source_step_refs:
+  - load_profile_table
+  service_ids:
+  - customer_profile_table_loader
+  - tabular_dataset_database_loader
+  - http_json_request_extractor
+- candidate_set_id: validation_val_customer_profile_refresh_profile_refresh_summary_emitter_candidates
+  source_step_refs:
+  - emit_refresh_summary
+  service_ids:
+  - profile_refresh_summary_emitter
+  - http_json_request_extractor
+  - report_artifact_object_storage_archiver

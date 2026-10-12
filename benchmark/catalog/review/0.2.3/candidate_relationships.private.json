@@ -1,0 +1,1023 @@
+{
+  "catalog_version": "0.2.3",
+  "pipelines": [
+    {
+      "pipeline_id": "val_federated_partner_reconciliation",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "validation_val_federated_partner_reconciliation_multi_resource_readiness_sensor_candidates",
+          "required_service_id": "multi_resource_readiness_sensor",
+          "source_step_refs": [
+            "wait_for_partner_extracts"
+          ],
+          "candidates": [
+            {
+              "service_id": "multi_resource_readiness_sensor",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "temporary_resource_cleanup",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_federated_partner_reconciliation_partner_feed_extractor_candidates",
+          "required_service_id": "partner_feed_extractor",
+          "source_step_refs": [
+            "ingest_partner_a",
+            "ingest_partner_b",
+            "ingest_partner_c"
+          ],
+          "candidates": [
+            {
+              "service_id": "partner_feed_extractor",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "temporary_resource_cleanup",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "http_json_request_extractor",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_federated_partner_reconciliation_partner_record_standardizer_candidates",
+          "required_service_id": "partner_record_standardizer",
+          "source_step_refs": [
+            "standardize_records"
+          ],
+          "candidates": [
+            {
+              "service_id": "partner_record_standardizer",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "http_json_request_extractor",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "tabular_dataset_database_loader",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_federated_partner_reconciliation_federated_entity_matcher_candidates",
+          "required_service_id": "federated_entity_matcher",
+          "source_step_refs": [
+            "match_entities"
+          ],
+          "candidates": [
+            {
+              "service_id": "federated_entity_matcher",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "tabular_dataset_database_loader",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "bi_dashboard_refresh_trigger",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_federated_partner_reconciliation_discrepancy_route_decider_candidates",
+          "required_service_id": "discrepancy_route_decider",
+          "source_step_refs": [
+            "route_discrepancies"
+          ],
+          "candidates": [
+            {
+              "service_id": "discrepancy_route_decider",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "bi_dashboard_refresh_trigger",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "parquet_tabular_data_profiler",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_federated_partner_reconciliation_clean_partner_record_publisher_candidates",
+          "required_service_id": "clean_partner_record_publisher",
+          "source_step_refs": [
+            "publish_clean_records"
+          ],
+          "candidates": [
+            {
+              "service_id": "clean_partner_record_publisher",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "parquet_tabular_data_profiler",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "bulk_email_campaign_sender",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_federated_partner_reconciliation_review_case_opener_candidates",
+          "required_service_id": "review_case_opener",
+          "source_step_refs": [
+            "open_review_cases"
+          ],
+          "candidates": [
+            {
+              "service_id": "review_case_opener",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "bulk_email_campaign_sender",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "file_location_availability_sensor",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_federated_partner_reconciliation_audit_summary_writer_candidates",
+          "required_service_id": "audit_summary_writer",
+          "source_step_refs": [
+            "write_reconciliation_audit"
+          ],
+          "candidates": [
+            {
+              "service_id": "audit_summary_writer",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "file_location_availability_sensor",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": [],
+      "review_notes": [
+        "Curated for Validation-20 batch 04; labels are private benchmark gold."
+      ]
+    },
+    {
+      "pipeline_id": "val_hospital_capacity_command_center",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "validation_val_hospital_capacity_command_center_multi_resource_readiness_sensor_candidates",
+          "required_service_id": "multi_resource_readiness_sensor",
+          "source_step_refs": [
+            "wait_for_census_snapshot"
+          ],
+          "candidates": [
+            {
+              "service_id": "multi_resource_readiness_sensor",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "temporary_resource_cleanup",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_hospital_capacity_command_center_hospital_operational_feed_extractor_candidates",
+          "required_service_id": "hospital_operational_feed_extractor",
+          "source_step_refs": [
+            "extract_admissions",
+            "extract_bed_status",
+            "extract_staffing_roster",
+            "extract_discharge_forecast"
+          ],
+          "candidates": [
+            {
+              "service_id": "hospital_operational_feed_extractor",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "temporary_resource_cleanup",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "http_json_request_extractor",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_hospital_capacity_command_center_hospital_operational_state_merger_candidates",
+          "required_service_id": "hospital_operational_state_merger",
+          "source_step_refs": [
+            "merge_operational_state"
+          ],
+          "candidates": [
+            {
+              "service_id": "hospital_operational_state_merger",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "http_json_request_extractor",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "tabular_dataset_database_loader",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_hospital_capacity_command_center_capacity_risk_calculator_candidates",
+          "required_service_id": "capacity_risk_calculator",
+          "source_step_refs": [
+            "compute_capacity_risk"
+          ],
+          "candidates": [
+            {
+              "service_id": "capacity_risk_calculator",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "tabular_dataset_database_loader",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "bi_dashboard_refresh_trigger",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_hospital_capacity_command_center_alert_level_route_decider_candidates",
+          "required_service_id": "alert_level_route_decider",
+          "source_step_refs": [
+            "route_alert_level"
+          ],
+          "candidates": [
+            {
+              "service_id": "alert_level_route_decider",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "bi_dashboard_refresh_trigger",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "parquet_tabular_data_profiler",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_hospital_capacity_command_center_capacity_dashboard_publisher_candidates",
+          "required_service_id": "capacity_dashboard_publisher",
+          "source_step_refs": [
+            "publish_dashboard"
+          ],
+          "candidates": [
+            {
+              "service_id": "capacity_dashboard_publisher",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "parquet_tabular_data_profiler",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "bulk_email_campaign_sender",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_hospital_capacity_command_center_escalation_alert_sender_candidates",
+          "required_service_id": "escalation_alert_sender",
+          "source_step_refs": [
+            "send_escalation_alert"
+          ],
+          "candidates": [
+            {
+              "service_id": "escalation_alert_sender",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "bulk_email_campaign_sender",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "file_location_availability_sensor",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": [],
+      "review_notes": [
+        "Curated for Validation-20 batch 04; labels are private benchmark gold."
+      ]
+    },
+    {
+      "pipeline_id": "val_financial_risk_stress_testing",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "validation_val_financial_risk_stress_testing_financial_dataset_extractor_candidates",
+          "required_service_id": "financial_dataset_extractor",
+          "source_step_refs": [
+            "load_market_scenarios",
+            "load_portfolio_positions"
+          ],
+          "candidates": [
+            {
+              "service_id": "financial_dataset_extractor",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "temporary_resource_cleanup",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_financial_risk_stress_testing_portfolio_stress_runner_candidates",
+          "required_service_id": "portfolio_stress_runner",
+          "source_step_refs": [
+            "run_credit_stress",
+            "run_liquidity_stress",
+            "run_market_stress"
+          ],
+          "candidates": [
+            {
+              "service_id": "portfolio_stress_runner",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "temporary_resource_cleanup",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "http_json_request_extractor",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_financial_risk_stress_testing_stress_result_aggregator_candidates",
+          "required_service_id": "stress_result_aggregator",
+          "source_step_refs": [
+            "aggregate_stress_results"
+          ],
+          "candidates": [
+            {
+              "service_id": "stress_result_aggregator",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "http_json_request_extractor",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "tabular_dataset_database_loader",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_financial_risk_stress_testing_capital_threshold_validator_candidates",
+          "required_service_id": "capital_threshold_validator",
+          "source_step_refs": [
+            "validate_capital_thresholds"
+          ],
+          "candidates": [
+            {
+              "service_id": "capital_threshold_validator",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "tabular_dataset_database_loader",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "bi_dashboard_refresh_trigger",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_financial_risk_stress_testing_risk_validation_route_decider_candidates",
+          "required_service_id": "risk_validation_route_decider",
+          "source_step_refs": [
+            "route_validation_status"
+          ],
+          "candidates": [
+            {
+              "service_id": "risk_validation_route_decider",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "bi_dashboard_refresh_trigger",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "parquet_tabular_data_profiler",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_financial_risk_stress_testing_regulatory_report_writer_candidates",
+          "required_service_id": "regulatory_report_writer",
+          "source_step_refs": [
+            "write_regulatory_report"
+          ],
+          "candidates": [
+            {
+              "service_id": "regulatory_report_writer",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "parquet_tabular_data_profiler",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "bulk_email_campaign_sender",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_financial_risk_stress_testing_review_case_opener_candidates",
+          "required_service_id": "review_case_opener",
+          "source_step_refs": [
+            "open_remediation_ticket"
+          ],
+          "candidates": [
+            {
+              "service_id": "review_case_opener",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "bulk_email_campaign_sender",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "file_location_availability_sensor",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_financial_risk_stress_testing_model_input_archive_publisher_candidates",
+          "required_service_id": "model_input_archive_publisher",
+          "source_step_refs": [
+            "archive_model_inputs"
+          ],
+          "candidates": [
+            {
+              "service_id": "model_input_archive_publisher",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "file_location_availability_sensor",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": [],
+      "review_notes": [
+        "Curated for Validation-20 batch 04; labels are private benchmark gold."
+      ]
+    },
+    {
+      "pipeline_id": "val_supply_chain_exception_management",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "validation_val_supply_chain_exception_management_multi_resource_readiness_sensor_candidates",
+          "required_service_id": "multi_resource_readiness_sensor",
+          "source_step_refs": [
+            "wait_for_supplier_feeds"
+          ],
+          "candidates": [
+            {
+              "service_id": "multi_resource_readiness_sensor",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "temporary_resource_cleanup",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_supply_chain_exception_management_supply_chain_feed_extractor_candidates",
+          "required_service_id": "supply_chain_feed_extractor",
+          "source_step_refs": [
+            "ingest_inventory",
+            "ingest_shipments",
+            "ingest_weather_alerts",
+            "ingest_supplier_capacity"
+          ],
+          "candidates": [
+            {
+              "service_id": "supply_chain_feed_extractor",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "temporary_resource_cleanup",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "http_json_request_extractor",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_supply_chain_exception_management_supply_state_harmonizer_candidates",
+          "required_service_id": "supply_state_harmonizer",
+          "source_step_refs": [
+            "harmonize_supply_state"
+          ],
+          "candidates": [
+            {
+              "service_id": "supply_state_harmonizer",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "http_json_request_extractor",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "tabular_dataset_database_loader",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_supply_chain_exception_management_disruption_risk_detector_candidates",
+          "required_service_id": "disruption_risk_detector",
+          "source_step_refs": [
+            "detect_disruption_risk"
+          ],
+          "candidates": [
+            {
+              "service_id": "disruption_risk_detector",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "tabular_dataset_database_loader",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "bi_dashboard_refresh_trigger",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_supply_chain_exception_management_exception_severity_route_decider_candidates",
+          "required_service_id": "exception_severity_route_decider",
+          "source_step_refs": [
+            "route_exception_severity"
+          ],
+          "candidates": [
+            {
+              "service_id": "exception_severity_route_decider",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "bi_dashboard_refresh_trigger",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "parquet_tabular_data_profiler",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_supply_chain_exception_management_response_plan_generator_candidates",
+          "required_service_id": "response_plan_generator",
+          "source_step_refs": [
+            "generate_response_plan"
+          ],
+          "candidates": [
+            {
+              "service_id": "response_plan_generator",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "parquet_tabular_data_profiler",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "bulk_email_campaign_sender",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_supply_chain_exception_management_operations_dashboard_publisher_candidates",
+          "required_service_id": "operations_dashboard_publisher",
+          "source_step_refs": [
+            "publish_operations_dashboard"
+          ],
+          "candidates": [
+            {
+              "service_id": "operations_dashboard_publisher",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "bulk_email_campaign_sender",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "file_location_availability_sensor",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_supply_chain_exception_management_regional_team_notifier_candidates",
+          "required_service_id": "regional_team_notifier",
+          "source_step_refs": [
+            "notify_regional_teams"
+          ],
+          "candidates": [
+            {
+              "service_id": "regional_team_notifier",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "file_location_availability_sensor",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_supply_chain_exception_management_exception_snapshot_archiver_candidates",
+          "required_service_id": "exception_snapshot_archiver",
+          "source_step_refs": [
+            "archive_exception_snapshot"
+          ],
+          "candidates": [
+            {
+              "service_id": "exception_snapshot_archiver",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "temporary_resource_cleanup",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": [],
+      "review_notes": [
+        "Curated for Validation-20 batch 04; labels are private benchmark gold."
+      ]
+    },
+    {
+      "pipeline_id": "val_stream_batch_fraud_bridge",
+      "candidate_sets": [
+        {
+          "candidate_set_id": "validation_val_stream_batch_fraud_bridge_multi_resource_readiness_sensor_candidates",
+          "required_service_id": "multi_resource_readiness_sensor",
+          "source_step_refs": [
+            "wait_for_stream_checkpoint"
+          ],
+          "candidates": [
+            {
+              "service_id": "multi_resource_readiness_sensor",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "temporary_resource_cleanup",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_stream_batch_fraud_bridge_fraud_source_loader_candidates",
+          "required_service_id": "fraud_source_loader",
+          "source_step_refs": [
+            "load_stream_events",
+            "load_batch_settlements",
+            "load_account_history"
+          ],
+          "candidates": [
+            {
+              "service_id": "fraud_source_loader",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "temporary_resource_cleanup",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "http_json_request_extractor",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_stream_batch_fraud_bridge_transaction_context_joiner_candidates",
+          "required_service_id": "transaction_context_joiner",
+          "source_step_refs": [
+            "join_transaction_context"
+          ],
+          "candidates": [
+            {
+              "service_id": "transaction_context_joiner",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "http_json_request_extractor",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "tabular_dataset_database_loader",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_stream_batch_fraud_bridge_transaction_fraud_risk_scorer_candidates",
+          "required_service_id": "transaction_fraud_risk_scorer",
+          "source_step_refs": [
+            "score_fraud_risk"
+          ],
+          "candidates": [
+            {
+              "service_id": "transaction_fraud_risk_scorer",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "tabular_dataset_database_loader",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "bi_dashboard_refresh_trigger",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_stream_batch_fraud_bridge_fraud_risk_action_router_candidates",
+          "required_service_id": "fraud_risk_action_router",
+          "source_step_refs": [
+            "route_risk_action"
+          ],
+          "candidates": [
+            {
+              "service_id": "fraud_risk_action_router",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "bi_dashboard_refresh_trigger",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "parquet_tabular_data_profiler",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_stream_batch_fraud_bridge_fraud_monitoring_table_updater_candidates",
+          "required_service_id": "fraud_monitoring_table_updater",
+          "source_step_refs": [
+            "update_monitoring_table"
+          ],
+          "candidates": [
+            {
+              "service_id": "fraud_monitoring_table_updater",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "parquet_tabular_data_profiler",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "bulk_email_campaign_sender",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_stream_batch_fraud_bridge_review_case_opener_candidates",
+          "required_service_id": "review_case_opener",
+          "source_step_refs": [
+            "open_investigation_case"
+          ],
+          "candidates": [
+            {
+              "service_id": "review_case_opener",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "bulk_email_campaign_sender",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "file_location_availability_sensor",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        },
+        {
+          "candidate_set_id": "validation_val_stream_batch_fraud_bridge_risk_metric_publisher_candidates",
+          "required_service_id": "risk_metric_publisher",
+          "source_step_refs": [
+            "publish_risk_metrics"
+          ],
+          "candidates": [
+            {
+              "service_id": "risk_metric_publisher",
+              "label": "gold",
+              "rationale": "Reviewed contract match."
+            },
+            {
+              "service_id": "file_location_availability_sensor",
+              "label": "semantic_mismatch",
+              "rationale": "Capability overlap without the required service contract."
+            },
+            {
+              "service_id": "reviewed_domain_adapter",
+              "label": "generic_escape_hatch",
+              "rationale": "Generic alternative is less specific than the reviewed service."
+            }
+          ]
+        }
+      ],
+      "new_distractor_services": [],
+      "review_notes": [
+        "Curated for Validation-20 batch 04; labels are private benchmark gold."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,172 @@
+schema_version: 0.1.0
+service_id: tabular_text_feature_column_extractor
+version: 1.0.0
+display_name: Tabular Text Feature Column Extractor
+category: Transformer
+capability:
+  summary: Extracts mentioned product or domain features from a configured text column
+    in structured tabular JSON and appends them as a configured output column.
+  operations:
+  - Read structured tabular JSON rows.
+  - Validate configured text and output feature columns.
+  - Apply a configured feature extractor or declarative extraction rules to each eligible
+    text value.
+  - Write column-extended JSON and emit extraction status.
+  keywords:
+  - feature extraction
+  - product features
+  - text enrichment
+  - column extension
+  - tabular json
+  - reviews
+  limitations:
+  - Does not perform language detection or sentiment scoring.
+  - Extraction quality depends on the configured extractor/rules and runtime implementation.
+  - Does not export CSV; use a CSV exporter service downstream.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_tabular_json
+    description: Structured tabular JSON containing sentiment-scored review text.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://sentiment_scored_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: feature_extended_json
+    description: Structured tabular JSON with the configured mentioned-features column
+      added or updated.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://feature_extended_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: feature_extraction_status
+    description: Observable feature extraction status with processed/extracted/failed
+      row counts and output URI.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://tabular_text_feature_extraction_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: extender_id
+    description: Logical feature extractor identifier or implementation binding.
+    type: string
+    required: false
+  - name: text_column
+    description: Input column containing review text to analyze.
+    type: string
+    required: true
+  - name: output_column
+    description: Output column containing extracted mentioned features.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: output_path
+    description: Deterministic output artifact path or name.
+    type: string
+    required: true
+  - name: feature_extraction_rules
+    description: Optional declarative rules, vocabulary, or model configuration for
+      feature extraction.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: feature_extractor_input_schema
+  type: json_schema
+  applies_to: input
+  target: source_tabular_json
+  description: Input must contain tabular rows and columns, including the configured
+    text column.
+  schema_ref: schema://sentiment_scored_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}}}}
+    and text_column in source_tabular_json.columns'
+- contract_id: feature_output_column_contract
+  type: precondition
+  applies_to: parameter
+  target: output_column
+  description: Feature output column must be identifier-like.
+  expression: output_column matches '^[A-Za-z_][A-Za-z0-9_]*$'
+- contract_id: feature_extended_output_schema
+  type: json_schema
+  applies_to: output
+  target: feature_extended_json
+  description: Output preserves tabular structure and includes the configured feature
+    output column.
+  schema_ref: schema://feature_extended_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0}}}'
+- contract_id: feature_extraction_status_schema
+  type: json_schema
+  applies_to: output
+  target: feature_extraction_status
+  description: Status exposes feature extraction outcome.
+  schema_ref: schema://tabular_text_feature_extraction_status/v1
+  expression: '{"type":"object","required":["success","rows_processed","rows_extended","rows_failed","output_uri"],"properties":{"success":{"type":"boolean"},"rows_processed":{"type":"integer","minimum":0},"rows_extended":{"type":"integer","minimum":0},"rows_failed":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"extender_id":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: feature_extractor_effect
+  type: effect
+  applies_to: service
+  target: tabular_text_feature_column_extractor
+  description: On success, a feature-extended JSON artifact exists and includes the
+    configured output column.
+  expression: feature_extraction_status.success == true implies exists(feature_extended_json)
+    and output_column in feature_extended_json.columns
+invocation:
+  type: argo_workflow_template
+  template_name: tabular-text-feature-column-extractor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.tabular_text_feature_column_extractor
+  implementation_ref: services/implementations/tabular_text_feature_column_extractor
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - pii
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw review text or extracted free-text lists beyond bounded diagnostics.
+  - Container network and mounted filesystem settings are runtime concerns.
+  idempotency_notes: Same input text and extractor/rule configuration produce the
+    same feature column values for a deterministic implementation.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:multilingual_product_review_analysis_v1#extract_features
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service provides product-feature extraction from
+    tabular review text into a configured column.'
+  - 'Evidence status: explicit.'

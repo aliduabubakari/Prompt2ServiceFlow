@@ -1,0 +1,929 @@
+ir_version: 0.1.0
+composition_id: scientific_literature_screening
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.8
+  sha256: d91fe0463b599a49cf0e24a37b357d5dd67f442a7d8bae51a4c07f6c493d3cb1
+source:
+  dataset_id: prompt2serviceflow_extension_sources
+  dataset_version: extension_v1
+  benchmark_id: extension:scientific_literature_screening
+  split: extension
+  pipeline_id: scientific_literature_screening
+  description_path: source/extension_v1/batch_09/descriptions/44_scientific_literature_screening.txt
+  description_sha256: 8ab3c65ca1b1a436deabf108a0eec3ace610bcb9d7a504cea8e30eaff00da56d
+  internal_spec_path: source/extension_v1/batch_09/specs/44_scientific_literature_screening.json
+  internal_spec_sha256: 51161a49b3d92255a158521f4e8f3912bafb6f5b1e9bd835795c28fd59fe4198
+requirement:
+  name: Scientific Literature Screening
+  purpose: Screen article PDFs against eligibility criteria and create reviewer packets.
+  domain: Science/Biotechnology
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: high
+  notes:
+  - Extension-50 Batch 01 synthetic source.
+  - Event and external-system behavior is represented as bounded fixture-backed batch execution.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: literature_corpus_bucket
+  type: object_storage
+  name: literature corpus bucket
+  identifier: synthetic://extension-v1/scientific_literature_screening/1
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+- system_id: review_management_queue
+  type: other
+  name: review management queue
+  identifier: synthetic://extension-v1/scientific_literature_screening/2
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_source_batch
+  name: Ingest Source Batch
+  category: Extractor
+  capability: Ingest all bounded inputs for scientific literature screening packet.
+  source_step_refs:
+  - ingest_source_batch
+  evidence:
+  - source: internal_spec
+    text: Ingest all bounded inputs for scientific literature screening packet.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_source_batch_artifact
+  - ingest_source_batch_status
+  external_system_refs: &id001
+  - literature_corpus_bucket
+  - review_management_queue
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_source_batch_artifact, ingest_source_batch_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: validate_source_contract
+  name: Validate Source Contract
+  category: QualityCheck
+  capability: Validate contracts, identifiers, and modality assumptions for scientific literature screening
+    packet.
+  source_step_refs:
+  - validate_source_contract
+  evidence:
+  - source: internal_spec
+    text: Validate contracts, identifiers, and modality assumptions for scientific literature screening
+      packet.
+  inputs:
+  - ingest_source_batch_artifact
+  outputs:
+  - validate_source_contract_artifact
+  - validate_source_contract_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces validate_source_contract_artifact, validate_source_contract_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_partition_a
+  name: Normalize Partition A
+  category: Transformer
+  capability: Normalize the first partition or modality for scientific literature screening packet.
+  source_step_refs:
+  - normalize_partition_a
+  evidence:
+  - source: internal_spec
+    text: Normalize the first partition or modality for scientific literature screening packet.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - normalize_partition_a_artifact
+  - normalize_partition_a_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_partition_a_artifact, normalize_partition_a_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_partition_b
+  name: Normalize Partition B
+  category: Transformer
+  capability: Normalize the second partition or modality for scientific literature screening packet.
+  source_step_refs:
+  - normalize_partition_b
+  evidence:
+  - source: internal_spec
+    text: Normalize the second partition or modality for scientific literature screening packet.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - normalize_partition_b_artifact
+  - normalize_partition_b_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_partition_b_artifact, normalize_partition_b_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_partition_c
+  name: Normalize Partition C
+  category: Transformer
+  capability: Normalize the third partition or modality for scientific literature screening packet.
+  source_step_refs:
+  - normalize_partition_c
+  evidence:
+  - source: internal_spec
+    text: Normalize the third partition or modality for scientific literature screening packet.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - normalize_partition_c_artifact
+  - normalize_partition_c_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_partition_c_artifact, normalize_partition_c_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: fuse_partitions
+  name: Fuse Partitions
+  category: Integrator
+  capability: Fuse normalized partitions into a unified scientific literature screening packet representation.
+  source_step_refs:
+  - fuse_partitions
+  evidence:
+  - source: internal_spec
+    text: Fuse normalized partitions into a unified scientific literature screening packet representation.
+  inputs:
+  - normalize_partition_a_artifact
+  - normalize_partition_b_artifact
+  - normalize_partition_c_artifact
+  outputs:
+  - fuse_partitions_artifact
+  - fuse_partitions_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces fuse_partitions_artifact, fuse_partitions_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: extract_or_parse_text
+  name: Extract Or Parse Text
+  category: Extractor
+  capability: Extract, parse, or transcribe text for scientific literature screening packet.
+  source_step_refs:
+  - extract_or_parse_text
+  evidence:
+  - source: internal_spec
+    text: Extract, parse, or transcribe text for scientific literature screening packet.
+  inputs:
+  - fuse_partitions_artifact
+  outputs:
+  - extract_or_parse_text_artifact
+  - extract_or_parse_text_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces extract_or_parse_text_artifact, extract_or_parse_text_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: chunk_documents
+  name: Chunk Documents
+  category: Transformer
+  capability: Chunk documents or transcript segments for scientific literature screening packet.
+  source_step_refs:
+  - chunk_documents
+  evidence:
+  - source: internal_spec
+    text: Chunk documents or transcript segments for scientific literature screening packet.
+  inputs:
+  - extract_or_parse_text_artifact
+  outputs:
+  - chunk_documents_artifact
+  - chunk_documents_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces chunk_documents_artifact, chunk_documents_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: generate_embeddings
+  name: Generate Embeddings
+  category: Transformer
+  capability: Generate embeddings for chunks or text spans in scientific literature screening packet.
+  source_step_refs:
+  - generate_embeddings
+  evidence:
+  - source: internal_spec
+    text: Generate embeddings for chunks or text spans in scientific literature screening packet.
+  inputs:
+  - chunk_documents_artifact
+  outputs:
+  - generate_embeddings_artifact
+  - generate_embeddings_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces generate_embeddings_artifact, generate_embeddings_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: publish_outputs
+  name: Publish Outputs
+  category: Publisher
+  capability: Publish the fused scientific literature screening packet outputs and completion status.
+  source_step_refs:
+  - publish_outputs
+  evidence:
+  - source: internal_spec
+    text: Publish the fused scientific literature screening packet outputs and completion status.
+  inputs:
+  - generate_embeddings_artifact
+  outputs:
+  - publish_outputs_artifact
+  - publish_outputs_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces publish_outputs_artifact, publish_outputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+source_step_accounting:
+- source_step_ref: ingest_source_batch
+  disposition: service
+  intent_ids:
+  - ingest_source_batch
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: validate_source_contract
+  disposition: service
+  intent_ids:
+  - validate_source_contract
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_partition_a
+  disposition: service
+  intent_ids:
+  - normalize_partition_a
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_partition_b
+  disposition: service
+  intent_ids:
+  - normalize_partition_b
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_partition_c
+  disposition: service
+  intent_ids:
+  - normalize_partition_c
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: fuse_partitions
+  disposition: service
+  intent_ids:
+  - fuse_partitions
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: extract_or_parse_text
+  disposition: service
+  intent_ids:
+  - extract_or_parse_text
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: chunk_documents
+  disposition: service
+  intent_ids:
+  - chunk_documents
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: generate_embeddings
+  disposition: service
+  intent_ids:
+  - generate_embeddings
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: publish_outputs
+  disposition: service
+  intent_ids:
+  - publish_outputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+control_flow:
+  edges:
+  - from: ingest_source_batch
+    to: validate_source_contract
+  - from: validate_source_contract
+    to: normalize_partition_a
+  - from: normalize_partition_a
+    to: fuse_partitions
+  - from: validate_source_contract
+    to: normalize_partition_b
+  - from: normalize_partition_b
+    to: fuse_partitions
+  - from: validate_source_contract
+    to: normalize_partition_c
+  - from: normalize_partition_c
+    to: fuse_partitions
+  - from: fuse_partitions
+    to: extract_or_parse_text
+  - from: extract_or_parse_text
+    to: chunk_documents
+  - from: chunk_documents
+    to: generate_embeddings
+  - from: generate_embeddings
+    to: publish_outputs
+  parallel_groups:
+  - group_id: parallel_feature_branches
+    intent_ids:
+    - normalize_partition_a
+    - normalize_partition_b
+    - normalize_partition_c
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: source_bundle
+  name: Source Bundle
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - ingest_source_batch
+  sensitivity: internal
+  persistence: workflow
+  fixture_ref: fixtures/inputs/fixture.json
+- artifact_id: ingest_source_batch_artifact
+  name: Ingest Source Batch Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_source_batch
+  consumers:
+  - validate_source_contract
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_source_batch_status
+  name: Ingest Source Batch Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_source_batch
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: validate_source_contract_artifact
+  name: Validate Source Contract Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: validate_source_contract
+  consumers:
+  - normalize_partition_a
+  - normalize_partition_b
+  - normalize_partition_c
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validate_source_contract_status
+  name: Validate Source Contract Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: validate_source_contract
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_partition_a_artifact
+  name: Normalize Partition A Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_partition_a
+  consumers:
+  - fuse_partitions
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_partition_a_status
+  name: Normalize Partition A Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_partition_a
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_partition_b_artifact
+  name: Normalize Partition B Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_partition_b
+  consumers:
+  - fuse_partitions
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_partition_b_status
+  name: Normalize Partition B Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_partition_b
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_partition_c_artifact
+  name: Normalize Partition C Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_partition_c
+  consumers:
+  - fuse_partitions
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_partition_c_status
+  name: Normalize Partition C Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_partition_c
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: fuse_partitions_artifact
+  name: Fuse Partitions Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: fuse_partitions
+  consumers:
+  - extract_or_parse_text
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: fuse_partitions_status
+  name: Fuse Partitions Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: fuse_partitions
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: extract_or_parse_text_artifact
+  name: Extract Or Parse Text Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: extract_or_parse_text
+  consumers:
+  - chunk_documents
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: extract_or_parse_text_status
+  name: Extract Or Parse Text Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: extract_or_parse_text
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: chunk_documents_artifact
+  name: Chunk Documents Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: chunk_documents
+  consumers:
+  - generate_embeddings
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: chunk_documents_status
+  name: Chunk Documents Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: chunk_documents
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: generate_embeddings_artifact
+  name: Generate Embeddings Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: generate_embeddings
+  consumers:
+  - publish_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: generate_embeddings_status
+  name: Generate Embeddings Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: generate_embeddings
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: publish_outputs_artifact
+  name: Publish Outputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: output
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publish_outputs_status
+  name: Publish Outputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+bindings:
+- intent_id: ingest_source_batch
+  service_id: literature_pdf_bundle_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_source_batch_artifact
+  - port: execution_report
+    artifact_id: ingest_source_batch_status
+  parameter_bindings:
+    operation_profile: ingest_source_batch
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: validate_source_contract
+  service_id: literature_screening_contract_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: ingest_source_batch_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: validate_source_contract_artifact
+  - port: execution_report
+    artifact_id: validate_source_contract_status
+  parameter_bindings:
+    operation_profile: validate_source_contract
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_partition_a
+  service_id: article_pdf_partition_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_partition_a_artifact
+  - port: execution_report
+    artifact_id: normalize_partition_a_status
+  parameter_bindings:
+    operation_profile: normalize_partition_a
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_partition_b
+  service_id: screening_criteria_partition_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_partition_b_artifact
+  - port: execution_report
+    artifact_id: normalize_partition_b_status
+  parameter_bindings:
+    operation_profile: normalize_partition_b
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_partition_c
+  service_id: reviewer_roster_partition_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_partition_c_artifact
+  - port: execution_report
+    artifact_id: normalize_partition_c_status
+  parameter_bindings:
+    operation_profile: normalize_partition_c
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: fuse_partitions
+  service_id: literature_screening_context_fuser
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: normalize_partition_a_artifact
+  - port: input_artifacts
+    artifact_id: normalize_partition_b_artifact
+  - port: input_artifacts
+    artifact_id: normalize_partition_c_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: fuse_partitions_artifact
+  - port: execution_report
+    artifact_id: fuse_partitions_status
+  parameter_bindings:
+    operation_profile: fuse_partitions
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: extract_or_parse_text
+  service_id: pdf_text_extraction_parser
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: fuse_partitions_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: extract_or_parse_text_artifact
+  - port: execution_report
+    artifact_id: extract_or_parse_text_status
+  parameter_bindings:
+    operation_profile: extract_or_parse_text
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: chunk_documents
+  service_id: semantic_document_chunker
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: extract_or_parse_text_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: chunk_documents_artifact
+  - port: execution_report
+    artifact_id: chunk_documents_status
+  parameter_bindings:
+    operation_profile: chunk_documents
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: generate_embeddings
+  service_id: deterministic_text_embedding_generator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: chunk_documents_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: generate_embeddings_artifact
+  - port: execution_report
+    artifact_id: generate_embeddings_status
+  parameter_bindings:
+    operation_profile: generate_embeddings
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: publish_outputs
+  service_id: literature_screening_bundle_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: generate_embeddings_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: publish_outputs_artifact
+  - port: execution_report
+    artifact_id: publish_outputs_status
+  parameter_bindings:
+    operation_profile: publish_outputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - public
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Batch 01 mocks do not contact production image, document, or review systems.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 reviewed Batch 01 validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 reviewed Batch 01 validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 reviewed Batch 01 validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 reviewed Batch 01 validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 reviewed Batch 01 validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 reviewed Batch 01 validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 reviewed Batch 01 validation.

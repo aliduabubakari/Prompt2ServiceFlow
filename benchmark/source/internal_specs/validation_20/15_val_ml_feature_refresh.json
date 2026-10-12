@@ -1,0 +1,273 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_ml_feature_refresh",
+  "pipeline_name": "ML Feature Refresh",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_ml_feature_refresh.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Refresh raw events, transform features, validate drift statistics, and publish a feature table for model scoring.",
+    "business_domain": "Machine Learning",
+    "execution_model": "Batch",
+    "topology_pattern": "Staged ETL",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "extract_raw_events",
+        "to": "clean_event_records"
+      },
+      {
+        "from": "clean_event_records",
+        "to": "aggregate_user_features"
+      },
+      {
+        "from": "aggregate_user_features",
+        "to": "compute_drift_statistics"
+      },
+      {
+        "from": "compute_drift_statistics",
+        "to": "validate_feature_table"
+      },
+      {
+        "from": "validate_feature_table",
+        "to": "publish_feature_table"
+      },
+      {
+        "from": "publish_feature_table",
+        "to": "notify_model_team"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Event lake",
+      "identifier": "event_lake",
+      "details": [
+        "Validation external dependency: Event lake"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Feature store",
+      "identifier": "feature_store",
+      "details": [
+        "Validation external dependency: Feature store"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Notification service",
+      "identifier": "notification_service",
+      "details": [
+        "Validation external dependency: Notification service"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "raw_events",
+        "description": "Validation artifact: raw_events"
+      },
+      {
+        "identifier": "feature_table",
+        "description": "Validation artifact: feature_table"
+      },
+      {
+        "identifier": "drift_report",
+        "description": "Validation artifact: drift_report"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "extract_raw_events",
+      "name": "extract_raw_events",
+      "objective": "Extract raw events",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "clean_event_records",
+      "name": "clean_event_records",
+      "objective": "Clean event records",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "aggregate_user_features",
+      "name": "aggregate_user_features",
+      "objective": "Aggregate user features",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "compute_drift_statistics",
+      "name": "compute_drift_statistics",
+      "objective": "Compute drift statistics",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "validate_feature_table",
+      "name": "validate_feature_table",
+      "objective": "Validate feature table",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_feature_table",
+      "name": "publish_feature_table",
+      "objective": "Publish feature table",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "notify_model_team",
+      "name": "notify_model_team",
+      "objective": "Notify model team",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

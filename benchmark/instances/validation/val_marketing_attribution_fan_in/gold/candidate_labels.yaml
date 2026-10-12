@@ -1,0 +1,39 @@
+candidate_label_version: 0.1.0
+benchmark_id: validation:val_marketing_attribution_fan_in
+candidate_sets:
+- candidate_set_id: validation_val_marketing_attribution_fan_in_marketing_event_api_extractor_candidates
+  required_service_id: marketing_event_api_extractor
+  labels:
+    marketing_event_api_extractor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    temporary_resource_cleanup: generic_escape_hatch
+- candidate_set_id: validation_val_marketing_attribution_fan_in_commerce_purchase_event_extractor_candidates
+  required_service_id: commerce_purchase_event_extractor
+  labels:
+    commerce_purchase_event_extractor: gold
+    temporary_resource_cleanup: semantic_mismatch
+    csv_to_structured_json_standardizer: generic_escape_hatch
+- candidate_set_id: validation_val_marketing_attribution_fan_in_customer_event_attribution_joiner_candidates
+  required_service_id: customer_event_attribution_joiner
+  labels:
+    customer_event_attribution_joiner: gold
+    csv_to_structured_json_standardizer: semantic_mismatch
+    tabular_dataset_database_loader: generic_escape_hatch
+- candidate_set_id: validation_val_marketing_attribution_fan_in_attribution_metric_calculator_candidates
+  required_service_id: attribution_metric_calculator
+  labels:
+    attribution_metric_calculator: gold
+    tabular_dataset_database_loader: semantic_mismatch
+    http_json_request_extractor: generic_escape_hatch
+- candidate_set_id: validation_val_marketing_attribution_fan_in_attribution_table_publisher_candidates
+  required_service_id: attribution_table_publisher
+  labels:
+    attribution_table_publisher: gold
+    http_json_request_extractor: semantic_mismatch
+    bi_dashboard_refresh_trigger: generic_escape_hatch
+- candidate_set_id: validation_val_marketing_attribution_fan_in_campaign_summary_notification_sender_candidates
+  required_service_id: campaign_summary_notification_sender
+  labels:
+    campaign_summary_notification_sender: gold
+    bi_dashboard_refresh_trigger: semantic_mismatch
+    bulk_email_campaign_sender: generic_escape_hatch

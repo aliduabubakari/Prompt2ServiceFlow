@@ -1,0 +1,52 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:retail_inventory_reconciliation
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_retail_inventory_reconciliation_warehouse_inventory_csv_extractor_candidates
+  source_step_refs:
+  - fetch_north_warehouse_csv
+  - fetch_south_warehouse_csv
+  - fetch_east_warehouse_csv
+  - fetch_west_warehouse_csv
+  service_ids:
+  - warehouse_inventory_csv_extractor
+  - ftp_file_artifact_downloader
+  - http_json_request_extractor
+  - database_csv_snapshot_exporter
+  - http_api_request_artifact_extractor
+  - reviewed_domain_adapter
+- candidate_set_id: main_retail_inventory_reconciliation_inventory_sku_csv_normalizer_candidates
+  source_step_refs:
+  - normalize_north_skus
+  - normalize_south_skus
+  - normalize_east_skus
+  - normalize_west_skus
+  service_ids:
+  - inventory_sku_csv_normalizer
+  - shipment_data_standardization_enricher
+  - tabular_null_value_cleanser
+  - csv_to_structured_json_standardizer
+  - weather_station_csv_standard_normalizer
+  - legacy_csv_schema_validator
+- candidate_set_id: main_retail_inventory_reconciliation_multi_warehouse_inventory_discrepancy_reconciler_candidates
+  source_step_refs:
+  - reconcile_all_inventories
+  service_ids:
+  - multi_warehouse_inventory_discrepancy_reconciler
+  - multi_region_revenue_report_aggregator
+  - weather_station_csv_parquet_fusion_aggregator
+  - tabular_entity_reconciliation_enricher
+  - wikidata_entity_reconciliation_transformer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_retail_inventory_reconciliation_inventory_reconciliation_pdf_report_generator_candidates
+  source_step_refs:
+  - generate_final_report
+  service_ids:
+  - inventory_reconciliation_pdf_report_generator
+  - csv_chart_pdf_report_generator
+  - tabular_dashboard_report_generator
+  - parquet_quality_report_csv_exporter
+  - financial_transaction_regulatory_report_generator
+  - reviewed_domain_adapter

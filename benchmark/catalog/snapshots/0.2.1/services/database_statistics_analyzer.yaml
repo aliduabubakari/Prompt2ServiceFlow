@@ -1,0 +1,154 @@
+schema_version: 0.1.0
+service_id: database_statistics_analyzer
+version: 1.0.0
+display_name: Database Statistics Analyzer
+category: Maintenance
+capability:
+  summary: Runs database optimizer statistics analysis for configured tables or database
+    scope after data mutations and emits analysis status.
+  operations:
+  - Resolve a bound SQL database resource.
+  - Run the database-appropriate ANALYZE or statistics refresh operation for configured
+    tables or the whole bound metadata database scope.
+  - Collect affected table identifiers and success/failure diagnostics.
+  - Emit observable analysis status.
+  keywords:
+  - database analyze
+  - optimizer statistics
+  - maintenance
+  - metadata database
+  - statistics refresh
+  limitations:
+  - Does not delete or load data.
+  - Does not infer table list unless caller binds scope or target tables.
+  - Exact ANALYZE syntax is database-engine dependent and must be supported by the
+    bound resource implementation.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: database
+    description: SQL database resource whose optimizer statistics should be refreshed.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: target_tables
+    description: Optional logical references to tables to analyze; when omitted, configured
+      database or schema scope is analyzed.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://sql_table_references/v1
+    required: false
+    cardinality: many
+    sensitivity: internal
+  outputs:
+  - name: analysis_status
+    description: Observable status showing whether statistics analysis succeeded and
+      which tables/scope were processed.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://database_statistics_analysis_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: analysis_scope
+    description: Scope of statistics analysis.
+    type: string
+    required: false
+    enum:
+    - database
+    - schema
+    - tables
+  - name: schema_name
+    description: Optional schema name when analysis_scope is schema.
+    type: string
+    required: false
+  - name: table_names
+    description: Optional explicit table names to analyze when artifact table references
+      are not used.
+    type: array
+    required: false
+  secrets: []
+contracts:
+- contract_id: database_statistics_scope_contract
+  type: precondition
+  applies_to: parameter
+  target: analysis_scope
+  description: Analysis scope must be database, schema, or tables when supplied.
+  expression: analysis_scope in ['database','schema','tables'] or analysis_scope ==
+    null
+- contract_id: database_statistics_analysis_status_schema
+  type: json_schema
+  applies_to: output
+  target: analysis_status
+  description: Status exposes statistics refresh outcome for validation.
+  schema_ref: schema://database_statistics_analysis_status/v1
+  expression: '{"type":"object","required":["success","analysis_scope","tables_analyzed"],"properties":{"success":{"type":"boolean"},"analysis_scope":{"type":"string"},"tables_analyzed":{"type":"array","items":{"type":"string"}},"statements_submitted":{"type":"integer","minimum":0},"statements_succeeded":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: database_statistics_analysis_effect
+  type: effect
+  applies_to: service
+  target: database_statistics_analyzer
+  description: On success, the requested statistics analysis statements completed
+    and status.success is true.
+  expression: analysis_status.success == true implies analysis_status.statements_succeeded
+    == analysis_status.statements_submitted
+invocation:
+  type: argo_workflow_template
+  template_name: database-statistics-analyzer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.database_statistics_analyzer
+  implementation_ref: services/implementations/database_statistics_analyzer
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - postgresql://*
+  - mysql://*
+  secret_access: required
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Database credentials must not be emitted in status or logs.
+  - This service should run only against explicitly bound database resources.
+  idempotency_notes: Refreshing statistics is repeatable; observed optimizer statistics
+    may change only with underlying table contents.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:airflow_db_cleanup#analyze_query
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The active step requires a database statistics refresh effect, not
+    arbitrary PostgreSQL-only SQL execution.'
+  - 'Evidence status: explicit.'

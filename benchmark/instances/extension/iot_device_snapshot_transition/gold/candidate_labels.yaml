@@ -1,0 +1,52 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:iot_device_snapshot_transition
+candidate_sets:
+- candidate_set_id: extension_iot_device_snapshot_transition_iot_device_event_batch_ingestor_candidates
+  required_service_id: iot_device_event_batch_ingestor
+  labels:
+    iot_device_event_batch_ingestor: gold
+    checkpoint_position_only_loader: semantic_mismatch
+    checkpoint_event_sort_deduplicator: contract_mismatch
+    append_only_event_archiver: format_mismatch
+- candidate_set_id: extension_iot_device_snapshot_transition_iot_device_registry_table_ingestor_candidates
+  required_service_id: iot_device_registry_table_ingestor
+  labels:
+    iot_device_registry_table_ingestor: gold
+    checkpoint_event_sort_deduplicator: semantic_mismatch
+    append_only_event_archiver: contract_mismatch
+    generic_queue_metric_counter: format_mismatch
+- candidate_set_id: extension_iot_device_snapshot_transition_device_snapshot_checkpoint_loader_candidates
+  required_service_id: device_snapshot_checkpoint_loader
+  labels:
+    device_snapshot_checkpoint_loader: gold
+    append_only_event_archiver: semantic_mismatch
+    generic_queue_metric_counter: contract_mismatch
+    audit_log_redaction_only_filter: format_mismatch
+- candidate_set_id: extension_iot_device_snapshot_transition_iot_snapshot_contract_validator_candidates
+  required_service_id: iot_snapshot_contract_validator
+  labels:
+    iot_snapshot_contract_validator: gold
+    generic_queue_metric_counter: semantic_mismatch
+    audit_log_redaction_only_filter: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_iot_device_snapshot_transition_iot_device_event_snapshot_normalizer_candidates
+  required_service_id: iot_device_event_snapshot_normalizer
+  labels:
+    iot_device_event_snapshot_normalizer: gold
+    audit_log_redaction_only_filter: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    checkpoint_position_only_loader: format_mismatch
+- candidate_set_id: extension_iot_device_snapshot_transition_device_snapshot_state_transition_reconciler_candidates
+  required_service_id: device_snapshot_state_transition_reconciler
+  labels:
+    device_snapshot_state_transition_reconciler: gold
+    reviewed_domain_adapter: semantic_mismatch
+    checkpoint_position_only_loader: contract_mismatch
+    checkpoint_event_sort_deduplicator: format_mismatch
+- candidate_set_id: extension_iot_device_snapshot_transition_checkpoint_output_bundle_publisher_candidates
+  required_service_id: checkpoint_output_bundle_publisher
+  labels:
+    checkpoint_output_bundle_publisher: gold
+    checkpoint_position_only_loader: semantic_mismatch
+    checkpoint_event_sort_deduplicator: contract_mismatch
+    append_only_event_archiver: format_mismatch

@@ -1,0 +1,163 @@
+schema_version: 0.1.0
+service_id: trade_order_csv_report_generator
+version: 1.0.0
+display_name: Trade Order CSV Report Generator
+category: ReportGenerator
+capability:
+  summary: Exports calculated trade recommendations to a deterministic CSV trade-order
+    artifact and emits export status.
+  operations:
+  - Read a rebalancing trades artifact.
+  - Validate required trade-order fields such as symbol, action, and amount.
+  - Serialize trades to CSV using configured delimiter/header behavior.
+  - Write the final trade orders CSV file and report row counts in status.
+  keywords:
+  - trade orders
+  - csv
+  - portfolio rebalance
+  - report generation
+  - finance
+  limitations:
+  - Does not compute trades from portfolios.
+  - Does not submit orders to brokerage systems.
+  - Does not render workflow date tokens; output path templates are resolved by workflow
+    binding.
+  - Does not implement retries or schedule.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: rebalancing_trades
+    description: Trade recommendations from a portfolio rebalancing calculator.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://rebalancing_trades/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  outputs:
+  - name: trade_orders_csv
+    description: CSV artifact containing generated trade orders, for example trade_orders_{date}.csv
+      after binding renders date tokens.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://trade_orders_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  - name: export_status
+    description: Observable CSV export status with row count, output URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://trade_order_csv_export_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: output_path_template
+    description: Deterministic CSV output path or template, such as trade_orders_{date}.csv.
+    type: string
+    required: true
+  - name: include_header
+    description: Whether to include a CSV header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  - name: columns
+    description: Optional ordered list of trade fields to export.
+    type: array
+    required: false
+  secrets: []
+contracts:
+- contract_id: trade_order_export_input_schema
+  type: json_schema
+  applies_to: input
+  target: rebalancing_trades
+  description: Input must contain trade recommendations with symbol, action, and amount
+    fields.
+  schema_ref: schema://rebalancing_trades/v1
+  expression: '{"type":"object","required":["trades"],"properties":{"trades":{"type":"array","items":{"type":"object","required":["symbol","action","amount"]}}}}'
+- contract_id: trade_order_output_path_contract
+  type: precondition
+  applies_to: parameter
+  target: output_path_template
+  description: Output path template must be non-empty.
+  expression: length(trim(output_path_template)) > 0
+- contract_id: trade_order_csv_export_status_schema
+  type: json_schema
+  applies_to: output
+  target: export_status
+  description: Status exposes final CSV generation outcome.
+  schema_ref: schema://trade_order_csv_export_status/v1
+  expression: '{"type":"object","required":["success","output_uri","rows_written"],"properties":{"success":{"type":"boolean"},"output_uri":{"type":"string"},"rows_written":{"type":"integer","minimum":0},"columns_exported":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: trade_order_csv_export_effect
+  type: effect
+  applies_to: service
+  target: trade_order_csv_report_generator
+  description: On success, a CSV artifact exists and row count equals the number of
+    emitted trade recommendations.
+  expression: export_status.success == true implies exists(trade_orders_csv) and export_status.rows_written
+    == length(rebalancing_trades.trades)
+invocation:
+  type: argo_workflow_template
+  template_name: trade-order-csv-report-generator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.trade_order_csv_report_generator
+  implementation_ref: services/implementations/trade_order_csv_report_generator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - financial
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - CSV trade orders contain financial instructions and must not be logged as raw
+    rows.
+  - This service produces an artifact only; any broker order submission would require
+    a separate publisher service.
+  idempotency_notes: Same rebalancing trades and serialization parameters produce
+    the same CSV content after deterministic path-template rendering.
+  default_timeout_seconds: 120
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:portfolio_rebalancing_dag#generate_trade_orders
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing generic CSV exporters do not enforce the finance trade-order
+    schema required for deterministic downstream validation.'
+  - 'Evidence status: strongly_inferred.'

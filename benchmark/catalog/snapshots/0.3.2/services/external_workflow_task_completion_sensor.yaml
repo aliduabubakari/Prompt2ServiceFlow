@@ -1,0 +1,147 @@
+schema_version: 0.1.0
+service_id: external_workflow_task_completion_sensor
+version: 1.0.0
+display_name: External Workflow Task Completion Sensor
+category: Sensor
+capability:
+  summary: Checks whether a configured external workflow task/run has reached an expected
+    terminal or success state for a selected logical execution and emits a completion
+    decision.
+  operations:
+  - Resolve a bound workflow orchestrator or metadata API resource.
+  - Locate a workflow run/task instance by workflow id, task id, and optional logical-date
+    offset or selector.
+  - Read the observed state without mutating the external workflow.
+  - Emit a completion decision and diagnostics.
+  keywords:
+  - external task sensor
+  - workflow completion
+  - readiness check
+  - orchestrator metadata
+  - prior run
+  limitations:
+  - Does not implement polling cadence, timeout, retries, or dependency edges.
+  - Requires a bound orchestrator metadata/API resource.
+  - Does not trigger workflows; use the workflow trigger adapter separately.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: workflow_orchestrator
+    description: Workflow orchestrator metadata/API resource used to inspect external
+      workflow task state.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://workflow_orchestrator_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: completion_decision
+    description: Decision showing observed task state and whether it satisfies configured
+      success criteria.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://external_workflow_task_completion_decision/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: external_workflow_id
+    description: External workflow identifier to inspect.
+    type: string
+    required: true
+  - name: external_step_id
+    description: External step/task identifier to inspect.
+    type: string
+    required: true
+  - name: execution_selector
+    description: Optional selector such as execution_delta, logical date, or run id.
+    type: object
+    required: false
+  - name: terminal_states
+    description: States treated as terminal for the check.
+    type: array
+    required: true
+  - name: success_states
+    description: Subset of states treated as successful.
+    type: array
+    required: false
+  secrets: []
+contracts:
+- contract_id: external_task_identity_required
+  type: precondition
+  applies_to: service
+  target: external_workflow_task_completion_sensor
+  description: External workflow and step identifiers must be non-empty.
+  expression: length(trim(external_workflow_id)) > 0 and length(trim(external_step_id))
+    > 0
+- contract_id: external_task_completion_decision_schema
+  type: json_schema
+  applies_to: output
+  target: completion_decision
+  description: Decision exposes observed state, terminal flag, and success flag.
+  schema_ref: schema://external_workflow_task_completion_decision/v1
+  expression: '{"type":"object","required":["external_workflow_id","external_step_id","observed_state","terminal","succeeded"],"properties":{"external_workflow_id":{"type":"string"},"external_step_id":{"type":"string"},"observed_state":{"type":["string","null"]},"terminal":{"type":"boolean"},"succeeded":{"type":"boolean"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: external_task_sensor_effect
+  type: effect
+  applies_to: service
+  target: external_workflow_task_completion_sensor
+  description: The service reads orchestrator state and emits terminal/succeeded decisions
+    without mutating workflows.
+  expression: no_external_mutation
+invocation:
+  type: argo_workflow_template
+  template_name: external-workflow-task-completion-sensor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.external_workflow_task_completion_sensor
+  implementation_ref: services/implementations/external_workflow_task_completion_sensor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - orchestrator://*
+  - airflow://*
+  - https://*
+  secret_access: required
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit orchestrator credentials in outputs or logs.
+  - Polling cadence and execution_delta interpretation are workflow binding concerns.
+  idempotency_notes: For a fixed external task state and selector, the same decision
+    is emitted; external state may change over time.
+  default_timeout_seconds: 120
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:WF_MAIN_DATASETS_LOAD_L2_TO_L2#wait_for_success_end
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service provides a generic external task/workflow
+    completion sensor outside Dataform-specific semantics.'
+  - 'Evidence status: explicit.'

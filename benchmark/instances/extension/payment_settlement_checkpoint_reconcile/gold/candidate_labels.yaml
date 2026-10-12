@@ -1,0 +1,52 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:payment_settlement_checkpoint_reconcile
+candidate_sets:
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_settlement_event_batch_ingestor_candidates
+  required_service_id: settlement_event_batch_ingestor
+  labels:
+    settlement_event_batch_ingestor: gold
+    checkpoint_position_only_loader: semantic_mismatch
+    checkpoint_event_sort_deduplicator: contract_mismatch
+    append_only_event_archiver: format_mismatch
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_bank_statement_table_ingestor_candidates
+  required_service_id: bank_statement_table_ingestor
+  labels:
+    bank_statement_table_ingestor: gold
+    checkpoint_event_sort_deduplicator: semantic_mismatch
+    append_only_event_archiver: contract_mismatch
+    generic_queue_metric_counter: format_mismatch
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_settlement_checkpoint_loader_candidates
+  required_service_id: settlement_checkpoint_loader
+  labels:
+    settlement_checkpoint_loader: gold
+    append_only_event_archiver: semantic_mismatch
+    generic_queue_metric_counter: contract_mismatch
+    audit_log_redaction_only_filter: format_mismatch
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_settlement_reconciliation_contract_validator_candidates
+  required_service_id: settlement_reconciliation_contract_validator
+  labels:
+    settlement_reconciliation_contract_validator: gold
+    generic_queue_metric_counter: semantic_mismatch
+    audit_log_redaction_only_filter: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_settlement_record_normalizer_candidates
+  required_service_id: settlement_record_normalizer
+  labels:
+    settlement_record_normalizer: gold
+    audit_log_redaction_only_filter: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    checkpoint_position_only_loader: format_mismatch
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_settlement_checkpoint_reconciler_candidates
+  required_service_id: settlement_checkpoint_reconciler
+  labels:
+    settlement_checkpoint_reconciler: gold
+    reviewed_domain_adapter: semantic_mismatch
+    checkpoint_position_only_loader: contract_mismatch
+    checkpoint_event_sort_deduplicator: format_mismatch
+- candidate_set_id: extension_payment_settlement_checkpoint_reconcile_settlement_exception_checkpoint_publisher_candidates
+  required_service_id: settlement_exception_checkpoint_publisher
+  labels:
+    settlement_exception_checkpoint_publisher: gold
+    checkpoint_position_only_loader: semantic_mismatch
+    checkpoint_event_sort_deduplicator: contract_mismatch
+    append_only_event_archiver: format_mismatch

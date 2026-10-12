@@ -1,0 +1,104 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: etl-import-ensembl-run-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: etl-import-ensembl-run
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: run
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters: []
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: etl-import-ensembl-run-scripts
+  - name: fixtures
+    configMap:
+      name: etl-import-ensembl-run-fixtures
+      items:
+      - key: fixture-0000
+        path: db.json
+      - key: fixture-0001
+        path: ensembl.csv
+      - key: fixture-0002
+        path: fixture.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: file
+        template: run-file
+      - name: table
+        template: run-table
+        depends: file.Succeeded
+  - name: run-file
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: file
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - file
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-table
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: table
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - table
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

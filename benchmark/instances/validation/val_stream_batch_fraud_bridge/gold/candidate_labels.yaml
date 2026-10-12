@@ -1,0 +1,51 @@
+candidate_label_version: 0.1.0
+benchmark_id: validation:val_stream_batch_fraud_bridge
+candidate_sets:
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_multi_resource_readiness_sensor_candidates
+  required_service_id: multi_resource_readiness_sensor
+  labels:
+    multi_resource_readiness_sensor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    temporary_resource_cleanup: generic_escape_hatch
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_fraud_source_loader_candidates
+  required_service_id: fraud_source_loader
+  labels:
+    fraud_source_loader: gold
+    temporary_resource_cleanup: semantic_mismatch
+    http_json_request_extractor: generic_escape_hatch
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_transaction_context_joiner_candidates
+  required_service_id: transaction_context_joiner
+  labels:
+    transaction_context_joiner: gold
+    http_json_request_extractor: semantic_mismatch
+    tabular_dataset_database_loader: generic_escape_hatch
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_transaction_fraud_risk_scorer_candidates
+  required_service_id: transaction_fraud_risk_scorer
+  labels:
+    transaction_fraud_risk_scorer: gold
+    tabular_dataset_database_loader: semantic_mismatch
+    bi_dashboard_refresh_trigger: generic_escape_hatch
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_fraud_risk_action_router_candidates
+  required_service_id: fraud_risk_action_router
+  labels:
+    fraud_risk_action_router: gold
+    bi_dashboard_refresh_trigger: semantic_mismatch
+    parquet_tabular_data_profiler: generic_escape_hatch
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_fraud_monitoring_table_updater_candidates
+  required_service_id: fraud_monitoring_table_updater
+  labels:
+    fraud_monitoring_table_updater: gold
+    parquet_tabular_data_profiler: semantic_mismatch
+    bulk_email_campaign_sender: generic_escape_hatch
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_review_case_opener_candidates
+  required_service_id: review_case_opener
+  labels:
+    review_case_opener: gold
+    bulk_email_campaign_sender: semantic_mismatch
+    file_location_availability_sensor: generic_escape_hatch
+- candidate_set_id: validation_val_stream_batch_fraud_bridge_risk_metric_publisher_candidates
+  required_service_id: risk_metric_publisher
+  labels:
+    risk_metric_publisher: gold
+    file_location_availability_sensor: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch

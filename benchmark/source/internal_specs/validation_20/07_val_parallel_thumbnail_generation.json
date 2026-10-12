@@ -1,0 +1,189 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_parallel_thumbnail_generation",
+  "pipeline_name": "Parallel Thumbnail Generation",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_parallel_thumbnail_generation.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Download new product images and generate small, medium, and large thumbnails in parallel.",
+    "business_domain": "Media Processing",
+    "execution_model": "Batch",
+    "topology_pattern": "Fan-out only",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "download_new_images",
+        "to": "generate_small_thumbnail"
+      },
+      {
+        "from": "download_new_images",
+        "to": "generate_medium_thumbnail"
+      },
+      {
+        "from": "download_new_images",
+        "to": "generate_large_thumbnail"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "steps": [
+          "generate_small_thumbnail",
+          "generate_medium_thumbnail",
+          "generate_large_thumbnail"
+        ]
+      }
+    ],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Image CDN",
+      "identifier": "image_cdn",
+      "details": [
+        "Validation external dependency: Image CDN"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Object storage",
+      "identifier": "object_storage",
+      "details": [
+        "Validation external dependency: Object storage"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "raw_product_images",
+        "description": "Validation artifact: raw_product_images"
+      },
+      {
+        "identifier": "small_thumbnail",
+        "description": "Validation artifact: small_thumbnail"
+      },
+      {
+        "identifier": "medium_thumbnail",
+        "description": "Validation artifact: medium_thumbnail"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "download_new_images",
+      "name": "download_new_images",
+      "objective": "Download new images",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "generate_small_thumbnail",
+      "name": "generate_small_thumbnail",
+      "objective": "Generate small thumbnail",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "generate_medium_thumbnail",
+      "name": "generate_medium_thumbnail",
+      "objective": "Generate medium thumbnail",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "generate_large_thumbnail",
+      "name": "generate_large_thumbnail",
+      "objective": "Generate large thumbnail",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

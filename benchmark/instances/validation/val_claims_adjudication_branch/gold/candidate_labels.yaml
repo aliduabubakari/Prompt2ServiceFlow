@@ -1,0 +1,39 @@
+candidate_label_version: 0.1.0
+benchmark_id: validation:val_claims_adjudication_branch
+candidate_sets:
+- candidate_set_id: validation_val_claims_adjudication_branch_claims_database_batch_extractor_candidates
+  required_service_id: claims_database_batch_extractor
+  labels:
+    claims_database_batch_extractor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    temporary_resource_cleanup: generic_escape_hatch
+- candidate_set_id: validation_val_claims_adjudication_branch_claim_risk_scoring_service_candidates
+  required_service_id: claim_risk_scoring_service
+  labels:
+    claim_risk_scoring_service: gold
+    temporary_resource_cleanup: semantic_mismatch
+    csv_to_structured_json_standardizer: generic_escape_hatch
+- candidate_set_id: validation_val_claims_adjudication_branch_claim_risk_route_decider_candidates
+  required_service_id: claim_risk_route_decider
+  labels:
+    claim_risk_route_decider: gold
+    csv_to_structured_json_standardizer: semantic_mismatch
+    tabular_dataset_database_loader: generic_escape_hatch
+- candidate_set_id: validation_val_claims_adjudication_branch_manual_claim_adjudication_recorder_candidates
+  required_service_id: manual_claim_adjudication_recorder
+  labels:
+    manual_claim_adjudication_recorder: gold
+    tabular_dataset_database_loader: semantic_mismatch
+    http_json_request_extractor: generic_escape_hatch
+- candidate_set_id: validation_val_claims_adjudication_branch_low_risk_claim_auto_approver_candidates
+  required_service_id: low_risk_claim_auto_approver
+  labels:
+    low_risk_claim_auto_approver: gold
+    http_json_request_extractor: semantic_mismatch
+    bi_dashboard_refresh_trigger: generic_escape_hatch
+- candidate_set_id: validation_val_claims_adjudication_branch_claim_settlement_summary_writer_candidates
+  required_service_id: claim_settlement_summary_writer
+  labels:
+    claim_settlement_summary_writer: gold
+    bi_dashboard_refresh_trigger: semantic_mismatch
+    bulk_email_campaign_sender: generic_escape_hatch

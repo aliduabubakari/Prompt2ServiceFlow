@@ -1,0 +1,348 @@
+{
+  "spec_version": "1.0",
+  "pipeline_id": "care_pathway_fusion",
+  "pipeline_name": "Care Pathway Fusion",
+  "source": {
+    "unique_key": null,
+    "repo": "prompt2serviceflow-diversity-v1",
+    "file_path": "synthetic/care_pathway_fusion.py",
+    "repo_url": null,
+    "detected_airflow_version": "2.x",
+    "sampled_version": null,
+    "sampled_commit": null,
+    "sampled_time": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Synthetic data-preparation workflow for Healthcare/Public Health",
+    "business_domain": "Healthcare/Public Health",
+    "execution_model": "batch",
+    "topology_pattern": "fan_out_fan_in",
+    "notes": "Synthetic Diversity-40 source package."
+  },
+  "schedule": {
+    "schedule_type": "manual",
+    "schedule_expression": null,
+    "timezone": null,
+    "start_date": null,
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "extract_source",
+        "to": "validate_schema"
+      },
+      {
+        "from": "validate_schema",
+        "to": "normalize_a"
+      },
+      {
+        "from": "validate_schema",
+        "to": "normalize_b"
+      },
+      {
+        "from": "validate_schema",
+        "to": "normalize_c"
+      },
+      {
+        "from": "normalize_a",
+        "to": "fuse_partitions"
+      },
+      {
+        "from": "normalize_b",
+        "to": "fuse_partitions"
+      },
+      {
+        "from": "normalize_c",
+        "to": "fuse_partitions"
+      },
+      {
+        "from": "fuse_partitions",
+        "to": "publish_dataset"
+      },
+      {
+        "from": "validate_schema",
+        "to": "audit_enrichment_1"
+      },
+      {
+        "from": "validate_schema",
+        "to": "audit_enrichment_2"
+      },
+      {
+        "from": "validate_schema",
+        "to": "audit_enrichment_3"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "group_id": "normalization_fanout",
+        "steps": [
+          "normalize_a",
+          "normalize_b",
+          "normalize_c"
+        ]
+      }
+    ],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "object_storage",
+      "name": "Fixture-backed object storage",
+      "identifier": "synthetic://diversity-v1",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "raw_input.csv",
+        "description": "Synthetic tabular input"
+      },
+      {
+        "identifier": "prepared_output.parquet",
+        "description": "Synthetic prepared output"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "extract_source",
+      "name": "extract_source",
+      "objective": "Extract the source dataset into a raw tabular artifact.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "validate_schema",
+      "name": "validate_schema",
+      "objective": "Validate required columns, formats, and record identity.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "normalize_a",
+      "name": "normalize_a",
+      "objective": "Normalize one independent source partition (a).",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "normalize_b",
+      "name": "normalize_b",
+      "objective": "Normalize one independent source partition (b).",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "normalize_c",
+      "name": "normalize_c",
+      "objective": "Normalize one independent source partition (c).",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "fuse_partitions",
+      "name": "fuse_partitions",
+      "objective": "Fuse all normalized partitions through a cardinality-many input.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "audit_enrichment_1",
+      "name": "audit_enrichment_1",
+      "objective": "Apply audited enrichment stage 1.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "audit_enrichment_2",
+      "name": "audit_enrichment_2",
+      "objective": "Apply audited enrichment stage 2.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "audit_enrichment_3",
+      "name": "audit_enrichment_3",
+      "objective": "Apply audited enrichment stage 3.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_dataset",
+      "name": "publish_dataset",
+      "objective": "Publish the fused dataset.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

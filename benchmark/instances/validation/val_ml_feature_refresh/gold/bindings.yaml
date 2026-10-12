@@ -1,0 +1,24 @@
+binding_gold_version: 0.1.0
+benchmark_id: validation:val_ml_feature_refresh
+bindings:
+- intent_id: extract_raw_events
+  service_id: event_lake_raw_event_extractor
+  service_version: 1.0.0
+- intent_id: clean_event_records
+  service_id: event_record_cleaner
+  service_version: 1.0.0
+- intent_id: aggregate_user_features
+  service_id: user_feature_aggregator
+  service_version: 1.0.0
+- intent_id: compute_drift_statistics
+  service_id: feature_drift_statistics_computer
+  service_version: 1.0.0
+- intent_id: validate_feature_table
+  service_id: feature_table_drift_validator
+  service_version: 1.0.0
+- intent_id: publish_feature_table
+  service_id: feature_store_table_publisher
+  service_version: 1.0.0
+- intent_id: notify_model_team
+  service_id: model_team_notification_sender
+  service_version: 1.0.0

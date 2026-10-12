@@ -1,0 +1,71 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: backup_strategy_selector
+image: python:3.12-slim
+workflow_parameters:
+- name: exec-date-fixture
+  default: execution_date_saturday.txt
+tasks:
+- intent_id: date_check_task
+  script: scripts/02_date_check_task.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --execution-date
+  - '{fixtures}/{exec-date-fixture}'
+  output_parameters:
+  - name: strategy
+    path: /workspace/artifacts/backup_strategy.txt
+  retries: 2
+- intent_id: full_backup_task
+  script: scripts/01_create_backup.py
+  dependencies:
+  - date_check_task
+  when: '{{tasks.date_check_task.outputs.parameters.strategy}} == full'
+  local_condition:
+    path: artifacts/backup_strategy_decision.json
+    json_path: selected_strategy
+    equals: full
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --database-resource
+  - '{fixtures}/database_resource.json'
+  - --mode
+  - full
+  retries: 2
+- intent_id: incremental_backup_task
+  script: scripts/01_create_backup.py
+  dependencies:
+  - date_check_task
+  when: '{{tasks.date_check_task.outputs.parameters.strategy}} == incremental'
+  local_condition:
+    path: artifacts/backup_strategy_decision.json
+    json_path: selected_strategy
+    equals: incremental
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --database-resource
+  - '{fixtures}/database_resource.json'
+  - --mode
+  - incremental
+  retries: 2
+- intent_id: verify_backup_task
+  script: scripts/02_verify_backup.py
+  depends: (full_backup_task.Succeeded || incremental_backup_task.Succeeded)
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+scenarios:
+- name: saturday_full_backup
+  parameters:
+    exec-date-fixture: execution_date_saturday.txt
+  fixture_root: fixtures/inputs
+- name: weekday_incremental_backup
+  parameters:
+    exec-date-fixture: execution_date_weekday.txt
+  fixture_root: fixtures/inputs
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

@@ -1,0 +1,66 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: extension:shipping_document_ocr_reconciliation
+mappings:
+- intent_id: ingest_primary_source
+  inputs:
+    input_artifacts: source_bundle
+  outputs:
+    output_artifacts: ingest_primary_source_artifact
+    execution_report: ingest_primary_source_status
+- intent_id: ingest_secondary_source
+  inputs:
+    input_artifacts: source_bundle
+  outputs:
+    output_artifacts: ingest_secondary_source_artifact
+    execution_report: ingest_secondary_source_status
+- intent_id: ingest_reference_source
+  inputs:
+    input_artifacts: source_bundle
+  outputs:
+    output_artifacts: ingest_reference_source_artifact
+    execution_report: ingest_reference_source_status
+- intent_id: validate_source_contracts
+  inputs:
+    input_artifacts:
+    - ingest_primary_source_artifact
+    - ingest_secondary_source_artifact
+    - ingest_reference_source_artifact
+  outputs:
+    output_artifacts: validate_source_contracts_artifact
+    execution_report: validate_source_contracts_status
+- intent_id: normalize_sources
+  inputs:
+    input_artifacts: validate_source_contracts_artifact
+  outputs:
+    output_artifacts: normalize_sources_artifact
+    execution_report: normalize_sources_status
+- intent_id: fuse_sources
+  inputs:
+    input_artifacts: normalize_sources_artifact
+  outputs:
+    output_artifacts: fuse_sources_artifact
+    execution_report: fuse_sources_status
+- intent_id: extract_visual_text_features
+  inputs:
+    input_artifacts: fuse_sources_artifact
+  outputs:
+    output_artifacts: extract_visual_text_features_artifact
+    execution_report: extract_visual_text_features_status
+- intent_id: join_reference_metadata
+  inputs:
+    input_artifacts: extract_visual_text_features_artifact
+  outputs:
+    output_artifacts: join_reference_metadata_artifact
+    execution_report: join_reference_metadata_status
+- intent_id: assess_multimodal_quality
+  inputs:
+    input_artifacts: join_reference_metadata_artifact
+  outputs:
+    output_artifacts: assess_multimodal_quality_artifact
+    execution_report: assess_multimodal_quality_status
+- intent_id: publish_outputs
+  inputs:
+    input_artifacts: assess_multimodal_quality_artifact
+  outputs:
+    output_artifacts: publish_outputs_artifact
+    execution_report: publish_outputs_status

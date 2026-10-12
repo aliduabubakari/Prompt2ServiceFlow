@@ -1,0 +1,42 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:multi_region_ecommerce_analytics
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_multi_region_ecommerce_analytics_database_csv_snapshot_exporter_candidates
+  source_step_refs:
+  - ingest_us_east
+  - ingest_us_west
+  - ingest_eu
+  - ingest_apac
+  service_ids:
+  - database_csv_snapshot_exporter
+  - postgres_readonly_query_result_extractor
+  - sql_incremental_table_extractor
+  - http_api_request_artifact_extractor
+  - warehouse_inventory_csv_extractor
+  - unreviewed_postgres_sql_executor
+- candidate_set_id: main_multi_region_ecommerce_analytics_regional_sales_currency_usd_converter_candidates
+  source_step_refs:
+  - convert_currency_us_east
+  - convert_currency_us_west
+  - convert_currency_eu
+  - convert_currency_apac
+  service_ids:
+  - regional_sales_currency_usd_converter
+  - multi_region_revenue_report_aggregator
+  - tabular_query_result_csv_writer
+  - csv_tabular_schema_validating_loader
+  - tabular_dataset_declarative_transformer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_multi_region_ecommerce_analytics_multi_region_revenue_report_aggregator_candidates
+  source_step_refs:
+  - aggregate_global_revenue
+  service_ids:
+  - multi_region_revenue_report_aggregator
+  - regional_sales_currency_usd_converter
+  - tabular_query_result_csv_writer
+  - structured_json_batch_to_csv_exporter
+  - weather_station_csv_parquet_fusion_aggregator
+  - reviewed_domain_adapter

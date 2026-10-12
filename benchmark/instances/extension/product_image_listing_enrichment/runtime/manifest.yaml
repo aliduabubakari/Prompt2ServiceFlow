@@ -1,0 +1,79 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: product_image_listing_enrichment
+image: python:3.12-slim
+workflow_parameters:
+- name: execution-time
+  default: '2026-07-20T12:00:00Z'
+tasks:
+- intent_id: ingest_source_batch
+  script: scripts/01_ingest_source_batch.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  - --execution-time
+  - '{execution-time}'
+- intent_id: validate_source_contract
+  script: scripts/02_validate_source_contract.py
+  dependencies:
+  - ingest_source_batch
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: extract_branch_features
+  script: scripts/03_extract_branch_features.py
+  dependencies:
+  - validate_source_contract
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: enrich_branch_context
+  script: scripts/04_enrich_branch_context.py
+  dependencies:
+  - validate_source_contract
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: score_branch_quality
+  script: scripts/05_score_branch_quality.py
+  dependencies:
+  - validate_source_contract
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: merge_branch_outputs
+  script: scripts/06_merge_branch_outputs.py
+  dependencies:
+  - extract_branch_features
+  - enrich_branch_context
+  - score_branch_quality
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: publish_outputs
+  script: scripts/07_publish_outputs.py
+  dependencies:
+  - merge_branch_outputs
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  - --execution-time
+  - '{execution-time}'
+scenarios:
+- name: nominal
+  parameters:
+    execution-time: '2026-07-20T12:00:00Z'
+  fixture_root: fixtures/scenarios/nominal

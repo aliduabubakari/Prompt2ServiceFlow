@@ -1,0 +1,13 @@
+{
+  "pipeline_id": "iot_device_snapshot_transition",
+  "inputs": {"events": "device_events.jsonl", "registry": "device_registry.csv"},
+  "input_modalities": ["jsonl", "table"],
+  "systems": ["IoT event hub", "device management platform"],
+  "state_transitions": {
+    "temperature_alert": "warning",
+    "connectivity_loss": "offline",
+    "battery_low": "low_battery",
+    "status_change": "maintenance",
+    "firmware_update": "updating"
+  }
+}

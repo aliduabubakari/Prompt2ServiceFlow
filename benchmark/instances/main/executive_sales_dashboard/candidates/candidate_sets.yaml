@@ -1,0 +1,36 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:executive_sales_dashboard
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_executive_sales_dashboard_sql_query_readiness_sensor_candidates
+  source_step_refs:
+  - wait_for_sales_aggregation
+  service_ids:
+  - sql_query_readiness_sensor
+  - postgres_readonly_query_result_extractor
+  - sql_incremental_table_extractor
+  - external_workflow_completion_sensor
+  - postgres_parameterized_sql_executor
+  - reviewed_domain_adapter
+- candidate_set_id: main_executive_sales_dashboard_csv_tabular_schema_validating_loader_candidates
+  source_step_refs:
+  - load_sales_csv
+  service_ids:
+  - csv_tabular_schema_validating_loader
+  - csv_artifact_profile_ingestor
+  - csv_to_structured_json_standardizer
+  - customer_segment_csv_loader
+  - tabular_query_result_csv_writer
+  - legacy_csv_schema_validator
+- candidate_set_id: main_executive_sales_dashboard_tabular_dashboard_report_generator_candidates
+  source_step_refs:
+  - generate_dashboard
+  service_ids:
+  - tabular_dashboard_report_generator
+  - csv_chart_pdf_report_generator
+  - bi_dashboard_refresh_trigger
+  - inventory_reconciliation_pdf_report_generator
+  - trade_order_csv_report_generator
+  - reviewed_domain_adapter

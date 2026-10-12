@@ -1,0 +1,224 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-08T18:06:49.933948+00:00",
+  "instance": "benchmark/instances/extension/financial_transaction_escalation_review",
+  "workspace": "experiments/workspaces/extension/financial_transaction_escalation_review",
+  "submission": "results/paper/runs/m5__extension__financial_transaction_escalation_review__sintef-qwen3-8-27b-nvfp4__s0__20261008T175352.945844Z__100805b9/agent_workspace/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G0",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": null,
+    "edge_f1": null,
+    "binding_top1_accuracy": null,
+    "binding_version_accuracy": null,
+    "wiring_f1": null,
+    "wiring_applicable": null,
+    "alignment_edit_distance": null,
+    "over_decomposition_rate": null,
+    "under_decomposition_rate": null,
+    "source_step_coverage": null,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-08T18:06:47.609873+00:00",
+    "workspace": "experiments/workspaces/extension/financial_transaction_escalation_review",
+    "submission": "results/paper/runs/m5__extension__financial_transaction_escalation_review__sintef-qwen3-8-27b-nvfp4__s0__20261008T175352.945844Z__100805b9/agent_workspace/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G0",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "fail",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": [
+          {
+            "code": "G0_PARSE_ERROR",
+            "message": "serviceflow.yaml does not parse: while parsing a block collection\n  in \"<unicode string>\", line 34, column 4:\n       - system_id: case_management_queue\n       ^\nexpected <block end>, but found '<block mapping start>'\n  in \"<unicode string>\", line 35, column 5:\n        type: messaging\n        ^",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G1",
+        "status": "skipped",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "skipped",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": [
+          {
+            "code": "G2_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G3",
+        "status": "skipped",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "skipped",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": [
+          {
+            "code": "G4_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "financial-transaction-escalation-review-scripts",
+              "scenario": "base",
+              "data_size_bytes": 20338,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "financial-transaction-escalation-review-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 1880,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "financial-transaction-escalation-review-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 20338,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "financial-transaction-escalation-review-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 1880,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_source_batch",
+                "validate_source_contract",
+                "detect_sensitive_fields",
+                "apply_redaction_or_suppression",
+                "create_human_review_packet",
+                "evaluate_policy_or_risk",
+                "route_approved_records",
+                "route_exception_records",
+                "merge_route_outcomes",
+                "publish_outputs"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "status": "unscored",
+    "reason": "no parseable submission ServiceFlowIR"
+  },
+  "binding": {
+    "status": "unscored",
+    "reason": "no parseable submission ServiceFlowIR"
+  },
+  "wiring": {
+    "status": "unscored",
+    "reason": "no parseable submission ServiceFlowIR"
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "source_fixture_loaded",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-uzl6v8qn/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "source_files_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-uzl6v8qn/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "source_records_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-uzl6v8qn/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-uzl6v8qn/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "final_artifact_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-uzl6v8qn/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "upstream_evidence_propagated",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-uzl6v8qn/artifacts/publish_outputs_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 6,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

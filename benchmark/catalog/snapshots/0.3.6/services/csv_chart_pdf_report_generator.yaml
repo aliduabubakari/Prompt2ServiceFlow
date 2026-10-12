@@ -1,0 +1,152 @@
+schema_version: 0.1.0
+service_id: csv_chart_pdf_report_generator
+version: 1.0.0
+display_name: CSV Chart PDF Report Generator
+category: ReportGenerator
+capability:
+  summary: Generates a PDF chart/report from a CSV dataset using caller-supplied chart
+    configuration and emits the PDF artifact plus render status.
+  operations:
+  - Read a CSV artifact.
+  - Validate that required chart columns are present according to chart configuration.
+  - Render a chart such as a bar or line chart.
+  - Write the rendered chart to a PDF artifact and emit status.
+  keywords:
+  - pdf
+  - chart
+  - csv
+  - report generation
+  - sales report
+  - matplotlib-style
+  limitations:
+  - Does not query databases or send email.
+  - Chart semantics are controlled by caller-supplied chart configuration.
+  - Does not perform complex multi-page business reporting beyond configured chart
+    output.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: csv_file
+    description: CSV dataset used as chart input.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://csv_file_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  outputs:
+  - name: pdf_report
+    description: PDF chart artifact generated from the CSV data.
+    channel: artifact
+    data_type: binary
+    media_type: application/pdf
+    schema_ref: schema://pdf_report_file/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  - name: render_status
+    description: Observable rendering status with chart type, output URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://pdf_chart_render_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: output_path
+    description: Deterministic output artifact path or name for the PDF.
+    type: string
+    required: true
+  - name: chart_type
+    description: Type of chart to render.
+    type: string
+    required: true
+    enum:
+    - bar
+    - line
+    - scatter
+  - name: chart_spec
+    description: Structured chart configuration such as x column, y column, grouping
+      column, title, labels, and aggregation display preferences.
+    type: object
+    required: true
+  secrets: []
+contracts:
+- contract_id: pdf_chart_input_readable
+  type: precondition
+  applies_to: input
+  target: csv_file
+  description: Input CSV must be readable and parseable.
+  expression: readable(csv_file) and csv_parseable(csv_file)
+- contract_id: pdf_chart_spec_schema
+  type: json_schema
+  applies_to: parameter
+  target: chart_spec
+  description: Chart spec must identify at least x and y data fields.
+  schema_ref: schema://chart_render_spec/v1
+  expression: '{"type":"object","required":["x_field","y_field"],"properties":{"x_field":{"type":"string"},"y_field":{"type":"string"},"group_field":{"type":["string","null"]},"title":{"type":["string","null"]}}}'
+- contract_id: pdf_chart_render_status_schema
+  type: json_schema
+  applies_to: output
+  target: render_status
+  description: Status exposes chart rendering outcome.
+  schema_ref: schema://pdf_chart_render_status/v1
+  expression: '{"type":"object","required":["success","chart_type","output_uri"],"properties":{"success":{"type":"boolean"},"chart_type":{"type":"string"},"output_uri":{"type":"string"},"rows_read":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: pdf_chart_effect
+  type: effect
+  applies_to: service
+  target: csv_chart_pdf_report_generator
+  description: On success, a PDF report artifact exists and render_status.success=true.
+  expression: render_status.success == true implies exists(pdf_report)
+invocation:
+  type: argo_workflow_template
+  template_name: csv-chart-pdf-report-generator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.csv_chart_pdf_report_generator
+  implementation_ref: services/implementations/csv_chart_pdf_report_generator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - financial
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw financial row values.
+  - PDF output may contain business-sensitive financial summaries.
+  idempotency_notes: Same CSV input and chart configuration produce the same report
+    content aside from deterministic renderer metadata controlled by implementation.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:daily_sales_report#generate_pdf_chart
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No registry service covers CSV-to-PDF chart report generation.'
+  - 'Evidence status: strongly_inferred.'

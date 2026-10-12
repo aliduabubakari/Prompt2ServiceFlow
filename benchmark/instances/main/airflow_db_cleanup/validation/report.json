@@ -1,0 +1,324 @@
+{
+  "report_version": "0.1.0",
+  "pipeline_id": "main:airflow_db_cleanup",
+  "generated_at": "2026-07-21T09:37:06.736015+00:00",
+  "overall_status": "pass",
+  "gates": [
+    {
+      "gate": "G0",
+      "status": "pass",
+      "checks": [
+        "Parse, schema, required files, and checksums"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G1",
+      "status": "pass",
+      "checks": [
+        "Graph integrity and complete source-step accounting"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G2",
+      "status": "pass",
+      "checks": [
+        "Catalog service/version/lifecycle resolution"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G3",
+      "status": "pass",
+      "checks": [
+        "Interface, parameter, secret, artifact, and policy closure"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G4",
+      "status": "pass",
+      "checks": [
+        "Exact gold-to-runtime task identities, dependency edges, and script syntax"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G5",
+      "status": "pass",
+      "checks": [
+        "Deterministic Argo projection, deployable bundles, ConfigMap-size checks, and structural lint"
+      ],
+      "errors": [],
+      "details": {
+        "configmap_payloads": [
+          {
+            "name": "airflow-db-cleanup-scripts",
+            "data_size_bytes": 2272,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "airflow-db-cleanup-fixtures",
+            "data_size_bytes": 369,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "airflow-db-cleanup-run-scripts",
+            "scenario": "run",
+            "data_size_bytes": 2272,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "airflow-db-cleanup-run-fixtures",
+            "scenario": "run",
+            "data_size_bytes": 369,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          }
+        ]
+      }
+    },
+    {
+      "gate": "G6",
+      "status": "pass",
+      "checks": [
+        "Execute every declared scenario and evaluate reviewed semantic assertions and artifact schemas"
+      ],
+      "errors": []
+    }
+  ],
+  "scenario_results": [
+    {
+      "scenario": "run",
+      "status": "pass",
+      "executed_tasks": [
+        "print_configuration",
+        "cleanup_dag_run",
+        "cleanup_task_instance",
+        "cleanup_log",
+        "cleanup_xcom",
+        "cleanup_sla_miss",
+        "cleanup_dag_model",
+        "cleanup_task_reschedule",
+        "cleanup_task_fail",
+        "cleanup_rendered_task_instance_fields",
+        "cleanup_import_error",
+        "cleanup_base_job",
+        "cleanup_sessions",
+        "analyze_query"
+      ],
+      "skipped_tasks": [],
+      "assertions": [
+        {
+          "assertion_id": "retention_cutoff_resolved",
+          "status": "pass",
+          "message": "value=30, expected=30"
+        },
+        {
+          "assertion_id": "dag_run_cleaned",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "task_instance_cleaned",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "log_cleaned",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "xcom_cleaned",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "sla_miss_cleaned",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "dag_model_cleaned",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "task_reschedule_cleaned",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "task_fail_cleaned",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "rendered_task_instance_fields_cleaned",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "import_error_cleaned",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "base_job_cleaned",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "sessions_cleaned",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "all_tables_analyzed",
+          "status": "pass",
+          "message": "value=12, expected=12"
+        },
+        {
+          "assertion_id": "schema_retention_config",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_config_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_dag_run_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_dag_run_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_task_instance_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_task_instance_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_log_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_log_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_xcom_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_xcom_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_sla_miss_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_sla_miss_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_dag_model_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_dag_model_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_task_reschedule_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_task_reschedule_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_task_fail_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_task_fail_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_rendered_task_instance_fields_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_rendered_task_instance_fields_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_import_error_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_import_error_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_base_job_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_base_job_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_sessions_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_sessions_result",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_analyze_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        }
+      ]
+    }
+  ]
+}

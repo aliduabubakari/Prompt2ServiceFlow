@@ -1,0 +1,770 @@
+ir_version: 0.1.0
+composition_id: supply_chain_shipment_etl
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:supply_chain_shipment_etl
+  split: main
+  pipeline_id: supply_chain_shipment_etl
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/36_supply_chain_shipment_etl.txt
+  description_sha256: 265dbcb70cde1c2e3685816ec5968d6f9af71d2097a03e12bc717eb4f2fa52a4
+  internal_spec_path: source/internal_specs/main_40/36_supply_chain_shipment_etl.json
+  internal_spec_sha256: 0e5f707f86428d1782fde31d0ea1ffc6f3071742bc62a5a9df4c185711412740
+requirement:
+  name: Supply Chain Shipment ETL
+  purpose: 'Three-stage ETL processing shipment data from three vendors: parallel CSV ingestion, SKU normalization/date
+    validation/location enrichment, database loading, and summary email notification.'
+  domain: supply_chain
+  execution_model: batch
+  topology: staged_etl
+  information_sufficiency: high
+  notes:
+  - 'Stage 1: three vendor CSVs ingested in parallel.'
+  - 'Stage 2: cleanse, normalize SKUs, validate dates, enrich location.'
+  - 'Stage 3: load to inventory database, send summary email.'
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: source_filesystem
+  type: filesystem
+  name: Source filesystem
+  identifier: /data/shipments
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: inventory_database
+  type: database
+  name: PostgreSQL inventory database
+  identifier: inventory_db
+  access_mode: write
+  authentication: secret
+  mock_strategy: fixture
+- system_id: email_service
+  type: email
+  name: Email service
+  identifier: supply-chain-email
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_vendor_a
+  name: Ingest Vendor A shipments
+  category: Extractor
+  capability: Parse Vendor A CSV with schema validation and emit structured dataset.
+  source_step_refs:
+  - ingest_vendor_a
+  evidence:
+  - source: description
+    text: Ingest raw shipment data from Vendor A.
+  inputs:
+  - vendor_a_csv
+  outputs:
+  - vendor_a_dataset
+  - vendor_a_data_object
+  - vendor_a_validation_status
+  external_system_refs:
+  - source_filesystem
+  preconditions:
+  - Readable Vendor A CSV available.
+  effects:
+  - Structured vendor A dataset
+  - data object
+  - and validation status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step ingests Vendor A shipment CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: ingest_vendor_b
+  name: Ingest Vendor B shipments
+  category: Extractor
+  capability: Parse Vendor B CSV with schema validation and emit structured dataset.
+  source_step_refs:
+  - ingest_vendor_b
+  evidence:
+  - source: description
+    text: Ingest raw shipment data from Vendor B.
+  inputs:
+  - vendor_b_csv
+  outputs:
+  - vendor_b_dataset
+  - vendor_b_data_object
+  - vendor_b_validation_status
+  external_system_refs:
+  - source_filesystem
+  preconditions:
+  - Readable Vendor B CSV available.
+  effects:
+  - Structured vendor B dataset
+  - data object
+  - and validation status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step ingests Vendor B shipment CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: ingest_vendor_c
+  name: Ingest Vendor C shipments
+  category: Extractor
+  capability: Parse Vendor C CSV with schema validation and emit structured dataset.
+  source_step_refs:
+  - ingest_vendor_c
+  evidence:
+  - source: description
+    text: Ingest raw shipment data from Vendor C.
+  inputs:
+  - vendor_c_csv
+  outputs:
+  - vendor_c_dataset
+  - vendor_c_data_object
+  - vendor_c_validation_status
+  external_system_refs:
+  - source_filesystem
+  preconditions:
+  - Readable Vendor C CSV available.
+  effects:
+  - Structured vendor C dataset
+  - data object
+  - and validation status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step ingests Vendor C shipment CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanse_data
+  name: Cleanse and standardize shipment data
+  category: Transformer
+  capability: Merge all vendor data, normalize SKU codes, validate dates, and enrich with location metadata.
+  source_step_refs:
+  - cleanse_data
+  evidence:
+  - source: description
+    text: Cleanse, normalize SKUs, validate dates, and enrich with location data.
+  inputs:
+  - vendor_a_data_object
+  outputs:
+  - cleansed_shipment_dataset
+  - cleansed_data_object
+  - transform_status
+  external_system_refs: []
+  preconditions:
+  - All three vendor data objects available.
+  effects:
+  - Cleansed shipment dataset
+  - data object
+  - and transform status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step standardizes and merges all vendor data.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: load_to_db
+  name: Load to inventory database
+  category: Loader
+  capability: Load the cleansed shipment data into the PostgreSQL inventory database table.
+  source_step_refs:
+  - load_to_db
+  evidence:
+  - source: description
+    text: Load processed data to inventory database.
+  inputs:
+  - cleansed_data_object
+  - inventory_db_resource
+  outputs:
+  - db_load_status
+  external_system_refs:
+  - inventory_database
+  preconditions:
+  - Cleansed shipment data available.
+  effects:
+  - Database load status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: The source step loads data into inventory DB.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: send_summary_email
+  name: Send ETL summary email
+  category: Notifier
+  capability: Render and send a summary email with ETL processing results.
+  source_step_refs:
+  - send_summary_email
+  evidence:
+  - source: description
+    text: Send email summary of ETL processing results.
+  inputs:
+  - etl_summary_context
+  - email_service_resource
+  outputs:
+  - notification_status
+  - rendered_summary
+  external_system_refs:
+  - email_service
+  preconditions:
+  - Database load completed.
+  effects:
+  - Email notification status and rendered summary emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step sends a summary email after ETL.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: ingest_vendor_a
+    to: cleanse_data
+  - from: ingest_vendor_b
+    to: cleanse_data
+  - from: ingest_vendor_c
+    to: cleanse_data
+  - from: cleanse_data
+    to: load_to_db
+  - from: load_to_db
+    to: send_summary_email
+  parallel_groups:
+  - group_id: stage_1_extract
+    intent_ids:
+    - ingest_vendor_a
+    - ingest_vendor_b
+    - ingest_vendor_c
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: vendor_a_csv
+  name: Vendor A shipments CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - ingest_vendor_a
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/vendor_a_shipments.csv
+  external_system_ref: source_filesystem
+- artifact_id: vendor_b_csv
+  name: Vendor B shipments CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - ingest_vendor_b
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/vendor_b_shipments.csv
+  external_system_ref: source_filesystem
+- artifact_id: vendor_c_csv
+  name: Vendor C shipments CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - ingest_vendor_c
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/vendor_c_shipments.csv
+  external_system_ref: source_filesystem
+- artifact_id: vendor_a_dataset
+  name: Vendor A validated dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/vendor_dataset.schema.json
+  role: intermediate
+  producer: ingest_vendor_a
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: vendor_a_data_object
+  name: Vendor A data object
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/vendor_data_object.schema.json
+  role: intermediate
+  producer: ingest_vendor_a
+  consumers:
+  - cleanse_data
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: vendor_a_validation_status
+  name: Vendor A validation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/validation_status.schema.json
+  role: status
+  producer: ingest_vendor_a
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: vendor_b_dataset
+  name: Vendor B validated dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/vendor_dataset.schema.json
+  role: intermediate
+  producer: ingest_vendor_b
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: vendor_b_data_object
+  name: Vendor B data object
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/vendor_data_object.schema.json
+  role: intermediate
+  producer: ingest_vendor_b
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: vendor_b_validation_status
+  name: Vendor B validation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/validation_status.schema.json
+  role: status
+  producer: ingest_vendor_b
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: vendor_c_dataset
+  name: Vendor C validated dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/vendor_dataset.schema.json
+  role: intermediate
+  producer: ingest_vendor_c
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: vendor_c_data_object
+  name: Vendor C data object
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/vendor_data_object.schema.json
+  role: intermediate
+  producer: ingest_vendor_c
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: vendor_c_validation_status
+  name: Vendor C validation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/validation_status.schema.json
+  role: status
+  producer: ingest_vendor_c
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: cleansed_shipment_dataset
+  name: Cleansed shipment dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/cleansed_shipment_dataset.schema.json
+  role: intermediate
+  producer: cleanse_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: cleansed_data_object
+  name: Cleansed data object
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/cleansed_data_object.schema.json
+  role: intermediate
+  producer: cleanse_data
+  consumers:
+  - load_to_db
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: transform_status
+  name: Transform status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/transform_status.schema.json
+  role: status
+  producer: cleanse_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: inventory_db_resource
+  name: Inventory DB resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - load_to_db
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/inventory_db_resource.json
+  external_system_ref: inventory_database
+- artifact_id: db_load_status
+  name: Database load status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/db_load_status.schema.json
+  role: status
+  producer: load_to_db
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: etl_summary_context
+  name: ETL summary context
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - send_summary_email
+  sensitivity: internal
+  persistence: release
+- artifact_id: email_service_resource
+  name: Email service resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - send_summary_email
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/email_service.json
+  external_system_ref: email_service
+- artifact_id: notification_status
+  name: Notification status
+  kind: artifact
+  data_type: notification
+  media_type: application/json
+  schema_ref: contracts/artifacts/notification_status.schema.json
+  role: output
+  producer: send_summary_email
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: rendered_summary
+  name: Rendered summary
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/rendered_summary.schema.json
+  role: output
+  producer: send_summary_email
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: ingest_vendor_a
+  service_id: csv_tabular_schema_validating_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_file
+    artifact_id: vendor_a_csv
+  output_bindings:
+  - port: validated_dataset
+    artifact_id: vendor_a_dataset
+  - port: validated_data_object
+    artifact_id: vendor_a_data_object
+  - port: validation_status
+    artifact_id: vendor_a_validation_status
+  parameter_bindings:
+    required_columns:
+    - shipment_id
+    - sku
+    - quantity
+    - ship_date
+    - destination
+    has_header: true
+    output_path: /workspace/artifacts/vendor_a_data_object.json
+  secret_bindings: []
+  rationale: Schema-validated CSV ingestion for Vendor A.
+  confidence: explicit
+- intent_id: ingest_vendor_b
+  service_id: csv_tabular_schema_validating_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_file
+    artifact_id: vendor_b_csv
+  output_bindings:
+  - port: validated_dataset
+    artifact_id: vendor_b_dataset
+  - port: validated_data_object
+    artifact_id: vendor_b_data_object
+  - port: validation_status
+    artifact_id: vendor_b_validation_status
+  parameter_bindings:
+    required_columns:
+    - shipment_id
+    - sku
+    - quantity
+    - ship_date
+    - destination
+    has_header: true
+    output_path: /workspace/artifacts/vendor_b_data_object.json
+  secret_bindings: []
+  rationale: Schema-validated CSV ingestion for Vendor B.
+  confidence: explicit
+- intent_id: ingest_vendor_c
+  service_id: csv_tabular_schema_validating_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_file
+    artifact_id: vendor_c_csv
+  output_bindings:
+  - port: validated_dataset
+    artifact_id: vendor_c_dataset
+  - port: validated_data_object
+    artifact_id: vendor_c_data_object
+  - port: validation_status
+    artifact_id: vendor_c_validation_status
+  parameter_bindings:
+    required_columns:
+    - shipment_id
+    - sku
+    - quantity
+    - ship_date
+    - destination
+    has_header: true
+    output_path: /workspace/artifacts/vendor_c_data_object.json
+  secret_bindings: []
+  rationale: Schema-validated CSV ingestion for Vendor C.
+  confidence: explicit
+- intent_id: cleanse_data
+  service_id: shipment_data_standardization_enricher
+  service_version: 1.0.0
+  input_bindings:
+  - port: vendor_data_objects
+    artifact_id: vendor_a_data_object
+  output_bindings:
+  - port: cleansed_shipment_dataset
+    artifact_id: cleansed_shipment_dataset
+  - port: cleansed_data_object
+    artifact_id: cleansed_data_object
+  - port: transform_status
+    artifact_id: transform_status
+  parameter_bindings:
+    vendor_column_mappings:
+      vendor_a:
+        sku: sku
+        quantity: quantity
+      vendor_b:
+        sku: sku
+        quantity: quantity
+      vendor_c:
+        sku: sku
+        quantity: quantity
+    canonical_required_columns:
+    - shipment_id
+    - sku
+    - quantity
+    - ship_date
+    - destination
+    sku_normalization_rules:
+      case: upper
+      strip_hyphen: underscore
+    date_validation_rules:
+      format: '%Y-%m-%d'
+      not_future: true
+    output_path: /workspace/artifacts/cleansed_data_object.json
+  secret_bindings: []
+  rationale: Standardizes and merges all three vendor shipment datasets.
+  confidence: explicit
+- intent_id: load_to_db
+  service_id: tabular_dataset_database_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: ingested_data_object
+    artifact_id: cleansed_data_object
+  - port: target_database
+    artifact_id: inventory_db_resource
+  output_bindings:
+  - port: load_status
+    artifact_id: db_load_status
+  parameter_bindings:
+    target_table: inventory_shipments
+    write_mode: upsert
+  secret_bindings: []
+  rationale: Loads cleansed shipment data into inventory database.
+  confidence: explicit
+- intent_id: send_summary_email
+  service_id: status_context_email_summary_notifier
+  service_version: 1.0.0
+  input_bindings:
+  - port: summary_context
+    artifact_id: etl_summary_context
+  - port: email_service
+    artifact_id: email_service_resource
+  output_bindings:
+  - port: notification_status
+    artifact_id: notification_status
+  - port: rendered_summary
+    artifact_id: rendered_summary
+  parameter_bindings:
+    to: supply-chain-team@company.com
+    subject: Daily Supply Chain Shipment ETL Summary
+  secret_bindings: []
+  rationale: Sends an ETL summary email to the supply chain team.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides:
+  - intent_id: load_to_db
+    retries: 2
+    timeout_seconds: 600
+    network_access: required
+  - intent_id: send_summary_email
+    retries: 2
+    timeout_seconds: 120
+    network_access: required
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - All external systems mocked with filesystem-backed fixtures.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All six source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Six exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Staged Argo DAG with parallel extract compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Single ETL scenario executes all six steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - Ingest
+  - cleanse
+  - load
+  - and notification invariants hold
+source_step_accounting:
+- source_step_ref: ingest_vendor_a
+  disposition: service
+  intent_ids:
+  - ingest_vendor_a
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: ingest_vendor_b
+  disposition: service
+  intent_ids:
+  - ingest_vendor_b
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: ingest_vendor_c
+  disposition: service
+  intent_ids:
+  - ingest_vendor_c
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: cleanse_data
+  disposition: service
+  intent_ids:
+  - cleanse_data
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: load_to_db
+  disposition: service
+  intent_ids:
+  - load_to_db
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: send_summary_email
+  disposition: service
+  intent_ids:
+  - send_summary_email
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

@@ -1,0 +1,46 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:weather_sales_feature_builder
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.2
+candidate_sets:
+- candidate_set_id: extension_weather_sales_feature_builder_api_table_source_bundle_ingestor_candidates
+  source_step_refs:
+  - ingest_source_batch
+  service_ids:
+  - api_table_source_bundle_ingestor
+  - reviewed_domain_adapter
+  - json_field_projection_transformer
+  - csv_to_structured_json_standardizer
+- candidate_set_id: extension_weather_sales_feature_builder_api_table_source_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contract
+  service_ids:
+  - api_table_source_contract_validator
+  - json_field_projection_transformer
+  - csv_to_structured_json_standardizer
+  - customer_profile_field_normalizer
+- candidate_set_id: extension_weather_sales_feature_builder_api_table_raw_artifact_stager_candidates
+  source_step_refs:
+  - stage_raw_artifacts
+  service_ids:
+  - api_table_raw_artifact_stager
+  - csv_to_structured_json_standardizer
+  - customer_profile_field_normalizer
+  - federated_entity_matcher
+- candidate_set_id: extension_weather_sales_feature_builder_api_table_record_normalizer_candidates
+  source_step_refs:
+  - normalize_records
+  service_ids:
+  - api_table_record_normalizer
+  - customer_profile_field_normalizer
+  - federated_entity_matcher
+  - discrepancy_route_decider
+- candidate_set_id: extension_weather_sales_feature_builder_api_table_output_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - api_table_output_bundle_publisher
+  - federated_entity_matcher
+  - discrepancy_route_decider
+  - reviewed_domain_adapter

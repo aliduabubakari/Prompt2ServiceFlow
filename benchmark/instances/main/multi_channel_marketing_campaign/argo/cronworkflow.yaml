@@ -1,0 +1,179 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: multi-channel-marketing-campaign
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: fixture-file
+        value: customer_segments.csv
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: multi-channel-marketing-campaign-scripts
+    - name: fixtures
+      configMap:
+        name: multi-channel-marketing-campaign-fixtures
+        items:
+        - key: fixture-0000
+          path: customer_segments.csv
+        - key: fixture-0001
+          path: email_service.json
+        - key: fixture-0002
+          path: fixture.json
+        - key: fixture-0003
+          path: push_service.json
+        - key: fixture-0004
+          path: sms_service.json
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: load-customer-segment-csv
+          template: run-load-customer-segment-csv
+        - name: send-email-campaign
+          template: run-send-email-campaign
+          depends: load-customer-segment-csv.Succeeded
+        - name: send-sms-campaign
+          template: run-send-sms-campaign
+          depends: load-customer-segment-csv.Succeeded
+        - name: send-push-notification
+          template: run-send-push-notification
+          depends: load-customer-segment-csv.Succeeded
+    - name: run-load-customer-segment-csv
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: load_customer_segment_csv
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_load_customer_segment_csv.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-send-email-campaign
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: send_email_campaign
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_send_email_campaign.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-send-sms-campaign
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: send_sms_campaign
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_send_sms_campaign.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-send-push-notification
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: send_push_notification
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_send_push_notification.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError

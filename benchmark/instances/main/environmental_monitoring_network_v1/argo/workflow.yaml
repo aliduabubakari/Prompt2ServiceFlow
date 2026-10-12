@@ -1,0 +1,276 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: environmental-monitoring-network-v1-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: environmental-monitoring-network-v1
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: three-stations
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: fixture-file
+      value: stations.csv
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: environmental-monitoring-network-v1-scripts
+  - name: fixtures
+    configMap:
+      name: environmental-monitoring-network-v1-fixtures
+      items:
+      - key: fixture-0000
+        path: fixture.json
+      - key: fixture-0001
+        path: geocoding_api.json
+      - key: fixture-0002
+        path: land_use_api.json
+      - key: fixture-0003
+        path: population_api.json
+      - key: fixture-0004
+        path: stations.csv
+      - key: fixture-0005
+        path: weather_api.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: load-and-modify-stations
+        template: run-load-and-modify-stations
+      - name: geocode-stations
+        template: run-geocode-stations
+        depends: load-and-modify-stations.Succeeded
+      - name: fetch-historical-weather
+        template: run-fetch-historical-weather
+        depends: geocode-stations.Succeeded
+      - name: classify-land-use
+        template: run-classify-land-use
+        depends: fetch-historical-weather.Succeeded
+      - name: fetch-population-density
+        template: run-fetch-population-density
+        depends: classify-land-use.Succeeded
+      - name: calculate-risk-score
+        template: run-calculate-risk-score
+        depends: fetch-population-density.Succeeded
+      - name: save-environmental-dataset
+        template: run-save-environmental-dataset
+        depends: calculate-risk-score.Succeeded
+  - name: run-load-and-modify-stations
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: load_and_modify_stations
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_load_and_modify_stations.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-geocode-stations
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: geocode_stations
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_geocode_stations.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-fetch-historical-weather
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: fetch_historical_weather
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_fetch_historical_weather.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-classify-land-use
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: classify_land_use
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_classify_land_use.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-fetch-population-density
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: fetch_population_density
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_fetch_population_density.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-calculate-risk-score
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: calculate_risk_score
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/06_calculate_risk_score.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-save-environmental-dataset
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: save_environmental_dataset
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/07_save_environmental_dataset.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError

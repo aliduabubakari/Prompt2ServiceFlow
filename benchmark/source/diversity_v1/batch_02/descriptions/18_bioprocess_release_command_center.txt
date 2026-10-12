@@ -1,0 +1,114 @@
+Pipeline Summary:
+- Pipeline ID: diversity-v1__bioprocess_release_command_center.py
+- Name: bioprocess_release_command_center
+- Purpose: Bioprocess Release Command Center is a synthetic data-preparation workflow for Science/Biotechnology.
+- Execution model: batch
+- Topology pattern: fan_in
+- Business domain: Science/Biotechnology
+- Notes: Synthetic Diversity-40 source; use only as benchmark input and not as hidden gold evidence.
+
+Control Flow:
+- Dependencies (directed edges):
+  - extract_primary -> validate_schema
+  - extract_secondary -> validate_schema
+  - extract_reference -> validate_schema
+  - validate_schema -> merge_sources
+  - merge_sources -> publish_dataset
+  - validate_schema -> audit_enrichment_1
+  - validate_schema -> audit_enrichment_2
+  - validate_schema -> audit_enrichment_3
+  - validate_schema -> audit_enrichment_4
+  - validate_schema -> audit_enrichment_5
+  - validate_schema -> audit_enrichment_6
+  - validate_schema -> audit_enrichment_7
+
+Data Artifacts / I-O Identifiers:
+- file: raw_input.csv (Synthetic input data)
+- file: prepared_output.parquet (Prepared output dataset)
+
+External Systems:
+- object_storage: Fixture-backed source and publication location
+
+Pipeline Steps:
+1. extract_primary — extract_primary
+  - Objective: Extract the extract primary dataset.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. extract_secondary — extract_secondary
+  - Objective: Extract the extract secondary dataset.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. extract_reference — extract_reference
+  - Objective: Extract the extract reference dataset.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. validate_schema — validate_schema
+  - Objective: Validate every source dataset.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. merge_sources — merge_sources
+  - Objective: Merge all validated source artifacts.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. audit_enrichment_1 — audit_enrichment_1
+  - Objective: Apply audited enrichment stage 1.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. audit_enrichment_2 — audit_enrichment_2
+  - Objective: Apply audited enrichment stage 2.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+8. audit_enrichment_3 — audit_enrichment_3
+  - Objective: Apply audited enrichment stage 3.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+9. audit_enrichment_4 — audit_enrichment_4
+  - Objective: Apply audited enrichment stage 4.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+10. audit_enrichment_5 — audit_enrichment_5
+  - Objective: Apply audited enrichment stage 5.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+11. audit_enrichment_6 — audit_enrichment_6
+  - Objective: Apply audited enrichment stage 6.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+12. audit_enrichment_7 — audit_enrichment_7
+  - Objective: Apply audited enrichment stage 7.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+13. publish_dataset — publish_dataset
+  - Objective: Publish the merged dataset.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

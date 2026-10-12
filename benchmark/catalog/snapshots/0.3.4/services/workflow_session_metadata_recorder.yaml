@@ -1,0 +1,177 @@
+schema_version: 0.1.0
+service_id: workflow_session_metadata_recorder
+version: 1.0.0
+display_name: Workflow Session Metadata Recorder
+category: Loader
+capability:
+  summary: Registers or finalizes a workflow session in a bound metadata database
+    using a supplied load id and emits an observable metadata write status.
+  operations:
+  - Resolve a bound workflow metadata database resource.
+  - Read a load/session identifier from parameter input.
+  - Register a workflow session or update/finalize an existing session according to
+    operation parameter.
+  - Emit a session record reference and status including operation, workflow id, load
+    id, and success flag.
+  keywords:
+  - workflow metadata
+  - session registration
+  - session finalize
+  - load id
+  - data warehouse metadata
+  limitations:
+  - Requires caller to bind the metadata database and configure any implementation-specific
+    target table or procedure.
+  - Does not generate load identifiers; use a separate generator service.
+  - Does not send notifications or implement failure hooks.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: metadata_database
+    description: Database resource containing the workflow/session metadata store.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: load_id
+    description: Load/session identifier for the workflow session.
+    channel: parameter
+    data_type: string
+    media_type: text/plain
+    schema_ref: schema://workflow_load_id/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: session_record_reference
+    description: Logical reference to the workflow metadata record affected by the
+      operation.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://workflow_session_record_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: metadata_write_status
+    description: Observable status for register/finalize metadata mutation.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://workflow_session_metadata_write_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: workflow_id
+    description: Workflow identifier to register or finalize.
+    type: string
+    required: true
+  - name: operation
+    description: Metadata operation to perform.
+    type: string
+    required: true
+    enum:
+    - register
+    - finalize
+  - name: session_status
+    description: Status value to set for finalize operations, such as success or failed.
+    type: string
+    required: false
+    enum:
+    - running
+    - success
+    - failed
+  - name: metadata_target
+    description: Optional metadata table, view, or stored procedure identifier used
+      by the implementation.
+    type: string
+    required: false
+  secrets: []
+contracts:
+- contract_id: workflow_session_load_id_required
+  type: precondition
+  applies_to: input
+  target: load_id
+  description: Load id must be non-empty before metadata mutation.
+  expression: length(trim(load_id)) > 0
+- contract_id: workflow_session_operation_contract
+  type: precondition
+  applies_to: parameter
+  target: operation
+  description: Operation must be register or finalize.
+  expression: operation in ['register','finalize']
+- contract_id: workflow_session_metadata_status_schema
+  type: json_schema
+  applies_to: output
+  target: metadata_write_status
+  description: Status exposes metadata write outcome.
+  schema_ref: schema://workflow_session_metadata_write_status/v1
+  expression: '{"type":"object","required":["success","workflow_id","operation","load_id","record_affected"],"properties":{"success":{"type":"boolean"},"workflow_id":{"type":"string"},"operation":{"type":"string","enum":["register","finalize"]},"load_id":{"type":"string"},"session_status":{"type":["string","null"]},"record_affected":{"type":"boolean"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: workflow_session_metadata_effect
+  type: effect
+  applies_to: service
+  target: workflow_session_metadata_recorder
+  description: On success, the requested metadata record is inserted, updated, or
+    confirmed and a status artifact is emitted.
+  expression: metadata_write_status.success == true implies metadata_write_status.record_affected
+    == true
+invocation:
+  type: argo_workflow_template
+  template_name: workflow-session-metadata-recorder-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.workflow_session_metadata_recorder
+  implementation_ref: services/implementations/workflow_session_metadata_recorder
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - postgresql://*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Database credentials must not be emitted in outputs or logs.
+  - Metadata status should expose identifiers and counts, not raw database credentials
+    or sensitive session payloads.
+  idempotency_notes: Retry safety depends on stable load_id/workflow_id keys and metadata
+    store upsert/update semantics.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:WF_MAIN_DATASETS_LOAD_L2_TO_L2#end
+  - main:WF_MAIN_DATASETS_LOAD_L2_TO_L2#workflow_registration
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The source has two database-backed workflow metadata mutations with
+    a shared load_id contract; no existing registry service models this higher-level
+    session semantics.'
+  - 'Evidence status: strongly_inferred.'

@@ -1,0 +1,222 @@
+schema_version: 0.1.0
+service_id: spark_elasticsearch_index_loader
+version: 1.0.0
+display_name: Spark Elasticsearch Index Loader
+category: Loader
+capability:
+  summary: Runs a configured Spark indexing class to load a dataset into an Elasticsearch
+    index using an optional index template and emits the index reference plus load
+    status.
+  operations:
+  - Read a processed dataset reference from object storage or artifact binding.
+  - Read an Elasticsearch index template artifact when provided.
+  - Resolve Elasticsearch cluster and Spark execution resources.
+  - Submit configured Spark indexing class with index name, type, config file, and
+    application arguments.
+  keywords:
+  - spark job
+  - elasticsearch
+  - indexing
+  - index template
+  - loader
+  - search index
+  limitations:
+  - Does not define the Spark indexing application code.
+  - Targets Elasticsearch-compatible clusters only.
+  - Idempotency depends on index write mode and application behavior.
+  - Does not publish/promote aliases; use a publisher service for that.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_dataset
+    description: Processed dataset to index, such as public/mondo_terms.
+    channel: artifact
+    data_type: directory
+    media_type: application/json
+    schema_ref: schema://object_storage_dataset_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  - name: index_template
+    description: Elasticsearch index template JSON artifact.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://elasticsearch_index_template/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  - name: version_metadata
+    description: Source version metadata associated with the indexed dataset.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://release_asset_metadata/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  - name: elasticsearch_cluster
+    description: Elasticsearch-compatible cluster resource used as the indexing target.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://elasticsearch_cluster_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: spark_execution_context
+    description: Spark/Kubernetes execution resource for running the indexing job.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://spark_execution_context_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: index_reference
+    description: Logical reference to the Elasticsearch index produced or refreshed.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://elasticsearch_index_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: index_load_status
+    description: Observable indexing status with terminal state and index name.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://elasticsearch_index_load_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: spark_class
+    description: Fully qualified Spark indexing class/application entry point.
+    type: string
+    required: true
+  - name: spark_config
+    description: Named Spark resource/configuration profile.
+    type: string
+    required: false
+  - name: index_name
+    description: Target Elasticsearch index name.
+    type: string
+    required: true
+  - name: index_type
+    description: Logical index document type or application-specific type label.
+    type: string
+    required: false
+  - name: config_file
+    description: Runtime configuration file path or identifier used by the Spark indexing
+      application.
+    type: string
+    required: false
+  - name: write_mode
+    description: Declared index write behavior.
+    type: string
+    required: false
+    enum:
+    - replace
+    - append
+    - upsert
+  secrets:
+  - name: elasticsearch_credentials
+    description: Optional credentials for the Elasticsearch cluster if required by
+      the bound resource.
+    required: false
+contracts:
+- contract_id: spark_elasticsearch_index_name_contract
+  type: precondition
+  applies_to: parameter
+  target: index_name
+  description: Index name must be non-empty and lowercase-compatible for Elasticsearch.
+  expression: length(trim(index_name)) > 0 and index_name matches '^[a-z0-9._-]+$'
+- contract_id: spark_elasticsearch_class_contract
+  type: precondition
+  applies_to: parameter
+  target: spark_class
+  description: Spark indexing class/application entry point must be non-empty.
+  expression: length(trim(spark_class)) > 0
+- contract_id: elasticsearch_index_reference_schema
+  type: json_schema
+  applies_to: output
+  target: index_reference
+  description: Index reference identifies the indexed Elasticsearch resource.
+  schema_ref: schema://elasticsearch_index_reference/v1
+  expression: '{"type":"object","required":["index_name"],"properties":{"index_name":{"type":"string"},"index_type":{"type":["string","null"]},"version":{"type":["string","null"]}}}'
+- contract_id: elasticsearch_index_load_status_schema
+  type: json_schema
+  applies_to: output
+  target: index_load_status
+  description: Status exposes Spark indexing and Elasticsearch load outcome.
+  schema_ref: schema://elasticsearch_index_load_status/v1
+  expression: '{"type":"object","required":["success","index_name","spark_class","terminal_state"],"properties":{"success":{"type":"boolean"},"index_name":{"type":"string"},"spark_class":{"type":"string"},"terminal_state":{"type":"string"},"documents_indexed":{"type":["integer","null"],"minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: spark_elasticsearch_index_effect
+  type: effect
+  applies_to: service
+  target: spark_elasticsearch_index_loader
+  description: On success, the Spark indexing application reached a successful terminal
+    state and emitted the configured index reference.
+  expression: index_load_status.success == true implies index_load_status.terminal_state
+    in ['SUCCEEDED','COMPLETED'] and index_reference.index_name == index_name
+invocation:
+  type: argo_workflow_template
+  template_name: spark-elasticsearch-index-loader-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.spark_elasticsearch_index_loader
+  implementation_ref: services/implementations/spark_elasticsearch_index_loader
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - kubernetes://*
+  - spark://*
+  - elasticsearch://*
+  - http://*
+  - https://*
+  secret_access: optional
+  retry_safe: false
+  idempotency: unknown
+  data_sensitivity:
+  - public
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Elasticsearch credentials and configuration contents must not be emitted in status
+    artifacts.
+  - Bind only approved cluster resources and Spark execution contexts.
+  idempotency_notes: Retry safety depends on the Spark indexing code, target index
+    write mode, and document IDs.
+  default_timeout_seconds: 1800
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:etl_import_mondo#index_mondo_terms
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Reusable capability for Spark-driven Elasticsearch indexing with template
+    and observable index status.'
+  - 'Evidence status: explicit.'

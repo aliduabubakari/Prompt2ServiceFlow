@@ -1,0 +1,178 @@
+schema_version: 0.1.0
+service_id: hive_hql_script_executor
+version: 1.0.0
+display_name: Hive HQL Script Executor
+category: Loader
+capability:
+  summary: Executes a caller-supplied multi-statement HQL script against a bound Hive-compatible
+    database resource and emits affected table references plus an execution status.
+  operations:
+  - Connect to a bound Hive-compatible database resource.
+  - Execute one or more HQL statements in the supplied order.
+  - Support DDL and DML statements such as CREATE DATABASE, CREATE TABLE, INSERT,
+    and related Hive SQL operations.
+  - Collect configured target table references affected or expected to be affected
+    by the script execution.
+  keywords:
+  - hive
+  - hql
+  - sql script
+  - ddl
+  - dml
+  - table creation
+  - database mutation
+  - loader
+  limitations:
+  - Targets Hive-compatible databases only.
+  - Does not infer workflow scheduling, dependencies, or retries.
+  - Does not guarantee idempotency for arbitrary HQL; repeated INSERT statements may
+    duplicate rows unless the script itself prevents it.
+  - Does not validate business semantics of the SQL beyond syntactic/configuration
+    contracts.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: hive_database
+    description: Hive-compatible database resource used to execute the HQL script.
+    channel: external_resource
+    data_type: object
+    schema_ref: schema://hive_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: affected_tables
+    description: Logical references to Hive tables declared as targets or detected
+      as affected by the script.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://sql_affected_table_references/v1
+    required: true
+    cardinality: many
+    sensitivity: internal
+  - name: execution_status
+    description: Observable execution status including success flag, statement counts,
+      affected table names, and error diagnostics when applicable.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://hive_hql_execution_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: hql_script
+    description: Multi-statement HQL script to execute against the Hive database.
+    type: string
+    required: true
+  - name: target_tables
+    description: Array of expected affected Hive table names, optionally database-qualified.
+    type: array
+    required: false
+  - name: fail_on_empty_script
+    description: Whether an empty or whitespace-only HQL script should fail validation.
+    type: boolean
+    required: false
+  secrets:
+  - name: hive_connection_credentials
+    description: Credentials or connection material required by the bound Hive database
+      resource, if not provided through ambient resource binding.
+    required: true
+contracts:
+- contract_id: hive_hql_script_non_empty_contract
+  type: precondition
+  applies_to: parameter
+  target: hql_script
+  description: The HQL script must contain at least one non-empty statement when fail_on_empty_script
+    is true or omitted.
+  expression: fail_on_empty_script == false or length(trim(hql_script)) > 0
+- contract_id: hive_target_table_name_contract
+  type: precondition
+  applies_to: parameter
+  target: target_tables
+  description: Configured target table names must be non-empty Hive identifier-like
+    names, optionally database-qualified.
+  expression: target_tables == null or all(t matches '^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$'
+    for t in target_tables)
+- contract_id: hive_affected_tables_schema
+  type: json_schema
+  applies_to: output
+  target: affected_tables
+  description: Affected table references expose the database/table identifiers touched
+    by the HQL script.
+  schema_ref: schema://sql_affected_table_references/v1
+  expression: '{"type":"array","items":{"type":"object","required":["table_name"],"properties":{"database_name":{"type":["string","null"]},"table_name":{"type":"string"},"operation":{"type":["string","null"]}}}}'
+- contract_id: hive_hql_execution_status_schema
+  type: json_schema
+  applies_to: output
+  target: execution_status
+  description: Execution status exposes the database script execution effect for downstream
+    validation.
+  schema_ref: schema://hive_hql_execution_status/v1
+  expression: '{"type":"object","required":["success","statements_submitted","statements_succeeded","affected_tables"],"properties":{"success":{"type":"boolean"},"statements_submitted":{"type":"integer","minimum":0},"statements_succeeded":{"type":"integer","minimum":0},"affected_tables":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: hive_hql_executor_effect_contract
+  type: effect
+  applies_to: service
+  target: hive_hql_script_executor
+  description: On success, all submitted HQL statements completed without service-detected
+    errors and execution_status.success is true.
+  expression: execution_status.success == true implies execution_status.statements_succeeded
+    == execution_status.statements_submitted
+invocation:
+  type: argo_workflow_template
+  template_name: hive-hql-script-executor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.hive_hql_script_executor
+  implementation_ref: services/implementations/hive_hql_script_executor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - hive://*
+  secret_access: required
+  retry_safe: false
+  idempotency: unknown
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Hive connection credentials must not be emitted in logs or status artifacts.
+  - Only execute scripts against explicitly bound Hive resources.
+  - Status output is required so downstream workflow validation can observe the database
+    mutation without directly inspecting Hive.
+  idempotency_notes: Idempotency depends on the supplied HQL. CREATE IF NOT EXISTS
+    statements can be idempotent, but INSERT statements may append duplicate rows
+    on retry.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:hive_script#hive_script_task
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The active pipeline requires execution of a Hive-specific multi-statement
+    HQL script. Existing registry loaders focus on PostgreSQL/tabular dataset loading
+    or AirVisual-specific loading and do not satisfy arbitrary Hive DDL/DML execution
+    contracts.'
+  - 'Evidence status: explicit.'

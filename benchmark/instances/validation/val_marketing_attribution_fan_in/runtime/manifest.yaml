@@ -1,0 +1,71 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_marketing_attribution_fan_in
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: extract_impressions
+  script: scripts/01_extract_impressions.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: extract_clicks
+  script: scripts/02_extract_clicks.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: extract_purchases
+  script: scripts/03_extract_purchases.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: join_customer_events
+  script: scripts/04_join_customer_events.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - extract_impressions
+  - extract_clicks
+  - extract_purchases
+- intent_id: compute_attribution
+  script: scripts/05_compute_attribution.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - join_customer_events
+- intent_id: publish_attribution_table
+  script: scripts/06_publish_attribution_table.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - compute_attribution
+- intent_id: send_campaign_summary
+  script: scripts/07_send_campaign_summary.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - publish_attribution_table
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

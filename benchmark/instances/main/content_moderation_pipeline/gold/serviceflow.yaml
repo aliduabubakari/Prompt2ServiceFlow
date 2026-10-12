@@ -1,0 +1,554 @@
+ir_version: 0.1.0
+composition_id: content_moderation_pipeline
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:content_moderation_pipeline
+  split: main
+  pipeline_id: content_moderation_pipeline
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/28_content_moderation_pipeline.txt
+  description_sha256: 6f6f9e12a1a47c093ead6c09b475f17a6b1fb57f9a869ac16270ffcfc4773015
+  internal_spec_path: source/internal_specs/main_40/28_content_moderation_pipeline.json
+  internal_spec_sha256: c6e0b14c4216f2c6e1bedfc784f15fe8f3ae8f08b084ecfe18fd9bd3342399f2
+requirement:
+  name: Content Moderation Pipeline
+  purpose: Scan user-generated content CSV, score toxicity, route toxic content to removal/flagging and
+    safe content to publication, then merge for audit logging.
+  domain: content_moderation
+  execution_model: batch
+  topology: branch_merge
+  information_sufficiency: high
+  notes:
+  - Toxicity threshold is 0.7 (max aggregate score across content items).
+  - Audit log records whichever branch executed at the merge point.
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: source_filesystem
+  type: filesystem
+  name: Source filesystem
+  identifier: /data/user_content.csv
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: scan_csv
+  name: Scan user content CSV
+  category: Extractor
+  capability: Parse the user-content CSV, validate content and user columns, and emit a structured content
+    scan dataset with status.
+  source_step_refs:
+  - scan_csv
+  evidence:
+  - source: description
+    text: Scan CSV file for user-generated content.
+  inputs:
+  - user_content_csv
+  outputs:
+  - scanned_content_dataset
+  - scan_status
+  external_system_refs:
+  - source_filesystem
+  preconditions:
+  - A readable user-content CSV with expected columns is available.
+  effects:
+  - A scanned content dataset and scan status are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - pii
+    - internal
+  decomposition_rationale: The source step explicitly scans CSV content before any moderation decision.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: toxicity_check
+  name: Check toxicity and route
+  category: ScoringService
+  capability: Score content for toxicity using deterministic keyword rules and emit a routing decision
+    comparing the max score to a 0.7 threshold.
+  source_step_refs:
+  - toxicity_check
+  evidence:
+  - source: description
+    text: Check toxicity level and determine routing path.
+  inputs:
+  - scanned_content_dataset
+  outputs:
+  - scored_content_dataset
+  - toxicity_routing_decision
+  external_system_refs: []
+  preconditions:
+  - A scanned content dataset with text content is available.
+  effects:
+  - Scored content and a routing decision are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - pii
+    - internal
+  decomposition_rationale: The source step is an independent decision-making step that owns the workflow
+    branch.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: remove_and_flag_content
+  name: Remove and flag toxic content
+  category: Transformer
+  capability: Apply remove-and-flag moderation action to toxic content, recording affected items and action
+    outcome.
+  source_step_refs:
+  - remove_and_flag_content
+  evidence:
+  - source: description
+    text: Remove toxic content and flag user account for review.
+  inputs:
+  - scored_content_dataset
+  - toxicity_routing_decision
+  outputs:
+  - moderation_action_results
+  - action_status
+  external_system_refs: []
+  preconditions:
+  - The routing decision selects the remove-flag route.
+  effects:
+  - Moderation action results and status are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - pii
+    - internal
+  decomposition_rationale: The source step explicitly performs the toxic-content removal action before
+    the audit merge.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: publish_content
+  name: Publish safe content
+  category: Publisher
+  capability: Publish safe (non-toxic) content to the platform and record publication results with status.
+  source_step_refs:
+  - publish_content
+  evidence:
+  - source: description
+    text: Publish safe content to platform.
+  inputs:
+  - scored_content_dataset
+  - toxicity_routing_decision
+  outputs:
+  - publication_results
+  - publication_status
+  external_system_refs: []
+  preconditions:
+  - The routing decision selects the publish route.
+  effects:
+  - Publication results and status are emitted.
+  required_policy_properties:
+    network_access: optional
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - pii
+    - internal
+  decomposition_rationale: The source step explicitly performs safe-content publication before the audit
+    merge.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: audit_log
+  name: Create audit log entry
+  category: Loader
+  capability: Record the moderation action as an audit log entry at the merge point, capturing which branch
+    executed and the outcome.
+  source_step_refs:
+  - audit_log
+  evidence:
+  - source: description
+    text: Create audit log entry for moderation actions.
+  inputs:
+  - moderation_action_results
+  outputs:
+  - audit_log_entry
+  - audit_status
+  external_system_refs: []
+  preconditions:
+  - Either the remove-flag or publish branch has completed.
+  effects:
+  - An audit log entry and status are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly records every moderation action in an audit log at the
+    merge point.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: scan_csv
+    to: toxicity_check
+  - from: toxicity_check
+    to: remove_and_flag_content
+    condition: toxicity_routing_decision.route == remove_flag
+  - from: toxicity_check
+    to: publish_content
+    condition: toxicity_routing_decision.route == publish
+  - from: remove_and_flag_content
+    to: audit_log
+  - from: publish_content
+    to: audit_log
+  parallel_groups: []
+  branches:
+  - branch_id: toxicity_route
+    decision_intent: toxicity_check
+    decision_artifact: toxicity_routing_decision
+    cases:
+    - case_id: toxic
+      condition: toxicity_routing_decision.route == remove_flag
+      next_intents:
+      - remove_and_flag_content
+    - case_id: safe
+      condition: toxicity_routing_decision.route == publish
+      next_intents:
+      - publish_content
+    merge_intent: audit_log
+  gates: []
+artifacts:
+- artifact_id: user_content_csv
+  name: User content CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - scan_csv
+  sensitivity: pii
+  persistence: external
+  fixture_ref: fixtures/inputs/user_content_toxic.csv
+  external_system_ref: source_filesystem
+- artifact_id: scanned_content_dataset
+  name: Scanned content dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/scanned_content_dataset.schema.json
+  role: intermediate
+  producer: scan_csv
+  consumers:
+  - toxicity_check
+  sensitivity: pii
+  persistence: workflow
+- artifact_id: scan_status
+  name: Scan status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/scan_status.schema.json
+  role: status
+  producer: scan_csv
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: scored_content_dataset
+  name: Scored content dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/scored_content_dataset.schema.json
+  role: intermediate
+  producer: toxicity_check
+  consumers:
+  - remove_and_flag_content
+  - publish_content
+  sensitivity: pii
+  persistence: workflow
+- artifact_id: toxicity_routing_decision
+  name: Toxicity routing decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  schema_ref: contracts/artifacts/toxicity_routing_decision.schema.json
+  role: decision
+  producer: toxicity_check
+  consumers:
+  - remove_and_flag_content
+  - publish_content
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: moderation_action_results
+  name: Moderation action results
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/moderation_action_results.schema.json
+  role: intermediate
+  producer: remove_and_flag_content
+  consumers:
+  - audit_log
+  sensitivity: internal
+  persistence: release
+- artifact_id: action_status
+  name: Moderation action status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/action_status.schema.json
+  role: status
+  producer: remove_and_flag_content
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: publication_results
+  name: Publication results
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/publication_results.schema.json
+  role: intermediate
+  producer: publish_content
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: publication_status
+  name: Publication status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/publication_status.schema.json
+  role: status
+  producer: publish_content
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: audit_log_entry
+  name: Audit log entry
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/audit_log_entry.schema.json
+  role: output
+  producer: audit_log
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: audit_status
+  name: Audit status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/audit_status.schema.json
+  role: status
+  producer: audit_log
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: scan_csv
+  service_id: user_content_csv_scanner
+  service_version: 1.0.0
+  input_bindings:
+  - port: content_csv_file
+    artifact_id: user_content_csv
+  output_bindings:
+  - port: content_scan_dataset
+    artifact_id: scanned_content_dataset
+  - port: scan_status
+    artifact_id: scan_status
+  parameter_bindings:
+    content_column: content_text
+    user_id_column: user_id
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: The descriptor scans user-generated CSV content and emits structured scan metadata for downstream
+    toxicity scoring.
+  confidence: explicit
+- intent_id: toxicity_check
+  service_id: content_toxicity_route_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: content_scan_dataset
+    artifact_id: scanned_content_dataset
+  output_bindings:
+  - port: scored_content_dataset
+    artifact_id: scored_content_dataset
+  - port: routing_decision
+    artifact_id: toxicity_routing_decision
+  parameter_bindings:
+    toxicity_threshold: 0.7
+    text_column: content_text
+    scoring_mode: rule_based
+    toxic_route_label: remove_flag
+    safe_route_label: publish
+  secret_bindings: []
+  rationale: The descriptor scores content toxicity and emits a threshold-based routing decision for the
+    moderation branch.
+  confidence: explicit
+- intent_id: remove_and_flag_content
+  service_id: moderated_content_action_transformer
+  service_version: 1.0.0
+  input_bindings:
+  - port: scored_content_dataset
+    artifact_id: scored_content_dataset
+  - port: routing_decision
+    artifact_id: toxicity_routing_decision
+  output_bindings:
+  - port: moderation_action_results
+    artifact_id: moderation_action_results
+  - port: action_status
+    artifact_id: action_status
+  parameter_bindings:
+    action_type: remove_and_flag
+    toxicity_threshold: 0.7
+    content_id_field: content_id
+    user_id_field: user_id
+  secret_bindings: []
+  rationale: The descriptor applies remove-and-flag moderation action to toxic content and records the
+    outcome.
+  confidence: explicit
+- intent_id: publish_content
+  service_id: safe_content_publication_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: scored_content_dataset
+    artifact_id: scored_content_dataset
+  - port: routing_decision
+    artifact_id: toxicity_routing_decision
+  output_bindings:
+  - port: publication_results
+    artifact_id: publication_results
+  - port: publication_status
+    artifact_id: publication_status
+  parameter_bindings:
+    publication_mode: standard
+  secret_bindings: []
+  rationale: The descriptor publishes safe content to the platform and records the publication outcome.
+  confidence: explicit
+- intent_id: audit_log
+  service_id: moderation_audit_log_entry_creator
+  service_version: 1.0.0
+  input_bindings:
+  - port: moderation_results
+    artifact_id: moderation_action_results
+  output_bindings:
+  - port: audit_log_entry
+    artifact_id: audit_log_entry
+  - port: audit_status
+    artifact_id: audit_status
+  parameter_bindings:
+    audit_event_type: moderation_action
+    workflow_id: content_moderation_pipeline
+  secret_bindings: []
+  rationale: The descriptor creates an audit log entry for every moderation action at the merge point.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides:
+  - intent_id: scan_csv
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 180
+    network_access: forbidden
+  governance:
+    allowed_sensitivities:
+    - internal
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - PII data is limited to bounded content/user references in mock outputs.
+    - No external moderation APIs are called in mock mode.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All five source steps are accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Five exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Branching Argo DAG and CronWorkflow compile
+- gate: G5
+  expected_status: pass
+  checks:
+  - Toxic-removal and safe-publication scenarios execute
+- gate: G6
+  expected_status: pass
+  checks:
+  - Both branch-specific outcome sets hold
+source_step_accounting:
+- source_step_ref: scan_csv
+  disposition: service
+  intent_ids:
+  - scan_csv
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: toxicity_check
+  disposition: service
+  intent_ids:
+  - toxicity_check
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: remove_and_flag_content
+  disposition: service
+  intent_ids:
+  - remove_and_flag_content
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: publish_content
+  disposition: service
+  intent_ids:
+  - publish_content
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: audit_log
+  disposition: service
+  intent_ids:
+  - audit_log
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

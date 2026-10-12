@@ -1,0 +1,24 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:iot_device_snapshot_transition
+bindings:
+- intent_id: ingest_primary_source
+  service_id: iot_device_event_batch_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_secondary_source
+  service_id: iot_device_registry_table_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_reference_source
+  service_id: device_snapshot_checkpoint_loader
+  service_version: 1.0.0
+- intent_id: validate_source_contracts
+  service_id: iot_snapshot_contract_validator
+  service_version: 1.0.0
+- intent_id: normalize_sources
+  service_id: iot_device_event_snapshot_normalizer
+  service_version: 1.0.0
+- intent_id: fuse_sources
+  service_id: device_snapshot_state_transition_reconciler
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: checkpoint_output_bundle_publisher
+  service_version: 1.0.0

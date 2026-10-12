@@ -1,0 +1,96 @@
+schema_version: 0.1.0
+service_id: tabular_model_scorer
+version: 1.0.0
+display_name: Tabular Model Scorer
+category: ScoringService
+capability:
+  summary: Applies a bound model artifact to customer feature rows and emits predictions.
+  operations:
+  - Applies a bound model artifact to customer feature rows and emits predictions.
+  keywords:
+  - tabular
+  - model
+  - scorer
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: customer_features
+    description: Reviewed customer features value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: model_artifact
+    description: Reviewed model artifact value.
+    channel: artifact
+    data_type: model
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: prediction_table
+    description: Reviewed prediction table value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: scoring_status
+    description: Reviewed scoring status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: prediction_column
+    description: Configuration for prediction column.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: tabular-model-scorer
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.tabular_model_scorer
+  implementation_ref: services/implementations/tabular_model_scorer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-24T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-01:curated-extension
+  notes:
+  - Curated from sparse Validation-20 descriptions; bindings retain inference confidence.

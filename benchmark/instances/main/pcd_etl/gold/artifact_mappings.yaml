@@ -1,0 +1,135 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:pcd-etl
+mappings:
+- intent_id: check_pcd_sftp_folder
+  inputs:
+    file_location_resource: pcd_sftp_resource
+  outputs:
+    availability_decision: check_pcd_sftp_folder_decision
+    check_status: check_pcd_sftp_folder_status
+- intent_id: check_pcd_shared_folder
+  inputs:
+    file_location_resource: pcd_shared_folder_resource
+  outputs:
+    availability_decision: check_pcd_shared_folder_decision
+    check_status: check_pcd_shared_folder_status
+- intent_id: status_tracker
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: status_tracker_result
+    extraction_status: status_tracker_status
+- intent_id: financial_expense
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: financial_expense_result
+    extraction_status: financial_expense_status
+- intent_id: upcc_financial_reporting
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: upcc_financial_reporting_result
+    extraction_status: upcc_financial_reporting_status
+- intent_id: chc_financial_reporting
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: chc_financial_reporting_result
+    extraction_status: chc_financial_reporting_status
+- intent_id: pcn_financial_reporting
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: pcn_financial_reporting_result
+    extraction_status: pcn_financial_reporting_status
+- intent_id: nppcc_financial_reporting
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: nppcc_financial_reporting_result
+    extraction_status: nppcc_financial_reporting_status
+- intent_id: fiscal_year_reporting_dates
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: fiscal_year_reporting_dates_result
+    extraction_status: fiscal_year_reporting_dates_status
+- intent_id: upcc_primary_care_patient_services
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: upcc_primary_care_patient_services_result
+    extraction_status: upcc_primary_care_patient_services_status
+- intent_id: chc_primary_care_patient_services
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: chc_primary_care_patient_services_result
+    extraction_status: chc_primary_care_patient_services_status
+- intent_id: practitioner_role_mapping
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: practitioner_role_mapping_result
+    extraction_status: practitioner_role_mapping_status
+- intent_id: provincial_risk_tracking
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: provincial_risk_tracking_result
+    extraction_status: provincial_risk_tracking_status
+- intent_id: decision_log
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: decision_log_result
+    extraction_status: decision_log_status
+- intent_id: ha_hierarchy
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: ha_hierarchy_result
+    extraction_status: ha_hierarchy_status
+- intent_id: hr_records
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: hr_records_result
+    extraction_status: hr_records_status
+- intent_id: uppc_budget
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: uppc_budget_result
+    extraction_status: uppc_budget_status
+- intent_id: chc_budget
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: chc_budget_result
+    extraction_status: chc_budget_status
+- intent_id: pcn_budget
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: pcn_budget_result
+    extraction_status: pcn_budget_status
+- intent_id: nppcc_budget
+  inputs:
+    http_api_resource: pcd_api_resource
+  outputs:
+    response_artifact: nppcc_budget_result
+    extraction_status: nppcc_budget_status
+- intent_id: pcd_file_upload
+  inputs:
+    kubernetes_cluster: kubernetes_cluster_resource
+    job_template: pcd_job_template
+  outputs:
+    job_reference: pcd_file_upload_result
+    job_status: pcd_file_upload_status
+- intent_id: etl_notification
+  inputs:
+    email_service: email_resource
+  outputs:
+    notification_status: etl_notification_status

@@ -1,0 +1,99 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: floor_plan_asset_extraction
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: ingest_source_batch
+  script: scripts/01_ingest_source_batch.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: validate_source_contract
+  script: scripts/02_validate_source_contract.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - ingest_source_batch
+- intent_id: normalize_partition_a
+  script: scripts/03_normalize_partition_a.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - validate_source_contract
+- intent_id: normalize_partition_b
+  script: scripts/04_normalize_partition_b.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - validate_source_contract
+- intent_id: normalize_partition_c
+  script: scripts/05_normalize_partition_c.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - validate_source_contract
+- intent_id: fuse_partitions
+  script: scripts/06_fuse_partitions.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - normalize_partition_a
+  - normalize_partition_b
+  - normalize_partition_c
+- intent_id: extract_visual_text_features
+  script: scripts/07_extract_visual_text_features.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - fuse_partitions
+- intent_id: join_reference_metadata
+  script: scripts/08_join_reference_metadata.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - extract_visual_text_features
+- intent_id: assess_multimodal_quality
+  script: scripts/09_assess_multimodal_quality.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - join_reference_metadata
+- intent_id: publish_outputs
+  script: scripts/10_publish_outputs.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - assess_multimodal_quality
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal

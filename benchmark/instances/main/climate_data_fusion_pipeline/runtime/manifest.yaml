@@ -1,0 +1,102 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: climate_data_fusion_pipeline
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: download_noaa
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - noaa_dl
+- intent_id: download_ecmwf
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - ecmwf_dl
+- intent_id: download_jma
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - jma_dl
+- intent_id: download_metoffice
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - metoffice_dl
+- intent_id: download_bom
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - bom_dl
+- intent_id: normalize_noaa
+  script: scripts/01_run.py
+  dependencies:
+  - download_noaa
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - noaa_norm
+- intent_id: normalize_ecmwf
+  script: scripts/01_run.py
+  dependencies:
+  - download_ecmwf
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - ecmwf_norm
+- intent_id: normalize_jma
+  script: scripts/01_run.py
+  dependencies:
+  - download_jma
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - jma_norm
+- intent_id: normalize_metoffice
+  script: scripts/01_run.py
+  dependencies:
+  - download_metoffice
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - metoffice_norm
+- intent_id: normalize_bom
+  script: scripts/01_run.py
+  dependencies:
+  - download_bom
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - bom_norm
+- intent_id: merge_climate_data
+  script: scripts/01_run.py
+  dependencies:
+  - normalize_noaa
+  - normalize_ecmwf
+  - normalize_jma
+  - normalize_metoffice
+  - normalize_bom
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - merge
+scenarios:
+- name: run
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal

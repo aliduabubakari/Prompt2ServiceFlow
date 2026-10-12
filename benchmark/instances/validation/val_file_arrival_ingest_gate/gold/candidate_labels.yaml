@@ -1,0 +1,21 @@
+candidate_label_version: 0.1.0
+benchmark_id: validation:val_file_arrival_ingest_gate
+candidate_sets:
+- candidate_set_id: validation_val_file_arrival_ingest_gate_file_location_availability_sensor_candidates
+  required_service_id: file_location_availability_sensor
+  labels:
+    file_location_availability_sensor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    temporary_resource_cleanup: generic_escape_hatch
+- candidate_set_id: validation_val_file_arrival_ingest_gate_partner_file_checksum_validator_candidates
+  required_service_id: partner_file_checksum_validator
+  labels:
+    partner_file_checksum_validator: gold
+    temporary_resource_cleanup: semantic_mismatch
+    csv_to_structured_json_standardizer: generic_escape_hatch
+- candidate_set_id: validation_val_file_arrival_ingest_gate_database_csv_snapshot_importer_candidates
+  required_service_id: database_csv_snapshot_importer
+  labels:
+    database_csv_snapshot_importer: gold
+    csv_to_structured_json_standardizer: semantic_mismatch
+    tabular_dataset_database_loader: generic_escape_hatch

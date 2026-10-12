@@ -1,0 +1,164 @@
+{
+  "report_version": "0.1.0",
+  "pipeline_id": "main:ftp_vendor_inventory_processor",
+  "generated_at": "2026-07-21T09:37:13.094660+00:00",
+  "overall_status": "pass",
+  "gates": [
+    {
+      "gate": "G0",
+      "status": "pass",
+      "checks": [
+        "Parse, schema, required files, and checksums"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G1",
+      "status": "pass",
+      "checks": [
+        "Graph integrity and complete source-step accounting"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G2",
+      "status": "pass",
+      "checks": [
+        "Catalog service/version/lifecycle resolution"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G3",
+      "status": "pass",
+      "checks": [
+        "Interface, parameter, secret, artifact, and policy closure"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G4",
+      "status": "pass",
+      "checks": [
+        "Exact gold-to-runtime task identities, dependency edges, and script syntax"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G5",
+      "status": "pass",
+      "checks": [
+        "Deterministic Argo projection, deployable bundles, ConfigMap-size checks, and structural lint"
+      ],
+      "errors": [],
+      "details": {
+        "configmap_payloads": [
+          {
+            "name": "ftp-vendor-inventory-processor-scripts",
+            "data_size_bytes": 2819,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "ftp-vendor-inventory-processor-fixtures",
+            "data_size_bytes": 438,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "ftp-vendor-inventory-processor-ftp-file-arrives-scripts",
+            "scenario": "ftp_file_arrives",
+            "data_size_bytes": 2819,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "ftp-vendor-inventory-processor-ftp-file-arrives-fixtures",
+            "scenario": "ftp_file_arrives",
+            "data_size_bytes": 438,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          }
+        ]
+      }
+    },
+    {
+      "gate": "G6",
+      "status": "pass",
+      "checks": [
+        "Execute every declared scenario and evaluate reviewed semantic assertions and artifact schemas"
+      ],
+      "errors": []
+    }
+  ],
+  "scenario_results": [
+    {
+      "scenario": "ftp_file_arrives",
+      "status": "pass",
+      "executed_tasks": [
+        "wait_for_ftp_file",
+        "download_vendor_file",
+        "cleanse_vendor_data",
+        "merge_with_internal_inventory"
+      ],
+      "skipped_tasks": [],
+      "assertions": [
+        {
+          "assertion_id": "file_available",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "downloaded",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "cleansed",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "merged_to_db",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "schema_availability_decision",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_check_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_transfer_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_cleansed_dataset",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_cleanse_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_load_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_cleansed_data_obj",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_log_rotation_cleanup",
+  "pipeline_name": "Application Log Rotation Cleanup",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_log_rotation_cleanup.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Find expired application logs and archive them before deleting local copies.",
+    "business_domain": "Infrastructure Maintenance",
+    "execution_model": "Batch",
+    "topology_pattern": "Linear",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "find_expired_logs",
+        "to": "archive_and_delete_logs"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Local filesystem",
+      "identifier": "local_filesystem",
+      "details": [
+        "Validation external dependency: Local filesystem"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Object storage",
+      "identifier": "object_storage",
+      "details": [
+        "Validation external dependency: Object storage"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "log_file_list",
+        "description": "Validation artifact: log_file_list"
+      },
+      {
+        "identifier": "archive_manifest",
+        "description": "Validation artifact: archive_manifest"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "find_expired_logs",
+      "name": "find_expired_logs",
+      "objective": "Find expired logs",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "archive_and_delete_logs",
+      "name": "archive_and_delete_logs",
+      "objective": "Archive and delete logs",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

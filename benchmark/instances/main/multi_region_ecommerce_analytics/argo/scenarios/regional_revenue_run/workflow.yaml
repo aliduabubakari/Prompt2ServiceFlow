@@ -1,0 +1,400 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: multi-region-ecommerce-analytics-regional-r-c94a3410-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: multi-region-ecommerce-analytics-regional-r-c94a3410
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: regional-revenue-run
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters: []
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: multi-region-ecommerce-analytics-regional-r-c94a3410-scripts
+  - name: fixtures
+    configMap:
+      name: multi-region-ecommerce-analytics-regional-r-c94a3410-fixtures
+      items:
+      - key: fixture-0000
+        path: apac.csv
+      - key: fixture-0001
+        path: apac_database.json
+      - key: fixture-0002
+        path: eu.csv
+      - key: fixture-0003
+        path: eu_database.json
+      - key: fixture-0004
+        path: exchange_rates.json
+      - key: fixture-0005
+        path: fixture.json
+      - key: fixture-0006
+        path: us_east.csv
+      - key: fixture-0007
+        path: us_east_database.json
+      - key: fixture-0008
+        path: us_west.csv
+      - key: fixture-0009
+        path: us_west_database.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-us-east
+        template: run-ingest-us-east
+      - name: ingest-us-west
+        template: run-ingest-us-west
+      - name: ingest-eu
+        template: run-ingest-eu
+      - name: ingest-apac
+        template: run-ingest-apac
+      - name: convert-currency-us-east
+        template: run-convert-currency-us-east
+        depends: ingest-us-east.Succeeded
+      - name: convert-currency-us-west
+        template: run-convert-currency-us-west
+        depends: ingest-us-west.Succeeded
+      - name: convert-currency-eu
+        template: run-convert-currency-eu
+        depends: ingest-eu.Succeeded
+      - name: convert-currency-apac
+        template: run-convert-currency-apac
+        depends: ingest-apac.Succeeded
+      - name: aggregate-global-revenue
+        template: run-aggregate-global-revenue
+        depends: convert-currency-us-east.Succeeded && convert-currency-us-west.Succeeded && convert-currency-eu.Succeeded
+          && convert-currency-apac.Succeeded
+  - name: run-ingest-us-east
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_us_east
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - export
+      - --region
+      - us_east
+      - --database-resource
+      - /opt/p2sf/fixtures/us_east_database.json
+      - --source-fixture
+      - /opt/p2sf/fixtures/us_east.csv
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-ingest-us-west
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_us_west
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - export
+      - --region
+      - us_west
+      - --database-resource
+      - /opt/p2sf/fixtures/us_west_database.json
+      - --source-fixture
+      - /opt/p2sf/fixtures/us_west.csv
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-ingest-eu
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_eu
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - export
+      - --region
+      - eu
+      - --database-resource
+      - /opt/p2sf/fixtures/eu_database.json
+      - --source-fixture
+      - /opt/p2sf/fixtures/eu.csv
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-ingest-apac
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_apac
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - export
+      - --region
+      - apac
+      - --database-resource
+      - /opt/p2sf/fixtures/apac_database.json
+      - --source-fixture
+      - /opt/p2sf/fixtures/apac.csv
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-convert-currency-us-east
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: convert_currency_us_east
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - convert
+      - --region
+      - us_east
+      - --exchange-rates
+      - /opt/p2sf/fixtures/exchange_rates.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-convert-currency-us-west
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: convert_currency_us_west
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - convert
+      - --region
+      - us_west
+      - --exchange-rates
+      - /opt/p2sf/fixtures/exchange_rates.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-convert-currency-eu
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: convert_currency_eu
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - convert
+      - --region
+      - eu
+      - --exchange-rates
+      - /opt/p2sf/fixtures/exchange_rates.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-convert-currency-apac
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: convert_currency_apac
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - convert
+      - --region
+      - apac
+      - --exchange-rates
+      - /opt/p2sf/fixtures/exchange_rates.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-aggregate-global-revenue
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: aggregate_global_revenue
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      - --step
+      - aggregate
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError

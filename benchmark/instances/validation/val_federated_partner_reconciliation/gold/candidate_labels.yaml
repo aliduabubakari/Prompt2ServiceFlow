@@ -1,0 +1,51 @@
+candidate_label_version: 0.1.0
+benchmark_id: validation:val_federated_partner_reconciliation
+candidate_sets:
+- candidate_set_id: validation_val_federated_partner_reconciliation_multi_resource_readiness_sensor_candidates
+  required_service_id: multi_resource_readiness_sensor
+  labels:
+    multi_resource_readiness_sensor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    temporary_resource_cleanup: generic_escape_hatch
+- candidate_set_id: validation_val_federated_partner_reconciliation_partner_feed_extractor_candidates
+  required_service_id: partner_feed_extractor
+  labels:
+    partner_feed_extractor: gold
+    temporary_resource_cleanup: semantic_mismatch
+    http_json_request_extractor: generic_escape_hatch
+- candidate_set_id: validation_val_federated_partner_reconciliation_partner_record_standardizer_candidates
+  required_service_id: partner_record_standardizer
+  labels:
+    partner_record_standardizer: gold
+    http_json_request_extractor: semantic_mismatch
+    tabular_dataset_database_loader: generic_escape_hatch
+- candidate_set_id: validation_val_federated_partner_reconciliation_federated_entity_matcher_candidates
+  required_service_id: federated_entity_matcher
+  labels:
+    federated_entity_matcher: gold
+    tabular_dataset_database_loader: semantic_mismatch
+    bi_dashboard_refresh_trigger: generic_escape_hatch
+- candidate_set_id: validation_val_federated_partner_reconciliation_discrepancy_route_decider_candidates
+  required_service_id: discrepancy_route_decider
+  labels:
+    discrepancy_route_decider: gold
+    bi_dashboard_refresh_trigger: semantic_mismatch
+    parquet_tabular_data_profiler: generic_escape_hatch
+- candidate_set_id: validation_val_federated_partner_reconciliation_clean_partner_record_publisher_candidates
+  required_service_id: clean_partner_record_publisher
+  labels:
+    clean_partner_record_publisher: gold
+    parquet_tabular_data_profiler: semantic_mismatch
+    bulk_email_campaign_sender: generic_escape_hatch
+- candidate_set_id: validation_val_federated_partner_reconciliation_review_case_opener_candidates
+  required_service_id: review_case_opener
+  labels:
+    review_case_opener: gold
+    bulk_email_campaign_sender: semantic_mismatch
+    file_location_availability_sensor: generic_escape_hatch
+- candidate_set_id: validation_val_federated_partner_reconciliation_audit_summary_writer_candidates
+  required_service_id: audit_summary_writer
+  labels:
+    audit_summary_writer: gold
+    file_location_availability_sensor: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch

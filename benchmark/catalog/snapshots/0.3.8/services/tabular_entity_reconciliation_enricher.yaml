@@ -1,0 +1,189 @@
+schema_version: 0.1.0
+service_id: tabular_entity_reconciliation_enricher
+version: 1.0.0
+display_name: Tabular Entity Reconciliation Enricher
+category: Reconciler
+capability:
+  summary: Reconciles values from a configured column in structured tabular JSON against
+    a bound entity reconciliation API/resource, writes reconciled tabular JSON, and
+    emits reconciliation status.
+  operations:
+  - Read structured tabular JSON rows and column metadata.
+  - Validate that the configured reconciliation column is present.
+  - Submit column values and optional context columns to a bound reconciliation service
+    using the configured reconciliator identifier.
+  - Append reconciliation metadata or matched entity fields to each row according
+    to response mappings configured by binding.
+  keywords:
+  - entity reconciliation
+  - tabular json
+  - reconciliator id
+  - record linkage
+  - http api
+  - data enrichment
+  limitations:
+  - Does not infer reconciliation column names or match thresholds; caller must configure
+    them.
+  - Does not implement workflow retries, file pattern iteration, or Docker/network
+    setup.
+  - External reconciliation results may change as provider data changes.
+  - Does not export CSV or perform weather/column extension.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: structured_json
+    description: Structured tabular JSON artifact containing rows and columns to reconcile.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://structured_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: entity_reconciliation_resource
+    description: Bound entity reconciliation HTTP/API resource used to resolve values
+      for the configured column.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://entity_reconciliation_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: reconciled_json
+    description: Structured tabular JSON enriched with reconciliation metadata or
+      matched entity fields.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://reconciled_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: reconciliation_status
+    description: Observable reconciliation status with rows processed, matched/unmatched
+      counts, reconciliator id, output URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://entity_reconciliation_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: reconciliator_id
+    description: Identifier of the reconciliation profile or service-side reconciliator
+      to use.
+    type: string
+    required: true
+  - name: column_name
+    description: Input column containing values to reconcile.
+    type: string
+    required: true
+  - name: optional_columns
+    description: Optional context columns sent to the reconciliation API when supported.
+    type: array
+    required: false
+  - name: output_path
+    description: Deterministic output artifact path or name for reconciled JSON.
+    type: string
+    required: true
+  - name: match_threshold
+    description: Optional minimum score for accepting a reconciliation candidate.
+    type: number
+    required: false
+  secrets:
+  - name: reconciliation_api_credentials
+    description: Credentials or API token for the bound reconciliation service when
+      required by the resource binding.
+    required: false
+contracts:
+- contract_id: tabular_reconciliation_input_schema
+  type: json_schema
+  applies_to: input
+  target: structured_json
+  description: Input must be structured tabular JSON with rows and columns and include
+    the configured reconciliation column.
+  schema_ref: schema://structured_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}}}}
+    and column_name in structured_json.columns'
+- contract_id: tabular_reconciliation_identifier_required
+  type: precondition
+  applies_to: parameter
+  target: reconciliator_id
+  description: Reconciliator identifier and column name must be non-empty.
+  expression: length(trim(reconciliator_id)) > 0 and length(trim(column_name)) > 0
+- contract_id: tabular_reconciliation_status_schema
+  type: json_schema
+  applies_to: output
+  target: reconciliation_status
+  description: Status exposes reconciliation processing outcome.
+  schema_ref: schema://entity_reconciliation_status/v1
+  expression: '{"type":"object","required":["success","reconciliator_id","column_name","rows_processed","rows_matched","rows_unmatched","output_uri"],"properties":{"success":{"type":"boolean"},"reconciliator_id":{"type":"string"},"column_name":{"type":"string"},"rows_processed":{"type":"integer","minimum":0},"rows_matched":{"type":"integer","minimum":0},"rows_unmatched":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: tabular_reconciliation_effect
+  type: effect
+  applies_to: service
+  target: tabular_entity_reconciliation_enricher
+  description: On success, all rows are processed and a reconciled JSON artifact exists.
+  expression: reconciliation_status.success == true implies exists(reconciled_json)
+    and reconciliation_status.rows_processed == reconciliation_status.rows_matched
+    + reconciliation_status.rows_unmatched
+invocation:
+  type: argo_workflow_template
+  template_name: tabular-entity-reconciliation-enricher-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.tabular_entity_reconciliation_enricher
+  implementation_ref: services/implementations/tabular_entity_reconciliation_enricher
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - http://*
+  - https://*
+  - reconciler://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit API tokens, passwords, or raw row values in status/logs.
+  - Bind only approved reconciliation API resources.
+  - Workflow-level retries, Docker socket access, shared mounts, and file pattern
+    iteration remain outside the catalogue service.
+  idempotency_notes: Repeatable for stable input rows, parameters, and reconciliation
+    provider data; provider data may change over time.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:pipeline_execution_dag#reconciliation
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: A generic tabular reconciliation API service is needed because the
+    registry contains a Wikidata-specific reconciler whose limitations and policy
+    do not cover the source''s configured reconciliation API and numeric reconciliator
+    id.'
+  - 'Evidence status: strongly_inferred.'

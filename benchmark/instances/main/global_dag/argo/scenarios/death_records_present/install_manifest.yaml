@@ -1,0 +1,112 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: global-dag-death-records-present-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Deterministic French government data ETL mock.\"\"\"\n\nfrom\
+    \ __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib import Path\n\n\ndef\
+    \ boolean(value: str) -> bool:\n    return value.lower() in {\"1\", \"true\", \"yes\"}\n\n\ndef write_json(path:\
+    \ Path, document: object) -> None:\n    path.write_text(json.dumps(document, indent=2) + \"\\n\",\
+    \ encoding=\"utf-8\")\n\n\ndef write_status(artifacts: Path, step: str, **details: object) -> None:\n\
+    \    write_json(\n        artifacts / f\"{step}_status.json\",\n        {\"success\": True, \"errors\"\
+    : [], **details},\n    )\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--step\", required=True)\n   \
+    \ parser.add_argument(\"--death-records-available\", type=boolean, default=True)\n    args = parser.parse_args()\n\
+    \    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True, exist_ok=True)\n\
+    \    step = args.step\n\n    metadata_steps = {\n        \"ingest_get_nuclear_json\": \"nuclear\"\
+    ,\n        \"ingest_get_death_resource_list\": \"deaths\",\n        \"ingest_get_thermal_json\": \"\
+    thermal\",\n    }\n    if step == \"ingest_get_city_code_geo\":\n        write_json(\n           \
+    \ artifacts / f\"{step}_result.json\",\n            {\"media_type\": \"text/csv\", \"artifact\": \"\
+    city_geo_loc.csv\"},\n        )\n        write_status(artifacts, step, http_status=200)\n    elif\
+    \ step in metadata_steps:\n        dataset = metadata_steps[step]\n        write_json(\n         \
+    \   artifacts / f\"{step}_result.json\",\n            {\n                \"dataset_id\": dataset,\n\
+    \                \"resources\": [{\"name\": f\"{dataset}-resource\", \"format\": \"csv\"}],\n    \
+    \        },\n        )\n        write_status(artifacts, step, http_status=200)\n    elif step in {\n\
+    \        \"ingest_get_nuclear_data\",\n        \"ingest_get_death_resources\",\n        \"ingest_get_thermal_data\"\
+    ,\n    }:\n        files = {\n            \"ingest_get_nuclear_data\": [\"nuclear.csv\"],\n      \
+    \      \"ingest_get_death_resources\": [\"death-1.txt\", \"death-2.txt\"],\n            \"ingest_get_thermal_data\"\
+    : [\"thermal.csv\"],\n        }[step]\n        write_json(artifacts / f\"{step}_result.json\", {\"\
+    files\": files})\n        write_status(artifacts, step, downloaded=len(files))\n    elif step == \"\
+    stage_import_nuclear_clean_data\":\n        (artifacts / \"nuclear_clean_csv.csv\").write_text(\n\
+    \            \"plant_name,capacity_mw\\nNuclear One,900\\n\", encoding=\"utf-8\"\n        )\n    \
+    \    write_status(artifacts, step, rows=1)\n    elif step == \"stage_import_thermal_clean_data\":\n\
+    \        (artifacts / \"thermal_clean_csv.csv\").write_text(\n            \"plant_name,capacity_mw\\\
+    nThermal One,450\\n\", encoding=\"utf-8\"\n        )\n        write_status(artifacts, step, rows=1)\n\
+    \    elif step == \"stage_create_power_plants_table\":\n        write_json(\n            artifacts\
+    \ / \"power_plants_table.json\",\n            {\"tables\": [\"power_plants\"], \"row_count\": 0},\n\
+    \        )\n        write_status(artifacts, step, statement_type=\"DDL\")\n    elif step == \"stage_create_death_table\"\
+    :\n        write_json(\n            artifacts / \"deaths_table.json\",\n            {\"tables\": [\"\
+    deaths\"], \"row_count\": 0},\n        )\n        write_status(artifacts, step, statement_type=\"\
+    DDL\")\n    elif step == \"stage_load_data_from_ingestion\":\n        write_json(\n            artifacts\
+    \ / \"death_redis_keys.json\",\n            {\"keys\": [\"death_raw\", \"imported_death_files\"]},\n\
+    \        )\n        write_status(artifacts, step, imported_files=2)\n    elif step == \"stage_cleanse_death_data\"\
+    :\n        (artifacts / \"death_insert_sql.sql\").write_text(\n            \"INSERT INTO deaths VALUES\
+    \ ('DOE', 'Paris');\\n\", encoding=\"utf-8\"\n        )\n        write_status(artifacts, step, statements=1)\n\
+    \    elif step == \"stage_death_emptiness_check\":\n        decision = {\n            \"has_content\"\
+    : args.death_records_available,\n            \"success\": True,\n        }\n        write_json(artifacts\
+    \ / \"stage_death_emptiness_check_decision.json\", decision)\n        (artifacts / \"death_sql_has_content.txt\"\
+    ).write_text(\n            str(args.death_records_available).lower(), encoding=\"utf-8\"\n       \
+    \ )\n        write_status(artifacts, step)\n    elif step == \"stage_store_deaths_in_postgres\":\n\
+    \        write_json(\n            artifacts / \"stored_deaths_table.json\",\n            {\"tables\"\
+    : [\"deaths\"], \"row_count\": 1},\n        )\n        write_status(artifacts, step, rows=1)\n   \
+    \ elif step == \"stage_clean_tmp_death_files\":\n        write_status(artifacts, step, removed_files=3)\n\
+    \    elif step == \"stage_clean_tmp_death_redis\":\n        write_status(artifacts, step, removed_keys=2)\n\
+    \    elif step == \"stage_create_plant_persist_sql_query\":\n        (artifacts / \"plant_insert_sql.sql\"\
+    ).write_text(\n            \"INSERT INTO power_plants VALUES ('Plant One', 900);\\n\",\n         \
+    \   encoding=\"utf-8\",\n        )\n        write_status(artifacts, step, statements=1)\n    elif\
+    \ step == \"stage_store_plants_in_postgres\":\n        write_json(\n            artifacts / \"stored_power_plants_table.json\"\
+    ,\n            {\"tables\": [\"power_plants\"], \"row_count\": 2},\n        )\n        write_status(artifacts,\
+    \ step, rows=2)\n\n\nif __name__ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: global-dag-death-records-present-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: 'city,latitude,longitude
+
+    Paris,48.8566,2.3522
+
+    '
+  fixture-0001: 'plant_name,capacity_mw
+
+    Nuclear One,900
+
+    Thermal One,450
+
+    '
+  fixture-0002: 'CREATE TABLE IF NOT EXISTS deaths (last_name text, city text);
+
+    '
+  fixture-0003: 'CREATE TABLE IF NOT EXISTS power_plants (plant_name text, capacity_mw integer);
+
+    '
+  fixture-0004: '{"driver":"filesystem-mock"}'
+  fixture-0005: 'DOE|JOHN|01011980|PARIS
+
+    '
+  fixture-0006: '{"driver":"filesystem-mock","path":"/workspace/artifacts/death_insert_sql.sql"}
+
+    '
+  fixture-0007: '{"driver":"filesystem-mock"}'
+  fixture-0008: 'name,capacity
+
+    Nuclear One,900
+
+    '
+  fixture-0009: '{"driver":"filesystem-mock","keys":["death_raw","imported_death_files"]}
+
+    '
+  fixture-0010: 'name,capacity
+
+    Thermal One,450
+
+    '

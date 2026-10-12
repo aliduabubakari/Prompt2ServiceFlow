@@ -1,0 +1,22 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_region_sales_fanout
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.1
+candidate_sets:
+- candidate_set_id: validation_val_region_sales_fanout_sales_warehouse_global_extract_candidates
+  source_step_refs:
+  - extract_global_sales
+  service_ids:
+  - sales_warehouse_global_extract
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_region_sales_fanout_regional_sales_dashboard_publisher_candidates
+  source_step_refs:
+  - publish_na_sales
+  - publish_eu_sales
+  - publish_apac_sales
+  service_ids:
+  - regional_sales_dashboard_publisher
+  - temporary_resource_cleanup
+  - csv_to_structured_json_standardizer

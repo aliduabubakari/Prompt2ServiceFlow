@@ -1,0 +1,97 @@
+schema_version: 0.1.0
+service_id: partner_feed_extractor
+version: 1.0.0
+display_name: Partner Feed Extractor
+category: Extractor
+capability:
+  summary: Extracts one configured partner feed from a bound partner data source.
+  operations:
+  - Extracts one configured partner feed from a bound partner data source.
+  keywords:
+  - partner
+  - feed
+  - extractor
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: partner_source
+    description: Reviewed partner source value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: partner_extract
+    description: Reviewed partner extract value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: extraction_status
+    description: Reviewed extraction status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: partner_name
+    description: Configuration for partner name.
+    type: string
+    required: true
+  - name: source_kind
+    description: Configuration for source kind.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: partner-feed-extractor
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.3
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.partner_feed_extractor
+  implementation_ref: services/implementations/partner_feed_extractor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-04:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 04 descriptions; bindings retain inference confidence.

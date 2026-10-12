@@ -1,0 +1,165 @@
+schema_version: 0.1.0
+service_id: brokerage_account_holdings_extractor
+version: 1.0.0
+display_name: Brokerage Account Holdings Extractor
+category: Extractor
+capability:
+  summary: Retrieves current holdings for a configured brokerage account from a bound
+    brokerage HTTP API and emits structured holdings plus extraction status.
+  operations:
+  - Resolve a bound brokerage HTTP API resource.
+  - Build a holdings request from brokerage_id and caller-supplied endpoint or request
+    template.
+  - Submit the HTTP request and parse the response as holdings data.
+  - Project or validate holdings rows containing symbols, quantities, prices, and
+    optional asset classifications.
+  keywords:
+  - brokerage
+  - holdings
+  - http api
+  - portfolio
+  - finance
+  - extractor
+  limitations:
+  - Does not infer brokerage API endpoint paths or authentication; workflow binding
+    must supply them.
+  - Does not calculate portfolio metrics or rebalancing trades.
+  - Does not implement schedule, retries, fan-out, or dependency edges.
+  - External API semantics and market values may change between invocations.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: brokerage_api_resource
+    description: Bound HTTP API resource for the brokerage holdings endpoint.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://http_api_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: holdings_dataset
+    description: Structured holdings for the requested brokerage account, including
+      account id and holding rows.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://brokerage_holdings_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  - name: extraction_status
+    description: Observable request and parse status with brokerage id, success flag,
+      row count, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://brokerage_holdings_extraction_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: brokerage_id
+    description: Brokerage account identifier to fetch holdings for.
+    type: string
+    required: true
+  - name: endpoint_template
+    description: Endpoint path or URL template used to retrieve holdings for the account.
+    type: string
+    required: true
+  - name: request_options
+    description: Optional method, query parameters, headers, or response projection
+      settings excluding secret values.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: brokerage_id_non_empty
+  type: precondition
+  applies_to: parameter
+  target: brokerage_id
+  description: Brokerage account id must be non-empty.
+  expression: length(trim(brokerage_id)) > 0
+- contract_id: brokerage_holdings_dataset_schema
+  type: json_schema
+  applies_to: output
+  target: holdings_dataset
+  description: Holdings output contains account id and one or more holding rows with
+    symbol, quantity, and price fields.
+  schema_ref: schema://brokerage_holdings_dataset/v1
+  expression: '{"type":"object","required":["brokerage_id","holdings"],"properties":{"brokerage_id":{"type":"string"},"holdings":{"type":"array","items":{"type":"object","required":["symbol","quantity","price"],"properties":{"symbol":{"type":"string"},"quantity":{"type":"number"},"price":{"type":"number"},"asset_class":{"type":["string","null"]},"market_value":{"type":["number","null"]}}}}}}'
+- contract_id: brokerage_extraction_status_schema
+  type: json_schema
+  applies_to: output
+  target: extraction_status
+  description: Status exposes the observable effect of the extraction.
+  schema_ref: schema://brokerage_holdings_extraction_status/v1
+  expression: '{"type":"object","required":["success","brokerage_id","request_attempted","holdings_count"],"properties":{"success":{"type":"boolean"},"brokerage_id":{"type":"string"},"request_attempted":{"type":"boolean"},"http_status_code":{"type":["integer","null"]},"holdings_count":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: brokerage_holdings_extraction_effect
+  type: effect
+  applies_to: service
+  target: brokerage_account_holdings_extractor
+  description: On success, the service has requested or resolved holdings for the
+    configured account and emitted a non-empty holdings dataset and status.
+  expression: extraction_status.success == true implies exists(holdings_dataset) and
+    holdings_dataset.brokerage_id == brokerage_id
+invocation:
+  type: argo_workflow_template
+  template_name: brokerage-account-holdings-extractor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.brokerage_account_holdings_extractor
+  implementation_ref: services/implementations/brokerage_account_holdings_extractor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - https://*
+  - http://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - financial
+  - confidential
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit brokerage credentials or authorization headers in outputs or logs.
+  - Holdings and account identifiers are financial data.
+  - Retries and retry delay remain workflow-level configuration.
+  idempotency_notes: Retry-safe for read-only holdings endpoints with stable account
+    state; returned prices/positions may change over time.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:portfolio_rebalancing_dag#fetch_brokerage_holdings_1
+  - main:portfolio_rebalancing_dag#fetch_brokerage_holdings_2
+  - main:portfolio_rebalancing_dag#fetch_brokerage_holdings_3
+  - main:portfolio_rebalancing_dag#fetch_brokerage_holdings_4
+  - main:portfolio_rebalancing_dag#fetch_brokerage_holdings_5
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service provides the material brokerage holdings
+    schema and status contract required by the fetch steps.'
+  - 'Evidence status: strongly_inferred.'

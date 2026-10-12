@@ -1,0 +1,524 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portfolio-rebalancing-dag-scripts
+  namespace: prompt2serviceflow
+data:
+  01_fetch_holdings.py: "#!/usr/bin/env python3\n\"\"\"Fetch mock brokerage holdings for a given brokerage_id.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\nHOLDINGS\
+    \ = {\n    \"BROKERAGE_001\": [{\"symbol\":\"AAPL\",\"quantity\":100,\"price\":198.50},{\"symbol\"\
+    :\"GOOGL\",\"quantity\":50,\"price\":175.20}],\n    \"BROKERAGE_002\": [{\"symbol\":\"MSFT\",\"quantity\"\
+    :80,\"price\":420.10},{\"symbol\":\"AMZN\",\"quantity\":30,\"price\":185.75}],\n    \"BROKERAGE_003\"\
+    : [{\"symbol\":\"TSLA\",\"quantity\":60,\"price\":245.30},{\"symbol\":\"NVDA\",\"quantity\":40,\"\
+    price\":950.00}],\n    \"BROKERAGE_004\": [{\"symbol\":\"META\",\"quantity\":70,\"price\":510.25},{\"\
+    symbol\":\"NFLX\",\"quantity\":45,\"price\":625.80}],\n    \"BROKERAGE_005\": [{\"symbol\":\"JPM\"\
+    ,\"quantity\":120,\"price\":200.10},{\"symbol\":\"V\",\"quantity\":90,\"price\":280.45}],\n}\n\ndef\
+    \ main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--brokerage\",type=str,required=True); p.add_argument(\"--num\",type=str,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    rows=HOLDINGS.get(a.brokerage,[])\n\
+    \    ds={\"columns\":[\"symbol\",\"quantity\",\"price\"],\"rows\":rows}\n    (art/f\"holdings_dataset_{a.num}.json\"\
+    ).write_text(json.dumps(ds,indent=2)+\"\\n\",encoding=\"utf-8\")\n    st={\"success\":True,\"errors\"\
+    :[]}\n    (art/f\"extraction_status_{a.num}.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+  02_analyze_portfolio.py: "#!/usr/bin/env python3\n\"\"\"Analyze portfolio metrics for a given brokerage.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"\
+    --num\",type=str,required=True)\n    a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ds=json.loads((art/f\"\
+    holdings_dataset_{a.num}.json\").read_text(encoding=\"utf-8\"))\n    total=sum(r[\"quantity\"]*r[\"\
+    price\"] for r in ds[\"rows\"])\n    alloc={r[\"symbol\"]:round(r[\"quantity\"]*r[\"price\"]/total,4)\
+    \ for r in ds[\"rows\"]}\n    analysis={\"total_value\":round(total,2),\"allocation\":alloc,\"risk_score\"\
+    :round(min(total/100000,1.0),4),\"brokerage_id\":f\"BROKERAGE_00{a.num}\"}\n    (art/f\"portfolio_analysis_{a.num}.json\"\
+    ).write_text(json.dumps(analysis,indent=2)+\"\\n\",encoding=\"utf-8\")\n    st={\"success\":True,\"\
+    errors\":[]}\n    (art/f\"analysis_status_{a.num}.json\").write_text(json.dumps(st,indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_aggregate_and_rebalance.py: "#!/usr/bin/env python3\n\"\"\"Aggregate all 5 portfolio analyses and\
+    \ calculate rebalancing trades.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"artifacts\"\n    analyses=[]\n\
+    \    for n in [\"1\",\"2\",\"3\",\"4\",\"5\"]:\n        pa=json.loads((art/f\"portfolio_analysis_{n}.json\"\
+    ).read_text(encoding=\"utf-8\"))\n        analyses.append(pa)\n    total_value=sum(a[\"total_value\"\
+    ] for a in analyses)\n    trades=[{\"brokerage_id\":a[\"brokerage_id\"],\"current_value\":a[\"total_value\"\
+    ],\"target_allocation\":round(a[\"total_value\"]/total_value,4),\"rebalance_action\":\"BUY\" if a[\"\
+    total_value\"]/total_value<0.2 else \"SELL\"} for a in analyses]\n    ds={\"columns\":[\"brokerage_id\"\
+    ,\"current_value\",\"target_allocation\",\"rebalance_action\"],\"rows\":trades}\n    (art/\"rebalancing_trades.json\"\
+    ).write_text(json.dumps(ds,indent=2)+\"\\n\",encoding=\"utf-8\")\n    st={\"success\":True,\"errors\"\
+    :[]}\n    (art/\"rebalance_status.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\nif __name__==\"__main__\": main()\n"
+  04_generate_trade_orders.py: "#!/usr/bin/env python3\n\"\"\"Export rebalancing trades to CSV.\"\"\"\n\
+    from __future__ import annotations\nimport argparse, csv, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"\n    ds=json.loads((art/\"rebalancing_trades.json\").read_text(encoding=\"\
+    utf-8\"))\n    out=art/\"trade_orders.csv\"\n    with out.open(\"w\",encoding=\"utf-8\",newline=\"\
+    \") as f:\n        w=csv.DictWriter(f,fieldnames=ds[\"columns\"]); w.writeheader(); w.writerows(ds[\"\
+    rows\"])\n    st={\"success\":True,\"errors\":[]}\n    (art/\"export_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portfolio-rebalancing-dag-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock","provider":"brokerage-api","target":"artifacts/holdings_dataset_1.json"}'
+  fixture-0001: "{\n  \"pipeline_id\": \"portfolio_rebalancing_dag\",\n  \"inputs\": {\n    \"brokerage_api\"\
+    : \"brokerage_api.json\"\n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n  ],\n  \"\
+    systems\": [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: portfolio-rebalancing-dag
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters: []
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: portfolio-rebalancing-dag-scripts
+    - name: fixtures
+      configMap:
+        name: portfolio-rebalancing-dag-fixtures
+        items:
+        - key: fixture-0000
+          path: brokerage_api.json
+        - key: fixture-0001
+          path: fixture.json
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: fetch-brokerage-holdings-1
+          template: run-fetch-brokerage-holdings-1
+        - name: fetch-brokerage-holdings-2
+          template: run-fetch-brokerage-holdings-2
+        - name: fetch-brokerage-holdings-3
+          template: run-fetch-brokerage-holdings-3
+        - name: fetch-brokerage-holdings-4
+          template: run-fetch-brokerage-holdings-4
+        - name: fetch-brokerage-holdings-5
+          template: run-fetch-brokerage-holdings-5
+        - name: analyze-portfolio-1
+          template: run-analyze-portfolio-1
+          depends: fetch-brokerage-holdings-1.Succeeded
+        - name: analyze-portfolio-2
+          template: run-analyze-portfolio-2
+          depends: fetch-brokerage-holdings-2.Succeeded
+        - name: analyze-portfolio-3
+          template: run-analyze-portfolio-3
+          depends: fetch-brokerage-holdings-3.Succeeded
+        - name: analyze-portfolio-4
+          template: run-analyze-portfolio-4
+          depends: fetch-brokerage-holdings-4.Succeeded
+        - name: analyze-portfolio-5
+          template: run-analyze-portfolio-5
+          depends: fetch-brokerage-holdings-5.Succeeded
+        - name: aggregate-and-rebalance
+          template: run-aggregate-and-rebalance
+          depends: analyze-portfolio-1.Succeeded && analyze-portfolio-2.Succeeded && analyze-portfolio-3.Succeeded
+            && analyze-portfolio-4.Succeeded && analyze-portfolio-5.Succeeded
+        - name: generate-trade-orders
+          template: run-generate-trade-orders
+          depends: aggregate-and-rebalance.Succeeded
+    - name: run-fetch-brokerage-holdings-1
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: fetch_brokerage_holdings_1
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_fetch_holdings.py
+        - --workspace
+        - /workspace
+        - --brokerage
+        - BROKERAGE_001
+        - --num
+        - '1'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-fetch-brokerage-holdings-2
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: fetch_brokerage_holdings_2
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_fetch_holdings.py
+        - --workspace
+        - /workspace
+        - --brokerage
+        - BROKERAGE_002
+        - --num
+        - '2'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-fetch-brokerage-holdings-3
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: fetch_brokerage_holdings_3
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_fetch_holdings.py
+        - --workspace
+        - /workspace
+        - --brokerage
+        - BROKERAGE_003
+        - --num
+        - '3'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-fetch-brokerage-holdings-4
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: fetch_brokerage_holdings_4
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_fetch_holdings.py
+        - --workspace
+        - /workspace
+        - --brokerage
+        - BROKERAGE_004
+        - --num
+        - '4'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-fetch-brokerage-holdings-5
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: fetch_brokerage_holdings_5
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_fetch_holdings.py
+        - --workspace
+        - /workspace
+        - --brokerage
+        - BROKERAGE_005
+        - --num
+        - '5'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-analyze-portfolio-1
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: analyze_portfolio_1
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_analyze_portfolio.py
+        - --workspace
+        - /workspace
+        - --num
+        - '1'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-analyze-portfolio-2
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: analyze_portfolio_2
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_analyze_portfolio.py
+        - --workspace
+        - /workspace
+        - --num
+        - '2'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-analyze-portfolio-3
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: analyze_portfolio_3
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_analyze_portfolio.py
+        - --workspace
+        - /workspace
+        - --num
+        - '3'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-analyze-portfolio-4
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: analyze_portfolio_4
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_analyze_portfolio.py
+        - --workspace
+        - /workspace
+        - --num
+        - '4'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-analyze-portfolio-5
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: analyze_portfolio_5
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_analyze_portfolio.py
+        - --workspace
+        - /workspace
+        - --num
+        - '5'
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-aggregate-and-rebalance
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: aggregate_and_rebalance
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_aggregate_and_rebalance.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-generate-trade-orders
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: generate_trade_orders
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_generate_trade_orders.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError

@@ -1,0 +1,190 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_invoice_exception_router",
+  "pipeline_name": "Invoice Exception Router",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_invoice_exception_router.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Validate invoices, route invalid invoices to exception handling, route valid invoices to posting, and merge audit summaries.",
+    "business_domain": "Finance Operations",
+    "execution_model": "Batch",
+    "topology_pattern": "Branch/merge",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "validate_invoices",
+        "to": "route_invoice_status"
+      },
+      {
+        "from": "route_invoice_status",
+        "to": "post_valid_invoices"
+      },
+      {
+        "from": "route_invoice_status",
+        "to": "create_exception_cases"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [
+      {
+        "step": "route_invoice_status",
+        "conditions": [
+          "valid",
+          "invalid"
+        ],
+        "merge_step": null
+      }
+    ],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "ERP API",
+      "identifier": "erp_api",
+      "details": [
+        "Validation external dependency: ERP API"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Exception tracker",
+      "identifier": "exception_tracker",
+      "details": [
+        "Validation external dependency: Exception tracker"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "invoice_batch",
+        "description": "Validation artifact: invoice_batch"
+      },
+      {
+        "identifier": "valid_invoice_rows",
+        "description": "Validation artifact: valid_invoice_rows"
+      },
+      {
+        "identifier": "exception_case_records",
+        "description": "Validation artifact: exception_case_records"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "validate_invoices",
+      "name": "validate_invoices",
+      "objective": "Validate invoices",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "route_invoice_status",
+      "name": "route_invoice_status",
+      "objective": "Route invoice status",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "post_valid_invoices",
+      "name": "post_valid_invoices",
+      "objective": "Post valid invoices",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "create_exception_cases",
+      "name": "create_exception_cases",
+      "objective": "Create exception cases",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

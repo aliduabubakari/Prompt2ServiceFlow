@@ -1,0 +1,183 @@
+schema_version: 0.1.0
+service_id: sql_incremental_table_extractor
+version: 1.0.0
+display_name: SQL Incremental Table Extractor
+category: Extractor
+capability:
+  summary: Executes a caller-supplied read-only SELECT against a bound SQL database,
+    typically constrained to a partition or incremental predicate, materializes the
+    result as a tabular artifact, and emits extraction status.
+  operations:
+  - Resolve a bound SQL database resource.
+  - Validate a configured source table identifier and read-only SELECT query.
+  - Execute the query with optional runtime parameters such as logical date or partition
+    key.
+  - Materialize result rows and column metadata as a tabular artifact or dataset reference.
+  keywords:
+  - sql
+  - incremental extract
+  - partitioned table
+  - read-only select
+  - orders
+  - tabular extraction
+  limitations:
+  - Does not implement polling, retries, schedules, or dependency edges.
+  - Does not infer the incremental predicate or business query; caller must supply
+    a read-only extraction SQL statement.
+  - Does not mutate the source database.
+  - Does not transform or clean extracted rows beyond materialization.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_database
+    description: SQL database resource containing the source partitioned table.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: query_parameters
+    description: Optional parameter values for the read-only extraction query, such
+      as logical date or partition name.
+    channel: parameter
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://sql_parameter_values/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: extracted_dataset
+    description: Materialized tabular query result containing extracted incremental
+      rows, columns, and row count.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://tabular_query_result/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: extraction_status
+    description: Observable extraction status with source table, read-only validation,
+      row count, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://sql_incremental_extraction_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: source_table_name
+    description: Source table name, optionally schema-qualified, for example orders.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$
+  - name: incremental_select_sql
+    description: Read-only SELECT statement used to extract the desired incremental
+      or partitioned rows.
+    type: string
+    required: true
+  - name: partition_selector
+    description: Optional structured description of the logical partition or incremental
+      window used by the SELECT.
+    type: object
+    required: false
+  - name: fail_on_empty_result
+    description: Whether zero extracted rows should be treated as a service failure.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: sql_incremental_extractor_source_table_contract
+  type: precondition
+  applies_to: parameter
+  target: source_table_name
+  description: Source table name must be an identifier-like SQL table reference.
+  expression: source_table_name matches '^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)?$'
+- contract_id: sql_incremental_extractor_readonly_contract
+  type: precondition
+  applies_to: parameter
+  target: incremental_select_sql
+  description: Extraction SQL must be non-empty and read-only SELECT syntax.
+  expression: length(trim(incremental_select_sql)) > 0 and lower(trim(incremental_select_sql))
+    starts_with 'select' and not contains_mutating_sql(incremental_select_sql)
+- contract_id: sql_incremental_extracted_dataset_schema
+  type: json_schema
+  applies_to: output
+  target: extracted_dataset
+  description: Extracted dataset exposes columns, rows, and row count.
+  schema_ref: schema://tabular_query_result/v1
+  expression: '{"type":"object","required":["columns","rows","row_count"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0}}}'
+- contract_id: sql_incremental_extraction_status_schema
+  type: json_schema
+  applies_to: output
+  target: extraction_status
+  description: Status exposes query execution and materialization outcome.
+  schema_ref: schema://sql_incremental_extraction_status/v1
+  expression: '{"type":"object","required":["success","source_table_name","query_executed","read_only","row_count"],"properties":{"success":{"type":"boolean"},"source_table_name":{"type":"string"},"query_executed":{"type":"boolean"},"read_only":{"type":"boolean"},"row_count":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: sql_incremental_extractor_effect
+  type: effect
+  applies_to: service
+  target: sql_incremental_table_extractor
+  description: The service does not mutate the source database; on success it emits
+    a materialized extracted_dataset and success status.
+  expression: no_external_mutation and (extraction_status.success == true implies
+    exists(extracted_dataset))
+invocation:
+  type: argo_workflow_template
+  template_name: sql-incremental-table-extractor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.sql_incremental_table_extractor
+  implementation_ref: services/implementations/sql_incremental_table_extractor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - postgresql://*
+  - mysql://*
+  secret_access: required
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Database credentials must not be emitted in outputs or logs.
+  - Caller-supplied SQL should be constrained to read-only SELECT statements.
+  - Raw row logging should be avoided; expose counts and bounded diagnostics.
+  idempotency_notes: For a fixed database snapshot, query, and parameters, the extracted
+    result is deterministic; external database contents may change between invocations.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:database_partition_check_etl#extract_incremental
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Needed because the active pipeline describes a generic SQL database
+    partitioned orders table, while the registry read-only query extractor is PostgreSQL-specific.'
+  - 'Evidence status: strongly_inferred.'

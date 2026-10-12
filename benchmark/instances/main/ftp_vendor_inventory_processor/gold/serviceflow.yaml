@@ -1,0 +1,464 @@
+ir_version: 0.1.0
+composition_id: ftp_vendor_inventory_processor
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:ftp_vendor_inventory_processor
+  split: main
+  pipeline_id: ftp_vendor_inventory_processor
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/22_ftp_vendor_inventory_processor.txt
+  description_sha256: 76f94d1c7774b5b872d761040677aa2e1d747ad4568cc498c76816e49a38d42b
+  internal_spec_path: source/internal_specs/main_40/22_ftp_vendor_inventory_processor.json
+  internal_spec_sha256: 524afc1de7f0d282c092f1fe6db18d12928cb2f78aa848b19ec7404229191b24
+requirement:
+  name: FTP Vendor Inventory Processor
+  purpose: Monitor FTP for vendor inventory file, download, cleanse, and merge with internal inventory.
+  domain: inventory
+  execution_model: batch
+  topology: sensor_gated
+  information_sufficiency: high
+  notes:
+  - 'Sensor-gated: processing starts only when FTP file is detected.'
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: ftp_server
+  type: ftp
+  name: FTP Server
+  identifier: ftp.example.com
+  access_mode: read
+  authentication: secret
+  mock_strategy: fixture
+- system_id: internal_db
+  type: database
+  name: Internal Inventory DB
+  identifier: inventory_db
+  access_mode: write
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: wait_for_ftp_file
+  name: Wait for FTP file
+  category: Sensor
+  capability: Poll FTP server for vendor inventory file availability.
+  source_step_refs:
+  - wait_for_ftp_file
+  evidence:
+  - source: description
+    text: Monitor FTP server for vendor inventory file availability.
+  inputs:
+  - ftp_resource
+  outputs:
+  - availability_decision
+  - check_status
+  external_system_refs:
+  - ftp_server
+  preconditions:
+  - FTP server accessible.
+  effects:
+  - Availability decision emitted.
+  required_policy_properties:
+    network_access: optional
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step is an FTP availability sensor.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: download_vendor_file
+  name: Download vendor file
+  category: Extractor
+  capability: Download the vendor inventory file from FTP.
+  source_step_refs:
+  - download_vendor_file
+  evidence:
+  - source: description
+    text: Download vendor inventory file from FTP.
+  inputs:
+  - ftp_resource
+  outputs:
+  - downloaded_file
+  - transfer_status
+  external_system_refs:
+  - ftp_server
+  preconditions:
+  - File detected on FTP.
+  effects:
+  - Downloaded file emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: Source step downloads from FTP.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: cleanse_vendor_data
+  name: Cleanse vendor data
+  category: Transformer
+  capability: Cleanse and standardize vendor CSV data.
+  source_step_refs:
+  - cleanse_vendor_data
+  evidence:
+  - source: description
+    text: Cleanse vendor inventory data.
+  inputs:
+  - vendor_csv
+  outputs:
+  - cleansed_dataset
+  - cleansed_data_obj
+  - cleanse_status
+  external_system_refs: []
+  preconditions:
+  - File downloaded.
+  effects:
+  - Cleansed data emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step cleanses vendor CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: merge_with_internal_inventory
+  name: Merge with internal inventory
+  category: Loader
+  capability: Load cleansed data into internal inventory database.
+  source_step_refs:
+  - merge_with_internal_inventory
+  evidence:
+  - source: description
+    text: Merge with internal inventory.
+  inputs:
+  - cleansed_data_obj
+  - db_resource
+  outputs:
+  - load_status
+  external_system_refs:
+  - internal_db
+  preconditions:
+  - Cleansed data available.
+  effects:
+  - Data loaded into DB.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: Source step loads into inventory DB.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: wait_for_ftp_file
+    to: download_vendor_file
+  - from: download_vendor_file
+    to: cleanse_vendor_data
+  - from: cleanse_vendor_data
+    to: merge_with_internal_inventory
+  parallel_groups: []
+  branches: []
+  gates:
+  - gate_id: ftp_file_gate
+    sensor_intent: wait_for_ftp_file
+    condition: file_available == true
+    gated_intents:
+    - download_vendor_file
+    - cleanse_vendor_data
+    - merge_with_internal_inventory
+artifacts:
+- artifact_id: ftp_resource
+  name: FTP server resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - wait_for_ftp_file
+  - download_vendor_file
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/ftp_server.json
+  external_system_ref: ftp_server
+- artifact_id: availability_decision
+  name: Availability decision
+  kind: artifact
+  data_type: decision
+  media_type: application/json
+  schema_ref: contracts/artifacts/avail.schema.json
+  role: decision
+  producer: wait_for_ftp_file
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: check_status
+  name: Check status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/s.schema.json
+  role: status
+  producer: wait_for_ftp_file
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: downloaded_file
+  name: Downloaded vendor file
+  kind: artifact
+  data_type: binary
+  media_type: application/octet-stream
+  role: intermediate
+  producer: download_vendor_file
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: transfer_status
+  name: Transfer status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/s.schema.json
+  role: status
+  producer: download_vendor_file
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: cleansed_dataset
+  name: Cleansed dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: cleanse_vendor_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: cleanse_status
+  name: Cleanse status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/s.schema.json
+  role: status
+  producer: cleanse_vendor_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: db_resource
+  name: DB resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - merge_with_internal_inventory
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/db_resource.json
+  external_system_ref: internal_db
+- artifact_id: load_status
+  name: Load status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/s.schema.json
+  role: output
+  producer: merge_with_internal_inventory
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: cleansed_data_obj
+  name: Cleansed data object
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: status
+  producer: cleanse_vendor_data
+  consumers:
+  - merge_with_internal_inventory
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: vendor_csv
+  name: Vendor CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: null
+  consumers:
+  - cleanse_vendor_data
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: wait_for_ftp_file
+  service_id: file_location_availability_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: file_location_resource
+    artifact_id: ftp_resource
+  output_bindings:
+  - port: availability_decision
+    artifact_id: availability_decision
+  - port: check_status
+    artifact_id: check_status
+  parameter_bindings:
+    location_type: ftp
+    path: /incoming/vendor_inventory.csv
+    availability_condition: exists
+    filename_pattern: vendor_inventory*
+  secret_bindings: []
+  rationale: Polls FTP for file availability.
+  confidence: explicit
+- intent_id: download_vendor_file
+  service_id: ftp_file_artifact_downloader
+  service_version: 1.0.0
+  input_bindings:
+  - port: ftp_server
+    artifact_id: ftp_resource
+  output_bindings:
+  - port: downloaded_file
+    artifact_id: downloaded_file
+  - port: transfer_status
+    artifact_id: transfer_status
+  parameter_bindings:
+    remote_path: /incoming/vendor_inventory.csv
+    output_path: /workspace/artifacts/vendor_inventory.csv
+  secret_bindings: []
+  rationale: Downloads vendor file from FTP.
+  confidence: explicit
+- intent_id: cleanse_vendor_data
+  service_id: tabular_null_value_cleanser
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_csv
+    artifact_id: vendor_csv
+  output_bindings:
+  - port: cleansed_dataset
+    artifact_id: cleansed_dataset
+  - port: cleansed_data_object
+    artifact_id: cleansed_data_obj
+  - port: cleanse_status
+    artifact_id: cleanse_status
+  parameter_bindings:
+    null_handling_rules:
+      empty_string: replace_with_zero
+    output_path: /workspace/artifacts/cleansed_vendor.json
+  secret_bindings: []
+  rationale: Cleanses vendor CSV data.
+  confidence: explicit
+- intent_id: merge_with_internal_inventory
+  service_id: tabular_dataset_database_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: ingested_data_object
+    artifact_id: cleansed_data_obj
+  - port: target_database
+    artifact_id: db_resource
+  output_bindings:
+  - port: load_status
+    artifact_id: load_status
+  parameter_bindings:
+    target_table: inventory
+    write_mode: upsert
+  secret_bindings: []
+  rationale: Merges into internal inventory DB.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - FTP download and DB merge are mocked.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All four source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Four exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports, parameters, types, and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Sensor-gated Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Single scenario executes all four steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - All sensor, download, cleanse, and merge invariants hold
+source_step_accounting:
+- source_step_ref: wait_for_ftp_file
+  disposition: service
+  intent_ids:
+  - wait_for_ftp_file
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: download_vendor_file
+  disposition: service
+  intent_ids:
+  - download_vendor_file
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: cleanse_vendor_data
+  disposition: service
+  intent_ids:
+  - cleanse_vendor_data
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: merge_with_internal_inventory
+  disposition: service
+  intent_ids:
+  - merge_with_internal_inventory
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

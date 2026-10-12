@@ -1,0 +1,45 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:building_energy_window_aggregation
+candidate_sets:
+- candidate_set_id: extension_building_energy_window_aggregation_bounded_timeseries_event_ingestor_candidates
+  required_service_id: bounded_timeseries_event_ingestor
+  labels:
+    bounded_timeseries_event_ingestor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    sensor_window_alignment_fuser: contract_mismatch
+    iot_anomaly_feature_calculator: format_mismatch
+- candidate_set_id: extension_building_energy_window_aggregation_bounded_window_checkpoint_validator_candidates
+  required_service_id: bounded_window_checkpoint_validator
+  labels:
+    bounded_window_checkpoint_validator: gold
+    sensor_window_alignment_fuser: semantic_mismatch
+    iot_anomaly_feature_calculator: contract_mismatch
+    event_record_cleaner: format_mismatch
+- candidate_set_id: extension_building_energy_window_aggregation_timeseries_record_sort_deduplicator_candidates
+  required_service_id: timeseries_record_sort_deduplicator
+  labels:
+    timeseries_record_sort_deduplicator: gold
+    iot_anomaly_feature_calculator: semantic_mismatch
+    event_record_cleaner: contract_mismatch
+    feature_table_drift_validator: format_mismatch
+- candidate_set_id: extension_building_energy_window_aggregation_bounded_analysis_window_builder_candidates
+  required_service_id: bounded_analysis_window_builder
+  labels:
+    bounded_analysis_window_builder: gold
+    event_record_cleaner: semantic_mismatch
+    feature_table_drift_validator: contract_mismatch
+    api_table_conflict_reconciler: format_mismatch
+- candidate_set_id: extension_building_energy_window_aggregation_window_metric_aggregator_candidates
+  required_service_id: window_metric_aggregator
+  labels:
+    window_metric_aggregator: gold
+    feature_table_drift_validator: semantic_mismatch
+    api_table_conflict_reconciler: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_building_energy_window_aggregation_timeseries_output_bundle_publisher_candidates
+  required_service_id: timeseries_output_bundle_publisher
+  labels:
+    timeseries_output_bundle_publisher: gold
+    api_table_conflict_reconciler: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    sensor_window_alignment_fuser: format_mismatch

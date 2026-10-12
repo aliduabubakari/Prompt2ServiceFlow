@@ -1,0 +1,200 @@
+[
+  {
+    "pipeline_id": "iot_device_snapshot_transition",
+    "name": "IoT Device Snapshot Transition",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "Environmental/Energy",
+    "topology": "fan_in",
+    "complexity": "medium",
+    "subject": "IoT device snapshot transitions",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "checkpoint_manifest"
+    ],
+    "primary_inputs": [
+      "device event JSONL",
+      "device registry CSV",
+      "previous snapshot table"
+    ],
+    "external_systems": [
+      "IoT export bucket",
+      "device state archive"
+    ],
+    "scenario": "Apply a finite device-event batch to a previous snapshot and publish the new state.",
+    "global_number": 26,
+    "batch": 6,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_06/descriptions/26_iot_device_snapshot_transition.txt",
+    "spec_path": "batch_06/specs/26_iot_device_snapshot_transition.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "payment_settlement_checkpoint_reconcile",
+    "name": "Payment Settlement Checkpoint Reconcile",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "Finance/Risk",
+    "topology": "fan_in",
+    "complexity": "medium",
+    "subject": "payment settlement checkpoint reconciliation",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "exception_report",
+      "checkpoint_manifest"
+    ],
+    "primary_inputs": [
+      "settlement event batch",
+      "bank statement CSV",
+      "previous settlement checkpoint"
+    ],
+    "external_systems": [
+      "settlement archive",
+      "finance review queue"
+    ],
+    "scenario": "Reconcile a bounded settlement-event batch against bank statements and update the checkpoint.",
+    "global_number": 27,
+    "batch": 6,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_06/descriptions/27_payment_settlement_checkpoint_reconcile.txt",
+    "spec_path": "batch_06/specs/27_payment_settlement_checkpoint_reconcile.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "notification_delivery_checkpoint_audit",
+    "name": "Notification Delivery Checkpoint Audit",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "Marketing/Customer Operations",
+    "topology": "windowed_batch",
+    "complexity": "simple",
+    "subject": "notification delivery checkpoint audit",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "audit_log",
+      "table",
+      "checkpoint_manifest"
+    ],
+    "primary_inputs": [
+      "notification delivery events",
+      "campaign audience CSV",
+      "prior delivery checkpoint"
+    ],
+    "external_systems": [
+      "messaging export bucket",
+      "campaign audit store"
+    ],
+    "scenario": "Audit finite notification delivery events against an audience table and checkpoint progress.",
+    "global_number": 28,
+    "batch": 6,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_06/descriptions/28_notification_delivery_checkpoint_audit.txt",
+    "spec_path": "batch_06/specs/28_notification_delivery_checkpoint_audit.json",
+    "step_count": 6,
+    "edge_count": 5,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "queue_backlog_snapshot_analysis",
+    "name": "Queue Backlog Snapshot Analysis",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "AI Platform Operations",
+    "topology": "windowed_batch",
+    "complexity": "simple",
+    "subject": "queue backlog snapshot analysis",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "alert_digest"
+    ],
+    "primary_inputs": [
+      "queue snapshot JSON",
+      "worker capacity table",
+      "service priority table"
+    ],
+    "external_systems": [
+      "queue telemetry archive",
+      "operations dashboard staging"
+    ],
+    "scenario": "Analyze a finite queue backlog snapshot and identify priority capacity risks.",
+    "global_number": 29,
+    "batch": 6,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_06/descriptions/29_queue_backlog_snapshot_analysis.txt",
+    "spec_path": "batch_06/specs/29_queue_backlog_snapshot_analysis.json",
+    "step_count": 6,
+    "edge_count": 5,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "late_record_replay_quarantine",
+    "name": "Late Record Replay Quarantine",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "Legal/Compliance",
+    "topology": "branch_gate",
+    "complexity": "complex",
+    "subject": "late record replay quarantine",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "quarantine_report",
+      "checkpoint_manifest",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "late-arriving record batch",
+      "retention policy table",
+      "prior processing checkpoint"
+    ],
+    "external_systems": [
+      "records archive",
+      "compliance review queue"
+    ],
+    "scenario": "Replay late-arriving records against a checkpoint and quarantine policy-sensitive records.",
+    "global_number": 30,
+    "batch": 6,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_06/descriptions/30_late_record_replay_quarantine.txt",
+    "spec_path": "batch_06/specs/30_late_record_replay_quarantine.json",
+    "step_count": 10,
+    "edge_count": 10,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  }
+]

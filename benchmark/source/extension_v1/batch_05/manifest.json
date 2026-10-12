@@ -1,0 +1,200 @@
+[
+  {
+    "pipeline_id": "observability_metrics_incident_digest",
+    "name": "Observability Metrics Incident Digest",
+    "track": "time_series_sensor_window",
+    "domain": "AI Platform Operations",
+    "topology": "windowed_batch",
+    "complexity": "medium",
+    "subject": "observability metric incident windows",
+    "input_modalities": [
+      "time_series",
+      "json",
+      "text"
+    ],
+    "output_modalities": [
+      "alert_digest",
+      "json",
+      "table"
+    ],
+    "primary_inputs": [
+      "metrics JSONL export",
+      "incident ticket CSV",
+      "service catalog JSON"
+    ],
+    "external_systems": [
+      "observability export bucket",
+      "incident digest store"
+    ],
+    "scenario": "Summarize finite observability windows and attach incident context for operators.",
+    "global_number": 21,
+    "batch": 5,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_05/descriptions/21_observability_metrics_incident_digest.txt",
+    "spec_path": "batch_05/specs/21_observability_metrics_incident_digest.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "climate_station_gap_fill_alignment",
+    "name": "Climate Station Gap Fill Alignment",
+    "track": "time_series_sensor_window",
+    "domain": "Environmental/Energy",
+    "topology": "fan_in",
+    "complexity": "simple",
+    "subject": "climate station aligned observations",
+    "input_modalities": [
+      "time_series",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "quality_report"
+    ],
+    "primary_inputs": [
+      "station readings CSV",
+      "station metadata CSV",
+      "calendar table"
+    ],
+    "external_systems": [
+      "climate data bucket",
+      "prepared observation archive"
+    ],
+    "scenario": "Align climate station readings to a calendar grid and flag small gaps for imputation.",
+    "global_number": 22,
+    "batch": 5,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_05/descriptions/22_climate_station_gap_fill_alignment.txt",
+    "spec_path": "batch_05/specs/22_climate_station_gap_fill_alignment.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "clickstream_session_window_batch",
+    "name": "Clickstream Session Window Batch",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "Retail/E-commerce",
+    "topology": "windowed_batch",
+    "complexity": "simple",
+    "subject": "clickstream session windows",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "checkpoint_manifest"
+    ],
+    "primary_inputs": [
+      "bounded clickstream JSONL",
+      "user consent table",
+      "previous checkpoint manifest"
+    ],
+    "external_systems": [
+      "event export bucket",
+      "analytics staging bucket"
+    ],
+    "scenario": "Sessionize a finite clickstream export and produce a checkpointed batch output.",
+    "global_number": 23,
+    "batch": 5,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_05/descriptions/23_clickstream_session_window_batch.txt",
+    "spec_path": "batch_05/specs/23_clickstream_session_window_batch.json",
+    "step_count": 6,
+    "edge_count": 5,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "fraud_event_replay_checkpoint",
+    "name": "Fraud Event Replay Checkpoint",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "Finance/Risk",
+    "topology": "branch_gate",
+    "complexity": "complex",
+    "subject": "fraud event replay checkpoint",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "exception_report",
+      "checkpoint_manifest",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "bounded transaction event log",
+      "merchant table",
+      "prior replay checkpoint"
+    ],
+    "external_systems": [
+      "fraud event archive",
+      "investigation queue"
+    ],
+    "scenario": "Replay a finite fraud-event batch from checkpoint and route high-risk exceptions.",
+    "global_number": 24,
+    "batch": 5,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_05/descriptions/24_fraud_event_replay_checkpoint.txt",
+    "spec_path": "batch_05/specs/24_fraud_event_replay_checkpoint.json",
+    "step_count": 10,
+    "edge_count": 10,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "log_window_alert_digest",
+    "name": "Log Window Alert Digest",
+    "track": "event_checkpoint_windowed_batch",
+    "domain": "AI Platform Operations",
+    "topology": "windowed_batch",
+    "complexity": "medium",
+    "subject": "application log alert windows",
+    "input_modalities": [
+      "text",
+      "jsonl"
+    ],
+    "output_modalities": [
+      "alert_digest",
+      "json"
+    ],
+    "primary_inputs": [
+      "bounded application log export",
+      "service ownership JSON",
+      "alert rule table"
+    ],
+    "external_systems": [
+      "log archive bucket",
+      "alert digest store"
+    ],
+    "scenario": "Create a digest of alert-worthy events from finite log windows.",
+    "global_number": 25,
+    "batch": 5,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_05/descriptions/25_log_window_alert_digest.txt",
+    "spec_path": "batch_05/specs/25_log_window_alert_digest.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 1
+  }
+]

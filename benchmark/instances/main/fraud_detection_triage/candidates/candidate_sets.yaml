@@ -1,0 +1,56 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:fraud_detection_triage
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_fraud_detection_triage_transaction_csv_fraud_risk_analyzer_candidates
+  source_step_refs:
+  - analyze_transactions
+  service_ids:
+  - transaction_csv_fraud_risk_analyzer
+  - csv_tabular_schema_validating_loader
+  - portfolio_holdings_metrics_analyzer
+  - content_toxicity_route_decider
+  - tabular_quality_score_gate
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_fraud_detection_triage_fraud_risk_threshold_route_decider_candidates
+  source_step_refs:
+  - route_transaction
+  service_ids:
+  - fraud_risk_threshold_route_decider
+  - content_toxicity_route_decider
+  - execution_date_backup_strategy_decider
+  - financial_account_type_regulatory_route_decider
+  - tabular_quality_score_gate
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_fraud_detection_triage_fraud_manual_review_status_recorder_candidates
+  source_step_refs:
+  - route_to_manual_review
+  service_ids:
+  - fraud_manual_review_status_recorder
+  - fraud_auto_approval_status_recorder
+  - moderated_content_action_transformer
+  - moderation_audit_log_entry_creator
+  - dataset_quarantine_zone_writer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_fraud_detection_triage_fraud_auto_approval_status_recorder_candidates
+  source_step_refs:
+  - route_to_auto_approve
+  service_ids:
+  - fraud_auto_approval_status_recorder
+  - fraud_manual_review_status_recorder
+  - safe_content_publication_publisher
+  - database_table_http_flag_publisher
+  - tabular_dataset_database_loader
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_fraud_detection_triage_email_notification_sender_candidates
+  source_step_refs:
+  - send_notification
+  service_ids:
+  - email_notification_sender
+  - email_attachment_notification_sender
+  - status_context_email_summary_notifier
+  - aqi_threshold_email_alert_notifier
+  - bulk_email_campaign_sender
+  - slack_notification_sender

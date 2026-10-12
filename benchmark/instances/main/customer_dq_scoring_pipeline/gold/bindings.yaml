@@ -1,0 +1,21 @@
+binding_gold_version: 0.1.0
+benchmark_id: main:customer_dq_scoring_pipeline
+bindings:
+- intent_id: generate_synthetic_data
+  service_id: synthetic_customer_parquet_generator
+  service_version: 1.0.0
+- intent_id: explore_raw_data
+  service_id: parquet_document_data_profiler
+  service_version: 1.0.0
+- intent_id: clean_data
+  service_id: parquet_customer_data_clean_standardizer
+  service_version: 1.0.0
+- intent_id: calculate_quality_score
+  service_id: parquet_customer_quality_score_calculator
+  service_version: 1.0.0
+- intent_id: feature_engineering
+  service_id: parquet_tabular_feature_engineer
+  service_version: 1.0.0
+- intent_id: save_and_report
+  service_id: parquet_quality_report_csv_exporter
+  service_version: 1.0.0

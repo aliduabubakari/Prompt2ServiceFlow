@@ -1,0 +1,21 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_api_health_snapshot
+mappings:
+- intent_id: poll_partner_api
+  inputs: {}
+  outputs:
+    response_json: status_response_json
+    extraction_status: poll_status
+- intent_id: normalize_status_payload
+  inputs:
+    response_json: status_response_json
+  outputs:
+    normalized_status_rows: normalized_status_rows
+    normalization_status: normalization_status
+- intent_id: store_health_snapshot
+  inputs:
+    normalized_status_rows: normalized_status_rows
+    metrics_store: metrics_store_resource
+  outputs:
+    health_snapshot_table: health_snapshot_table
+    load_status: snapshot_status

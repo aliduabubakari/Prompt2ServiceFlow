@@ -1,0 +1,439 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: student-record-privacy-review-nominal-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_source_batch.py: "#!/usr/bin/env python3\n\"\"\"Ingest student records CSV, consent forms\
+    \ JSON, and privacy policy.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True)\n    p.add_argument(\"--fixture\",type=Path,required=True); p.add_argument(\"\
+    --execution-time\",type=str,default=None)\n    a=p.parse_args(); r=a.workspace; art=r/\"artifacts\"\
+    ; art.mkdir(parents=True,exist_ok=True)\n    fx=json.loads(a.fixture.read_text(encoding=\"utf-8\"\
+    )); fd=a.fixture.parent\n    records=[]\n    with (fd/fx[\"inputs\"][\"records\"]).open(encoding=\"\
+    utf-8\",newline=\"\") as f:\n        for row in csv.DictReader(f): records.append(row)\n    consent_data=json.loads((fd/fx[\"\
+    inputs\"][\"consent\"]).read_text(encoding=\"utf-8\"))\n    consents={c[\"student_id\"]:c for c in\
+    \ consent_data[\"consents\"]}\n    policy=json.loads((fd/fx[\"inputs\"][\"policy\"]).read_text(encoding=\"\
+    utf-8\"))\n    result={\"records\":records,\"consents\":consents,\"policy\":policy,\"total\":len(records),\"\
+    ingested_at\":a.execution_time}\n    (art/\"ingest_source_batch_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"ingest_source_batch_status.json\").write_text(json.dumps({\"\
+    success\":True,\"records\":len(records),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"\
+    __main__\": main()\n"
+  02_validate_source_contract.py: "#!/usr/bin/env python3\n\"\"\"Validate: required fields, consent existence,\
+    \ GPA range, enrollment year sanity.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    records,consents,policy=ingested[\"records\"],ingested[\"consents\"\
+    ],ingested[\"policy\"]\n    max_age=policy[\"max_enrollment_age_years\"]; cur_year=policy[\"current_academic_year\"\
+    ]\n    required={\"student_id\",\"student_name\",\"email\",\"grade\",\"program\",\"gpa\",\"consent_status\"\
+    }\n    errors=[]; valid=[]\n    for r in records:\n        issues=[]\n        if required-set(r.keys()):\
+    \ issues.append(f\"missing_fields: {required-set(r.keys())}\")\n        if r.get(\"student_id\") not\
+    \ in consents: issues.append(\"missing_consent_record\")\n        try:\n            gpa=float(r.get(\"\
+    gpa\",0))\n            if gpa<0 or gpa>4.0: issues.append(f\"invalid_gpa: {gpa}\")\n        except:\
+    \ issues.append(\"invalid_gpa\")\n        try:\n            ey=int(r.get(\"enrollment_year\",cur_year))\n\
+    \            if cur_year-ey>max_age: issues.append(f\"stale_enrollment: {cur_year-ey}>{max_age}\"\
+    )\n        except: pass\n        if issues: errors.append({\"student_id\":r.get(\"student_id\",\"\
+    ?\"),\"issues\":issues})\n        else: valid.append(r)\n    result={\"valid\":valid,\"errors\":errors,\"\
+    total_valid\":len(valid),\"total_rejected\":len(errors)}\n    (art/\"validate_source_contract_artifact.json\"\
+    ).write_text(json.dumps(result,indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"validate_source_contract_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"valid\":len(valid),\"rejected\":len(errors),\"errors\"\
+    :errors},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_evaluate_policy_or_risk.py: "#!/usr/bin/env python3\n\"\"\"Evaluate risk: check consent validity,\
+    \ sensitive data, sharing permissions.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    consents,policy=ingested[\"consents\"],ingested[\"policy\"]\n\
+    \    req_ver=policy[\"required_consent_version\"]; rules=policy[\"risk_rules\"]; scored=[]\n    for\
+    \ r in validated[\"valid\"]:\n        sid=r[\"student_id\"]; c=consents.get(sid,{})\n        issues=[];\
+    \ cs=r.get(\"consent_status\",\"\")\n        if cs==\"revoked\": issues.append(rules[\"revoked_consent\"\
+    ])\n        elif cs==\"pending\": issues.append(rules[\"pending_consent\"])\n        elif not c.get(\"\
+    data_sharing_consent\"): issues.append(\"no_data_sharing_consent\")\n        if c.get(\"consent_version\"\
+    )!=req_ver: issues.append(f\"outdated_consent_version: {c.get('consent_version')}!={req_ver}\")\n\
+    \        if r.get(\"has_sensitive_data\")==\"true\" and not c.get(\"data_sharing_consent\"): issues.append(rules[\"\
+    sensitive_data_no_consent\"])\n        route=\"exception\" if issues else \"approved\"\n        scored.append({\"\
+    student_id\":sid,\"student_name\":r[\"student_name\"],\"consent_status\":cs,\n                   \
+    \    \"has_sensitive\":r.get(\"has_sensitive_data\"),\"risk_issues\":issues,\"route\":route,\"issue_count\"\
+    :len(issues)})\n    approved=[s for s in scored if s[\"route\"]==\"approved\"]; exceptions=[s for\
+    \ s in scored if s[\"route\"]==\"exception\"]\n    result={\"scored\":scored,\"approved\":approved,\"\
+    exceptions\":exceptions,\"total\":len(scored),\"approved_count\":len(approved),\"exception_count\"\
+    :len(exceptions)}\n    (art/\"evaluate_policy_or_risk_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"evaluate_policy_or_risk_status.json\").write_text(json.dumps({\"\
+    success\":True,\"scored\":len(scored),\"approved\":len(approved),\"exceptions\":len(exceptions),\"\
+    errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_route_approved_records.py: "#!/usr/bin/env python3\n\"\"\"Route approved records: prepare for research\
+    \ release with redaction.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    evaluated=json.loads((art/\"evaluate_policy_or_risk_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    approved=evaluated[\"approved\"]\n    result={\"route\":\"approved\",\"records\":approved,\"\
+    total\":len(approved),\"action\":\"release_with_redaction\"}\n    (art/\"route_approved_records_artifact.json\"\
+    ).write_text(json.dumps(result,indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"route_approved_records_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"routed\":len(approved),\"errors\":[]},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  05_route_exception_records.py: "#!/usr/bin/env python3\n\"\"\"Route exception records: escalate to data\
+    \ steward for manual review.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom\
+    \ pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    evaluated=json.loads((art/\"evaluate_policy_or_risk_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    exceptions=evaluated[\"exceptions\"]\n    result={\"route\"\
+    :\"exception\",\"records\":exceptions,\"total\":len(exceptions),\"action\":\"escalate_to_steward\"\
+    }\n    (art/\"route_exception_records_artifact.json\").write_text(json.dumps(result,indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\n    (art/\"route_exception_records_status.json\").write_text(json.dumps({\"\
+    success\":True,\"escalated\":len(exceptions),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\n\
+    if __name__==\"__main__\": main()\n"
+  06_merge_route_outcomes.py: "#!/usr/bin/env python3\n\"\"\"Merge: combine approved and exception records\
+    \ into final disposition.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    app=json.loads((art/\"route_approved_records_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    exc=json.loads((art/\"route_exception_records_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    merged={\"disposition\":\"complete\",\"summary\":{\"total\":app[\"total\"]+exc[\"total\"\
+    ],\"approved\":app[\"total\"],\"exceptions\":exc[\"total\"]},\n            \"approved\":app[\"records\"\
+    ],\"exceptions\":exc[\"records\"]}\n    (art/\"merge_route_outcomes_artifact.json\").write_text(json.dumps(merged,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"merge_route_outcomes_status.json\").write_text(json.dumps({\"\
+    success\":True,\"merged\":merged[\"summary\"][\"total\"],\"errors\":[]},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+  07_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish: redacted CSV for research release + exception\
+    \ report + audit manifest.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    p.add_argument(\"\
+    --execution-time\",type=str,default=None); a=p.parse_args(); art=a.workspace/\"artifacts\"\n    et=a.execution_time\
+    \ or \"2026-07-20T12:00:00Z\"; fx=json.loads(a.fixture.read_text(encoding=\"utf-8\"))\n    merged=json.loads((art/\"\
+    merge_route_outcomes_artifact.json\").read_text(encoding=\"utf-8\"))\n    val=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    summary={\"total\":merged[\"summary\"][\"total\"]+val[\"total_rejected\"\
+    ],\"valid\":merged[\"summary\"][\"total\"],\n             \"rejected\":val[\"total_rejected\"],\"\
+    approved\":merged[\"summary\"][\"approved\"],\"exceptions\":merged[\"summary\"][\"exceptions\"]}\n\
+    \    manifest={\"checkpoint_id\":f\"ckpt_student_privacy_{et[:10].replace('-','_')}\",\"checkpoint_time\"\
+    :et,\n              \"pipeline_id\":fx[\"pipeline_id\"],\"summary\":summary,\"output_files\":[\"privacy_review_report.csv\"\
+    ,\"audit_manifest.json\"],\"status\":\"completed\"}\n    (art/\"audit_manifest.json\").write_text(json.dumps(manifest,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    csv_rel=\"privacy_review_report.csv\"\n    with (art/csv_rel).open(\"\
+    w\",encoding=\"utf-8\",newline=\"\") as f:\n        w=csv.DictWriter(f,fieldnames=[\"student_id\"\
+    ,\"student_name\",\"consent_status\",\"has_sensitive\",\"route\",\"risk_issues\"])\n        w.writeheader()\n\
+    \        for g in [merged[\"approved\"],merged[\"exceptions\"]]:\n            for r in g: w.writerow({\"\
+    student_id\":r[\"student_id\"],\"student_name\":r[\"student_name\"],\n                           \
+    \          \"consent_status\":r[\"consent_status\"],\"has_sensitive\":r[\"has_sensitive\"],\n    \
+    \                                 \"route\":r[\"route\"],\"risk_issues\":\"; \".join(r[\"risk_issues\"\
+    ])})\n    (art/\"publish_outputs_artifact.json\").write_text(json.dumps({\"manifest\":manifest,\"\
+    csv\":csv_rel},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"publish_outputs_status.json\").write_text(json.dumps({\"\
+    success\":True,\"csv_exported\":csv_rel,\"summary\":summary,\"errors\":[]},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: student-record-privacy-review-nominal-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"consents\": [\n    {\"student_id\": \"STU-1001\", \"research_consent\": true,\
+    \ \"data_sharing_consent\": true, \"consent_date\": \"2025-09-01\", \"consent_version\": \"v2\"},\n\
+    \    {\"student_id\": \"STU-1002\", \"research_consent\": true, \"data_sharing_consent\": false, \"\
+    consent_date\": \"2025-09-01\", \"consent_version\": \"v2\"},\n    {\"student_id\": \"STU-1003\",\
+    \ \"research_consent\": false, \"data_sharing_consent\": false, \"consent_date\": null, \"consent_version\"\
+    : null},\n    {\"student_id\": \"STU-1004\", \"research_consent\": false, \"data_sharing_consent\"\
+    : false, \"consent_date\": \"2024-01-15\", \"consent_version\": \"v1\"},\n    {\"student_id\": \"\
+    STU-1005\", \"research_consent\": true, \"data_sharing_consent\": true, \"consent_date\": \"2025-09-01\"\
+    , \"consent_version\": \"v2\"},\n    {\"student_id\": \"STU-1006\", \"research_consent\": true, \"\
+    data_sharing_consent\": true, \"consent_date\": \"2025-09-01\", \"consent_version\": \"v2\"}\n  ]\n\
+    }\n"
+  fixture-0001: "{\n  \"pipeline_id\": \"student_record_privacy_review\",\n  \"inputs\": {\n    \"records\"\
+    : \"student_records.csv\",\n    \"consent\": \"consent_forms.json\",\n    \"policy\": \"privacy_policy.json\"\
+    \n  },\n  \"input_modalities\": [\"table\", \"text\", \"json\"],\n  \"systems\": [\n    \"student\
+    \ information system\",\n    \"data steward review queue\"\n  ]\n}\n"
+  fixture-0002: "{\n  \"policy_id\": \"ferpa-student-privacy-v3\",\n  \"description\": \"Student record\
+    \ privacy review policy for research data release\",\n  \"sensitive_fields\": [\"email\", \"student_name\"\
+    ],\n  \"required_consent_version\": \"v2\",\n  \"min_gpa_threshold\": 2.0,\n  \"max_enrollment_age_years\"\
+    : 6,\n  \"current_academic_year\": 2026,\n  \"risk_rules\": {\n    \"revoked_consent\": \"auto_exception\"\
+    ,\n    \"pending_consent\": \"auto_exception\",\n    \"sensitive_data_no_consent\": \"auto_exception\"\
+    ,\n    \"stale_enrollment\": \"flag_for_review\"\n  }\n}\n"
+  fixture-0003: 'student_id,student_name,email,grade,program,gpa,campus,enrollment_year,consent_status,has_sensitive_data
+
+    STU-1001,Alice Johnson,alice.j@university.edu,Senior,Computer Science,3.8,Main Campus,2022,granted,false
+
+    STU-1002,Bob Chen,bob.c@university.edu,Junior,Mathematics,2.9,Main Campus,2023,granted,false
+
+    STU-1003,Carlos Mendez,carlos.m@university.edu,Freshman,Engineering,3.2,East Campus,2025,pending,false
+
+    STU-1004,Diana Park,diana.p@university.edu,Sophomore, Biology,3.5,West Campus,2024,revoked,true
+
+    STU-1005,Eva Mueller,eva.m@university.edu,Senior,Psychology,3.9,Main Campus,2021,granted,true
+
+    STU-1006,Frank Okonkwo,frank.o@university.edu,Graduate,Data Science,4.0,East Campus,2023,granted,false
+
+    '
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: student-record-privacy-review-nominal-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: student-record-privacy-review-nominal
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: nominal
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: execution-time
+      value: '2026-07-20T12:00:00Z'
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: student-record-privacy-review-nominal-scripts
+  - name: fixtures
+    configMap:
+      name: student-record-privacy-review-nominal-fixtures
+      items:
+      - key: fixture-0000
+        path: consent_forms.json
+      - key: fixture-0001
+        path: fixture.json
+      - key: fixture-0002
+        path: privacy_policy.json
+      - key: fixture-0003
+        path: student_records.csv
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-source-batch
+        template: run-ingest-source-batch
+      - name: validate-source-contract
+        template: run-validate-source-contract
+        depends: ingest-source-batch.Succeeded
+      - name: evaluate-policy-or-risk
+        template: run-evaluate-policy-or-risk
+        depends: validate-source-contract.Succeeded
+      - name: route-approved-records
+        template: run-route-approved-records
+        depends: evaluate-policy-or-risk.Succeeded
+      - name: route-exception-records
+        template: run-route-exception-records
+        depends: evaluate-policy-or-risk.Succeeded
+      - name: merge-route-outcomes
+        template: run-merge-route-outcomes
+        depends: route-approved-records.Succeeded && route-exception-records.Succeeded
+      - name: publish-outputs
+        template: run-publish-outputs
+        depends: merge-route-outcomes.Succeeded
+  - name: run-ingest-source-batch
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_source_batch
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_ingest_source_batch.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-validate-source-contract
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: validate_source_contract
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_validate_source_contract.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-evaluate-policy-or-risk
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: evaluate_policy_or_risk
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_evaluate_policy_or_risk.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-route-approved-records
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: route_approved_records
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_route_approved_records.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-route-exception-records
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: route_exception_records
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_route_exception_records.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-merge-route-outcomes
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: merge_route_outcomes
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/06_merge_route_outcomes.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-publish-outputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: publish_outputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/07_publish_outputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

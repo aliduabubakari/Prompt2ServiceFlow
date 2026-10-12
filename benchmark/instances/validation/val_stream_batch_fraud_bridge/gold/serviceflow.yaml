@@ -1,0 +1,923 @@
+ir_version: 0.1.0
+composition_id: val_stream_batch_fraud_bridge
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.3
+  sha256: 0807f68e6a990b9818c6f954c7089ae99a57b570a33b9f9ce5e6e32ffda8a150
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_stream_batch_fraud_bridge
+  split: validation
+  pipeline_id: val_stream_batch_fraud_bridge
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/20_val_stream_batch_fraud_bridge.txt
+  description_sha256: 90e09a7a6d8112b5ab60701d2a998fe65d6bdaff2f25586fd41d0f84c6594e97
+  internal_spec_path: source/internal_specs/validation_20/20_val_stream_batch_fraud_bridge.json
+  internal_spec_sha256: bba5df9fe5aa82253c9c80db6ec589c6b9af8b85341c34b24806f1d58fae8b23
+requirement:
+  name: Val Stream Batch Fraud Bridge
+  purpose: Wait for stream checkpoints, combine online events with batch history, route suspicious accounts,
+    and update monitoring outputs.
+  domain: validation_holdout
+  execution_model: batch
+  topology: mixed
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: fraud_sources
+  type: other
+  name: Fraud stream and batch sources
+  identifier: fraud_sources
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: monitoring_store
+  type: database
+  name: Fraud monitoring store
+  identifier: monitoring_store
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: case_management_system
+  type: http_api
+  name: Case management system
+  identifier: case_management_system
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: wait_for_stream_checkpoint
+  name: Wait For Stream Checkpoint
+  category: Sensor
+  capability: Perform the reviewed wait for stream checkpoint capability.
+  source_step_refs:
+  - wait_for_stream_checkpoint
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: wait_for_stream_checkpoint.'
+  inputs:
+  - fraud_sources
+  outputs:
+  - checkpoint_ready
+  - checkpoint_status
+  external_system_refs:
+  - fraud_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared checkpoint_ready, checkpoint_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: load_stream_events
+  name: Load Stream Events
+  category: Extractor
+  capability: Perform the reviewed load stream events capability.
+  source_step_refs:
+  - load_stream_events
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: load_stream_events.'
+  inputs:
+  - fraud_sources
+  outputs:
+  - stream_events
+  - stream_load_status
+  external_system_refs:
+  - fraud_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared stream_events, stream_load_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: load_batch_settlements
+  name: Load Batch Settlements
+  category: Extractor
+  capability: Perform the reviewed load batch settlements capability.
+  source_step_refs:
+  - load_batch_settlements
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: load_batch_settlements.'
+  inputs:
+  - fraud_sources
+  outputs:
+  - settlement_records
+  - settlement_load_status
+  external_system_refs:
+  - fraud_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared settlement_records, settlement_load_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: load_account_history
+  name: Load Account History
+  category: Extractor
+  capability: Perform the reviewed load account history capability.
+  source_step_refs:
+  - load_account_history
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: load_account_history.'
+  inputs:
+  - fraud_sources
+  outputs:
+  - account_history
+  - account_history_status
+  external_system_refs:
+  - fraud_sources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared account_history, account_history_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: join_transaction_context
+  name: Join Transaction Context
+  category: Integrator
+  capability: Perform the reviewed join transaction context capability.
+  source_step_refs:
+  - join_transaction_context
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: join_transaction_context.'
+  inputs:
+  - stream_events
+  - settlement_records
+  - account_history
+  outputs:
+  - transaction_context
+  - context_join_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared transaction_context, context_join_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: score_fraud_risk
+  name: Score Fraud Risk
+  category: ScoringService
+  capability: Perform the reviewed score fraud risk capability.
+  source_step_refs:
+  - score_fraud_risk
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: score_fraud_risk.'
+  inputs:
+  - transaction_context
+  outputs:
+  - risk_scores
+  - risk_scoring_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared risk_scores, risk_scoring_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: route_risk_action
+  name: Route Risk Action
+  category: DomainAdapter
+  capability: Perform the reviewed route risk action capability.
+  source_step_refs:
+  - route_risk_action
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: route_risk_action.'
+  inputs:
+  - risk_scores
+  outputs:
+  - risk_action
+  - risk_route_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared risk_action, risk_route_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: update_monitoring_table
+  name: Update Monitoring Table
+  category: Loader
+  capability: Perform the reviewed update monitoring table capability.
+  source_step_refs:
+  - update_monitoring_table
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: update_monitoring_table.'
+  inputs:
+  - risk_scores
+  - monitoring_store
+  outputs:
+  - monitoring_status
+  external_system_refs:
+  - monitoring_store
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared monitoring_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: open_investigation_case
+  name: Open Investigation Case
+  category: Publisher
+  capability: Perform the reviewed open investigation case capability.
+  source_step_refs:
+  - open_investigation_case
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: open_investigation_case.'
+  inputs:
+  - risk_scores
+  - case_management_system
+  outputs:
+  - investigation_cases
+  - investigation_case_status
+  external_system_refs:
+  - case_management_system
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared investigation_cases, investigation_case_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: publish_risk_metrics
+  name: Publish Risk Metrics
+  category: Publisher
+  capability: Perform the reviewed publish risk metrics capability.
+  source_step_refs:
+  - publish_risk_metrics
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: publish_risk_metrics.'
+  inputs:
+  - monitoring_status
+  outputs:
+  - risk_metrics
+  - metric_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared risk_metrics, metric_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: wait_for_stream_checkpoint
+  disposition: service
+  intent_ids:
+  - wait_for_stream_checkpoint
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: load_stream_events
+  disposition: service
+  intent_ids:
+  - load_stream_events
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: load_batch_settlements
+  disposition: service
+  intent_ids:
+  - load_batch_settlements
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: load_account_history
+  disposition: service
+  intent_ids:
+  - load_account_history
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: join_transaction_context
+  disposition: service
+  intent_ids:
+  - join_transaction_context
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: score_fraud_risk
+  disposition: service
+  intent_ids:
+  - score_fraud_risk
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: route_risk_action
+  disposition: service
+  intent_ids:
+  - route_risk_action
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: update_monitoring_table
+  disposition: service
+  intent_ids:
+  - update_monitoring_table
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: open_investigation_case
+  disposition: service
+  intent_ids:
+  - open_investigation_case
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: publish_risk_metrics
+  disposition: service
+  intent_ids:
+  - publish_risk_metrics
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: wait_for_stream_checkpoint
+    to: load_stream_events
+  - from: wait_for_stream_checkpoint
+    to: load_batch_settlements
+  - from: load_stream_events
+    to: join_transaction_context
+  - from: load_batch_settlements
+    to: join_transaction_context
+  - from: load_account_history
+    to: join_transaction_context
+  - from: join_transaction_context
+    to: score_fraud_risk
+  - from: score_fraud_risk
+    to: route_risk_action
+  - from: route_risk_action
+    to: update_monitoring_table
+  - from: route_risk_action
+    to: open_investigation_case
+  - from: update_monitoring_table
+    to: publish_risk_metrics
+  parallel_groups:
+  - group_id: fraud_source_loads
+    intent_ids:
+    - load_stream_events
+    - load_batch_settlements
+    - load_account_history
+  branches:
+  - branch_id: fraud_risk_route
+    decision_intent: route_risk_action
+    decision_artifact: risk_action
+    cases:
+    - case_id: low_risk
+      condition: risk_action.route == update_monitoring_table
+      next_intents:
+      - update_monitoring_table
+    - case_id: high_risk
+      condition: risk_action.route == open_investigation_case
+      next_intents:
+      - open_investigation_case
+  gates:
+  - gate_id: stream_checkpoint_gate
+    sensor_intent: wait_for_stream_checkpoint
+    condition: checkpoint_committed == true
+    gated_intents:
+    - load_stream_events
+    - load_batch_settlements
+artifacts:
+- artifact_id: fraud_sources
+  name: Fraud Sources
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: fraud_sources
+- artifact_id: monitoring_store
+  name: Monitoring Store
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: monitoring_store
+- artifact_id: case_management_system
+  name: Case Management System
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: case_management_system
+- artifact_id: checkpoint_ready
+  name: Checkpoint Ready
+  kind: artifact
+  data_type: json
+  role: output
+  producer: wait_for_stream_checkpoint
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: checkpoint_status
+  name: Checkpoint Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: wait_for_stream_checkpoint
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: stream_events
+  name: Stream Events
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: load_stream_events
+  consumers:
+  - join_transaction_context
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: stream_load_status
+  name: Stream Load Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: load_stream_events
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: settlement_records
+  name: Settlement Records
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: load_batch_settlements
+  consumers:
+  - join_transaction_context
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: settlement_load_status
+  name: Settlement Load Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: load_batch_settlements
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: account_history
+  name: Account History
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: load_account_history
+  consumers:
+  - join_transaction_context
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: account_history_status
+  name: Account History Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: load_account_history
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: transaction_context
+  name: Transaction Context
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: join_transaction_context
+  consumers:
+  - score_fraud_risk
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: context_join_status
+  name: Context Join Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: join_transaction_context
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: risk_scores
+  name: Risk Scores
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: score_fraud_risk
+  consumers:
+  - route_risk_action
+  - update_monitoring_table
+  - open_investigation_case
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: risk_scoring_status
+  name: Risk Scoring Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: score_fraud_risk
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: risk_action
+  name: Risk Action
+  kind: artifact
+  data_type: json
+  role: output
+  producer: route_risk_action
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: risk_route_status
+  name: Risk Route Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: route_risk_action
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: monitoring_status
+  name: Monitoring Status
+  kind: artifact
+  data_type: status
+  role: intermediate
+  producer: update_monitoring_table
+  consumers:
+  - publish_risk_metrics
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: investigation_cases
+  name: Investigation Cases
+  kind: artifact
+  data_type: json
+  role: output
+  producer: open_investigation_case
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: investigation_case_status
+  name: Investigation Case Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: open_investigation_case
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: risk_metrics
+  name: Risk Metrics
+  kind: artifact
+  data_type: json
+  role: output
+  producer: publish_risk_metrics
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: metric_status
+  name: Metric Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: publish_risk_metrics
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: wait_for_stream_checkpoint
+  service_id: multi_resource_readiness_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: resource_group
+    artifact_id: fraud_sources
+  output_bindings:
+  - port: readiness_decision
+    artifact_id: checkpoint_ready
+  - port: readiness_status
+    artifact_id: checkpoint_status
+  parameter_bindings:
+    readiness_condition: checkpoint_committed
+    minimum_ready_count: 1
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: load_stream_events
+  service_id: fraud_source_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: fraud_source
+    artifact_id: fraud_sources
+  output_bindings:
+  - port: fraud_dataset
+    artifact_id: stream_events
+  - port: load_status
+    artifact_id: stream_load_status
+  parameter_bindings:
+    source_name: stream_events
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: load_batch_settlements
+  service_id: fraud_source_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: fraud_source
+    artifact_id: fraud_sources
+  output_bindings:
+  - port: fraud_dataset
+    artifact_id: settlement_records
+  - port: load_status
+    artifact_id: settlement_load_status
+  parameter_bindings:
+    source_name: settlements
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: load_account_history
+  service_id: fraud_source_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: fraud_source
+    artifact_id: fraud_sources
+  output_bindings:
+  - port: fraud_dataset
+    artifact_id: account_history
+  - port: load_status
+    artifact_id: account_history_status
+  parameter_bindings:
+    source_name: account_history
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: join_transaction_context
+  service_id: transaction_context_joiner
+  service_version: 1.0.0
+  input_bindings:
+  - port: stream_events
+    artifact_id: stream_events
+  - port: settlement_records
+    artifact_id: settlement_records
+  - port: account_history
+    artifact_id: account_history
+  output_bindings:
+  - port: transaction_context
+    artifact_id: transaction_context
+  - port: join_status
+    artifact_id: context_join_status
+  parameter_bindings:
+    join_key: account_id
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: score_fraud_risk
+  service_id: transaction_fraud_risk_scorer
+  service_version: 1.0.0
+  input_bindings:
+  - port: transaction_context
+    artifact_id: transaction_context
+  output_bindings:
+  - port: risk_scores
+    artifact_id: risk_scores
+  - port: scoring_status
+    artifact_id: risk_scoring_status
+  parameter_bindings:
+    scoring_profile: hybrid
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: route_risk_action
+  service_id: fraud_risk_action_router
+  service_version: 1.0.0
+  input_bindings:
+  - port: risk_scores
+    artifact_id: risk_scores
+  output_bindings:
+  - port: risk_action
+    artifact_id: risk_action
+  - port: routing_status
+    artifact_id: risk_route_status
+  parameter_bindings:
+    risk_threshold: 0.75
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: update_monitoring_table
+  service_id: fraud_monitoring_table_updater
+  service_version: 1.0.0
+  input_bindings:
+  - port: risk_scores
+    artifact_id: risk_scores
+  - port: monitoring_store
+    artifact_id: monitoring_store
+  output_bindings:
+  - port: monitoring_status
+    artifact_id: monitoring_status
+  parameter_bindings:
+    target_table: fraud_monitoring
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: open_investigation_case
+  service_id: review_case_opener
+  service_version: 1.0.0
+  input_bindings:
+  - port: review_records
+    artifact_id: risk_scores
+  - port: case_system
+    artifact_id: case_management_system
+  output_bindings:
+  - port: review_cases
+    artifact_id: investigation_cases
+  - port: case_status
+    artifact_id: investigation_case_status
+  parameter_bindings:
+    case_type: fraud_investigation
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: publish_risk_metrics
+  service_id: risk_metric_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: monitoring_status
+    artifact_id: monitoring_status
+  output_bindings:
+  - port: risk_metrics
+    artifact_id: risk_metrics
+  - port: metric_status
+    artifact_id: metric_status
+  parameter_bindings:
+    metric_name: fraud_risk
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

@@ -1,0 +1,22 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_parallel_thumbnail_generation
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.1
+candidate_sets:
+- candidate_set_id: validation_val_parallel_thumbnail_generation_image_cdn_batch_downloader_candidates
+  source_step_refs:
+  - download_new_images
+  service_ids:
+  - image_cdn_batch_downloader
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_parallel_thumbnail_generation_image_thumbnail_renderer_candidates
+  source_step_refs:
+  - generate_small_thumbnail
+  - generate_medium_thumbnail
+  - generate_large_thumbnail
+  service_ids:
+  - image_thumbnail_renderer
+  - temporary_resource_cleanup
+  - csv_to_structured_json_standardizer

@@ -1,0 +1,187 @@
+schema_version: 0.1.0
+service_id: elasticsearch_index_publisher
+version: 1.0.0
+display_name: Elasticsearch Index Publisher
+category: Publisher
+capability:
+  summary: Publishes or promotes an Elasticsearch index by applying a configured alias/color-slot/version
+    publication action and emits the published index reference plus status.
+  operations:
+  - Read an Elasticsearch index reference and source version metadata.
+  - Resolve the Elasticsearch cluster resource.
+  - Apply configured publication mode, such as alias update or color-slot promotion.
+  - Emit publication status with published reference and action taken.
+  keywords:
+  - elasticsearch
+  - publisher
+  - alias promotion
+  - blue green
+  - index publication
+  - search index
+  limitations:
+  - Does not build or index documents.
+  - Exact publication semantics depend on configured mode and cluster permissions.
+  - Repeated invocations may be idempotent only when publication target and version
+    are stable.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: index_reference
+    description: Reference to the Elasticsearch index to publish or promote.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://elasticsearch_index_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: version_metadata
+    description: Version metadata associated with the index contents.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://release_asset_metadata/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  - name: elasticsearch_cluster
+    description: Elasticsearch-compatible cluster resource used for publication actions.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://elasticsearch_cluster_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: published_index
+    description: Reference to the published index, alias, or color slot.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://published_elasticsearch_index_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: publish_status
+    description: Observable publication status including action, target, version,
+      and success flag.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://elasticsearch_index_publish_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: publication_mode
+    description: Publication behavior to apply.
+    type: string
+    required: true
+    enum:
+    - alias_update
+    - color_slot
+    - mark_current
+  - name: alias_name
+    description: Alias name to update when publication_mode is alias_update.
+    type: string
+    required: false
+  - name: color
+    description: Deployment color or slot to publish to when using color-slot mode.
+    type: string
+    required: false
+  secrets:
+  - name: elasticsearch_credentials
+    description: Optional credentials for Elasticsearch publication actions if required
+      by the bound resource.
+    required: false
+contracts:
+- contract_id: elasticsearch_publisher_input_index_contract
+  type: precondition
+  applies_to: input
+  target: index_reference
+  description: Input index reference must include a non-empty index name.
+  expression: length(trim(index_reference.index_name)) > 0
+- contract_id: elasticsearch_publication_mode_contract
+  type: precondition
+  applies_to: parameter
+  target: publication_mode
+  description: Publication mode must be one of the supported modes.
+  expression: publication_mode in ['alias_update','color_slot','mark_current']
+- contract_id: published_elasticsearch_index_reference_schema
+  type: json_schema
+  applies_to: output
+  target: published_index
+  description: Published reference identifies the publication target and underlying
+    index.
+  schema_ref: schema://published_elasticsearch_index_reference/v1
+  expression: '{"type":"object","required":["index_name","publication_mode"],"properties":{"index_name":{"type":"string"},"alias_name":{"type":["string","null"]},"color":{"type":["string","null"]},"publication_mode":{"type":"string"},"version":{"type":["string","null"]}}}'
+- contract_id: elasticsearch_index_publish_status_schema
+  type: json_schema
+  applies_to: output
+  target: publish_status
+  description: Status exposes publication effect for downstream validation.
+  schema_ref: schema://elasticsearch_index_publish_status/v1
+  expression: '{"type":"object","required":["success","action","index_name","publication_mode"],"properties":{"success":{"type":"boolean"},"action":{"type":"string"},"index_name":{"type":"string"},"publication_mode":{"type":"string"},"alias_name":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: elasticsearch_index_publish_effect
+  type: effect
+  applies_to: service
+  target: elasticsearch_index_publisher
+  description: On success, the configured index is published according to the selected
+    publication mode and status.success is true.
+  expression: publish_status.success == true implies published_index.index_name ==
+    index_reference.index_name
+invocation:
+  type: argo_workflow_template
+  template_name: elasticsearch-index-publisher-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.elasticsearch_index_publisher
+  implementation_ref: services/implementations/elasticsearch_index_publisher
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - elasticsearch://*
+  - http://*
+  - https://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit Elasticsearch credentials in outputs or logs.
+  - Publication changes should be restricted to explicitly bound index/alias resources.
+  idempotency_notes: Idempotent when alias/color publication target and source index
+    are unchanged; otherwise publication mutates cluster state.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:etl_import_mondo#publish_mondo
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Separates index promotion/publication from Spark indexing while preserving
+    an observable publisher status.'
+  - 'Evidence status: strongly_inferred.'

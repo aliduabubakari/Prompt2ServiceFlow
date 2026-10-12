@@ -1,0 +1,28 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_batch_model_scoring
+mappings:
+- intent_id: load_feature_table
+  inputs:
+    feature_store: feature_store_resource
+  outputs:
+    customer_features: customer_features
+    extraction_status: feature_extract_status
+- intent_id: load_model_artifact
+  inputs:
+    model_registry: model_registry_resource
+  outputs:
+    model_artifact: churn_model
+    fetch_status: model_fetch_status
+- intent_id: score_customers
+  inputs:
+    customer_features: customer_features
+    model_artifact: churn_model
+  outputs:
+    prediction_table: prediction_table
+    scoring_status: scoring_status
+- intent_id: write_predictions
+  inputs:
+    prediction_table: prediction_table
+    prediction_store: prediction_store_resource
+  outputs:
+    write_status: prediction_write_status

@@ -1,0 +1,216 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-08T11:01:19.442014+00:00",
+  "instance": "benchmark/instances/main/airflow_log_cleanup",
+  "workspace": "experiments/workspaces/main/airflow_log_cleanup",
+  "submission": "results/paper/runs/m5__main__airflow_log_cleanup__deepinfra-qwen3-coder-480b-turbo__s1__20261008T110016.556529Z__62a1a29b/agent_workspace/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G1",
+    "g6_assert_status": "pass",
+    "full_pass_g0_g6": false,
+    "node_f1": 0.6666666666666666,
+    "edge_f1": 0.0,
+    "binding_top1_accuracy": 0.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": null,
+    "wiring_applicable": false,
+    "alignment_edit_distance": 3,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.5,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": null
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-08T11:01:16.512663+00:00",
+    "workspace": "experiments/workspaces/main/airflow_log_cleanup",
+    "submission": "results/paper/runs/m5__main__airflow_log_cleanup__deepinfra-qwen3-coder-480b-turbo__s1__20261008T110016.556529Z__62a1a29b/agent_workspace/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G1",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "fail",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "control-flow edge references unknown intent 'start'",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "control-flow edge references unknown intent 'log_cleanup_worker_num_1_dir_0'",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'lock_file_artifact' names producer 'log_cleanup_worker_intent', but the producer does not list it as an output",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_MANIFEST_EDGE_MISMATCH",
+            "message": "runtime dependency edges do not match control flow: missing=[('start', 'log_cleanup_worker_num_1_dir_0')], extra=[('start', 'log_cleanup_worker_intent')]"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "pass",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": []
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "fail",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [
+          {
+            "code": "G5_COMPILE_ERROR",
+            "message": "deterministic compilation failed: 'start'"
+          }
+        ],
+        "details": {}
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "log_cleanup_worker_intent"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 1,
+      "submission_intents": 1,
+      "gold_intents": 2,
+      "mapping": {
+        "log_cleanup_worker_intent": "log_cleanup_worker_num_1_dir_0"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 0.5,
+      "f1": 0.6666666666666666,
+      "matched": 1
+    },
+    "edge": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "true_positives": 0,
+      "false_positives": 1,
+      "false_negatives": 1
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.5,
+    "alignment_edit_distance": 3,
+    "source_step_coverage": {
+      "covered": 2,
+      "total": 2,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 0.0,
+    "aligned_accuracy": 0.0,
+    "version_accuracy_given_correct_service": null,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 2,
+    "correct": 0,
+    "confusion_by_label": {
+      "contract_mismatch": 1,
+      "missing_intent": 1
+    },
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "log_cleanup_worker_num_1_dir_0",
+        "gold_service": "temporary_resource_cleanup",
+        "submission_intent": "log_cleanup_worker_intent",
+        "submission_service": "filesystem_retention_cleanup_with_lock",
+        "outcome": "contract_mismatch"
+      },
+      {
+        "gold_intent": "start",
+        "gold_service": "temporary_resource_cleanup",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      }
+    ]
+  },
+  "wiring": {
+    "status": "not_applicable",
+    "reason": "gold and submission contain no producer-consumer wiring pairs",
+    "applicable": false,
+    "precision": null,
+    "recall": null,
+    "f1": null,
+    "true_positives": 0,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [],
+        "status": "pass"
+      }
+    ],
+    "assertions_total": 0,
+    "assertions_passed": 0,
+    "pass_rate": null,
+    "overall_status": "pass"
+  }
+}

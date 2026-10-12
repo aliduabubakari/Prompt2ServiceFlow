@@ -1,0 +1,112 @@
+Pipeline Summary:
+- Pipeline ID: val_federated_partner_reconciliation
+- Name: Federated Partner Reconciliation
+- Purpose: Wait for partner extracts, ingest several feeds in parallel, reconcile discrepancies, branch unresolved records to review, and publish consolidated outputs.
+- Execution model: Batch
+- Topology pattern: Mixed
+- Business domain: Partner Data Exchange
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - wait_for_partner_extracts -> ingest_partner_a
+  - wait_for_partner_extracts -> ingest_partner_b
+  - wait_for_partner_extracts -> ingest_partner_c
+  - ingest_partner_a -> standardize_records
+  - ingest_partner_b -> standardize_records
+  - ingest_partner_c -> standardize_records
+  - standardize_records -> match_entities
+  - match_entities -> route_discrepancies
+  - route_discrepancies -> publish_clean_records
+  - route_discrepancies -> open_review_cases
+  - publish_clean_records -> write_reconciliation_audit
+  - open_review_cases -> write_reconciliation_audit
+- Parallel groups:
+  - group 1: ingest_partner_a, ingest_partner_b, ingest_partner_c
+- Branch points:
+  - {'step': 'route_discrepancies', 'conditions': ['matched', 'unresolved'], 'merge_step': 'write_reconciliation_audit'}
+- Gate or sensor dependencies:
+  - {'step': 'wait_for_partner_extracts', 'condition': 'all_partner_files_arrived'}
+
+Data Artifacts / I-O Identifiers:
+  - data_object: partner_a_extract
+  - data_object: partner_b_extract
+  - data_object: partner_c_extract
+  - data_object: clean_records
+  - data_object: review_cases
+  - data_object: audit_report
+
+External Systems:
+  - external_service: Partner A SFTP
+  - external_service: Partner B API
+  - external_service: Partner C bucket
+  - external_service: Review case system
+
+Pipeline Steps:
+1. wait_for_partner_extracts - wait for partner extracts
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. ingest_partner_a - ingest partner a
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. ingest_partner_b - ingest partner b
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+4. ingest_partner_c - ingest partner c
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+5. standardize_records - standardize records
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+6. match_entities - match entities
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+7. route_discrepancies - route discrepancies
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+8. publish_clean_records - publish clean records
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+9. open_review_cases - open review cases
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+10. write_reconciliation_audit - write reconciliation audit
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

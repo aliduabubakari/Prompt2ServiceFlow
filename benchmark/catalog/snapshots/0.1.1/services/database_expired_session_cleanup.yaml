@@ -1,0 +1,152 @@
+schema_version: 0.1.0
+service_id: database_expired_session_cleanup
+version: 1.0.0
+display_name: Database Expired Session Cleanup
+category: Maintenance
+capability:
+  summary: Deletes expired rows from a configured database-backed session table and
+    emits observable cleanup status.
+  operations:
+  - Resolve a bound SQL database resource.
+  - Select session rows whose expiration column is older than the evaluation timestamp
+    or whose framework-specific expiration predicate is true.
+  - Delete expired session rows when enabled.
+  - Emit status with candidate and deleted row counts.
+  keywords:
+  - session cleanup
+  - expired sessions
+  - database maintenance
+  - retention
+  limitations:
+  - Requires caller to configure or bind the session table and expiration semantics.
+  - Does not clean non-database session stores.
+  - Does not update database statistics.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: session_database
+    description: Database resource containing the session table.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: session_cleanup_status
+    description: Observable status for expired-session cleanup.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://expired_session_cleanup_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: affected_table
+    description: Logical reference to the session table processed.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://sql_table_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: session_table
+    description: Session table name, for example session.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_\.]*$
+  - name: expiration_column
+    description: Optional timestamp column used to identify expired sessions when
+      the database schema exposes one.
+    type: string
+    required: false
+  - name: evaluation_time
+    description: Timestamp used to evaluate expiration; if omitted, workflow binding
+      may supply current/logical time.
+    type: string
+    required: false
+  - name: delete_enabled
+    description: Whether to delete expired rows or report dry-run counts only.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: expired_session_table_contract
+  type: precondition
+  applies_to: parameter
+  target: session_table
+  description: Session table must be a non-empty identifier-like name, optionally
+    schema-qualified.
+  expression: session_table matches '^[A-Za-z_][A-Za-z0-9_\.]*$'
+- contract_id: expired_session_cleanup_status_schema
+  type: json_schema
+  applies_to: output
+  target: session_cleanup_status
+  description: Status exposes expired-session cleanup effect.
+  schema_ref: schema://expired_session_cleanup_status/v1
+  expression: '{"type":"object","required":["success","session_table","delete_enabled","expired_candidates","rows_deleted"],"properties":{"success":{"type":"boolean"},"session_table":{"type":"string"},"delete_enabled":{"type":"boolean"},"expired_candidates":{"type":"integer","minimum":0},"rows_deleted":{"type":"integer","minimum":0},"evaluation_time":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: expired_session_cleanup_effect
+  type: effect
+  applies_to: service
+  target: database_expired_session_cleanup
+  description: On success with deletion enabled, expired session rows are removed;
+    when deletion is disabled, no rows are deleted.
+  expression: session_cleanup_status.success == true and session_cleanup_status.delete_enabled
+    == false implies session_cleanup_status.rows_deleted == 0
+invocation:
+  type: argo_workflow_template
+  template_name: database-expired-session-cleanup-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.database_expired_session_cleanup
+  implementation_ref: services/implementations/database_expired_session_cleanup
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - postgresql://*
+  - mysql://*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Session rows can contain authentication/session metadata; do not emit raw session
+    payloads.
+  idempotency_notes: Retry-safe when deleting already-removed expired rows is treated
+    as zero candidates or skipped rows.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:airflow_db_cleanup#cleanup_sessions
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Expired session cleanup has different semantics from age-based Airflow
+    metadata model cleanup and should expose a specific observable status.'
+  - 'Evidence status: strongly_inferred.'

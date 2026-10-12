@@ -1,0 +1,271 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-strategy-selector-scripts
+  namespace: prompt2serviceflow
+data:
+  01_create_backup.py: "#!/usr/bin/env python3\n\"\"\"Create the branch-selected mock database backup\
+    \ artifact.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport hashlib\nimport\
+    \ json\nfrom pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--database-resource\"\
+    , type=Path, required=True)\n    parser.add_argument(\"--mode\", choices=(\"full\", \"incremental\"\
+    ), required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace / \"artifacts\"\
+    \n    artifacts.mkdir(parents=True, exist_ok=True)\n    database = json.loads(args.database_resource.read_text(encoding=\"\
+    utf-8\"))\n    payload = f\"mock-{args.mode}-backup:{database.get('database', 'backup_target_db')}\\\
+    n\".encode()\n    payload *= 32\n    backup_path = artifacts / \"backup_file.dump\"\n    backup_path.write_bytes(payload)\n\
+    \    checksum = hashlib.sha256(payload).hexdigest()\n    manifest = {\n        \"backup_mode\": args.mode,\n\
+    \        \"database_engine\": database.get(\"engine\", \"postgresql\"),\n        \"output_uri\": str(backup_path),\n\
+    \        \"artifact_created\": True,\n        \"checksum_sha256\": checksum,\n        \"size_bytes\"\
+    : len(payload),\n        \"checkpoint_reference\": \"mock-checkpoint-2024-01-07\" if args.mode ==\
+    \ \"incremental\" else None,\n    }\n    (artifacts / \"backup_manifest.json\").write_text(\n    \
+    \    json.dumps(manifest, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\n       \
+    \ \"success\": True,\n        \"backup_mode\": args.mode,\n        \"backup_attempted\": True,\n \
+    \       \"output_uri\": str(backup_path),\n        \"bytes_written\": len(payload),\n        \"errors\"\
+    : [],\n    }\n    (artifacts / \"backup_status.json\").write_text(\n        json.dumps(status, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  02_date_check_task.py: "#!/usr/bin/env python3\n\"\"\"Determine backup strategy from execution date\
+    \ fixture.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom datetime\
+    \ import datetime\nfrom pathlib import Path\n\nFULL_BACKUP_DAYS = {5}  # Saturday in python_monday_0\n\
+    \n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\"\
+    , type=Path, required=True)\n    parser.add_argument(\"--execution-date\", type=Path, required=True)\n\
+    \    args = parser.parse_args()\n\n    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True,\
+    \ exist_ok=True)\n\n    exec_date_str = args.execution_date.read_text(encoding=\"utf-8\").strip()\n\
+    \    exec_date = datetime.strptime(exec_date_str, \"%Y-%m-%d\").date()\n    dow = exec_date.weekday()\
+    \  # Monday=0, ..., Saturday=5, Sunday=6\n    is_full = dow in FULL_BACKUP_DAYS\n    strategy = \"\
+    full\" if is_full else \"incremental\"\n    reason = (\n        f\"Day of week {dow!r} {'is' if is_full\
+    \ else 'is not'} in full-backup days {FULL_BACKUP_DAYS!r}\"\n    )\n\n    decision = {\n        \"\
+    selected_strategy\": strategy,\n        \"branch_label\": strategy,\n        \"day_of_week\": dow,\n\
+    \        \"matched_full_backup_day\": is_full,\n        \"reason\": reason,\n    }\n    (artifacts\
+    \ / \"backup_strategy_decision.json\").write_text(\n        json.dumps(decision, indent=2) + \"\\\
+    n\", encoding=\"utf-8\"\n    )\n    (artifacts / \"backup_strategy.txt\").write_text(strategy, encoding=\"\
+    utf-8\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  02_verify_backup.py: "#!/usr/bin/env python3\n\"\"\"Verify the branch-selected mock database backup\
+    \ artifact.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport hashlib\nimport\
+    \ json\nfrom pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \n    artifacts = args.workspace / \"artifacts\"\n    backup_path = artifacts / \"backup_file.dump\"\
+    \n    manifest = json.loads((artifacts / \"backup_manifest.json\").read_text(encoding=\"utf-8\"))\n\
+    \    payload = backup_path.read_bytes()\n    checksum_matched = hashlib.sha256(payload).hexdigest()\
+    \ == manifest[\"checksum_sha256\"]\n    valid = bool(payload) and checksum_matched\n    result = {\n\
+    \        \"valid\": valid,\n        \"checks_run\": 3,\n        \"checks_failed\": 0 if valid else\
+    \ 1,\n        \"artifact_readable\": True,\n        \"checksum_matched\": checksum_matched,\n    \
+    \    \"completeness_passed\": bool(payload),\n        \"errors\": [] if valid else [\"backup integrity\
+    \ check failed\"],\n    }\n    (artifacts / \"verification_result.json\").write_text(\n        json.dumps(result,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts / \"verification_status.json\").write_text(\n\
+    \        json.dumps(\n            {\n                \"success\": valid,\n                \"verification_attempted\"\
+    : True,\n                \"valid\": valid,\n                \"profile\": \"checksum_and_non_empty\"\
+    ,\n                \"errors\": result[\"errors\"],\n            },\n            indent=2,\n      \
+    \  )\n        + \"\\n\",\n        encoding=\"utf-8\",\n    )\n\n\nif __name__ == \"__main__\":\n \
+    \   main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-strategy-selector-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"driver\": \"filesystem-mock\",\n  \"engine\": \"postgresql\",\n  \"target\": \"\
+    workspace/mock_database\"\n}\n"
+  fixture-0001: '2024-01-06
+
+    '
+  fixture-0002: '2024-01-08
+
+    '
+---
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: backup-strategy-selector
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: exec-date-fixture
+        value: execution_date_saturday.txt
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: backup-strategy-selector-scripts
+    - name: fixtures
+      configMap:
+        name: backup-strategy-selector-fixtures
+        items:
+        - key: fixture-0000
+          path: database_resource.json
+        - key: fixture-0001
+          path: execution_date_saturday.txt
+        - key: fixture-0002
+          path: execution_date_weekday.txt
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: date-check-task
+          template: run-date-check-task
+        - name: full-backup-task
+          template: run-full-backup-task
+          depends: date-check-task.Succeeded
+          when: '{{tasks.date-check-task.outputs.parameters.strategy}} == full'
+        - name: incremental-backup-task
+          template: run-incremental-backup-task
+          depends: date-check-task.Succeeded
+          when: '{{tasks.date-check-task.outputs.parameters.strategy}} == incremental'
+        - name: verify-backup-task
+          template: run-verify-backup-task
+          depends: (full-backup-task.Succeeded || incremental-backup-task.Succeeded)
+    - name: run-date-check-task
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: date_check_task
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_date_check_task.py
+        - --workspace
+        - /workspace
+        - --execution-date
+        - /opt/p2sf/fixtures/{{workflow.parameters.exec-date-fixture}}
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      outputs:
+        parameters:
+        - name: strategy
+          valueFrom:
+            path: /workspace/artifacts/backup_strategy.txt
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-full-backup-task
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: full_backup_task
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_create_backup.py
+        - --workspace
+        - /workspace
+        - --database-resource
+        - /opt/p2sf/fixtures/database_resource.json
+        - --mode
+        - full
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-incremental-backup-task
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: incremental_backup_task
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_create_backup.py
+        - --workspace
+        - /workspace
+        - --database-resource
+        - /opt/p2sf/fixtures/database_resource.json
+        - --mode
+        - incremental
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-verify-backup-task
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: verify_backup_task
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_verify_backup.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError

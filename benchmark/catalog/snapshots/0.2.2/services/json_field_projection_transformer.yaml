@@ -1,0 +1,155 @@
+schema_version: 0.1.0
+service_id: json_field_projection_transformer
+version: 1.0.0
+display_name: JSON Field Projection Transformer
+category: Transformer
+capability:
+  summary: Projects configured fields from an input JSON artifact into a structured
+    JSON object using JSONPath-like expressions and emits transform status.
+  operations:
+  - Read an input JSON artifact.
+  - Evaluate configured field mappings against the JSON.
+  - Optionally rename fields and enforce required fields.
+  - Emit a projected JSON object and transformation status.
+  keywords:
+  - json
+  - field extraction
+  - projection
+  - mapping
+  - transform
+  - jsonpath
+  limitations:
+  - Does not call external APIs.
+  - Does not infer missing business mappings; mappings must be supplied by caller.
+  - Does not perform complex joins or aggregations.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_json
+    description: Input JSON response artifact containing the source data.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://http_json_response/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  outputs:
+  - name: projected_object
+    description: Structured JSON object containing projected output fields such as
+      firstname, lastname, and email.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://projected_json_object/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: transform_status
+    description: Observable status with success flag, fields produced, missing required
+      fields, and errors.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://json_projection_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: field_mappings
+    description: Object mapping output field names to JSONPath-like source expressions.
+    type: object
+    required: true
+  - name: required_fields
+    description: Array of output field names that must be present and non-null.
+    type: array
+    required: false
+  - name: fail_on_missing_required
+    description: Whether missing required fields cause the service to fail.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: json_projection_input_contract
+  type: precondition
+  applies_to: input
+  target: source_json
+  description: Input must be readable and parseable as JSON.
+  expression: readable(source_json) and json_parseable(source_json)
+- contract_id: json_projection_mapping_contract
+  type: precondition
+  applies_to: parameter
+  target: field_mappings
+  description: At least one output field mapping must be provided.
+  expression: field_mappings != null and length(keys(field_mappings)) > 0
+- contract_id: projected_json_object_schema
+  type: json_schema
+  applies_to: output
+  target: projected_object
+  description: Projected output is a JSON object with caller-configured field names.
+  schema_ref: schema://projected_json_object/v1
+  expression: '{"type":"object","additionalProperties":true}'
+- contract_id: json_projection_status_schema
+  type: json_schema
+  applies_to: output
+  target: transform_status
+  description: Status exposes projection outcome and missing-field diagnostics.
+  schema_ref: schema://json_projection_status/v1
+  expression: '{"type":"object","required":["success","fields_requested","fields_produced","missing_fields"],"properties":{"success":{"type":"boolean"},"fields_requested":{"type":"array","items":{"type":"string"}},"fields_produced":{"type":"array","items":{"type":"string"}},"missing_fields":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: json_projection_effect
+  type: effect
+  applies_to: service
+  target: json_field_projection_transformer
+  description: On success, all required configured fields are present in projected_object.
+  expression: transform_status.success == true implies all(f in keys(projected_object)
+    for f in required_fields)
+invocation:
+  type: argo_workflow_template
+  template_name: json-field-projection-transformer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.json_field_projection_transformer
+  implementation_ref: services/implementations/json_field_projection_transformer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - pii
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Avoid logging raw projected personal data values; log field names and counts only.
+  idempotency_notes: Same input JSON and mapping configuration produce the same projected
+    object.
+  default_timeout_seconds: 60
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:assignment_solution#process_user
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The pipeline needs a reusable JSON-to-record projection capability
+    for processing API responses into firstname/lastname/email fields.'
+  - 'Evidence status: explicit.'

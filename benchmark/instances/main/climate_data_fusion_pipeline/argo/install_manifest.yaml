@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: climate-data-fusion-pipeline-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Climate data fusion mock.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json\nfrom pathlib import Path\nAGENCIES=[\"noaa\",\"ecmwf\",\"jma\",\"metoffice\"\
+    ,\"bom\"]\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--step\",type=str,required=True)\n    a=p.parse_args(); art=a.workspace/\"artifacts\"\
+    ; art.mkdir(parents=True,exist_ok=True)\n    st={\"success\":True,\"errors\":[]}\n    parts=a.step.split(\"\
+    _\",1)\n    if len(parts)==2:\n        agency,action=parts\n        if action==\"dl\":\n         \
+    \   (art/f\"{agency}_data.json\").write_text('{\"station_id\":\"S1\",\"temperature\":22.5,\"timestamp\"\
+    :\"2024-01-15\"}\\n',encoding=\"utf-8\")\n            (art/f\"{agency}_csv.csv\").write_text(\"station_id,temperature,timestamp\\\
+    nS1,22.5,2024-01-15\\n\",encoding=\"utf-8\")\n            (art/f\"{agency}_dl_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n        elif action==\"norm\":\n            (art/f\"norm_{agency}_csv.csv\"\
+    ).write_text(\"station_id,temperature,timestamp\\nS1,22.5,2024-01-15\\n\",encoding=\"utf-8\")\n  \
+    \          (art/f\"norm_{agency}_status.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    elif a.step==\"merge\":\n        (art/\"merged_dataset.parquet\").write_text('{\"columns\"\
+    :[\"station_id\",\"temperature\"],\"rows\":[]}',encoding=\"utf-8\")\n        (art/\"merge_status.json\"\
+    ).write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: climate-data-fusion-pipeline-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"pipeline_id\": \"climate_data_fusion_pipeline\",\n  \"inputs\": {\n    \"http\"\
+    : \"http.json\"\n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n  ],\n  \"systems\"\
+    : [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"
+  fixture-0001: '{"driver":"filesystem-mock"}'

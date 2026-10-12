@@ -1,0 +1,205 @@
+[
+  {
+    "pipeline_id": "clinical_note_phi_review_packet",
+    "name": "Clinical Note PHI Review Packet",
+    "track": "policy_privacy_human_review",
+    "domain": "Healthcare/Public Health",
+    "topology": "branch_gate",
+    "complexity": "complex",
+    "subject": "clinical note PHI review evidence",
+    "input_modalities": [
+      "text",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "redacted_text",
+      "review_packet",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "clinical note text export",
+      "encounter metadata JSON",
+      "PHI policy table"
+    ],
+    "external_systems": [
+      "secure note archive",
+      "privacy review queue"
+    ],
+    "scenario": "Detect PHI, redact deterministic fields, and route ambiguous clinical notes for human review.",
+    "global_number": 31,
+    "batch": 7,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_07/descriptions/31_clinical_note_phi_review_packet.txt",
+    "spec_path": "batch_07/specs/31_clinical_note_phi_review_packet.json",
+    "step_count": 10,
+    "edge_count": 10,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "financial_transaction_escalation_review",
+    "name": "Financial Transaction Escalation Review",
+    "track": "policy_privacy_human_review",
+    "domain": "Finance/Risk",
+    "topology": "branch_gate",
+    "complexity": "complex",
+    "subject": "financial transaction escalation review",
+    "input_modalities": [
+      "table",
+      "json"
+    ],
+    "output_modalities": [
+      "review_packet",
+      "audit_log",
+      "status"
+    ],
+    "primary_inputs": [
+      "transaction CSV",
+      "account-risk JSON",
+      "escalation policy table"
+    ],
+    "external_systems": [
+      "case management queue",
+      "audit evidence bucket"
+    ],
+    "scenario": "Apply policy thresholds to transaction records and escalate risky cases with evidence.",
+    "global_number": 32,
+    "batch": 7,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_07/descriptions/32_financial_transaction_escalation_review.txt",
+    "spec_path": "batch_07/specs/32_financial_transaction_escalation_review.json",
+    "step_count": 10,
+    "edge_count": 10,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "student_record_privacy_review",
+    "name": "Student Record Privacy Review",
+    "track": "policy_privacy_human_review",
+    "domain": "Education/Research",
+    "topology": "branch_gate",
+    "complexity": "medium",
+    "subject": "student record privacy review",
+    "input_modalities": [
+      "table",
+      "text",
+      "json"
+    ],
+    "output_modalities": [
+      "redacted_table",
+      "review_packet",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "student record CSV",
+      "consent statement text",
+      "privacy policy JSON"
+    ],
+    "external_systems": [
+      "student data vault",
+      "data steward review queue"
+    ],
+    "scenario": "Redact student records for research release and route exceptions to a data steward.",
+    "global_number": 33,
+    "batch": 7,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_07/descriptions/33_student_record_privacy_review.txt",
+    "spec_path": "batch_07/specs/33_student_record_privacy_review.json",
+    "step_count": 7,
+    "edge_count": 7,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "access_entitlement_recertification",
+    "name": "Access Entitlement Recertification",
+    "track": "policy_privacy_human_review",
+    "domain": "AI Platform Operations",
+    "topology": "fan_in",
+    "complexity": "very_complex",
+    "subject": "access entitlement recertification",
+    "input_modalities": [
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "review_packet",
+      "audit_log",
+      "status"
+    ],
+    "primary_inputs": [
+      "identity provider export",
+      "resource entitlement CSV",
+      "manager directory JSON"
+    ],
+    "external_systems": [
+      "identity governance fixture",
+      "manager approval queue"
+    ],
+    "scenario": "Fuse identity and resource entitlement records, route recertification decisions, and preserve an audit trail.",
+    "global_number": 34,
+    "batch": 7,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_07/descriptions/34_access_entitlement_recertification.txt",
+    "spec_path": "batch_07/specs/34_access_entitlement_recertification.json",
+    "step_count": 13,
+    "edge_count": 12,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "supplier_compliance_evidence_review",
+    "name": "Supplier Compliance Evidence Review",
+    "track": "policy_privacy_human_review",
+    "domain": "Supply Chain/Manufacturing",
+    "topology": "fan_in",
+    "complexity": "complex",
+    "subject": "supplier compliance evidence review",
+    "input_modalities": [
+      "pdf",
+      "table",
+      "json"
+    ],
+    "output_modalities": [
+      "review_packet",
+      "risk_report",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "supplier certificate PDF",
+      "supplier master CSV",
+      "compliance policy JSON"
+    ],
+    "external_systems": [
+      "supplier evidence store",
+      "compliance review queue"
+    ],
+    "scenario": "Prepare supplier evidence packets, verify policy coverage, and route gaps for review.",
+    "global_number": 35,
+    "batch": 7,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_07/descriptions/35_supplier_compliance_evidence_review.txt",
+    "spec_path": "batch_07/specs/35_supplier_compliance_evidence_review.json",
+    "step_count": 10,
+    "edge_count": 9,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  }
+]

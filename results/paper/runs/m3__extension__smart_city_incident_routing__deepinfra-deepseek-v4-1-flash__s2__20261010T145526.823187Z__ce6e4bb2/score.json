@@ -1,0 +1,382 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-10T14:56:12.143495+00:00",
+  "instance": "benchmark/instances/extension/smart_city_incident_routing",
+  "workspace": "experiments/workspaces/extension/smart_city_incident_routing",
+  "submission": "results/paper/runs/m3__extension__smart_city_incident_routing__deepinfra-deepseek-v4-1-flash__s2__20261010T145526.823187Z__ce6e4bb2/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G3",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-10T14:56:09.633192+00:00",
+    "workspace": "experiments/workspaces/extension/smart_city_incident_routing",
+    "submission": "results/paper/runs/m3__extension__smart_city_incident_routing__deepinfra-deepseek-v4-1-flash__s2__20261010T145526.823187Z__ce6e4bb2/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G3",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "pass",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": []
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "ingest_source_batch: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "validate_source_contract: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "normalize_partition_a: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "normalize_partition_b: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "normalize_partition_c: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "fuse_partitions: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "standardize_cross_domain_entities: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "resolve_entity_conflicts: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "score_operational_priority: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "publish_outputs: required output port 'execution_report' is not bound"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "smart-city-incident-routing-scripts",
+              "scenario": "base",
+              "data_size_bytes": 20161,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "smart-city-incident-routing-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 2848,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "smart-city-incident-routing-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 20161,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "smart-city-incident-routing-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 2848,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_source_batch",
+                "validate_source_contract",
+                "normalize_partition_a",
+                "normalize_partition_b",
+                "normalize_partition_c",
+                "fuse_partitions",
+                "standardize_cross_domain_entities",
+                "resolve_entity_conflicts",
+                "score_operational_priority",
+                "publish_outputs"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 10,
+      "submission_intents": 10,
+      "gold_intents": 10,
+      "mapping": {
+        "fuse_partitions": "fuse_partitions",
+        "ingest_source_batch": "ingest_source_batch",
+        "normalize_partition_a": "normalize_partition_a",
+        "normalize_partition_b": "normalize_partition_b",
+        "normalize_partition_c": "normalize_partition_c",
+        "publish_outputs": "publish_outputs",
+        "resolve_entity_conflicts": "resolve_entity_conflicts",
+        "score_operational_priority": "score_operational_priority",
+        "standardize_cross_domain_entities": "standardize_cross_domain_entities",
+        "validate_source_contract": "validate_source_contract"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 10
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 11,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 10,
+      "total": 10,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 10,
+    "correct": 10,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "fuse_partitions",
+        "gold_service": "smart_city_incident_context_fuser",
+        "submission_intent": "fuse_partitions",
+        "submission_service": "smart_city_incident_context_fuser",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_source_batch",
+        "gold_service": "smart_city_incident_batch_ingestor",
+        "submission_intent": "ingest_source_batch",
+        "submission_service": "smart_city_incident_batch_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "normalize_partition_a",
+        "gold_service": "citizen_report_partition_normalizer",
+        "submission_intent": "normalize_partition_a",
+        "submission_service": "citizen_report_partition_normalizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "normalize_partition_b",
+        "gold_service": "street_image_partition_normalizer",
+        "submission_intent": "normalize_partition_b",
+        "submission_service": "street_image_partition_normalizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "normalize_partition_c",
+        "gold_service": "sensor_asset_partition_normalizer",
+        "submission_intent": "normalize_partition_c",
+        "submission_service": "sensor_asset_partition_normalizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_outputs",
+        "gold_service": "smart_city_work_order_publisher",
+        "submission_intent": "publish_outputs",
+        "submission_service": "smart_city_work_order_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "resolve_entity_conflicts",
+        "gold_service": "cross_modal_entity_conflict_resolver",
+        "submission_intent": "resolve_entity_conflicts",
+        "submission_service": "cross_modal_entity_conflict_resolver",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "score_operational_priority",
+        "gold_service": "smart_city_incident_priority_scorer",
+        "submission_intent": "score_operational_priority",
+        "submission_service": "smart_city_incident_priority_scorer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "standardize_cross_domain_entities",
+        "gold_service": "mixed_domain_entity_standardizer",
+        "submission_intent": "standardize_cross_domain_entities",
+        "submission_service": "mixed_domain_entity_standardizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "validate_source_contract",
+        "gold_service": "smart_city_contract_validator",
+        "submission_intent": "validate_source_contract",
+        "submission_service": "smart_city_contract_validator",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 11,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "ingest_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-em3ozcqk/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "validate_rejected_zero",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-em3ozcqk/artifacts/validate_source_contract_status.json"
+          },
+          {
+            "assertion_id": "fuse_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-em3ozcqk/artifacts/fuse_partitions_status.json"
+          },
+          {
+            "assertion_id": "has_auto_dispatch",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-em3ozcqk/artifacts/score_operational_priority_status.json"
+          },
+          {
+            "assertion_id": "publish_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-em3ozcqk/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "csv_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-em3ozcqk/artifacts/dispatch_report.csv"
+          },
+          {
+            "assertion_id": "manifest_completed",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-em3ozcqk/artifacts/audit_manifest.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 7,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

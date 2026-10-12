@@ -1,0 +1,21 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:data-transformation-pipeline
+mappings:
+  - intent_id: start
+    inputs: {}
+    outputs: {load_id: run_id, generation_status: gen_status}
+  - intent_id: parse_input_params
+    inputs: {description_param: description_param_input, logical_date: logical_date_input}
+    outputs: {compilation_config: compilation_config, build_status: build_status}
+  - intent_id: create_compilation_result
+    inputs: {dataform_repository: dataform_repo_resource, compilation_config: compilation_config}
+    outputs: {compilation_result_reference: compilation_result_ref, creation_status: creation_status}
+  - intent_id: create_workflow_invocation
+    inputs: {dataform_repository: dataform_repo_resource, compilation_result_reference: compilation_result_ref}
+    outputs: {workflow_invocation_reference: workflow_invocation_ref, invocation_creation_status: invocation_status}
+  - intent_id: is_workflow_invocation_done
+    inputs: {dataform_repository: dataform_repo_resource, workflow_invocation_reference: workflow_invocation_ref}
+    outputs: {invocation_status: invocation_status_result}
+  - intent_id: end
+    inputs: {}
+    outputs: {cleanup_status: cleanup_status}

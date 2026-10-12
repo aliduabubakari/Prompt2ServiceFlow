@@ -1,0 +1,296 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supplier-compliance-evidence-review-nominal-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_primary_source.py: "#!/usr/bin/env python3\n\"\"\"Ingest supplier certificate data (primary\
+    \ source \u2014 extracted from PDFs).\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--execution-time\", type=str, default=None)\n    args = parser.parse_args()\n\
+    \    root = args.workspace\n    artifacts = root / \"artifacts\"\n    artifacts.mkdir(parents=True,\
+    \ exist_ok=True)\n\n    fixture = json.loads(args.fixture.read_text(encoding=\"utf-8\"))\n    fixtures_dir\
+    \ = args.fixture.parent\n\n    certs_path = fixtures_dir / fixture[\"inputs\"][\"certificates\"]\n\
+    \    certificates = json.loads(certs_path.read_text(encoding=\"utf-8\"))\n\n    result = {\n     \
+    \   \"source\": \"primary\",\n        \"certificates\": certificates,\n        \"total_certs\": len(certificates),\n\
+    \        \"suppliers_with_certs\": sorted(set(c[\"supplier_id\"] for c in certificates)),\n      \
+    \  \"ingested_at\": args.execution_time,\n    }\n    (artifacts / \"ingest_primary_source_artifact.json\"\
+    ).write_text(\n        json.dumps(result, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts\
+    \ / \"ingest_primary_source_status.json\").write_text(\n        json.dumps({\"success\": True, \"\
+    certs_loaded\": len(certificates), \"errors\": []}, indent=2) + \"\\n\",\n        encoding=\"utf-8\"\
+    \n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  02_ingest_secondary_source.py: "#!/usr/bin/env python3\n\"\"\"Ingest supplier master data (secondary\
+    \ source \u2014 CSV table).\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\n\
+    from pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--execution-time\", type=str, default=None)\n    args = parser.parse_args()\n\
+    \    root = args.workspace\n    artifacts = root / \"artifacts\"\n    artifacts.mkdir(parents=True,\
+    \ exist_ok=True)\n\n    fixture = json.loads(args.fixture.read_text(encoding=\"utf-8\"))\n    fixtures_dir\
+    \ = args.fixture.parent\n\n    master_path = fixtures_dir / fixture[\"inputs\"][\"master\"]\n    suppliers\
+    \ = []\n    with master_path.open(encoding=\"utf-8\", newline=\"\") as f:\n        reader = csv.DictReader(f)\n\
+    \        for row in reader:\n            suppliers.append(row)\n\n    result = {\n        \"source\"\
+    : \"secondary\",\n        \"suppliers\": suppliers,\n        \"total_suppliers\": len(suppliers),\n\
+    \        \"supplier_ids\": sorted(s[\"supplier_id\"] for s in suppliers),\n        \"ingested_at\"\
+    : args.execution_time,\n    }\n    (artifacts / \"ingest_secondary_source_artifact.json\").write_text(\n\
+    \        json.dumps(result, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts / \"ingest_secondary_source_status.json\"\
+    ).write_text(\n        json.dumps({\"success\": True, \"suppliers_loaded\": len(suppliers), \"errors\"\
+    : []}, indent=2) + \"\\n\",\n        encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n\
+    \    main()\n"
+  03_ingest_reference_source.py: "#!/usr/bin/env python3\n\"\"\"Ingest compliance policy (reference source\
+    \ \u2014 JSON).\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import\
+    \ Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\"\
+    , type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n  \
+    \  parser.add_argument(\"--execution-time\", type=str, default=None)\n    args = parser.parse_args()\n\
+    \    root = args.workspace\n    artifacts = root / \"artifacts\"\n    artifacts.mkdir(parents=True,\
+    \ exist_ok=True)\n\n    fixture = json.loads(args.fixture.read_text(encoding=\"utf-8\"))\n    fixtures_dir\
+    \ = args.fixture.parent\n\n    policy_path = fixtures_dir / fixture[\"inputs\"][\"policy\"]\n    policy\
+    \ = json.loads(policy_path.read_text(encoding=\"utf-8\"))\n\n    result = {\n        \"source\": \"\
+    reference\",\n        \"policy\": policy,\n        \"policy_id\": policy[\"policy_id\"],\n       \
+    \ \"required_cert_types\": policy[\"required_cert_types\"],\n        \"ingested_at\": args.execution_time,\n\
+    \    }\n    (artifacts / \"ingest_reference_source_artifact.json\").write_text(\n        json.dumps(result,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts / \"ingest_reference_source_status.json\"\
+    ).write_text(\n        json.dumps({\"success\": True, \"policy_id\": policy[\"policy_id\"], \"errors\"\
+    : []}, indent=2) + \"\\n\",\n        encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n\
+    \    main()\n"
+  04_validate_source_contracts.py: "#!/usr/bin/env python3\n\"\"\"Validate source contracts: cross-reference\
+    \ suppliers, check cert freshness, identify gaps.\"\"\"\nfrom __future__ import annotations\nimport\
+    \ argparse, json\nfrom datetime import datetime, timedelta\nfrom pathlib import Path\n\n\ndef parse_date(d:\
+    \ str) -> datetime:\n    return datetime.strptime(d, \"%Y-%m-%d\")\n\n\ndef main():\n    parser =\
+    \ argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--fixture\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \    root = args.workspace\n    artifacts = root / \"artifacts\"\n\n    primary = json.loads((artifacts\
+    \ / \"ingest_primary_source_artifact.json\").read_text(encoding=\"utf-8\"))\n    secondary = json.loads((artifacts\
+    \ / \"ingest_secondary_source_artifact.json\").read_text(encoding=\"utf-8\"))\n    reference = json.loads((artifacts\
+    \ / \"ingest_reference_source_artifact.json\").read_text(encoding=\"utf-8\"))\n\n    certificates\
+    \ = primary[\"certificates\"]\n    suppliers = {s[\"supplier_id\"]: s for s in secondary[\"suppliers\"\
+    ]}\n    policy = reference[\"policy\"]\n    expiry_grace = timedelta(days=policy[\"expiry_grace_days\"\
+    ])\n    today = datetime(2026, 7, 20)  # fixed reference date\n\n    issues = []\n    validated_certs\
+    \ = []\n    cert_supplier_ids = set()\n\n    for cert in certificates:\n        sid = cert[\"supplier_id\"\
+    ]\n        cert_supplier_ids.add(sid)\n        cert_issues = []\n\n        # Check supplier exists\
+    \ in master\n        if sid not in suppliers:\n            cert_issues.append(f\"orphan_cert: supplier\
+    \ {sid} not in master\")\n\n        # Check expiry\n        if cert[\"status\"] == \"expired\":\n\
+    \            cert_issues.append(\"cert_expired\")\n        else:\n            expiry = parse_date(cert[\"\
+    expiry_date\"])\n            if today + expiry_grace >= expiry:\n                cert_issues.append(\"\
+    cert_near_expiry\")\n\n        # Check cert type is required\n        if cert[\"cert_type\"] not in\
+    \ policy[\"required_cert_types\"]:\n            cert_issues.append(f\"non_required_cert_type: {cert['cert_type']}\"\
+    )\n\n        if cert_issues:\n            issues.append({\n                \"cert_id\": cert[\"cert_id\"\
+    ],\n                \"supplier_id\": sid,\n                \"issues\": cert_issues,\n            })\n\
+    \n        validated_certs.append({**cert, \"validation_issues\": cert_issues})\n\n    # Check suppliers\
+    \ without any certs\n    master_supplier_ids = set(suppliers.keys())\n    missing_cert_suppliers =\
+    \ master_supplier_ids - cert_supplier_ids\n    for sid in missing_cert_suppliers:\n        issues.append({\n\
+    \            \"supplier_id\": sid,\n            \"issues\": [\"missing_certificates\"],\n        })\n\
+    \n    result = {\n        \"validated_certs\": validated_certs,\n        \"suppliers\": {sid: {**s,\
+    \ \"has_certs\": sid in cert_supplier_ids} for sid, s in suppliers.items()},\n        \"missing_cert_suppliers\"\
+    : sorted(missing_cert_suppliers),\n        \"orphan_cert_suppliers\": sorted(cert_supplier_ids - master_supplier_ids),\n\
+    \        \"total_issues\": len(issues),\n        \"issues\": issues,\n        \"reference_date\":\
+    \ today.isoformat(),\n    }\n    (artifacts / \"validate_source_contracts_artifact.json\").write_text(\n\
+    \        json.dumps(result, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts / \"validate_source_contracts_status.json\"\
+    ).write_text(\n        json.dumps({\"success\": True, \"issues_found\": len(issues), \"errors\": issues},\
+    \ indent=2) + \"\\n\",\n        encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  05_normalize_sources.py: "#!/usr/bin/env python3\n\"\"\"Normalize sources: combine cert and supplier\
+    \ data into unified per-supplier records.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    args = parser.parse_args()\n    root = args.workspace\n    artifacts = root / \"artifacts\"\n\
+    \n    validated = json.loads((artifacts / \"validate_source_contracts_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    validated_certs = validated[\"validated_certs\"]\n    suppliers = validated[\"suppliers\"\
+    ]\n\n    # Normalize: build per-supplier unified records\n    normalized = []\n    for sid, supplier\
+    \ in suppliers.items():\n        supplier_certs = [c for c in validated_certs if c[\"supplier_id\"\
+    ] == sid]\n        active_certs = [c for c in supplier_certs if c[\"status\"] == \"active\"]\n   \
+    \     expired_certs = [c for c in supplier_certs if c[\"status\"] == \"expired\"]\n\n        record\
+    \ = {\n            \"supplier_id\": sid,\n            \"supplier_name\": supplier[\"supplier_name\"\
+    ],\n            \"tax_id\": supplier.get(\"tax_id\", \"\"),\n            \"bank_account\": supplier.get(\"\
+    bank_account\", \"\"),\n            \"contact_email\": supplier.get(\"contact_email\", \"\"),\n  \
+    \          \"country\": supplier.get(\"country\", \"\"),\n            \"risk_tier\": supplier.get(\"\
+    risk_tier\", \"unknown\"),\n            \"total_certs\": len(supplier_certs),\n            \"active_certs\"\
+    : len(active_certs),\n            \"expired_certs\": len(expired_certs),\n            \"cert_types\"\
+    : [c[\"cert_type\"] for c in supplier_certs],\n            \"has_min_active\": len(active_certs) >=\
+    \ 1,\n            \"cert_issues\": [c.get(\"validation_issues\", []) for c in supplier_certs],\n \
+    \       }\n        normalized.append(record)\n\n    result = {\n        \"normalized_suppliers\":\
+    \ normalized,\n        \"total_suppliers\": len(normalized),\n        \"suppliers_with_certs\": sum(1\
+    \ for s in normalized if s[\"total_certs\"] > 0),\n        \"suppliers_without_certs\": sum(1 for\
+    \ s in normalized if s[\"total_certs\"] == 0),\n    }\n    (artifacts / \"normalize_sources_artifact.json\"\
+    ).write_text(\n        json.dumps(result, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts\
+    \ / \"normalize_sources_status.json\").write_text(\n        json.dumps({\"success\": True, \"normalized\"\
+    : len(normalized), \"errors\": []}, indent=2) + \"\\n\",\n        encoding=\"utf-8\"\n    )\n\n\n\
+    if __name__ == \"__main__\":\n    main()\n"
+  06_fuse_sources.py: "#!/usr/bin/env python3\n\"\"\"Fuse sources: merge normalized records with policy\
+    \ rules to produce compliance status per supplier.\"\"\"\nfrom __future__ import annotations\nimport\
+    \ argparse, json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n    root = args.workspace\n    artifacts\
+    \ = root / \"artifacts\"\n\n    normalized_data = json.loads((artifacts / \"normalize_sources_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    reference = json.loads((artifacts / \"ingest_reference_source_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    policy = reference[\"policy\"]\n\n    risk_rules = policy[\"\
+    risk_tier_thresholds\"]\n    cert_min = policy[\"certificate_requirements\"][\"min_active_certs\"\
+    ]\n\n    fused = []\n    for s in normalized_data[\"normalized_suppliers\"]:\n        # Determine\
+    \ compliance status\n        if s[\"total_certs\"] == 0:\n            compliance = \"non_compliant\"\
+    \n            reason = \"no_certificates\"\n        elif s[\"active_certs\"] < cert_min:\n       \
+    \     compliance = \"non_compliant\"\n            reason = \"no_active_certificates\"\n        elif\
+    \ s[\"expired_certs\"] > 0:\n            compliance = \"at_risk\"\n            reason = \"has_expired_certificates\"\
+    \n        else:\n            compliance = \"compliant\"\n            reason = \"all_requirements_met\"\
+    \n\n        # Risk-tier escalation\n        risk_action = risk_rules.get(s[\"risk_tier\"], \"flag_for_review\"\
+    )\n        escalated = risk_action == \"auto_escalate\" or compliance == \"non_compliant\"\n\n   \
+    \     fused.append({\n            **s,\n            \"compliance_status\": compliance,\n         \
+    \   \"compliance_reason\": reason,\n            \"risk_action\": risk_action,\n            \"escalated_for_review\"\
+    : escalated,\n        })\n\n    result = {\n        \"fused_suppliers\": fused,\n        \"summary\"\
+    : {\n            \"total\": len(fused),\n            \"compliant\": sum(1 for f in fused if f[\"compliance_status\"\
+    ] == \"compliant\"),\n            \"at_risk\": sum(1 for f in fused if f[\"compliance_status\"] ==\
+    \ \"at_risk\"),\n            \"non_compliant\": sum(1 for f in fused if f[\"compliance_status\"] ==\
+    \ \"non_compliant\"),\n            \"escalated\": sum(1 for f in fused if f[\"escalated_for_review\"\
+    ]),\n        },\n    }\n    (artifacts / \"fuse_sources_artifact.json\").write_text(\n        json.dumps(result,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts / \"fuse_sources_status.json\").write_text(\n\
+    \        json.dumps({\"success\": True, \"fused\": len(fused), \"errors\": []}, indent=2) + \"\\n\"\
+    ,\n        encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  07_detect_sensitive_fields.py: "#!/usr/bin/env python3\n\"\"\"Detect sensitive fields: identify PII/regulated\
+    \ data in fused supplier records.\"\"\"\nfrom __future__ import annotations\nimport argparse, json,\
+    \ re\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    args = parser.parse_args()\n    root = args.workspace\n    artifacts = root / \"artifacts\"\n\
+    \n    fused_data = json.loads((artifacts / \"fuse_sources_artifact.json\").read_text(encoding=\"utf-8\"\
+    ))\n    reference = json.loads((artifacts / \"ingest_reference_source_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    patterns = reference[\"policy\"][\"sensitive_field_patterns\"]\n\n    detected = []\n\
+    \    for s in fused_data[\"fused_suppliers\"]:\n        sensitive = {}\n        for field, config\
+    \ in patterns.items():\n            value = s.get(field, \"\")\n            if value and re.match(config[\"\
+    regex\"], value):\n                sensitive[field] = {\n                    \"value\": value,\n \
+    \                   \"redaction\": config[\"redaction\"],\n                    \"keep_chars\": config.get(\"\
+    keep_chars\", 0),\n                }\n        if sensitive:\n            detected.append({\n     \
+    \           \"supplier_id\": s[\"supplier_id\"],\n                \"supplier_name\": s[\"supplier_name\"\
+    ],\n                \"sensitive_fields\": sensitive,\n            })\n\n    result = {\n        \"\
+    detected_records\": detected,\n        \"total_detected\": len(detected),\n        \"supplier_ids_affected\"\
+    : [d[\"supplier_id\"] for d in detected],\n    }\n    (artifacts / \"detect_sensitive_fields_artifact.json\"\
+    ).write_text(\n        json.dumps(result, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts\
+    \ / \"detect_sensitive_fields_status.json\").write_text(\n        json.dumps({\"success\": True, \"\
+    sensitive_records_found\": len(detected), \"errors\": []}, indent=2) + \"\\n\",\n        encoding=\"\
+    utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  08_apply_redaction_or_suppression.py: "#!/usr/bin/env python3\n\"\"\"Apply redaction: partially redact\
+    \ tax_ids, fully suppress bank_accounts.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\n\ndef redact_partial(value: str, keep: int) -> str:\n    if len(value)\
+    \ <= keep:\n        return value\n    return value[:keep] + \"*\" * (len(value) - keep)\n\n\ndef main():\n\
+    \    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--fixture\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \    root = args.workspace\n    artifacts = root / \"artifacts\"\n\n    fused_data = json.loads((artifacts\
+    \ / \"fuse_sources_artifact.json\").read_text(encoding=\"utf-8\"))\n    sensitive_data = json.loads((artifacts\
+    \ / \"detect_sensitive_fields_artifact.json\").read_text(encoding=\"utf-8\"))\n    reference = json.loads((artifacts\
+    \ / \"ingest_reference_source_artifact.json\").read_text(encoding=\"utf-8\"))\n    patterns = reference[\"\
+    policy\"][\"sensitive_field_patterns\"]\n\n    # Build set of supplier_ids with sensitive data\n \
+    \   affected = {d[\"supplier_id\"]: d[\"sensitive_fields\"] for d in sensitive_data[\"detected_records\"\
+    ]}\n\n    redacted = []\n    for s in fused_data[\"fused_suppliers\"]:\n        record = {**s}\n \
+    \       if s[\"supplier_id\"] in affected:\n            for field, config in affected[s[\"supplier_id\"\
+    ]].items():\n                if config[\"redaction\"] == \"full\":\n                    record[field]\
+    \ = \"[REDACTED]\"\n                elif config[\"redaction\"] == \"partial\":\n                 \
+    \   record[field] = redact_partial(s[field], config[\"keep_chars\"])\n        redacted.append(record)\n\
+    \n    result = {\n        \"redacted_suppliers\": redacted,\n        \"total_redacted\": len(affected),\n\
+    \        \"redacted_fields\": list(patterns.keys()),\n    }\n    (artifacts / \"apply_redaction_or_suppression_artifact.json\"\
+    ).write_text(\n        json.dumps(result, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts\
+    \ / \"apply_redaction_or_suppression_status.json\").write_text(\n        json.dumps({\"success\":\
+    \ True, \"records_redacted\": len(affected), \"errors\": []}, indent=2) + \"\\n\",\n        encoding=\"\
+    utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  09_create_human_review_packet.py: "#!/usr/bin/env python3\n\"\"\"Create human review packet: bundle\
+    \ escalated/non-compliant suppliers for manual review.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n    root = args.workspace\n    artifacts\
+    \ = root / \"artifacts\"\n\n    redacted_data = json.loads(\n        (artifacts / \"apply_redaction_or_suppression_artifact.json\"\
+    ).read_text(encoding=\"utf-8\")\n    )\n\n    # Select suppliers that need human review\n    review_candidates\
+    \ = [\n        s for s in redacted_data[\"redacted_suppliers\"]\n        if s[\"escalated_for_review\"\
+    ]\n    ]\n\n    packet = {\n        \"packet_id\": \"HRP-2026-07-20-001\",\n        \"generated_at\"\
+    : \"2026-07-20T09:00:00Z\",\n        \"total_suppliers_for_review\": len(review_candidates),\n   \
+    \     \"review_items\": [\n            {\n                \"supplier_id\": s[\"supplier_id\"],\n \
+    \               \"supplier_name\": s[\"supplier_name\"],\n                \"compliance_status\": s[\"\
+    compliance_status\"],\n                \"compliance_reason\": s[\"compliance_reason\"],\n        \
+    \        \"risk_tier\": s[\"risk_tier\"],\n                \"risk_action\": s[\"risk_action\"],\n\
+    \                \"cert_summary\": f\"{s['active_certs']} active, {s['expired_certs']} expired\",\n\
+    \            }\n            for s in review_candidates\n        ],\n    }\n    (artifacts / \"create_human_review_packet_artifact.json\"\
+    ).write_text(\n        json.dumps(packet, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts\
+    \ / \"create_human_review_packet_status.json\").write_text(\n        json.dumps({\"success\": True,\
+    \ \"review_items\": len(review_candidates), \"errors\": []}, indent=2) + \"\\n\",\n        encoding=\"\
+    utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  10_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish outputs: export redacted compliance report\
+    \ CSV, review packet, and audit manifest.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ csv, json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n \
+    \   parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\"\
+    , type=Path, required=True)\n    parser.add_argument(\"--execution-time\", type=str, default=None)\n\
+    \    args = parser.parse_args()\n    root = args.workspace\n    artifacts = root / \"artifacts\"\n\
+    \n    execution_time = args.execution_time or \"2026-07-20T09:00:00Z\"\n    fixture = json.loads(args.fixture.read_text(encoding=\"\
+    utf-8\"))\n\n    redacted_data = json.loads(\n        (artifacts / \"apply_redaction_or_suppression_artifact.json\"\
+    ).read_text(encoding=\"utf-8\")\n    )\n    fused_data = json.loads(\n        (artifacts / \"fuse_sources_artifact.json\"\
+    ).read_text(encoding=\"utf-8\")\n    )\n    review_packet = json.loads(\n        (artifacts / \"create_human_review_packet_artifact.json\"\
+    ).read_text(encoding=\"utf-8\")\n    )\n\n    # Build checkpoint manifest\n    manifest = {\n    \
+    \    \"checkpoint_id\": f\"ckpt_supplier_compliance_{execution_time[:10].replace('-', '_')}\",\n \
+    \       \"checkpoint_time\": execution_time,\n        \"pipeline_id\": fixture[\"pipeline_id\"],\n\
+    \        \"compliance_summary\": fused_data[\"summary\"],\n        \"review_items\": review_packet[\"\
+    total_suppliers_for_review\"],\n        \"output_files\": [\"compliance_report.csv\", \"review_packet.json\"\
+    , \"audit_manifest.json\"],\n        \"status\": \"completed\",\n    }\n    (artifacts / \"audit_manifest.json\"\
+    ).write_text(\n        json.dumps(manifest, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n   \
+    \ # Export redacted compliance CSV\n    csv_rel = \"compliance_report.csv\"\n    csv_path = artifacts\
+    \ / csv_rel\n    fieldnames = [\n        \"supplier_id\", \"supplier_name\", \"tax_id\", \"bank_account\"\
+    ,\n        \"country\", \"risk_tier\", \"compliance_status\", \"compliance_reason\",\n        \"active_certs\"\
+    , \"expired_certs\", \"escalated_for_review\",\n    ]\n    with csv_path.open(\"w\", encoding=\"utf-8\"\
+    , newline=\"\") as f:\n        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction=\"ignore\"\
+    )\n        writer.writeheader()\n        for s in redacted_data[\"redacted_suppliers\"]:\n       \
+    \     s[\"escalated_for_review\"] = str(s[\"escalated_for_review\"])\n            writer.writerow(s)\n\
+    \n    # Save review packet\n    (artifacts / \"review_packet.json\").write_text(\n        json.dumps(review_packet,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n    publish_result = {\n        \"audit_manifest\"\
+    : manifest,\n        \"compliance_csv\": csv_rel,\n        \"review_packet\": \"review_packet.json\"\
+    ,\n    }\n    (artifacts / \"publish_outputs_artifact.json\").write_text(\n        json.dumps(publish_result,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    (artifacts / \"publish_outputs_status.json\"\
+    ).write_text(\n        json.dumps({\"success\": True, \"csv_exported\": csv_rel, \"review_items\"\
+    : review_packet[\"total_suppliers_for_review\"], \"errors\": []}, indent=2) + \"\\n\",\n        encoding=\"\
+    utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supplier-compliance-evidence-review-nominal-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"policy_id\": \"supplier-compliance-v2\",\n  \"description\": \"Supplier compliance\
+    \ evidence review policy\",\n  \"effective_date\": \"2025-01-01\",\n  \"required_cert_types\": [\"\
+    ISO_9001\", \"ISO_14001\", \"ISO_27001\"],\n  \"expiry_grace_days\": 30,\n  \"sensitive_field_patterns\"\
+    : {\n    \"tax_id\": {\"regex\": \"^TAX-\", \"redaction\": \"partial\", \"keep_chars\": 4},\n    \"\
+    bank_account\": {\"regex\": \"^IBAN-\", \"redaction\": \"full\"}\n  },\n  \"risk_tier_thresholds\"\
+    : {\n    \"high\": \"auto_escalate\",\n    \"medium\": \"flag_for_review\",\n    \"low\": \"auto_approve\"\
+    \n  },\n  \"certificate_requirements\": {\n    \"min_active_certs\": 1,\n    \"allow_grace_period\"\
+    : true\n  },\n  \"missing_supplier_policy\": \"flag_for_review\"\n}\n"
+  fixture-0001: "{\n  \"input_modalities\": [\n    \"pdf\",\n    \"table\",\n    \"json\"\n  ],\n  \"\
+    inputs\": {\n    \"certificates\": \"supplier_certificates.json\",\n    \"master\": \"supplier_master.csv\"\
+    ,\n    \"policy\": \"compliance_policy.json\"\n  },\n  \"pipeline_id\": \"supplier_compliance_evidence_review\"\
+    ,\n  \"sample_media\": {\n    \"pdf\": \"sample_document.pdf\"\n  },\n  \"systems\": [\n    \"supplier\
+    \ evidence store\",\n    \"compliance review queue\"\n  ]\n}\n"
+  fixture-0002: "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages\
+    \ /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]\
+    \ /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n4 0 obj\n<< /Length 107 >>\n\
+    stream\nBT /F1 12 Tf 50 740 Td (ServiceComposeBench-ETL sample: supplier_compliance_evidence_review:nominal)\
+    \ Tj ET\nendstream\nendobj\n5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n\
+    xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000241\
+    \ 00000 n \n0000000398 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n468\n%%EOF\n"
+  fixture-0003: "[\n  {\"supplier_id\": \"SUP-001\", \"cert_id\": \"CERT-2026-A001\", \"cert_type\": \"\
+    ISO_9001\", \"issue_date\": \"2025-03-15\", \"expiry_date\": \"2026-09-15\", \"scope\": \"Manufacturing\"\
+    , \"status\": \"active\"},\n  {\"supplier_id\": \"SUP-001\", \"cert_id\": \"CERT-2026-A002\", \"cert_type\"\
+    : \"ISO_14001\", \"issue_date\": \"2025-06-01\", \"expiry_date\": \"2026-06-01\", \"scope\": \"Environmental\"\
+    , \"status\": \"expired\"},\n  {\"supplier_id\": \"SUP-002\", \"cert_id\": \"CERT-2026-B001\", \"\
+    cert_type\": \"ISO_9001\", \"issue_date\": \"2025-01-10\", \"expiry_date\": \"2027-01-10\", \"scope\"\
+    : \"Logistics\", \"status\": \"active\"},\n  {\"supplier_id\": \"SUP-003\", \"cert_id\": \"CERT-2026-C001\"\
+    , \"cert_type\": \"ISO_27001\", \"issue_date\": \"2024-11-20\", \"expiry_date\": \"2026-11-20\", \"\
+    scope\": \"IT Security\", \"status\": \"active\"},\n  {\"supplier_id\": \"SUP-005\", \"cert_id\":\
+    \ \"CERT-2026-E001\", \"cert_type\": \"ISO_9001\", \"issue_date\": \"2025-08-01\", \"expiry_date\"\
+    : \"2026-08-01\", \"scope\": \"Raw Materials\", \"status\": \"active\"}\n]\n"
+  fixture-0004: 'supplier_id,supplier_name,tax_id,bank_account,contact_email,country,risk_tier
+
+    SUP-001,Acme Industrial Corp,TAX-99887766,IBAN-ACME-001,compliance@acme.com,Germany,low
+
+    SUP-002,Global Logistics Ltd,TAX-11223344,IBAN-GLOB-002,risk@globallog.com,Netherlands,medium
+
+    SUP-003,SecureTech Systems,,,privacy@securetech.io,Estonia,high
+
+    SUP-004,Pacific Materials Inc,TAX-55667788,IBAN-PAC-004,supplier@pacificmat.com,Singapore,medium
+
+    '

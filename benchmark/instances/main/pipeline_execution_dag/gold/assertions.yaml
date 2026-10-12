@@ -1,0 +1,15 @@
+assertions_version: 0.1.0
+pipeline_id: pipeline_execution_dag
+scenarios:
+- scenario: run
+  assertions:
+  - assertion_id: formatted
+    type: json_path_equals
+    path: artifacts/format_status.json
+    json_path: success
+    expected: true
+  - assertion_id: exported
+    type: json_path_equals
+    path: artifacts/export_status.json
+    json_path: success
+    expected: true

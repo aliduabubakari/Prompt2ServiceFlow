@@ -1,0 +1,263 @@
+schema_version: 0.1.0
+service_id: aqi_threshold_email_alert_notifier
+version: 1.0.0
+display_name: AQI Threshold Email Alert Notifier
+category: Notifier
+capability:
+  summary: Reads an AQI observation JSON artifact and recipient list, evaluates the
+    configured AQI safe range, sends an email alert through a bound email service
+    when the observation is unsafe, and emits both an alert decision and delivery
+    status.
+  operations:
+  - Read a processed AQI JSON artifact from a configured artifact path.
+  - Extract a numeric AQI or PM2.5 alert value using a caller-supplied JSONPath-like
+    parameter.
+  - Read recipient email addresses from a text artifact, ignoring blank/comment lines
+    when configured by implementation.
+  - Evaluate whether the AQI value is outside the configured safe range, for example
+    greater than 50 for PM2.5/AQI alerting behavior observed in the source step after
+    safe 0-50 is skipped using configured threshold parameters only; no workflow branching
+    is performed by the service itself. formulate okay
+  keywords:
+  - aqi
+  - pm2.5
+  - threshold alert
+  - email
+  - smtp
+  - environmental monitoring
+  - notification
+  - air quality
+  limitations:
+  - Does not scrape AQI websites, transform HTML, or load PostgreSQL tables.
+  - Does not schedule alerts or implement workflow retries.
+  - Repeated invocations may send duplicate emails when the AQI condition remains
+    unsafe.
+  - Requires the AQI JSON structure to be bound through a configured value path because
+    the exact processed JSON schema is source-specific.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: aqi_data_json
+    description: Processed AQI data JSON artifact, such as /opt/airflow/data/tmp_mahidol.json.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://aqi_observation_json/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  - name: recipient_list_file
+    description: Text file containing alert recipient email addresses, one per line
+      or otherwise parseable by the configured implementation.
+    channel: artifact
+    data_type: text
+    media_type: text/plain
+    schema_ref: schema://email_recipient_list_file/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: email_config_file
+    description: Email configuration file used to resolve sender/server settings without
+      emitting credentials in outputs.
+    channel: artifact
+    data_type: text
+    media_type: text/plain
+    schema_ref: schema://email_client_config_file/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: email_service
+    description: External email/SMTP service resource used to deliver alert messages.
+    channel: external_resource
+    data_type: object
+    schema_ref: schema://email_service_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: alert_decision
+    description: Observable decision showing extracted AQI value, safe range, location
+      context, and whether an email alert should be sent.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://aqi_alert_decision/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: notification_status
+    description: Email alert delivery or skip status, including recipient count, sent
+      flag, and diagnostics.
+    channel: artifact
+    data_type: notification
+    media_type: application/json
+    schema_ref: schema://aqi_email_notification_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: aqi_value_json_path
+    description: JSONPath-like expression identifying the numeric AQI or PM2.5 value
+      in the processed AQI JSON artifact.
+    type: string
+    required: true
+  - name: safe_aqi_min
+    description: Inclusive lower bound of the safe AQI range.
+    type: number
+    required: true
+  - name: safe_aqi_max
+    description: Inclusive upper bound of the safe AQI range; values above this bound
+      trigger alert sending.
+    type: number
+    required: true
+  - name: city
+    description: City label included in the alert context, for example Salaya.
+    type: string
+    required: false
+  - name: state
+    description: State/province label included in the alert context.
+    type: string
+    required: false
+  - name: country
+    description: Country label included in the alert context.
+    type: string
+    required: false
+  - name: latitude
+    description: Latitude of the monitored location.
+    type: number
+    required: false
+    minimum: -90.0
+    maximum: 90.0
+  - name: longitude
+    description: Longitude of the monitored location.
+    type: number
+    required: false
+    minimum: -180.0
+    maximum: 180.0
+  - name: location_description
+    description: Human-readable monitored-location description included in alert content.
+    type: string
+    required: false
+  - name: subject_template
+    description: Optional email subject template for unsafe AQI alerts.
+    type: string
+    required: false
+  - name: body_template
+    description: Optional email body template for unsafe AQI alerts.
+    type: string
+    required: false
+  secrets:
+  - name: smtp_auth_material
+    description: SMTP authentication material if not fully supplied through the bound
+      email service/config file.
+    required: false
+contracts:
+- contract_id: aqi_alert_input_json_readable
+  type: precondition
+  applies_to: input
+  target: aqi_data_json
+  description: AQI input must be readable, parseable JSON, and contain a numeric value
+    at the configured AQI value path.
+  expression: readable(aqi_data_json) and json_parseable(aqi_data_json) and is_number(json_path(aqi_data_json,
+    aqi_value_json_path))
+- contract_id: aqi_alert_threshold_contract
+  type: precondition
+  applies_to: service
+  target: aqi_threshold_email_alert_notifier
+  description: Safe range bounds must be valid and ordered.
+  expression: safe_aqi_min <= safe_aqi_max
+- contract_id: aqi_alert_recipient_file_contract
+  type: precondition
+  applies_to: input
+  target: recipient_list_file
+  description: Recipient list must be readable and resolve to at least one email address
+    before a send attempt is made.
+  schema_ref: schema://email_recipient_list_file/v1
+  expression: readable(recipient_list_file) and count(parse_email_recipients(recipient_list_file))
+    > 0
+- contract_id: aqi_alert_decision_schema
+  type: json_schema
+  applies_to: output
+  target: alert_decision
+  description: Alert decision exposes threshold comparison and send/no-send decision.
+  schema_ref: schema://aqi_alert_decision/v1
+  expression: '{"type":"object","required":["aqi_value","safe_aqi_min","safe_aqi_max","unsafe","should_send","reason"],"properties":{"aqi_value":{"type":"number"},"safe_aqi_min":{"type":"number"},"safe_aqi_max":{"type":"number"},"unsafe":{"type":"boolean"},"should_send":{"type":"boolean"},"reason":{"type":"string"},"city":{"type":["string","null"]},"state":{"type":["string","null"]},"country":{"type":["string","null"]},"latitude":{"type":["number","null"]},"longitude":{"type":["number","null"]},"recipient_count":{"type":"integer","minimum":0}}}'
+- contract_id: aqi_email_notification_status_schema
+  type: json_schema
+  applies_to: output
+  target: notification_status
+  description: Notification status exposes whether email was sent or skipped and delivery
+    diagnostics.
+  schema_ref: schema://aqi_email_notification_status/v1
+  expression: '{"type":"object","required":["sent","skipped_safe","recipients_count","subject"],"properties":{"sent":{"type":"boolean"},"skipped_safe":{"type":"boolean"},"recipients_count":{"type":"integer","minimum":0},"subject":{"type":["string","null"]},"message_ids":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: aqi_threshold_email_alert_effect
+  type: effect
+  applies_to: service
+  target: aqi_threshold_email_alert_notifier
+  description: If AQI is within the configured safe range, the service emits should_send=false
+    and must not send email. If AQI is unsafe, it attempts email delivery and emits
+    delivery status.
+  expression: alert_decision.should_send == false implies notification_status.sent
+    == false and notification_status.skipped_safe == true
+invocation:
+  type: argo_workflow_template
+  template_name: aqi-threshold-email-alert-notifier-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.aqi_threshold_email_alert_notifier
+  implementation_ref: services/implementations/aqi_threshold_email_alert_notifier
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - smtp://*
+  - email://*
+  - smtp.gmail.com:587
+  secret_access: optional
+  retry_safe: false
+  idempotency: non_idempotent
+  data_sensitivity:
+  - public
+  - internal
+  - pii
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit SMTP credentials or raw email configuration contents in outputs or
+    logs.
+  - Recipient addresses are treated as personal/internal data.
+  - The service must emit notification_status even when no email is sent because AQI
+    is safe.
+  idempotency_notes: Unsafe AQI retries may send duplicate email alerts unless the
+    bound email provider or workflow supplies an idempotency key.
+  default_timeout_seconds: 120
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:mahidol_aqi_pipeline_v2_alert_1#alert_email
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing email_notification_sender can send a templated email but
+    does not read AQI JSON, evaluate AQI thresholds, parse recipient/config files,
+    or emit the AQI-specific alert decision required by the active step.'
+  - 'Evidence status: strongly_inferred.'
+  - Contract aqi_alert_threshold_contract target 'safe_aqi_min_safe_aqi_max' was normalized
+    to service scope.

@@ -1,0 +1,178 @@
+schema_version: 0.1.0
+service_id: coordinate_land_use_classification_enricher
+version: 1.0.0
+display_name: Coordinate Land Use Classification Enricher
+category: ScoringService
+capability:
+  summary: Classifies or enriches land-use type for tabular JSON rows using latitude/longitude
+    coordinates and a bound land-use or geospatial classification API, appending a
+    configured output column.
+  operations:
+  - Read structured tabular JSON rows containing coordinates.
+  - Validate configured latitude, longitude, and output columns.
+  - Call a bound land-use classification API such as Geoapify for each eligible coordinate.
+  - Append classification labels and emit row-count/status diagnostics.
+  keywords:
+  - land use
+  - geospatial classification
+  - geoapify
+  - coordinates
+  - tabular json
+  - environmental monitoring
+  limitations:
+  - Does not fetch weather or population density.
+  - Does not compute composite risk scores.
+  - Requires an explicitly bound land-use API resource and any required credentials.
+  - External classification labels may change as provider data changes.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_tabular_json
+    description: Weather-enriched tabular JSON containing coordinate columns.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://weather_enriched_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: land_use_api_resource
+    description: Bound land-use classification/geospatial HTTP API resource.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://http_api_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: land_use_enriched_json
+    description: Structured tabular JSON with land-use classification column appended.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://land_use_enriched_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: classification_status
+    description: Observable classification status with processed/classified/failed
+      row counts and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://land_use_classification_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: lat_column
+    description: Input column containing latitude values.
+    type: string
+    required: true
+  - name: lon_column
+    description: Input column containing longitude values.
+    type: string
+    required: true
+  - name: output_column
+    description: Output column for land-use type labels.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: output_path
+    description: Deterministic output artifact path or name.
+    type: string
+    required: true
+  - name: classification_options
+    description: Optional provider-specific classification options.
+    type: object
+    required: false
+  secrets:
+  - name: land_use_api_key
+    description: Optional API key for the bound land-use classification provider.
+    required: false
+    environment_variable: GEOAPIFY_API_KEY
+contracts:
+- contract_id: land_use_classifier_input_schema
+  type: json_schema
+  applies_to: input
+  target: source_tabular_json
+  description: Input must contain tabular rows and configured coordinate columns.
+  schema_ref: schema://weather_enriched_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}}}}
+    and lat_column in source_tabular_json.columns and lon_column in source_tabular_json.columns'
+- contract_id: land_use_output_column_contract
+  type: precondition
+  applies_to: parameter
+  target: output_column
+  description: Output column must be identifier-like.
+  expression: output_column matches '^[A-Za-z_][A-Za-z0-9_]*$'
+- contract_id: land_use_status_schema
+  type: json_schema
+  applies_to: output
+  target: classification_status
+  description: Status exposes land-use classification outcome.
+  schema_ref: schema://land_use_classification_status/v1
+  expression: '{"type":"object","required":["success","rows_processed","rows_classified","rows_failed","output_uri"],"properties":{"success":{"type":"boolean"},"rows_processed":{"type":"integer","minimum":0},"rows_classified":{"type":"integer","minimum":0},"rows_failed":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: land_use_classification_effect
+  type: effect
+  applies_to: service
+  target: coordinate_land_use_classification_enricher
+  description: On success, a land-use-enriched JSON artifact exists and includes the
+    configured output column.
+  expression: classification_status.success == true implies exists(land_use_enriched_json)
+    and output_column in land_use_enriched_json.columns
+invocation:
+  type: argo_workflow_template
+  template_name: coordinate-land-use-classification-enricher-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.coordinate_land_use_classification_enricher
+  implementation_ref: services/implementations/coordinate_land_use_classification_enricher
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - https://api.geoapify.com/*
+  - https://*.geoapify.com/*
+  - https://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit API keys or raw full station rows in outputs/logs.
+  - Bind only approved land-use classification API resources.
+  idempotency_notes: Repeatable for fixed coordinates, options, and stable provider
+    data; external geospatial reference data may change.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:environmental_monitoring_network_v1#classify_land_use
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The registry lacks a reusable coordinate-based land-use classification
+    capability.'
+  - 'Evidence status: explicit.'

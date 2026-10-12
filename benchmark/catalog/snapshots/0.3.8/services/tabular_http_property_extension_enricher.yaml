@@ -1,0 +1,188 @@
+schema_version: 0.1.0
+service_id: tabular_http_property_extension_enricher
+version: 1.0.0
+display_name: Tabular HTTP Property Extension Enricher
+category: DomainAdapter
+capability:
+  summary: Submits structured tabular JSON to a bound HTTP extension service to append
+    configured properties or columns, then emits extended JSON and observable extension
+    status.
+  operations:
+  - Read structured or reconciled tabular JSON.
+  - Validate requested property list and extension profile identifier.
+  - Call a bound HTTP extension API with the input rows, requested properties, and
+    optional profile-specific request options.
+  - Write extended tabular JSON containing the requested property/column additions
+    and emit row-count/status diagnostics.
+  keywords:
+  - tabular json
+  - http extension api
+  - property enrichment
+  - weather enrichment
+  - column extension
+  - external enrichment
+  limitations:
+  - Does not infer coordinates, dates, or property semantics; caller must supply extension
+    API configuration and requested properties.
+  - Does not implement file pattern iteration, workflow retries, Docker networking,
+    or shared mount setup.
+  - Does not guarantee provider-level idempotency for non-read-only extension services.
+  - Does not export final CSV.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_tabular_json
+    description: Structured, reconciled, or previously extended tabular JSON to enrich.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://structured_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: extension_api_resource
+    description: Bound HTTP API resource implementing the tabular extension endpoint.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://http_api_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: extended_tabular_json
+    description: Tabular JSON with requested properties or columns appended or updated.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://property_extended_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: extension_status
+    description: Observable extension status with profile id, requested properties,
+      processed/extended row counts, output URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://tabular_property_extension_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: extender_id
+    description: Identifier of the extension profile or service-side extender to use.
+    type: string
+    required: true
+  - name: properties
+    description: List of property or column names to request from the extension API.
+    type: array
+    required: true
+  - name: extension_mode
+    description: Logical extension mode used for validation and status labeling.
+    type: string
+    required: false
+    enum:
+    - weather
+    - generic_columns
+  - name: output_path
+    description: Deterministic output artifact path or name for the extended JSON.
+    type: string
+    required: true
+  - name: request_options
+    description: Optional structured request options such as date column, reconciled
+      column, separator format, or provider-specific flags.
+    type: object
+    required: false
+  secrets:
+  - name: extension_api_credentials
+    description: Credentials for the bound extension API when authentication is required
+      by the resource binding.
+    required: false
+contracts:
+- contract_id: tabular_extension_input_schema
+  type: json_schema
+  applies_to: input
+  target: source_tabular_json
+  description: Input must be tabular JSON with row and column metadata.
+  schema_ref: schema://structured_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}}}}'
+- contract_id: tabular_extension_properties_required
+  type: precondition
+  applies_to: parameter
+  target: properties
+  description: At least one property must be requested and extender_id must be non-empty.
+  expression: length(properties) > 0 and length(trim(extender_id)) > 0
+- contract_id: tabular_extension_status_schema
+  type: json_schema
+  applies_to: output
+  target: extension_status
+  description: Status exposes HTTP extension outcome for downstream validation.
+  schema_ref: schema://tabular_property_extension_status/v1
+  expression: '{"type":"object","required":["success","extender_id","properties_requested","rows_processed","rows_extended","output_uri"],"properties":{"success":{"type":"boolean"},"extender_id":{"type":"string"},"properties_requested":{"type":"array","items":{"type":"string"}},"rows_processed":{"type":"integer","minimum":0},"rows_extended":{"type":"integer","minimum":0},"http_status_code":{"type":["integer","null"]},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: tabular_extension_effect
+  type: effect
+  applies_to: service
+  target: tabular_http_property_extension_enricher
+  description: On success, the extended JSON artifact exists and contains all requested
+    properties as columns or extension metadata entries.
+  expression: extension_status.success == true implies exists(extended_tabular_json)
+    and all(p in extended_tabular_json.columns or p in keys(extended_tabular_json.extension_metadata)
+    for p in properties)
+invocation:
+  type: argo_workflow_template
+  template_name: tabular-http-property-extension-enricher-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.tabular_http_property_extension_enricher
+  implementation_ref: services/implementations/tabular_http_property_extension_enricher
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - http://*
+  - https://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log API credentials, raw provider responses, or full source rows.
+  - Bind only approved extension API endpoints.
+  - Retry cadence, Docker network, image selection, and shared data directory mounts
+    are orchestration/runtime concerns.
+  idempotency_notes: Repeatable for stable inputs and extension provider state; external
+    providers may revise enrichment results or reject duplicate mutating requests.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:pipeline_execution_dag#column_extension
+  - main:pipeline_execution_dag#openmeteo_extension
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Both OpenMeteo and generic column-extension steps share the same reusable
+    pattern: call a configured tabular extension API with an extender id and property
+    list, then emit extended tabular JSON.'
+  - 'Evidence status: strongly_inferred.'

@@ -1,0 +1,111 @@
+schema_version: 0.1.0
+service_id: customer_quality_rule_evaluator
+version: 1.0.0
+display_name: Customer Quality Rule Evaluator
+category: QualityCheck
+capability:
+  summary: Evaluates customer profile quality rules and separates valid and invalid records.
+  operations:
+  - Evaluates customer profile quality rules and separates valid and invalid records.
+  keywords:
+  - customer
+  - quality
+  - rule
+  - evaluator
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: profile_report
+    description: Reviewed profile report value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: customer_extract
+    description: Reviewed customer extract value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: valid_records
+    description: Reviewed valid records value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: invalid_records
+    description: Reviewed invalid records value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: quality_decision
+    description: Reviewed quality decision value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: quality_status
+    description: Reviewed quality status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: quality_rules
+    description: Configuration for quality rules.
+    type: object
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: customer-quality-rule-evaluator
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.2
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.customer_quality_rule_evaluator
+  implementation_ref: services/implementations/customer_quality_rule_evaluator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-03:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 03 descriptions; bindings retain inference confidence.

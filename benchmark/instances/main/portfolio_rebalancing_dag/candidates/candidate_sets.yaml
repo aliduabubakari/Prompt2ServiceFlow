@@ -1,0 +1,54 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:portfolio_rebalancing_dag
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_portfolio_rebalancing_dag_brokerage_account_holdings_extractor_candidates
+  source_step_refs:
+  - fetch_brokerage_holdings_1
+  - fetch_brokerage_holdings_2
+  - fetch_brokerage_holdings_3
+  - fetch_brokerage_holdings_4
+  - fetch_brokerage_holdings_5
+  service_ids:
+  - brokerage_account_holdings_extractor
+  - http_json_request_extractor
+  - http_api_request_artifact_extractor
+  - warehouse_inventory_csv_extractor
+  - graphql_json_operation_executor
+  - legacy_http_json_extractor
+- candidate_set_id: main_portfolio_rebalancing_dag_portfolio_holdings_metrics_analyzer_candidates
+  source_step_refs:
+  - analyze_portfolio_1
+  - analyze_portfolio_2
+  - analyze_portfolio_3
+  - analyze_portfolio_4
+  - analyze_portfolio_5
+  service_ids:
+  - portfolio_holdings_metrics_analyzer
+  - transaction_csv_fraud_risk_analyzer
+  - portfolio_rebalancing_trade_calculator
+  - parquet_customer_quality_score_calculator
+  - environmental_risk_score_column_calculator
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_portfolio_rebalancing_dag_portfolio_rebalancing_trade_calculator_candidates
+  source_step_refs:
+  - aggregate_and_rebalance
+  service_ids:
+  - portfolio_rebalancing_trade_calculator
+  - portfolio_holdings_metrics_analyzer
+  - multi_region_revenue_report_aggregator
+  - financial_transaction_regulatory_report_generator
+  - trade_order_csv_report_generator
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_portfolio_rebalancing_dag_trade_order_csv_report_generator_candidates
+  source_step_refs:
+  - generate_trade_orders
+  service_ids:
+  - trade_order_csv_report_generator
+  - tabular_query_result_csv_writer
+  - structured_json_to_csv_exporter
+  - validated_parquet_to_csv_report_exporter
+  - financial_transaction_regulatory_report_generator
+  - reviewed_domain_adapter

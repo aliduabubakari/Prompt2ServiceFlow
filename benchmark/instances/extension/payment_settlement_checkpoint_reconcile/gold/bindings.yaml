@@ -1,0 +1,24 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:payment_settlement_checkpoint_reconcile
+bindings:
+- intent_id: ingest_primary_source
+  service_id: settlement_event_batch_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_secondary_source
+  service_id: bank_statement_table_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_reference_source
+  service_id: settlement_checkpoint_loader
+  service_version: 1.0.0
+- intent_id: validate_source_contracts
+  service_id: settlement_reconciliation_contract_validator
+  service_version: 1.0.0
+- intent_id: normalize_sources
+  service_id: settlement_record_normalizer
+  service_version: 1.0.0
+- intent_id: fuse_sources
+  service_id: settlement_checkpoint_reconciler
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: settlement_exception_checkpoint_publisher
+  service_version: 1.0.0

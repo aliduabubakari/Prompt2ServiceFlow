@@ -1,0 +1,177 @@
+{
+  "run_id": "m4__extension__product_image_listing_enrichment__deepinfra-qwen3-coder-480b-turbo__s1__20261011T124641.177694Z__b5331090",
+  "batch_id": "ablations__deepinfra-qwen3-coder-480b-turbo__20261011T055725.548808Z__5e295670",
+  "sample_index": 1,
+  "ablation": {
+    "redact_diagnostic_gates": [
+      "G5"
+    ],
+    "id": "a3_no_g5_repair_feedback"
+  },
+  "harness_version": "2.2.2",
+  "method": {
+    "id": "m4",
+    "name": "Contract-first ServiceFlowIR + repair"
+  },
+  "prompt_version": "2.1.0",
+  "runtime_compiler_version": "1.0.0",
+  "model": {
+    "model_id": "deepinfra-qwen3-coder-480b-turbo",
+    "model_name": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+    "base_url": "https://api.deepinfra.com/v1/openai",
+    "temperature": 0.2,
+    "top_p": 1.0,
+    "seed": 202,
+    "max_tokens": 16384,
+    "context_window": 262144
+  },
+  "instance": {
+    "id": "product_image_listing_enrichment",
+    "split": "extension",
+    "benchmark_id": "extension:product_image_listing_enrichment"
+  },
+  "catalog": {
+    "version": "0.3.0",
+    "pinned_catalog_yaml_sha256": "85d824a0e3d5ffa8b613735c7b28ca1147094499e6bde2c1474b3c8aa3414aee",
+    "sanitized_catalog_yaml_sha256": "9eeb036939e7a20f905598b83bbf97d5c84893e040b1dfff71a8151dd246b7f2",
+    "descriptor_count": 241
+  },
+  "roster_sha256": "3ed5509009ae44983ff2fc95595ca45538cc38b6759bf9deecb72138e20a58d3",
+  "workspace_manifest_sha256": "dda8d4762f88d5349db1b0576d74cf33cfe98573adc4b7135c63de53f87ac6e8",
+  "freeze": {
+    "freeze_id": "freeze-2026-10-10.deepinfra.ablation.v24",
+    "status": "frozen",
+    "sha256": "01c18230138dc40d3ce53f713324871ec4c22192ac025097b006c3406818cfac"
+  },
+  "visible_input_policy": {
+    "method_view": [
+      "task.md",
+      "candidates/",
+      "catalog/",
+      "contracts/",
+      "schemas/",
+      "fixtures/"
+    ],
+    "workspace_manifest": "experiments/workspaces/extension/product_image_listing_enrichment/workspace.yaml"
+  },
+  "repair": {
+    "budget": 3,
+    "execution_feedback": true
+  },
+  "environment": {
+    "python": "3.12.3",
+    "platform": "macOS-15.6.1-arm64-arm-64bit",
+    "git_revision": "a0a9a18"
+  },
+  "started_at": "2026-10-11T12:46:41.178253+00:00",
+  "method_status": "completed",
+  "method_error": null,
+  "evaluation": {
+    "validation": {
+      "overall_status": "pass",
+      "first_failing_gate": null,
+      "gate_statuses": {
+        "G0": "pass",
+        "G1": "pass",
+        "G2": "pass",
+        "G3": "pass",
+        "G4": "pass",
+        "G5": "pass",
+        "G6-Exec": "pass"
+      }
+    },
+    "score_summary": {
+      "public_gates_status": "pass",
+      "first_failing_gate": null,
+      "g6_assert_status": "fail",
+      "full_pass_g0_g6": false,
+      "node_f1": 1.0,
+      "edge_f1": 1.0,
+      "binding_top1_accuracy": 1.0,
+      "binding_version_accuracy": null,
+      "wiring_f1": 0.625,
+      "wiring_applicable": true,
+      "alignment_edit_distance": 0,
+      "over_decomposition_rate": 0.0,
+      "under_decomposition_rate": 0.0,
+      "source_step_coverage": 1.0,
+      "g6_assert_pass_rate": 0.0
+    },
+    "repair_attempts": [
+      {
+        "attempt": 0,
+        "overall_status": "fail",
+        "first_failing_gate": "G3",
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "pass",
+          "G2": "pass",
+          "G3": "fail",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": true,
+        "repeated_state": false,
+        "synthetic": false
+      },
+      {
+        "attempt": 1,
+        "overall_status": "pass",
+        "first_failing_gate": null,
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "pass",
+          "G2": "pass",
+          "G3": "pass",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": true,
+        "repeated_state": false,
+        "synthetic": false
+      }
+    ]
+  },
+  "usage": {
+    "llm_calls": 2,
+    "prompt_tokens": 58627,
+    "completion_tokens": 11525,
+    "reasoning_tokens": 0,
+    "total_tokens": 70152,
+    "latency_s": 85.817,
+    "validator_calls": 2,
+    "evaluation_validator_calls": 2,
+    "cost_usd": 0.029113,
+    "per_stage": [
+      {
+        "stage": "m3_ir",
+        "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+        "usage": {
+          "prompt_tokens": 27507,
+          "completion_tokens": 5394,
+          "total_tokens": 32901,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 45.565,
+        "finish_reason": "stop",
+        "cost_usd": 0.013646
+      },
+      {
+        "stage": "m4_repair_1",
+        "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+        "usage": {
+          "prompt_tokens": 31120,
+          "completion_tokens": 6131,
+          "total_tokens": 37251,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 40.252,
+        "finish_reason": "stop",
+        "cost_usd": 0.015467
+      }
+    ]
+  },
+  "finished_at": "2026-10-11T12:48:19.476209+00:00"
+}

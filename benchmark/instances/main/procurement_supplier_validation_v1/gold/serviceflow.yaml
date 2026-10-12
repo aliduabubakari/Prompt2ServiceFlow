@@ -1,0 +1,371 @@
+ir_version: 0.1.0
+composition_id: procurement_supplier_validation_v1
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:procurement_supplier_validation_v1
+  split: main
+  pipeline_id: procurement_supplier_validation_v1
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/17_procurement_supplier_validation_v1.txt
+  description_sha256: e0cbefed45325f95efc322ff50db89f72204f0f0a63a9fac2232c73ff08f85c6
+  internal_spec_path: source/internal_specs/main_40/17_procurement_supplier_validation_v1.json
+  internal_spec_sha256: 121a0407ffda03b34bea7ac516a121325047a39bda37b686c99187cd814a9030
+requirement:
+  name: Procurement Supplier Validation v1
+  purpose: Standardize supplier CSV, reconcile names against Wikidata, and export enriched data.
+  domain: procurement
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes:
+  - Three-step linear pipeline with Wikidata entity reconciliation.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: source_filesystem
+  type: filesystem
+  name: Source filesystem
+  identifier: /data
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: wikidata_service
+  type: database
+  name: Wikidata
+  identifier: wikidataEntity
+  access_mode: read
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: load_and_modify_suppliers
+  name: Load and standardize suppliers
+  category: Transformer
+  capability: Parse supplier CSV and emit structured tabular JSON.
+  source_step_refs:
+  - load_and_modify_suppliers
+  evidence:
+  - source: description
+    text: Ingest and standardize supplier CSV data.
+  inputs:
+  - suppliers_csv
+  outputs:
+  - formatted_suppliers_json
+  - format_status
+  external_system_refs:
+  - source_filesystem
+  preconditions:
+  - Readable CSV available.
+  effects:
+  - Structured JSON emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step formats CSV to JSON.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: reconcile_supplier_entities
+  name: Reconcile suppliers with Wikidata
+  category: Reconciler
+  capability: Enrich supplier names with Wikidata entity reconciliation.
+  source_step_refs:
+  - reconcile_supplier_entities
+  evidence:
+  - source: description
+    text: Reconcile supplier names against Wikidata entities.
+  inputs:
+  - formatted_suppliers_json
+  - wikidata_resource
+  outputs:
+  - reconciled_suppliers_json
+  - reconciliation_status
+  external_system_refs:
+  - wikidata_service
+  preconditions:
+  - Structured JSON available.
+  effects:
+  - Reconciled JSON emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: Source step reconciles supplier entities.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: save_validated_suppliers
+  name: Export validated suppliers
+  category: Transformer
+  capability: Export reconciled JSON to enriched CSV.
+  source_step_refs:
+  - save_validated_suppliers
+  evidence:
+  - source: description
+    text: Export enriched supplier data to CSV format.
+  inputs:
+  - reconciled_suppliers_json
+  outputs:
+  - enriched_suppliers_csv
+  - export_status
+  external_system_refs: []
+  preconditions:
+  - Reconciled JSON available.
+  effects:
+  - CSV exported.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step exports to CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: load_and_modify_suppliers
+    to: reconcile_supplier_entities
+  - from: reconcile_supplier_entities
+    to: save_validated_suppliers
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: suppliers_csv
+  name: Suppliers CSV
+  kind: external_resource
+  data_type: csv
+  role: input
+  producer: null
+  consumers:
+  - load_and_modify_suppliers
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/suppliers.csv
+  external_system_ref: source_filesystem
+- artifact_id: formatted_suppliers_json
+  name: Formatted JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/tabular.schema.json
+  role: intermediate
+  producer: load_and_modify_suppliers
+  consumers:
+  - reconcile_supplier_entities
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: format_status
+  name: Format status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/s.schema.json
+  role: status
+  producer: load_and_modify_suppliers
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: wikidata_resource
+  name: Wikidata resource
+  kind: external_resource
+  data_type: object
+  role: config
+  producer: null
+  consumers:
+  - reconcile_supplier_entities
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/wikidata_resource.json
+  external_system_ref: wikidata_service
+- artifact_id: reconciled_suppliers_json
+  name: Reconciled JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/tabular.schema.json
+  role: intermediate
+  producer: reconcile_supplier_entities
+  consumers:
+  - save_validated_suppliers
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: reconciliation_status
+  name: Reconciliation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/s.schema.json
+  role: status
+  producer: reconcile_supplier_entities
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: enriched_suppliers_csv
+  name: Enriched CSV
+  kind: artifact
+  data_type: csv
+  role: output
+  producer: save_validated_suppliers
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: export_status
+  name: Export status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/s.schema.json
+  role: status
+  producer: save_validated_suppliers
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: load_and_modify_suppliers
+  service_id: csv_to_structured_json_table_formatter
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_file
+    artifact_id: suppliers_csv
+  output_bindings:
+  - port: structured_json
+    artifact_id: formatted_suppliers_json
+  - port: transform_status
+    artifact_id: format_status
+  parameter_bindings:
+    output_path: /workspace/artifacts/formatted_suppliers_json.json
+    dataset_id: '2'
+    table_name: JOT_
+    has_header: true
+  secret_bindings: []
+  rationale: Formats CSV to JSON.
+  confidence: explicit
+- intent_id: reconcile_supplier_entities
+  service_id: wikidata_entity_reconciliation_transformer
+  service_version: 1.0.0
+  input_bindings:
+  - port: structured_json
+    artifact_id: formatted_suppliers_json
+  - port: entity_reconciliation_resource
+    artifact_id: wikidata_resource
+  output_bindings:
+  - port: reconciled_json
+    artifact_id: reconciled_suppliers_json
+  - port: reconciliation_status
+    artifact_id: reconciliation_status
+  parameter_bindings:
+    column_name: supplier_name
+    reconciliator_id: wikidataEntity
+    dataset_id: '2'
+    output_path: /workspace/artifacts/reconciled_suppliers_json.json
+  secret_bindings: []
+  rationale: Reconciles with Wikidata.
+  confidence: explicit
+- intent_id: save_validated_suppliers
+  service_id: structured_json_to_csv_exporter
+  service_version: 1.0.0
+  input_bindings:
+  - port: structured_json
+    artifact_id: reconciled_suppliers_json
+  output_bindings:
+  - port: csv_file
+    artifact_id: enriched_suppliers_csv
+  - port: export_status
+    artifact_id: export_status
+  parameter_bindings:
+    output_filename: enriched_suppliers.csv
+    include_header: true
+  secret_bindings: []
+  rationale: Exports to CSV.
+  confidence: explicit
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Wikidata reconciliation is mocked.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All three source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Three exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Three-task Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Single scenario executes all three steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - All validation and export invariants hold
+source_step_accounting:
+- source_step_ref: load_and_modify_suppliers
+  disposition: service
+  intent_ids:
+  - load_and_modify_suppliers
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: reconcile_supplier_entities
+  disposition: service
+  intent_ids:
+  - reconcile_supplier_entities
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: save_validated_suppliers
+  disposition: service
+  intent_ids:
+  - save_validated_suppliers
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

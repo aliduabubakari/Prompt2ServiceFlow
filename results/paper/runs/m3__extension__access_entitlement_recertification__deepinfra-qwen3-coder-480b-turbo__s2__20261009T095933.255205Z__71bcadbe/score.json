@@ -1,0 +1,397 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-09T10:04:43.997320+00:00",
+  "instance": "benchmark/instances/extension/access_entitlement_recertification",
+  "workspace": "experiments/workspaces/extension/access_entitlement_recertification",
+  "submission": "results/paper/runs/m3__extension__access_entitlement_recertification__deepinfra-qwen3-coder-480b-turbo__s2__20261009T095933.255205Z__71bcadbe/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G0",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-09T10:04:41.115640+00:00",
+    "workspace": "experiments/workspaces/extension/access_entitlement_recertification",
+    "submission": "results/paper/runs/m3__extension__access_entitlement_recertification__deepinfra-qwen3-coder-480b-turbo__s2__20261009T095933.255205Z__71bcadbe/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G0",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "fail",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": [
+          {
+            "code": "G0_SCHEMA_ERROR",
+            "message": "$.artifacts[8].data_type: 'review_packet' is not one of ['string', 'integer', 'number', 'boolean', 'object', 'array', 'json', 'csv', 'parquet', 'text', 'binary', 'directory', 'markdown', 'image', 'model', 'table', 'decision', 'status', 'notification', 'any']",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G0_SCHEMA_ERROR",
+            "message": "$.artifacts[10].data_type: 'audit_log' is not one of ['string', 'integer', 'number', 'boolean', 'object', 'array', 'json', 'csv', 'parquet', 'text', 'binary', 'directory', 'markdown', 'image', 'model', 'table', 'decision', 'status', 'notification', 'any']",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G1",
+        "status": "skipped",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "skipped",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": [
+          {
+            "code": "G2_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G3",
+        "status": "skipped",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "skipped",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": [
+          {
+            "code": "G4_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "extension-v1-access-entitlement-recertification-scripts",
+              "scenario": "base",
+              "data_size_bytes": 26113,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-access-entitlement-recertification-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 1799,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-access-entitlement-recertifica-24262807-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 26113,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-access-entitlement-recertifica-24262807-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 1799,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_primary_source",
+                "ingest_secondary_source",
+                "ingest_reference_source",
+                "validate_source_contracts",
+                "normalize_sources",
+                "fuse_sources",
+                "detect_sensitive_fields",
+                "apply_redaction_or_suppression",
+                "create_human_review_packet",
+                "record_policy_decision",
+                "write_audit_log",
+                "notify_reviewer_or_owner",
+                "publish_outputs"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 13,
+      "submission_intents": 13,
+      "gold_intents": 13,
+      "mapping": {
+        "apply_redaction_or_suppression": "apply_redaction_or_suppression",
+        "create_human_review_packet": "create_human_review_packet",
+        "detect_sensitive_fields": "detect_sensitive_fields",
+        "fuse_sources": "fuse_sources",
+        "ingest_primary_source": "ingest_primary_source",
+        "ingest_reference_source": "ingest_reference_source",
+        "ingest_secondary_source": "ingest_secondary_source",
+        "normalize_sources": "normalize_sources",
+        "notify_reviewer_or_owner": "notify_reviewer_or_owner",
+        "publish_outputs": "publish_outputs",
+        "record_policy_decision": "record_policy_decision",
+        "validate_source_contracts": "validate_source_contracts",
+        "write_audit_log": "write_audit_log"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 13
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 12,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 13,
+      "total": 13,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 13,
+    "correct": 13,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "apply_redaction_or_suppression",
+        "gold_service": "entitlement_minimization_transformer",
+        "submission_intent": "apply_redaction_or_suppression",
+        "submission_service": "entitlement_minimization_transformer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "create_human_review_packet",
+        "gold_service": "entitlement_recertification_packet_builder",
+        "submission_intent": "create_human_review_packet",
+        "submission_service": "entitlement_recertification_packet_builder",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "detect_sensitive_fields",
+        "gold_service": "entitlement_sensitive_attribute_detector",
+        "submission_intent": "detect_sensitive_fields",
+        "submission_service": "entitlement_sensitive_attribute_detector",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "fuse_sources",
+        "gold_service": "entitlement_identity_resource_fuser",
+        "submission_intent": "fuse_sources",
+        "submission_service": "entitlement_identity_resource_fuser",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_primary_source",
+        "gold_service": "identity_provider_export_ingestor",
+        "submission_intent": "ingest_primary_source",
+        "submission_service": "identity_provider_export_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_reference_source",
+        "gold_service": "manager_directory_reference_ingestor",
+        "submission_intent": "ingest_reference_source",
+        "submission_service": "manager_directory_reference_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_secondary_source",
+        "gold_service": "resource_entitlement_table_ingestor",
+        "submission_intent": "ingest_secondary_source",
+        "submission_service": "resource_entitlement_table_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "normalize_sources",
+        "gold_service": "entitlement_identity_normalizer",
+        "submission_intent": "normalize_sources",
+        "submission_service": "entitlement_identity_normalizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "notify_reviewer_or_owner",
+        "gold_service": "reviewer_notification_publisher",
+        "submission_intent": "notify_reviewer_or_owner",
+        "submission_service": "reviewer_notification_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_outputs",
+        "gold_service": "policy_review_bundle_publisher",
+        "submission_intent": "publish_outputs",
+        "submission_service": "policy_review_bundle_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "record_policy_decision",
+        "gold_service": "policy_decision_audit_recorder",
+        "submission_intent": "record_policy_decision",
+        "submission_service": "policy_decision_audit_recorder",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "validate_source_contracts",
+        "gold_service": "entitlement_recertification_contract_validator",
+        "submission_intent": "validate_source_contracts",
+        "submission_service": "entitlement_recertification_contract_validator",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "write_audit_log",
+        "gold_service": "policy_audit_log_writer",
+        "submission_intent": "write_audit_log",
+        "submission_service": "policy_audit_log_writer",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 12,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "source_fixture_loaded",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-3hic53g9/artifacts/ingest_primary_source_status.json"
+          },
+          {
+            "assertion_id": "source_files_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-3hic53g9/artifacts/ingest_primary_source_status.json"
+          },
+          {
+            "assertion_id": "source_records_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-3hic53g9/artifacts/ingest_primary_source_status.json"
+          },
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-3hic53g9/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "final_artifact_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-3hic53g9/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "upstream_evidence_propagated",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-3hic53g9/artifacts/publish_outputs_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 6,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

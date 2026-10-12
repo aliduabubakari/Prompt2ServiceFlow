@@ -1,0 +1,94 @@
+schema_version: 0.1.0
+service_id: erp_invoice_posting_client
+version: 1.0.0
+display_name: Erp Invoice Posting Client
+category: Publisher
+capability:
+  summary: Posts validated invoice rows to a configured ERP API endpoint.
+  operations:
+  - Posts validated invoice rows to a configured ERP API endpoint.
+  keywords:
+  - erp
+  - invoice
+  - posting
+  - client
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: valid_invoice_rows
+    description: Reviewed valid invoice rows value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: erp_api
+    description: Reviewed erp api value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: posting_status
+    description: Reviewed posting status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: posting_endpoint
+    description: Configuration for posting endpoint.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: erp-invoice-posting-client
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.1
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.erp_invoice_posting_client
+  implementation_ref: services/implementations/erp_invoice_posting_client
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-02:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 02 descriptions; bindings retain inference confidence.

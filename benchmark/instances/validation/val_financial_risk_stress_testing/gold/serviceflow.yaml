@@ -1,0 +1,1071 @@
+ir_version: 0.1.0
+composition_id: val_financial_risk_stress_testing
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.3
+  sha256: 0807f68e6a990b9818c6f954c7089ae99a57b570a33b9f9ce5e6e32ffda8a150
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_financial_risk_stress_testing
+  split: validation
+  pipeline_id: val_financial_risk_stress_testing
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/18_val_financial_risk_stress_testing.txt
+  description_sha256: 137b381ff526e78f06c46b8c9e5936ebde0223a870722be1deeaf2795b964313
+  internal_spec_path: source/internal_specs/validation_20/18_val_financial_risk_stress_testing.json
+  internal_spec_sha256: a3d4af09b1e5f53be52ffb2aa6acd5d5b2e89c23cd7d00c375cd37028a4b0796
+requirement:
+  name: Val Financial Risk Stress Testing
+  purpose: Load market scenarios and portfolio positions, run stress calculations, validate thresholds,
+    route validation status, report, remediate, and archive.
+  domain: validation_holdout
+  execution_model: batch
+  topology: mixed
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: market_data_api
+  type: http_api
+  name: Market data API
+  identifier: market_data_api
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: portfolio_warehouse
+  type: database
+  name: Portfolio warehouse
+  identifier: portfolio_warehouse
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: risk_engine
+  type: http_api
+  name: Risk engine
+  identifier: risk_engine
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: regulatory_archive
+  type: object_storage
+  name: Regulatory archive
+  identifier: regulatory_archive
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: review_case_system
+  type: http_api
+  name: Risk remediation case system
+  identifier: review_case_system
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: load_market_scenarios
+  name: Load Market Scenarios
+  category: Extractor
+  capability: Perform the reviewed load market scenarios capability.
+  source_step_refs:
+  - load_market_scenarios
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: load_market_scenarios.'
+  inputs:
+  - market_data_api
+  outputs:
+  - market_scenarios
+  - scenario_load_status
+  external_system_refs:
+  - market_data_api
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared market_scenarios, scenario_load_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: load_portfolio_positions
+  name: Load Portfolio Positions
+  category: Extractor
+  capability: Perform the reviewed load portfolio positions capability.
+  source_step_refs:
+  - load_portfolio_positions
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: load_portfolio_positions.'
+  inputs:
+  - portfolio_warehouse
+  outputs:
+  - portfolio_positions
+  - position_load_status
+  external_system_refs:
+  - portfolio_warehouse
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared portfolio_positions, position_load_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: run_credit_stress
+  name: Run Credit Stress
+  category: ScoringService
+  capability: Perform the reviewed run credit stress capability.
+  source_step_refs:
+  - run_credit_stress
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: run_credit_stress.'
+  inputs:
+  - market_scenarios
+  - portfolio_positions
+  - risk_engine
+  outputs:
+  - credit_stress_result
+  - credit_stress_status
+  external_system_refs:
+  - risk_engine
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared credit_stress_result, credit_stress_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: run_liquidity_stress
+  name: Run Liquidity Stress
+  category: ScoringService
+  capability: Perform the reviewed run liquidity stress capability.
+  source_step_refs:
+  - run_liquidity_stress
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: run_liquidity_stress.'
+  inputs:
+  - market_scenarios
+  - portfolio_positions
+  - risk_engine
+  outputs:
+  - liquidity_stress_result
+  - liquidity_stress_status
+  external_system_refs:
+  - risk_engine
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared liquidity_stress_result, liquidity_stress_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: run_market_stress
+  name: Run Market Stress
+  category: ScoringService
+  capability: Perform the reviewed run market stress capability.
+  source_step_refs:
+  - run_market_stress
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: run_market_stress.'
+  inputs:
+  - market_scenarios
+  - portfolio_positions
+  - risk_engine
+  outputs:
+  - market_stress_result
+  - market_stress_status
+  external_system_refs:
+  - risk_engine
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared market_stress_result, market_stress_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: aggregate_stress_results
+  name: Aggregate Stress Results
+  category: Aggregator
+  capability: Perform the reviewed aggregate stress results capability.
+  source_step_refs:
+  - aggregate_stress_results
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: aggregate_stress_results.'
+  inputs:
+  - credit_stress_result
+  - liquidity_stress_result
+  - market_stress_result
+  outputs:
+  - stress_results
+  - stress_aggregation_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared stress_results, stress_aggregation_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: validate_capital_thresholds
+  name: Validate Capital Thresholds
+  category: QualityCheck
+  capability: Perform the reviewed validate capital thresholds capability.
+  source_step_refs:
+  - validate_capital_thresholds
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: validate_capital_thresholds.'
+  inputs:
+  - stress_results
+  outputs:
+  - capital_validation
+  - capital_validation_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared capital_validation, capital_validation_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: route_validation_status
+  name: Route Validation Status
+  category: DomainAdapter
+  capability: Perform the reviewed route validation status capability.
+  source_step_refs:
+  - route_validation_status
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: route_validation_status.'
+  inputs:
+  - capital_validation
+  outputs:
+  - validation_route
+  - validation_route_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared validation_route, validation_route_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: write_regulatory_report
+  name: Write Regulatory Report
+  category: ReportGenerator
+  capability: Perform the reviewed write regulatory report capability.
+  source_step_refs:
+  - write_regulatory_report
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: write_regulatory_report.'
+  inputs:
+  - stress_results
+  - capital_validation
+  outputs:
+  - regulatory_report
+  - report_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared regulatory_report, report_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: open_remediation_ticket
+  name: Open Remediation Ticket
+  category: Publisher
+  capability: Perform the reviewed open remediation ticket capability.
+  source_step_refs:
+  - open_remediation_ticket
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: open_remediation_ticket.'
+  inputs:
+  - stress_results
+  - review_case_system
+  outputs:
+  - remediation_ticket
+  - remediation_status
+  external_system_refs:
+  - review_case_system
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared remediation_ticket, remediation_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: archive_model_inputs
+  name: Archive Model Inputs
+  category: Publisher
+  capability: Perform the reviewed archive model inputs capability.
+  source_step_refs:
+  - archive_model_inputs
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: archive_model_inputs.'
+  inputs:
+  - market_scenarios
+  - portfolio_positions
+  - regulatory_archive
+  outputs:
+  - archive_status
+  external_system_refs:
+  - regulatory_archive
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared archive_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: load_market_scenarios
+  disposition: service
+  intent_ids:
+  - load_market_scenarios
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: load_portfolio_positions
+  disposition: service
+  intent_ids:
+  - load_portfolio_positions
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: run_credit_stress
+  disposition: service
+  intent_ids:
+  - run_credit_stress
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: run_liquidity_stress
+  disposition: service
+  intent_ids:
+  - run_liquidity_stress
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: run_market_stress
+  disposition: service
+  intent_ids:
+  - run_market_stress
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: aggregate_stress_results
+  disposition: service
+  intent_ids:
+  - aggregate_stress_results
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: validate_capital_thresholds
+  disposition: service
+  intent_ids:
+  - validate_capital_thresholds
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: route_validation_status
+  disposition: service
+  intent_ids:
+  - route_validation_status
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: write_regulatory_report
+  disposition: service
+  intent_ids:
+  - write_regulatory_report
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: open_remediation_ticket
+  disposition: service
+  intent_ids:
+  - open_remediation_ticket
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: archive_model_inputs
+  disposition: service
+  intent_ids:
+  - archive_model_inputs
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: load_market_scenarios
+    to: run_credit_stress
+  - from: load_market_scenarios
+    to: run_liquidity_stress
+  - from: load_market_scenarios
+    to: run_market_stress
+  - from: load_portfolio_positions
+    to: run_credit_stress
+  - from: load_portfolio_positions
+    to: run_liquidity_stress
+  - from: load_portfolio_positions
+    to: run_market_stress
+  - from: run_credit_stress
+    to: aggregate_stress_results
+  - from: run_liquidity_stress
+    to: aggregate_stress_results
+  - from: run_market_stress
+    to: aggregate_stress_results
+  - from: aggregate_stress_results
+    to: validate_capital_thresholds
+  - from: validate_capital_thresholds
+    to: route_validation_status
+  - from: route_validation_status
+    to: write_regulatory_report
+  - from: route_validation_status
+    to: open_remediation_ticket
+  - from: write_regulatory_report
+    to: archive_model_inputs
+  parallel_groups:
+  - group_id: stress_calculations
+    intent_ids:
+    - run_credit_stress
+    - run_liquidity_stress
+    - run_market_stress
+  branches:
+  - branch_id: risk_validation_route
+    decision_intent: route_validation_status
+    decision_artifact: validation_route
+    cases:
+    - case_id: within_threshold
+      condition: validation_route.route == write_regulatory_report
+      next_intents:
+      - write_regulatory_report
+    - case_id: breach_detected
+      condition: validation_route.route == open_remediation_ticket
+      next_intents:
+      - open_remediation_ticket
+  gates:
+  - gate_id: stress_results_gate
+    sensor_intent: validate_capital_thresholds
+    condition: all_stress_results_available == true
+    gated_intents:
+    - route_validation_status
+    - write_regulatory_report
+    - open_remediation_ticket
+artifacts:
+- artifact_id: market_data_api
+  name: Market Data Api
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: market_data_api
+- artifact_id: portfolio_warehouse
+  name: Portfolio Warehouse
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: portfolio_warehouse
+- artifact_id: risk_engine
+  name: Risk Engine
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: risk_engine
+- artifact_id: regulatory_archive
+  name: Regulatory Archive
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: regulatory_archive
+- artifact_id: review_case_system
+  name: Review Case System
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: regulatory_archive
+- artifact_id: market_scenarios
+  name: Market Scenarios
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: load_market_scenarios
+  consumers:
+  - run_credit_stress
+  - run_liquidity_stress
+  - run_market_stress
+  - archive_model_inputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: scenario_load_status
+  name: Scenario Load Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: load_market_scenarios
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: portfolio_positions
+  name: Portfolio Positions
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: load_portfolio_positions
+  consumers:
+  - run_credit_stress
+  - run_liquidity_stress
+  - run_market_stress
+  - archive_model_inputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: position_load_status
+  name: Position Load Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: load_portfolio_positions
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: credit_stress_result
+  name: Credit Stress Result
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: run_credit_stress
+  consumers:
+  - aggregate_stress_results
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: credit_stress_status
+  name: Credit Stress Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: run_credit_stress
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: liquidity_stress_result
+  name: Liquidity Stress Result
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: run_liquidity_stress
+  consumers:
+  - aggregate_stress_results
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: liquidity_stress_status
+  name: Liquidity Stress Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: run_liquidity_stress
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: market_stress_result
+  name: Market Stress Result
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: run_market_stress
+  consumers:
+  - aggregate_stress_results
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: market_stress_status
+  name: Market Stress Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: run_market_stress
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: stress_results
+  name: Stress Results
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: aggregate_stress_results
+  consumers:
+  - validate_capital_thresholds
+  - write_regulatory_report
+  - open_remediation_ticket
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: stress_aggregation_status
+  name: Stress Aggregation Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: aggregate_stress_results
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: capital_validation
+  name: Capital Validation
+  kind: artifact
+  data_type: json
+  role: intermediate
+  producer: validate_capital_thresholds
+  consumers:
+  - route_validation_status
+  - write_regulatory_report
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: capital_validation_status
+  name: Capital Validation Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: validate_capital_thresholds
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validation_route
+  name: Validation Route
+  kind: artifact
+  data_type: json
+  role: output
+  producer: route_validation_status
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validation_route_status
+  name: Validation Route Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: route_validation_status
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: regulatory_report
+  name: Regulatory Report
+  kind: artifact
+  data_type: binary
+  role: output
+  producer: write_regulatory_report
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: report_status
+  name: Report Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: write_regulatory_report
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: remediation_ticket
+  name: Remediation Ticket
+  kind: artifact
+  data_type: json
+  role: output
+  producer: open_remediation_ticket
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: remediation_status
+  name: Remediation Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: open_remediation_ticket
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: archive_status
+  name: Archive Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: archive_model_inputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: load_market_scenarios
+  service_id: financial_dataset_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: financial_source
+    artifact_id: market_data_api
+  output_bindings:
+  - port: financial_dataset
+    artifact_id: market_scenarios
+  - port: extraction_status
+    artifact_id: scenario_load_status
+  parameter_bindings:
+    dataset_name: market_scenarios
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: load_portfolio_positions
+  service_id: financial_dataset_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: financial_source
+    artifact_id: portfolio_warehouse
+  output_bindings:
+  - port: financial_dataset
+    artifact_id: portfolio_positions
+  - port: extraction_status
+    artifact_id: position_load_status
+  parameter_bindings:
+    dataset_name: portfolio_positions
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: run_credit_stress
+  service_id: portfolio_stress_runner
+  service_version: 1.0.0
+  input_bindings:
+  - port: market_scenarios
+    artifact_id: market_scenarios
+  - port: portfolio_positions
+    artifact_id: portfolio_positions
+  - port: risk_engine
+    artifact_id: risk_engine
+  output_bindings:
+  - port: stress_result
+    artifact_id: credit_stress_result
+  - port: stress_status
+    artifact_id: credit_stress_status
+  parameter_bindings:
+    stress_type: credit
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: run_liquidity_stress
+  service_id: portfolio_stress_runner
+  service_version: 1.0.0
+  input_bindings:
+  - port: market_scenarios
+    artifact_id: market_scenarios
+  - port: portfolio_positions
+    artifact_id: portfolio_positions
+  - port: risk_engine
+    artifact_id: risk_engine
+  output_bindings:
+  - port: stress_result
+    artifact_id: liquidity_stress_result
+  - port: stress_status
+    artifact_id: liquidity_stress_status
+  parameter_bindings:
+    stress_type: liquidity
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: run_market_stress
+  service_id: portfolio_stress_runner
+  service_version: 1.0.0
+  input_bindings:
+  - port: market_scenarios
+    artifact_id: market_scenarios
+  - port: portfolio_positions
+    artifact_id: portfolio_positions
+  - port: risk_engine
+    artifact_id: risk_engine
+  output_bindings:
+  - port: stress_result
+    artifact_id: market_stress_result
+  - port: stress_status
+    artifact_id: market_stress_status
+  parameter_bindings:
+    stress_type: market
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: aggregate_stress_results
+  service_id: stress_result_aggregator
+  service_version: 1.0.0
+  input_bindings:
+  - port: credit_result
+    artifact_id: credit_stress_result
+  - port: liquidity_result
+    artifact_id: liquidity_stress_result
+  - port: market_result
+    artifact_id: market_stress_result
+  output_bindings:
+  - port: stress_results
+    artifact_id: stress_results
+  - port: aggregation_status
+    artifact_id: stress_aggregation_status
+  parameter_bindings:
+    aggregation_profile: regulatory
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: validate_capital_thresholds
+  service_id: capital_threshold_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: stress_results
+    artifact_id: stress_results
+  output_bindings:
+  - port: capital_validation
+    artifact_id: capital_validation
+  - port: validation_status
+    artifact_id: capital_validation_status
+  parameter_bindings:
+    threshold_profile: basel
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: route_validation_status
+  service_id: risk_validation_route_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: capital_validation
+    artifact_id: capital_validation
+  output_bindings:
+  - port: validation_route
+    artifact_id: validation_route
+  - port: routing_status
+    artifact_id: validation_route_status
+  parameter_bindings:
+    breach_route: open_remediation_ticket
+    within_threshold_route: write_regulatory_report
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: write_regulatory_report
+  service_id: regulatory_report_writer
+  service_version: 1.0.0
+  input_bindings:
+  - port: stress_results
+    artifact_id: stress_results
+  - port: capital_validation
+    artifact_id: capital_validation
+  output_bindings:
+  - port: regulatory_report
+    artifact_id: regulatory_report
+  - port: report_status
+    artifact_id: report_status
+  parameter_bindings:
+    report_name: stress_test
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: open_remediation_ticket
+  service_id: review_case_opener
+  service_version: 1.0.0
+  input_bindings:
+  - port: review_records
+    artifact_id: stress_results
+  - port: case_system
+    artifact_id: review_case_system
+  output_bindings:
+  - port: review_cases
+    artifact_id: remediation_ticket
+  - port: case_status
+    artifact_id: remediation_status
+  parameter_bindings:
+    case_type: capital_breach
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: archive_model_inputs
+  service_id: model_input_archive_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: market_scenarios
+    artifact_id: market_scenarios
+  - port: portfolio_positions
+    artifact_id: portfolio_positions
+  - port: regulatory_archive
+    artifact_id: regulatory_archive
+  output_bindings:
+  - port: archive_status
+    artifact_id: archive_status
+  parameter_bindings:
+    archive_prefix: stress-inputs/
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

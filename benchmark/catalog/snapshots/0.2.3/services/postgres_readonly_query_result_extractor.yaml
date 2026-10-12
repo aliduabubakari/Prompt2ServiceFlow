@@ -1,0 +1,161 @@
+schema_version: 0.1.0
+service_id: postgres_readonly_query_result_extractor
+version: 1.0.0
+display_name: PostgreSQL Read-only Query Result Extractor
+category: Extractor
+capability:
+  summary: Executes a caller-supplied read-only PostgreSQL SELECT query against a
+    bound PostgreSQL database and emits the result set plus observable query status.
+  operations:
+  - Resolve a bound PostgreSQL database resource.
+  - Validate that the supplied SQL is read-only and SELECT-based.
+  - Bind optional parameter values supplied by workflow binding.
+  - Execute the query and materialize rows and column metadata into a tabular artifact.
+  keywords:
+  - postgresql
+  - select query
+  - query results
+  - tabular extraction
+  - sales reporting
+  limitations:
+  - Targets PostgreSQL-compatible databases only.
+  - Does not execute DDL or DML statements.
+  - Does not render workflow schedule variables; SQL should be rendered by workflow
+    binding before invocation.
+  - Does not create reports or send notifications.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: postgres_database
+    description: PostgreSQL database resource containing the source tables.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://postgres_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: query_parameters
+    description: Optional JSON object of values to bind into a parameterized SELECT
+      query.
+    channel: parameter
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://sql_parameter_values/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: query_result
+    description: Tabular query result containing column names, row records, row count,
+      and source query metadata.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://tabular_query_result/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  - name: query_status
+    description: Observable query status including success flag, read-only validation,
+      row count, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://readonly_sql_query_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: sql_query
+    description: Read-only PostgreSQL SELECT query to execute.
+    type: string
+    required: true
+  - name: fail_on_empty_result
+    description: Whether zero returned rows should be treated as a service failure.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: postgres_readonly_query_precondition
+  type: precondition
+  applies_to: parameter
+  target: sql_query
+  description: SQL must be non-empty and read-only SELECT syntax.
+  expression: length(trim(sql_query)) > 0 and lower(trim(sql_query)) starts_with 'select'
+    and not contains_mutating_sql(sql_query)
+- contract_id: tabular_query_result_schema
+  type: json_schema
+  applies_to: output
+  target: query_result
+  description: Query result exposes columns, rows, and row count.
+  schema_ref: schema://tabular_query_result/v1
+  expression: '{"type":"object","required":["columns","rows","row_count"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0},"source_query_hash":{"type":["string","null"]}}}'
+- contract_id: readonly_query_status_schema
+  type: json_schema
+  applies_to: output
+  target: query_status
+  description: Status exposes query execution outcome.
+  schema_ref: schema://readonly_sql_query_status/v1
+  expression: '{"type":"object","required":["success","query_executed","read_only","row_count"],"properties":{"success":{"type":"boolean"},"query_executed":{"type":"boolean"},"read_only":{"type":"boolean"},"row_count":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: postgres_readonly_query_effect
+  type: effect
+  applies_to: service
+  target: postgres_readonly_query_result_extractor
+  description: The service does not mutate the database; on success it emits a query_result
+    and query_status.success=true.
+  expression: no_external_mutation and (query_status.success == true implies exists(query_result))
+invocation:
+  type: argo_workflow_template
+  template_name: postgres-readonly-query-result-extractor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.postgres_readonly_query_result_extractor
+  implementation_ref: services/implementations/postgres_readonly_query_result_extractor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - postgresql://*
+  secret_access: required
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  - financial
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit database credentials in logs or outputs.
+  - Avoid logging raw financial rows beyond bounded diagnostics.
+  idempotency_notes: For a fixed database snapshot, SQL query, and parameters, the
+    emitted result is deterministic; external database contents may change between
+    invocations.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:daily_sales_report#query_sales_data
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Needed because existing PostgreSQL services do not return SELECT result
+    artifacts for downstream conversion.'
+  - 'Evidence status: explicit.'

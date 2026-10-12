@@ -1,0 +1,497 @@
+ir_version: 0.1.0
+composition_id: multi_channel_marketing_campaign
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:multi_channel_marketing_campaign
+  split: main
+  pipeline_id: multi_channel_marketing_campaign
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/25_multi_channel_marketing_campaign.txt
+  description_sha256: 8838ee877244c22c32803d284bcce79ab542c4a005eaffe0228c7ca4303e14d7
+  internal_spec_path: source/internal_specs/main_40/25_multi_channel_marketing_campaign.json
+  internal_spec_sha256: 36aaf7660c88ab87deb3c79c6b1643b0cd7c0122e309b55670fbc9bfda11ff21
+requirement:
+  name: Multi-Channel Marketing Campaign
+  purpose: Load customer segments from CSV and fan out to parallel email, SMS, and push notification campaigns.
+  domain: marketing
+  execution_model: batch
+  topology: fan_out
+  information_sufficiency: high
+  notes:
+  - Three parallel campaign channels fan out from a single segment load step.
+  - Each channel targets a specific customer segment.
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: source_filesystem
+  type: filesystem
+  name: Source filesystem
+  identifier: /data
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: email_service
+  type: email
+  name: Email service
+  identifier: email-campaign
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+- system_id: sms_service
+  type: http_api
+  name: SMS service
+  identifier: sms-campaign
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+- system_id: push_service
+  type: http_api
+  name: Push notification service
+  identifier: push-campaign
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: load_customer_segment_csv
+  name: Load customer segment CSV
+  category: Extractor
+  capability: Parse the customer segment CSV with validated columns and emit a structured customer segments
+    dataset.
+  source_step_refs:
+  - load_customer_segment_csv
+  evidence:
+  - source: description
+    text: Load customer segment data from CSV file.
+  inputs:
+  - customer_segment_csv
+  outputs:
+  - customer_segments
+  - load_status
+  external_system_refs:
+  - source_filesystem
+  preconditions:
+  - A readable customer segment CSV is available.
+  effects:
+  - A structured customer segments dataset and load status are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - pii
+    - internal
+  decomposition_rationale: The source step loads customer data from CSV before fanning out to campaigns.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: send_email_campaign
+  name: Send email campaign
+  category: Notifier
+  capability: Send bulk email campaign to a selected customer segment using a bound email service.
+  source_step_refs:
+  - send_email_campaign
+  evidence:
+  - source: description
+    text: Send email campaign to customer segment.
+  inputs:
+  - customer_segments
+  - email_service_resource
+  outputs:
+  - email_campaign_results
+  external_system_refs:
+  - email_service
+  preconditions:
+  - Customer segments dataset with email column is available.
+  effects:
+  - Email campaign results are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - pii
+    - internal
+    - confidential
+  decomposition_rationale: The source step sends a targeted email campaign.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: send_sms_campaign
+  name: Send SMS campaign
+  category: Notifier
+  capability: Send bulk SMS campaign to a selected customer segment using a bound SMS API resource.
+  source_step_refs:
+  - send_sms_campaign
+  evidence:
+  - source: description
+    text: Send SMS campaign to customer segment.
+  inputs:
+  - customer_segments
+  - sms_api_resource
+  outputs:
+  - sms_campaign_results
+  external_system_refs:
+  - sms_service
+  preconditions:
+  - Customer segments dataset with phone column is available.
+  effects:
+  - SMS campaign results are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - pii
+    - internal
+    - confidential
+  decomposition_rationale: The source step sends a targeted SMS campaign.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: send_push_notification
+  name: Send push notification campaign
+  category: Notifier
+  capability: Send bulk push notifications to a selected customer segment using a bound push API resource.
+  source_step_refs:
+  - send_push_notification
+  evidence:
+  - source: description
+    text: Send push notification campaign to customer segment.
+  inputs:
+  - customer_segments
+  - push_api_resource
+  outputs:
+  - push_notification_campaign_results
+  external_system_refs:
+  - push_service
+  preconditions:
+  - Customer segments dataset with device token column is available.
+  effects:
+  - Push notification campaign results are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: not_required
+    data_sensitivity:
+    - pii
+    - internal
+    - confidential
+  decomposition_rationale: The source step sends a targeted push notification campaign.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: load_customer_segment_csv
+    to: send_email_campaign
+  - from: load_customer_segment_csv
+    to: send_sms_campaign
+  - from: load_customer_segment_csv
+    to: send_push_notification
+  parallel_groups:
+  - group_id: campaign_channels
+    intent_ids:
+    - send_email_campaign
+    - send_sms_campaign
+    - send_push_notification
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: customer_segment_csv
+  name: Customer segment CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - load_customer_segment_csv
+  sensitivity: pii
+  persistence: external
+  fixture_ref: fixtures/inputs/customer_segments.csv
+  external_system_ref: source_filesystem
+- artifact_id: customer_segments
+  name: Customer segments dataset
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/customer_segments.schema.json
+  role: intermediate
+  producer: load_customer_segment_csv
+  consumers:
+  - send_email_campaign
+  - send_sms_campaign
+  - send_push_notification
+  sensitivity: pii
+  persistence: workflow
+- artifact_id: load_status
+  name: Segment load status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/load_status.schema.json
+  role: status
+  producer: load_customer_segment_csv
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: email_service_resource
+  name: Email service resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - send_email_campaign
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/email_service.json
+  external_system_ref: email_service
+- artifact_id: email_campaign_results
+  name: Email campaign results
+  kind: artifact
+  data_type: notification
+  media_type: application/json
+  schema_ref: contracts/artifacts/email_campaign_results.schema.json
+  role: output
+  producer: send_email_campaign
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: sms_api_resource
+  name: SMS API resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - send_sms_campaign
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/sms_service.json
+  external_system_ref: sms_service
+- artifact_id: sms_campaign_results
+  name: SMS campaign results
+  kind: artifact
+  data_type: notification
+  media_type: application/json
+  schema_ref: contracts/artifacts/sms_campaign_results.schema.json
+  role: output
+  producer: send_sms_campaign
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: push_api_resource
+  name: Push API resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - send_push_notification
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/push_service.json
+  external_system_ref: push_service
+- artifact_id: push_notification_campaign_results
+  name: Push notification campaign results
+  kind: artifact
+  data_type: notification
+  media_type: application/json
+  schema_ref: contracts/artifacts/push_notification_campaign_results.schema.json
+  role: output
+  producer: send_push_notification
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: load_customer_segment_csv
+  service_id: customer_segment_csv_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: customer_segment_csv
+    artifact_id: customer_segment_csv
+  output_bindings:
+  - port: customer_segments
+    artifact_id: customer_segments
+  - port: load_status
+    artifact_id: load_status
+  parameter_bindings:
+    required_columns:
+    - customer_id
+    - segment
+    - email
+    - phone
+    - device_token
+    segment_column: segment
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: The descriptor loads customer segments from CSV with validated columns.
+  confidence: explicit
+- intent_id: send_email_campaign
+  service_id: bulk_email_campaign_sender
+  service_version: 1.0.0
+  input_bindings:
+  - port: customer_segments
+    artifact_id: customer_segments
+  - port: email_service
+    artifact_id: email_service_resource
+  output_bindings:
+  - port: email_campaign_results
+    artifact_id: email_campaign_results
+  parameter_bindings:
+    segment_selector: premium
+    email_column: email
+    subject_template: Special Offer for Premium Customers
+    body_template: Dear customer, check out our exclusive premium offers!
+    campaign_id: email-campaign-001
+  secret_bindings: []
+  rationale: The descriptor sends a targeted bulk email campaign to the premium customer segment.
+  confidence: explicit
+- intent_id: send_sms_campaign
+  service_id: bulk_sms_campaign_sender
+  service_version: 1.0.0
+  input_bindings:
+  - port: customer_segments
+    artifact_id: customer_segments
+  - port: sms_api_resource
+    artifact_id: sms_api_resource
+  output_bindings:
+  - port: sms_campaign_results
+    artifact_id: sms_campaign_results
+  parameter_bindings:
+    segment_selector: regular
+    phone_column: phone
+    message_template: Exclusive Deal - Limited Time!
+    campaign_id: sms-campaign-001
+    endpoint: https://api.sms.example.com/send
+  secret_bindings: []
+  rationale: The descriptor sends a targeted bulk SMS campaign to the regular customer segment.
+  confidence: explicit
+- intent_id: send_push_notification
+  service_id: bulk_push_notification_campaign_sender
+  service_version: 1.0.0
+  input_bindings:
+  - port: customer_segments
+    artifact_id: customer_segments
+  - port: push_api_resource
+    artifact_id: push_api_resource
+  output_bindings:
+  - port: push_notification_campaign_results
+    artifact_id: push_notification_campaign_results
+  parameter_bindings:
+    segment_selector: new
+    device_token_column: device_token
+    message_template: Don't miss out on our latest offer!
+    campaign_id: push-campaign-001
+    endpoint: https://api.push.example.com/send
+  secret_bindings: []
+  rationale: The descriptor sends a targeted bulk push notification campaign to the new customer segment.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides:
+  - intent_id: send_email_campaign
+    retries: 2
+    timeout_seconds: 300
+    network_access: required
+  - intent_id: send_sms_campaign
+    retries: 2
+    timeout_seconds: 120
+    network_access: required
+  - intent_id: send_push_notification
+    retries: 2
+    timeout_seconds: 120
+    network_access: required
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - All campaign delivery uses filesystem-backed mocks.
+    - Customer PII is limited to bounded references in mock outputs.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All four source steps are accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Four exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Fan-out Argo DAG with parallel campaigns compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Single campaign scenario executes all four steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - Segment load and campaign result invariants hold
+source_step_accounting:
+- source_step_ref: load_customer_segment_csv
+  disposition: service
+  intent_ids:
+  - load_customer_segment_csv
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: send_email_campaign
+  disposition: service
+  intent_ids:
+  - send_email_campaign
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: send_sms_campaign
+  disposition: service
+  intent_ids:
+  - send_sms_campaign
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: send_push_notification
+  disposition: service
+  intent_ids:
+  - send_push_notification
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

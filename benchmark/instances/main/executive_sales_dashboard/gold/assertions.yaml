@@ -1,0 +1,20 @@
+assertions_version: 0.1.0
+pipeline_id: executive_sales_dashboard
+scenarios:
+- scenario: dashboard_gen
+  assertions:
+  - assertion_id: data_ready
+    type: json_path_equals
+    path: artifacts/readiness_decision.json
+    json_path: success
+    expected: true
+  - assertion_id: csv_loaded
+    type: json_path_equals
+    path: artifacts/validation_status.json
+    json_path: success
+    expected: true
+  - assertion_id: dashboard_ok
+    type: json_path_equals
+    path: artifacts/render_status.json
+    json_path: success
+    expected: true

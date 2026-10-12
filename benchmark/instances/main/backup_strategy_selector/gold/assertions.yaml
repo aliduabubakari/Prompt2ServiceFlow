@@ -1,0 +1,37 @@
+assertions_version: 0.1.0
+pipeline_id: backup_strategy_selector
+scenarios:
+- scenario: saturday_full_backup
+  assertions:
+  - assertion_id: full_strategy_selected
+    type: json_path_equals
+    path: artifacts/backup_strategy_decision.json
+    json_path: selected_strategy
+    expected: full
+  - assertion_id: full_backup_executed
+    type: json_path_equals
+    path: artifacts/backup_status.json
+    json_path: backup_mode
+    expected: full
+  - assertion_id: full_backup_verified
+    type: json_path_equals
+    path: artifacts/verification_result.json
+    json_path: valid
+    expected: true
+- scenario: weekday_incremental_backup
+  assertions:
+  - assertion_id: incremental_strategy_selected
+    type: json_path_equals
+    path: artifacts/backup_strategy_decision.json
+    json_path: selected_strategy
+    expected: incremental
+  - assertion_id: incremental_backup_executed
+    type: json_path_equals
+    path: artifacts/backup_status.json
+    json_path: backup_mode
+    expected: incremental
+  - assertion_id: incremental_backup_verified
+    type: json_path_equals
+    path: artifacts/verification_result.json
+    json_path: valid
+    expected: true

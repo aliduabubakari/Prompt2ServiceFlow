@@ -1,0 +1,36 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: procurement_supplier_validation_v1
+image: python:3.12-slim
+workflow_parameters:
+- name: fixture-file
+  default: suppliers.csv
+tasks:
+- intent_id: load_and_modify_suppliers
+  script: scripts/01_load_suppliers.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{fixture-file}'
+  retries: 1
+- intent_id: reconcile_supplier_entities
+  script: scripts/02_reconcile_suppliers.py
+  dependencies:
+  - load_and_modify_suppliers
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: save_validated_suppliers
+  script: scripts/03_save_suppliers.py
+  dependencies:
+  - reconcile_supplier_entities
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+scenarios:
+- name: three_suppliers
+  parameters:
+    fixture-file: suppliers.csv
+  fixture_root: fixtures/scenarios/nominal

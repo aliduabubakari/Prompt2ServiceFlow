@@ -1,0 +1,55 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_customer_profile_refresh
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: extract_crm_records
+  script: scripts/01_extract_crm_records.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: normalize_profile_fields
+  script: scripts/02_normalize_profile_fields.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - extract_crm_records
+- intent_id: deduplicate_customers
+  script: scripts/03_deduplicate_customers.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - normalize_profile_fields
+- intent_id: load_profile_table
+  script: scripts/04_load_profile_table.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - deduplicate_customers
+- intent_id: emit_refresh_summary
+  script: scripts/05_emit_refresh_summary.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - load_profile_table
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

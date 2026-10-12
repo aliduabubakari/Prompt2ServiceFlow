@@ -1,0 +1,521 @@
+ir_version: 0.1.0
+composition_id: pipeline_execution_dag
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:pipeline_execution_dag
+  split: main
+  pipeline_id: pipeline_execution_dag
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/32_pipeline_execution_dag.txt
+  description_sha256: 4e4ea20e8eb28f71d28ec9c49804c17b920053ef05398318fd116fab39d2fd96
+  internal_spec_path: source/internal_specs/main_40/32_pipeline_execution_dag.json
+  internal_spec_sha256: f825b0a86ae5a09a1d6b2d37985aa72e9a2d6b366cc3bf1d3630316a662f3a9f
+requirement:
+  name: Pipeline Execution DAG
+  purpose: Load CSV, reconcile entities, enrich with weather, extend columns, and export CSV.
+  domain: data_platform
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes:
+  - Five-step linear enrichment pipeline.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems: []
+service_intents:
+- intent_id: load_and_modify
+  name: Load and modify
+  category: Transformer
+  capability: Parse CSV and emit structured JSON.
+  source_step_refs:
+  - load_and_modify
+  evidence:
+  - source: description
+    text: Load and format data.
+  inputs:
+  - input_csv
+  outputs:
+  - formatted_json
+  - format_status
+  external_system_refs: []
+  preconditions:
+  - CSV available.
+  effects:
+  - Formatted JSON emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Formats CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: reconciliation
+  name: Reconcile entities
+  category: Reconciler
+  capability: Enrich with entity reconciliation.
+  source_step_refs:
+  - reconciliation
+  evidence:
+  - source: description
+    text: Reconcile data.
+  inputs:
+  - formatted_json
+  - reconciliation_resource
+  outputs:
+  - reconciled_json
+  - reconciliation_status
+  external_system_refs: []
+  preconditions:
+  - JSON available.
+  effects:
+  - Reconciled JSON emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Reconciles entities.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: openmeteo_extension
+  name: OpenMeteo extension
+  category: DomainAdapter
+  capability: Enrich with weather data.
+  source_step_refs:
+  - openmeteo_extension
+  evidence:
+  - source: description
+    text: Fetch OpenMeteo data.
+  inputs:
+  - reconciled_json
+  - weather_api_resource
+  outputs:
+  - weather_json
+  - weather_status
+  external_system_refs: []
+  preconditions:
+  - Reconciled JSON available.
+  effects:
+  - Weather data appended.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Adds weather.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: column_extension
+  name: Column extension
+  category: Transformer
+  capability: Add derived columns.
+  source_step_refs:
+  - column_extension
+  evidence:
+  - source: description
+    text: Extend columns.
+  inputs:
+  - weather_json
+  outputs:
+  - extended_json
+  - extension_status
+  external_system_refs: []
+  preconditions:
+  - Weather JSON available.
+  effects:
+  - New columns added.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Extends columns.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: save
+  name: Save to CSV
+  category: Transformer
+  capability: Export to CSV.
+  source_step_refs:
+  - save
+  evidence:
+  - source: description
+    text: Save data.
+  inputs:
+  - extended_json
+  outputs:
+  - output_csv
+  - export_status
+  external_system_refs: []
+  preconditions:
+  - Extended JSON available.
+  effects:
+  - CSV exported.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Exports CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: load_and_modify
+    to: reconciliation
+  - from: reconciliation
+    to: openmeteo_extension
+  - from: openmeteo_extension
+    to: column_extension
+  - from: column_extension
+    to: save
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: input_csv
+  name: Input CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - load_and_modify
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/data.csv
+- artifact_id: formatted_json
+  name: Formatted JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: load_and_modify
+  consumers:
+  - reconciliation
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: format_status
+  name: Format status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: load_and_modify
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: reconciled_json
+  name: Reconciled JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: reconciliation
+  consumers:
+  - openmeteo_extension
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: reconciliation_status
+  name: Reconciliation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: reconciliation
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: weather_json
+  name: Weather JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: openmeteo_extension
+  consumers:
+  - column_extension
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: weather_status
+  name: Weather status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: openmeteo_extension
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: extended_json
+  name: Extended JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/obj.schema.json
+  role: intermediate
+  producer: column_extension
+  consumers:
+  - save
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: extension_status
+  name: Extension status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: column_extension
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: output_csv
+  name: Output CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: output
+  producer: save
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: export_status
+  name: Export status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/st.schema.json
+  role: status
+  producer: save
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: reconciliation_resource
+  name: Reconciliation resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - reconciliation
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/reconciliation.json
+- artifact_id: weather_api_resource
+  name: Weather API resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - openmeteo_extension
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/weather_api.json
+bindings:
+- intent_id: load_and_modify
+  service_id: csv_to_structured_json_table_formatter
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_file
+    artifact_id: input_csv
+  output_bindings:
+  - port: structured_json
+    artifact_id: formatted_json
+  - port: transform_status
+    artifact_id: format_status
+  parameter_bindings:
+    output_path: /workspace/artifacts/formatted.json
+    has_header: true
+  secret_bindings: []
+  rationale: Formats CSV.
+  confidence: explicit
+- intent_id: reconciliation
+  service_id: tabular_entity_reconciliation_enricher
+  service_version: 1.0.0
+  input_bindings:
+  - port: structured_json
+    artifact_id: formatted_json
+  - port: entity_reconciliation_resource
+    artifact_id: reconciliation_resource
+  output_bindings:
+  - port: reconciled_json
+    artifact_id: reconciled_json
+  - port: reconciliation_status
+    artifact_id: reconciliation_status
+  parameter_bindings:
+    reconciliator_id: wikidata
+    column_name: name
+    output_path: /workspace/artifacts/reconciled.json
+  secret_bindings: []
+  rationale: Reconciles entities.
+  confidence: explicit
+- intent_id: openmeteo_extension
+  service_id: openmeteo_historical_weather_tabular_enricher
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_tabular_json
+    artifact_id: reconciled_json
+  - port: weather_api_resource
+    artifact_id: weather_api_resource
+  output_bindings:
+  - port: weather_enriched_json
+    artifact_id: weather_json
+  - port: enrichment_status
+    artifact_id: weather_status
+  parameter_bindings:
+    lat_column: latitude
+    lon_column: longitude
+    date_column: date
+    variables:
+    - temperature
+    output_path: /workspace/artifacts/weather.json
+  secret_bindings: []
+  rationale: Adds OpenMeteo weather.
+  confidence: explicit
+- intent_id: column_extension
+  service_id: environmental_risk_score_column_calculator
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_tabular_json
+    artifact_id: weather_json
+  output_bindings:
+  - port: risk_scored_json
+    artifact_id: extended_json
+  - port: scoring_status
+    artifact_id: extension_status
+  parameter_bindings:
+    input_columns:
+    - temperature
+    output_column: risk_score
+    output_path: /workspace/artifacts/extended.json
+  secret_bindings: []
+  rationale: Extends columns.
+  confidence: explicit
+- intent_id: save
+  service_id: structured_json_to_csv_exporter
+  service_version: 1.0.0
+  input_bindings:
+  - port: structured_json
+    artifact_id: extended_json
+  output_bindings:
+  - port: csv_file
+    artifact_id: output_csv
+  - port: export_status
+    artifact_id: export_status
+  parameter_bindings:
+    output_filename: output.csv
+    include_header: true
+  secret_bindings: []
+  rationale: Exports CSV.
+  confidence: explicit
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock data.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All five source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Five exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports, parameters, types, and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Linear Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Scenario executes
+- gate: G6
+  expected_status: pass
+  checks:
+  - Invariants hold
+source_step_accounting:
+- source_step_ref: load_and_modify
+  disposition: service
+  intent_ids:
+  - load_and_modify
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: reconciliation
+  disposition: service
+  intent_ids:
+  - reconciliation
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: openmeteo_extension
+  disposition: service
+  intent_ids:
+  - openmeteo_extension
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: column_extension
+  disposition: service
+  intent_ids:
+  - column_extension
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: save
+  disposition: service
+  intent_ids:
+  - save
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

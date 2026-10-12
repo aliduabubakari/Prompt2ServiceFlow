@@ -1,0 +1,203 @@
+schema_version: 0.1.0
+service_id: spark_class_object_storage_dataset_transformer
+version: 1.0.0
+display_name: Spark Class Object Storage Dataset Transformer
+category: Transformer
+capability:
+  summary: Runs a configured Spark class/application in a bound execution context
+    to transform object-storage inputs into a configured object-storage dataset or
+    directory and emits transform status.
+  operations:
+  - Resolve object-storage input references and Spark/Kubernetes execution context.
+  - Submit the configured Spark class with Spark profile and application arguments.
+  - Pass version metadata and domain-specific arguments through a generic application_args
+    object.
+  - Materialize a configured output dataset URI in object storage.
+  keywords:
+  - spark job
+  - object storage
+  - dataset transform
+  - kubernetes
+  - processed data
+  - bioinformatics
+  limitations:
+  - Does not provide Spark application code or validate application-specific semantics.
+  - Does not infer schema of the produced dataset.
+  - Workflow retries and dependency ordering remain orchestration concerns.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_objects
+    description: Object-storage or file references consumed by the Spark application,
+      such as mondo-base.obo.
+    channel: artifact
+    data_type: array
+    media_type: application/json
+    schema_ref: schema://object_storage_file_references/v1
+    required: true
+    cardinality: many
+    sensitivity: public
+  - name: version_metadata
+    description: Optional source version metadata propagated to the Spark job.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://release_asset_metadata/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  - name: object_storage
+    description: Object-storage resource containing input and output datasets.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://object_storage_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: spark_execution_context
+    description: Spark execution resource, such as a Kubernetes context.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://spark_execution_context_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: output_dataset
+    description: Reference to the produced object-storage dataset or directory, such
+      as public/mondo_terms.
+    channel: artifact
+    data_type: directory
+    media_type: application/json
+    schema_ref: schema://object_storage_dataset_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  - name: transform_status
+    description: Observable Spark transform status including terminal state, output
+      URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://spark_dataset_transform_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: spark_class
+    description: Fully qualified Spark class/application entry point.
+    type: string
+    required: true
+  - name: spark_config
+    description: Named Spark resource/configuration profile.
+    type: string
+    required: false
+  - name: output_uri
+    description: Destination object-storage URI or prefix for produced dataset.
+    type: string
+    required: true
+  - name: app_name
+    description: Optional Spark application name.
+    type: string
+    required: false
+  - name: application_args
+    description: Application-specific argument object, for example exclude_root.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: spark_dataset_transform_class_contract
+  type: precondition
+  applies_to: parameter
+  target: spark_class
+  description: Spark class/application entry point must be non-empty.
+  expression: length(trim(spark_class)) > 0
+- contract_id: spark_dataset_transform_output_contract
+  type: precondition
+  applies_to: parameter
+  target: output_uri
+  description: Output URI or prefix must be non-empty.
+  expression: length(trim(output_uri)) > 0
+- contract_id: spark_dataset_reference_schema
+  type: json_schema
+  applies_to: output
+  target: output_dataset
+  description: Output dataset reference identifies the materialized object-storage
+    dataset.
+  schema_ref: schema://object_storage_dataset_reference/v1
+  expression: '{"type":"object","required":["uri"],"properties":{"uri":{"type":"string"},"format":{"type":["string","null"]},"version":{"type":["string","null"]}}}'
+- contract_id: spark_dataset_transform_status_schema
+  type: json_schema
+  applies_to: output
+  target: transform_status
+  description: Status exposes Spark application outcome for validation.
+  schema_ref: schema://spark_dataset_transform_status/v1
+  expression: '{"type":"object","required":["success","spark_class","terminal_state","output_uri"],"properties":{"success":{"type":"boolean"},"spark_class":{"type":"string"},"terminal_state":{"type":"string"},"output_uri":{"type":"string"},"source_object_count":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: spark_dataset_transform_effect
+  type: effect
+  applies_to: service
+  target: spark_class_object_storage_dataset_transformer
+  description: On success, the Spark application reaches a successful terminal state
+    and emits the configured output dataset reference.
+  expression: transform_status.success == true implies transform_status.terminal_state
+    in ['SUCCEEDED','COMPLETED'] and output_dataset.uri == output_uri
+invocation:
+  type: argo_workflow_template
+  template_name: spark-class-object-storage-dataset-transformer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.spark_class_object_storage_dataset_transformer
+  implementation_ref: services/implementations/spark_class_object_storage_dataset_transformer
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - kubernetes://*
+  - spark://*
+  - s3://*
+  - object-storage://*
+  secret_access: required
+  retry_safe: false
+  idempotency: unknown
+  data_sensitivity:
+  - public
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Spark/Kubernetes and object-storage credentials must not be emitted in status
+    or logs.
+  - Application-specific arguments are passed through without catalogue-level semantic
+    validation.
+  idempotency_notes: Retry safety depends on the configured Spark application and
+    output write mode.
+  default_timeout_seconds: 1800
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:etl_import_mondo#normalized_mondo_terms
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Reusable Spark dataset transform capability needed when outputs are
+    datasets/directories rather than SQL table references.'
+  - 'Evidence status: explicit.'

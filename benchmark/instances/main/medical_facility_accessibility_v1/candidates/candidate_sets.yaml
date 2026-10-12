@@ -1,0 +1,47 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:medical_facility_accessibility_v1
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_medical_facility_accessibility_v1_csv_to_structured_json_table_formatter_candidates
+  source_step_refs:
+  - load_and_modify_facilities
+  service_ids:
+  - csv_to_structured_json_table_formatter
+  - csv_to_structured_json_standardizer
+  - csv_tabular_schema_validating_loader
+  - customer_segment_csv_loader
+  - delimited_file_tabular_dataset_loader
+  - legacy_csv_schema_validator
+- candidate_set_id: main_medical_facility_accessibility_v1_tabular_address_geocoding_enricher_candidates
+  source_step_refs:
+  - geocode_facilities
+  service_ids:
+  - tabular_address_geocoding_enricher
+  - tabular_entity_reconciliation_enricher
+  - wikidata_entity_reconciliation_transformer
+  - http_json_request_extractor
+  - tabular_http_property_extension_enricher
+  - open_network_http_json_requester
+- candidate_set_id: main_medical_facility_accessibility_v1_geospatial_nearest_distance_column_extender_candidates
+  source_step_refs:
+  - calc_distance_public_transport
+  - calc_distance_residential
+  service_ids:
+  - geospatial_nearest_distance_column_extender
+  - tabular_http_property_extension_enricher
+  - coordinate_land_use_classification_enricher
+  - environmental_risk_score_column_calculator
+  - openmeteo_historical_weather_tabular_enricher
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_medical_facility_accessibility_v1_structured_json_to_csv_exporter_candidates
+  source_step_refs:
+  - save_accessibility_data
+  service_ids:
+  - structured_json_to_csv_exporter
+  - tabular_query_result_csv_writer
+  - structured_json_batch_to_csv_exporter
+  - csv_to_structured_json_standardizer
+  - validated_parquet_to_csv_report_exporter
+  - reviewed_domain_adapter

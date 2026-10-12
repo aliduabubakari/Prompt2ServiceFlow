@@ -1,0 +1,1172 @@
+ir_version: 0.1.0
+composition_id: support_ticket_semantic_routing
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.8
+  sha256: d91fe0463b599a49cf0e24a37b357d5dd67f442a7d8bae51a4c07f6c493d3cb1
+source:
+  dataset_id: prompt2serviceflow_extension_sources
+  dataset_version: extension_v1
+  benchmark_id: extension:support_ticket_semantic_routing
+  split: extension
+  pipeline_id: support_ticket_semantic_routing
+  description_path: source/extension_v1/batch_09/descriptions/45_support_ticket_semantic_routing.txt
+  description_sha256: b834ecacd4f1d64829957124355e084d813d84da1a5454f4efe5dcaa82a35e3d
+  internal_spec_path: source/extension_v1/batch_09/specs/45_support_ticket_semantic_routing.json
+  internal_spec_sha256: 5a4646d6f6a6d7cfe5bb0c695c305ddd883404bc72874a027df0e14bce88c77e
+requirement:
+  name: Support Ticket Semantic Routing
+  purpose: Embed support tickets, retrieve policy context, classify intent, and route tickets.
+  domain: Marketing/Customer Operations
+  execution_model: batch
+  topology: branch_merge
+  information_sufficiency: high
+  notes:
+  - Extension-50 Batch 01 synthetic source.
+  - Event and external-system behavior is represented as bounded fixture-backed batch execution.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: support_ticket_queue
+  type: other
+  name: support ticket queue
+  identifier: synthetic://extension-v1/support_ticket_semantic_routing/1
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+- system_id: knowledge_base_index_fixture
+  type: object_storage
+  name: knowledge-base index fixture
+  identifier: synthetic://extension-v1/support_ticket_semantic_routing/2
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_source_batch
+  name: Ingest Source Batch
+  category: Extractor
+  capability: Ingest the bounded input batch for support ticket semantic routing.
+  source_step_refs:
+  - ingest_source_batch
+  evidence:
+  - source: internal_spec
+    text: Ingest the bounded input batch for support ticket semantic routing.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_source_batch_artifact
+  - ingest_source_batch_status
+  external_system_refs: &id001
+  - support_ticket_queue
+  - knowledge_base_index_fixture
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_source_batch_artifact, ingest_source_batch_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: validate_source_contract
+  name: Validate Source Contract
+  category: QualityCheck
+  capability: Validate required fields, identities, and policy inputs for support ticket semantic routing.
+  source_step_refs:
+  - validate_source_contract
+  evidence:
+  - source: internal_spec
+    text: Validate required fields, identities, and policy inputs for support ticket semantic routing.
+  inputs:
+  - ingest_source_batch_artifact
+  outputs:
+  - validate_source_contract_artifact
+  - validate_source_contract_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces validate_source_contract_artifact, validate_source_contract_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: extract_or_parse_text
+  name: Extract Or Parse Text
+  category: Extractor
+  capability: Extract, parse, or transcribe text for support ticket semantic routing.
+  source_step_refs:
+  - extract_or_parse_text
+  evidence:
+  - source: internal_spec
+    text: Extract, parse, or transcribe text for support ticket semantic routing.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - extract_or_parse_text_artifact
+  - extract_or_parse_text_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces extract_or_parse_text_artifact, extract_or_parse_text_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: chunk_documents
+  name: Chunk Documents
+  category: Transformer
+  capability: Chunk documents or transcript segments for support ticket semantic routing.
+  source_step_refs:
+  - chunk_documents
+  evidence:
+  - source: internal_spec
+    text: Chunk documents or transcript segments for support ticket semantic routing.
+  inputs:
+  - extract_or_parse_text_artifact
+  outputs:
+  - chunk_documents_artifact
+  - chunk_documents_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces chunk_documents_artifact, chunk_documents_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: generate_embeddings
+  name: Generate Embeddings
+  category: Transformer
+  capability: Generate embeddings for chunks or text spans in support ticket semantic routing.
+  source_step_refs:
+  - generate_embeddings
+  evidence:
+  - source: internal_spec
+    text: Generate embeddings for chunks or text spans in support ticket semantic routing.
+  inputs:
+  - chunk_documents_artifact
+  outputs:
+  - generate_embeddings_artifact
+  - generate_embeddings_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces generate_embeddings_artifact, generate_embeddings_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: write_vector_index
+  name: Write Vector Index
+  category: Loader
+  capability: Write or update a fixture-backed vector index for support ticket semantic routing.
+  source_step_refs:
+  - write_vector_index
+  evidence:
+  - source: internal_spec
+    text: Write or update a fixture-backed vector index for support ticket semantic routing.
+  inputs:
+  - generate_embeddings_artifact
+  outputs:
+  - write_vector_index_artifact
+  - write_vector_index_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces write_vector_index_artifact, write_vector_index_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: retrieve_grounding_context
+  name: Retrieve Grounding Context
+  category: Extractor
+  capability: Retrieve grounding context for support ticket semantic routing.
+  source_step_refs:
+  - retrieve_grounding_context
+  evidence:
+  - source: internal_spec
+    text: Retrieve grounding context for support ticket semantic routing.
+  inputs:
+  - write_vector_index_artifact
+  outputs:
+  - retrieve_grounding_context_artifact
+  - retrieve_grounding_context_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces retrieve_grounding_context_artifact, retrieve_grounding_context_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: run_structured_extraction
+  name: Run Structured Extraction
+  category: DomainAdapter
+  capability: Run structured extraction, classification, or summarization for support ticket semantic
+    routing.
+  source_step_refs:
+  - run_structured_extraction
+  evidence:
+  - source: internal_spec
+    text: Run structured extraction, classification, or summarization for support ticket semantic routing.
+  inputs:
+  - retrieve_grounding_context_artifact
+  outputs:
+  - run_structured_extraction_artifact
+  - run_structured_extraction_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces run_structured_extraction_artifact, run_structured_extraction_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: evaluate_policy_or_risk
+  name: Evaluate Policy Or Risk
+  category: DomainAdapter
+  capability: Evaluate quality, policy, risk, or confidence rules for support ticket semantic routing.
+  source_step_refs:
+  - evaluate_policy_or_risk
+  evidence:
+  - source: internal_spec
+    text: Evaluate quality, policy, risk, or confidence rules for support ticket semantic routing.
+  inputs:
+  - run_structured_extraction_artifact
+  outputs:
+  - evaluate_policy_or_risk_artifact
+  - evaluate_policy_or_risk_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces evaluate_policy_or_risk_artifact, evaluate_policy_or_risk_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: route_approved_records
+  name: Route Approved Records
+  category: Publisher
+  capability: Route approved or low-risk support ticket semantic routing records.
+  source_step_refs:
+  - route_approved_records
+  evidence:
+  - source: internal_spec
+    text: Route approved or low-risk support ticket semantic routing records.
+  inputs:
+  - evaluate_policy_or_risk_artifact
+  outputs:
+  - route_approved_records_artifact
+  - route_approved_records_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces route_approved_records_artifact, route_approved_records_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: route_exception_records
+  name: Route Exception Records
+  category: Publisher
+  capability: Route exception, high-risk, or low-confidence support ticket semantic routing records.
+  source_step_refs:
+  - route_exception_records
+  evidence:
+  - source: internal_spec
+    text: Route exception, high-risk, or low-confidence support ticket semantic routing records.
+  inputs:
+  - evaluate_policy_or_risk_artifact
+  outputs:
+  - route_exception_records_artifact
+  - route_exception_records_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces route_exception_records_artifact, route_exception_records_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: merge_route_outcomes
+  name: Merge Route Outcomes
+  category: Aggregator
+  capability: Merge routed outcomes into a complete support ticket semantic routing disposition artifact.
+  source_step_refs:
+  - merge_route_outcomes
+  evidence:
+  - source: internal_spec
+    text: Merge routed outcomes into a complete support ticket semantic routing disposition artifact.
+  inputs:
+  - route_approved_records_artifact
+  - route_exception_records_artifact
+  outputs:
+  - merge_route_outcomes_artifact
+  - merge_route_outcomes_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces merge_route_outcomes_artifact, merge_route_outcomes_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: publish_outputs
+  name: Publish Outputs
+  category: Publisher
+  capability: Publish support ticket semantic routing outputs, review status, and completion metadata.
+  source_step_refs:
+  - publish_outputs
+  evidence:
+  - source: internal_spec
+    text: Publish support ticket semantic routing outputs, review status, and completion metadata.
+  inputs:
+  - merge_route_outcomes_artifact
+  outputs:
+  - publish_outputs_artifact
+  - publish_outputs_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces publish_outputs_artifact, publish_outputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+source_step_accounting:
+- source_step_ref: ingest_source_batch
+  disposition: service
+  intent_ids:
+  - ingest_source_batch
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: validate_source_contract
+  disposition: service
+  intent_ids:
+  - validate_source_contract
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: extract_or_parse_text
+  disposition: service
+  intent_ids:
+  - extract_or_parse_text
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: chunk_documents
+  disposition: service
+  intent_ids:
+  - chunk_documents
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: generate_embeddings
+  disposition: service
+  intent_ids:
+  - generate_embeddings
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: write_vector_index
+  disposition: service
+  intent_ids:
+  - write_vector_index
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: retrieve_grounding_context
+  disposition: service
+  intent_ids:
+  - retrieve_grounding_context
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: run_structured_extraction
+  disposition: service
+  intent_ids:
+  - run_structured_extraction
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: evaluate_policy_or_risk
+  disposition: service
+  intent_ids:
+  - evaluate_policy_or_risk
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: route_approved_records
+  disposition: service
+  intent_ids:
+  - route_approved_records
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: route_exception_records
+  disposition: service
+  intent_ids:
+  - route_exception_records
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: merge_route_outcomes
+  disposition: service
+  intent_ids:
+  - merge_route_outcomes
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: publish_outputs
+  disposition: service
+  intent_ids:
+  - publish_outputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+control_flow:
+  edges:
+  - from: ingest_source_batch
+    to: validate_source_contract
+  - from: validate_source_contract
+    to: extract_or_parse_text
+  - from: extract_or_parse_text
+    to: chunk_documents
+  - from: chunk_documents
+    to: generate_embeddings
+  - from: generate_embeddings
+    to: write_vector_index
+  - from: write_vector_index
+    to: retrieve_grounding_context
+  - from: retrieve_grounding_context
+    to: run_structured_extraction
+  - from: run_structured_extraction
+    to: evaluate_policy_or_risk
+  - from: evaluate_policy_or_risk
+    to: route_approved_records
+  - from: evaluate_policy_or_risk
+    to: route_exception_records
+  - from: route_approved_records
+    to: merge_route_outcomes
+  - from: route_exception_records
+    to: merge_route_outcomes
+  - from: merge_route_outcomes
+    to: publish_outputs
+  parallel_groups: []
+  branches:
+  - branch_id: evaluate_policy_or_risk_branch
+    decision_intent: evaluate_policy_or_risk
+    cases:
+    - case_id: approved
+      condition: decision.approved == true
+      next_intents:
+      - route_approved_records
+    - case_id: exception
+      condition: decision.exception == true
+      next_intents:
+      - route_exception_records
+    merge_intent: merge_route_outcomes
+  gates:
+  - gate_id: evaluate_policy_or_risk_gate
+    sensor_intent: evaluate_policy_or_risk
+    condition: policy, risk, confidence, or quality decision
+    gated_intents:
+    - route_approved_records
+    - route_exception_records
+artifacts:
+- artifact_id: source_bundle
+  name: Source Bundle
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - ingest_source_batch
+  sensitivity: internal
+  persistence: workflow
+  fixture_ref: fixtures/inputs/fixture.json
+- artifact_id: ingest_source_batch_artifact
+  name: Ingest Source Batch Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_source_batch
+  consumers:
+  - validate_source_contract
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_source_batch_status
+  name: Ingest Source Batch Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_source_batch
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: validate_source_contract_artifact
+  name: Validate Source Contract Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: validate_source_contract
+  consumers:
+  - extract_or_parse_text
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validate_source_contract_status
+  name: Validate Source Contract Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: validate_source_contract
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: extract_or_parse_text_artifact
+  name: Extract Or Parse Text Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: extract_or_parse_text
+  consumers:
+  - chunk_documents
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: extract_or_parse_text_status
+  name: Extract Or Parse Text Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: extract_or_parse_text
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: chunk_documents_artifact
+  name: Chunk Documents Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: chunk_documents
+  consumers:
+  - generate_embeddings
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: chunk_documents_status
+  name: Chunk Documents Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: chunk_documents
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: generate_embeddings_artifact
+  name: Generate Embeddings Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: generate_embeddings
+  consumers:
+  - write_vector_index
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: generate_embeddings_status
+  name: Generate Embeddings Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: generate_embeddings
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: write_vector_index_artifact
+  name: Write Vector Index Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: write_vector_index
+  consumers:
+  - retrieve_grounding_context
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: write_vector_index_status
+  name: Write Vector Index Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: write_vector_index
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: retrieve_grounding_context_artifact
+  name: Retrieve Grounding Context Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: retrieve_grounding_context
+  consumers:
+  - run_structured_extraction
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: retrieve_grounding_context_status
+  name: Retrieve Grounding Context Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: retrieve_grounding_context
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: run_structured_extraction_artifact
+  name: Run Structured Extraction Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: run_structured_extraction
+  consumers:
+  - evaluate_policy_or_risk
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: run_structured_extraction_status
+  name: Run Structured Extraction Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: run_structured_extraction
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: evaluate_policy_or_risk_artifact
+  name: Evaluate Policy Or Risk Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: evaluate_policy_or_risk
+  consumers:
+  - route_approved_records
+  - route_exception_records
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: evaluate_policy_or_risk_status
+  name: Evaluate Policy Or Risk Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: evaluate_policy_or_risk
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: route_approved_records_artifact
+  name: Route Approved Records Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: route_approved_records
+  consumers:
+  - merge_route_outcomes
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: route_approved_records_status
+  name: Route Approved Records Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: route_approved_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: route_exception_records_artifact
+  name: Route Exception Records Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: route_exception_records
+  consumers:
+  - merge_route_outcomes
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: route_exception_records_status
+  name: Route Exception Records Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: route_exception_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: merge_route_outcomes_artifact
+  name: Merge Route Outcomes Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: merge_route_outcomes
+  consumers:
+  - publish_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: merge_route_outcomes_status
+  name: Merge Route Outcomes Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: merge_route_outcomes
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: publish_outputs_artifact
+  name: Publish Outputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: output
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publish_outputs_status
+  name: Publish Outputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+bindings:
+- intent_id: ingest_source_batch
+  service_id: support_ticket_text_batch_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_source_batch_artifact
+  - port: execution_report
+    artifact_id: ingest_source_batch_status
+  parameter_bindings:
+    operation_profile: ingest_source_batch
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: validate_source_contract
+  service_id: support_ticket_contract_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: ingest_source_batch_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: validate_source_contract_artifact
+  - port: execution_report
+    artifact_id: validate_source_contract_status
+  parameter_bindings:
+    operation_profile: validate_source_contract
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: extract_or_parse_text
+  service_id: support_ticket_text_parser
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: extract_or_parse_text_artifact
+  - port: execution_report
+    artifact_id: extract_or_parse_text_status
+  parameter_bindings:
+    operation_profile: extract_or_parse_text
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: chunk_documents
+  service_id: semantic_document_chunker
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: extract_or_parse_text_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: chunk_documents_artifact
+  - port: execution_report
+    artifact_id: chunk_documents_status
+  parameter_bindings:
+    operation_profile: chunk_documents
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: generate_embeddings
+  service_id: deterministic_text_embedding_generator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: chunk_documents_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: generate_embeddings_artifact
+  - port: execution_report
+    artifact_id: generate_embeddings_status
+  parameter_bindings:
+    operation_profile: generate_embeddings
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: write_vector_index
+  service_id: fixture_vector_index_writer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: generate_embeddings_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: write_vector_index_artifact
+  - port: execution_report
+    artifact_id: write_vector_index_status
+  parameter_bindings:
+    operation_profile: write_vector_index
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: retrieve_grounding_context
+  service_id: grounding_context_retriever
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: write_vector_index_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: retrieve_grounding_context_artifact
+  - port: execution_report
+    artifact_id: retrieve_grounding_context_status
+  parameter_bindings:
+    operation_profile: retrieve_grounding_context
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: run_structured_extraction
+  service_id: support_ticket_intent_classifier
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: retrieve_grounding_context_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: run_structured_extraction_artifact
+  - port: execution_report
+    artifact_id: run_structured_extraction_status
+  parameter_bindings:
+    operation_profile: run_structured_extraction
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: evaluate_policy_or_risk
+  service_id: support_ticket_routing_policy_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: run_structured_extraction_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: evaluate_policy_or_risk_artifact
+  - port: execution_report
+    artifact_id: evaluate_policy_or_risk_status
+  parameter_bindings:
+    operation_profile: evaluate_policy_or_risk
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: route_approved_records
+  service_id: support_ticket_auto_route_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: evaluate_policy_or_risk_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: route_approved_records_artifact
+  - port: execution_report
+    artifact_id: route_approved_records_status
+  parameter_bindings:
+    operation_profile: route_approved_records
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: route_exception_records
+  service_id: support_ticket_manual_review_router
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: evaluate_policy_or_risk_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: route_exception_records_artifact
+  - port: execution_report
+    artifact_id: route_exception_records_status
+  parameter_bindings:
+    operation_profile: route_exception_records
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: merge_route_outcomes
+  service_id: ai_route_outcome_merger
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: route_approved_records_artifact
+  - port: input_artifacts
+    artifact_id: route_exception_records_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: merge_route_outcomes_artifact
+  - port: execution_report
+    artifact_id: merge_route_outcomes_status
+  parameter_bindings:
+    operation_profile: merge_route_outcomes
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: publish_outputs
+  service_id: ai_completion_bundle_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: merge_route_outcomes_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: publish_outputs_artifact
+  - port: execution_report
+    artifact_id: publish_outputs_status
+  parameter_bindings:
+    operation_profile: publish_outputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - public
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Batch 01 mocks do not contact production image, document, or review systems.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 reviewed Batch 01 validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 reviewed Batch 01 validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 reviewed Batch 01 validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 reviewed Batch 01 validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 reviewed Batch 01 validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 reviewed Batch 01 validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 reviewed Batch 01 validation.

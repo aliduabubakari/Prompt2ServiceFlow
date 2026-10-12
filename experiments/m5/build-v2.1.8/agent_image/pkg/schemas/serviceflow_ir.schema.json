@@ -1,0 +1,1223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prompt2serviceflow.local/schemas/serviceflow_ir.schema.json",
+  "title": "Prompt2ServiceFlow Intermediate Representation",
+  "description": "The authoritative, contract-grounded service composition from which Argo resources and validation plans are derived.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ir_version",
+    "composition_id",
+    "catalog_snapshot",
+    "source",
+    "requirement",
+    "schedule",
+    "external_systems",
+    "service_intents",
+    "control_flow",
+    "artifacts",
+    "bindings",
+    "policies",
+    "runtime",
+    "validation_expectations"
+  ],
+  "properties": {
+    "ir_version": {
+      "const": "0.1.0"
+    },
+    "composition_id": {
+      "$ref": "#/$defs/snakeIdentifier"
+    },
+    "catalog_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "catalog_id",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "catalog_id": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "version": {
+          "$ref": "#/$defs/semanticVersion"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "dataset_version",
+        "benchmark_id",
+        "split",
+        "pipeline_id",
+        "description_path",
+        "description_sha256"
+      ],
+      "properties": {
+        "dataset_id": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "dataset_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "benchmark_id": {
+          "type": "string",
+          "pattern": "^(main|validation|extension):[A-Za-z0-9_.-]+$"
+        },
+        "split": {
+          "enum": [
+            "main",
+            "validation",
+            "extension"
+          ]
+        },
+        "pipeline_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "internal_spec_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "internal_spec_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "purpose",
+        "domain",
+        "execution_model",
+        "topology",
+        "information_sufficiency"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 10
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_model": {
+          "enum": [
+            "batch",
+            "stream",
+            "hybrid",
+            "unknown"
+          ]
+        },
+        "topology": {
+          "enum": [
+            "linear",
+            "branch_merge",
+            "fan_out",
+            "fan_out_fan_in",
+            "sensor_gated",
+            "staged_etl",
+            "mixed",
+            "unknown"
+          ]
+        },
+        "information_sufficiency": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": []
+        }
+      }
+    },
+    "schedule": {
+      "$ref": "#/$defs/schedule"
+    },
+    "external_systems": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/externalSystem"
+      },
+      "default": []
+    },
+    "service_intents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/serviceIntent"
+      }
+    },
+    "source_step_accounting": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/sourceStepAccounting"
+      }
+    },
+    "control_flow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edges",
+        "parallel_groups",
+        "branches",
+        "gates"
+      ],
+      "properties": {
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge"
+          },
+          "default": []
+        },
+        "parallel_groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parallelGroup"
+          },
+          "default": []
+        },
+        "branches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/branch"
+          },
+          "default": []
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/gate"
+          },
+          "default": []
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "bindings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/binding"
+      }
+    },
+    "policies": {
+      "$ref": "#/$defs/compositionPolicies"
+    },
+    "runtime": {
+      "$ref": "#/$defs/runtime"
+    },
+    "validation_expectations": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "$ref": "#/$defs/validationExpectation"
+      }
+    }
+  },
+  "$defs": {
+    "snakeIdentifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$",
+      "maxLength": 120
+    },
+    "semanticVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "serviceCategory": {
+      "enum": [
+        "Sensor",
+        "Extractor",
+        "QualityCheck",
+        "DataProfiler",
+        "Transformer",
+        "Integrator",
+        "Aggregator",
+        "Reconciler",
+        "PrivacyService",
+        "ScoringService",
+        "Loader",
+        "Publisher",
+        "ReportGenerator",
+        "Notifier",
+        "ExternalWorkflowAdapter",
+        "Maintenance",
+        "DomainAdapter"
+      ]
+    },
+    "dataType": {
+      "enum": [
+        "string",
+        "integer",
+        "number",
+        "boolean",
+        "object",
+        "array",
+        "json",
+        "csv",
+        "parquet",
+        "text",
+        "binary",
+        "directory",
+        "markdown",
+        "image",
+        "model",
+        "table",
+        "decision",
+        "status",
+        "notification",
+        "any"
+      ]
+    },
+    "sensitivity": {
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted",
+        "pii",
+        "phi",
+        "financial"
+      ]
+    },
+    "accessRequirement": {
+      "enum": [
+        "forbidden",
+        "optional",
+        "required"
+      ]
+    },
+    "schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "catchup"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "manual",
+            "cron",
+            "interval",
+            "event",
+            "unknown"
+          ]
+        },
+        "expression": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timezone": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "start_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "catchup": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "cron"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "expression"
+            ],
+            "properties": {
+              "expression": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "externalSystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system_id",
+        "type",
+        "name",
+        "access_mode",
+        "mock_strategy"
+      ],
+      "properties": {
+        "system_id": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "type": {
+          "enum": [
+            "http_api",
+            "graphql_api",
+            "database",
+            "filesystem",
+            "object_storage",
+            "ftp",
+            "sftp",
+            "email",
+            "messaging",
+            "cloud_service",
+            "external_workflow",
+            "other"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "identifier": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "access_mode": {
+          "enum": [
+            "read",
+            "write",
+            "read_write",
+            "invoke"
+          ]
+        },
+        "authentication": {
+          "enum": [
+            "none",
+            "secret",
+            "managed_identity",
+            "unknown"
+          ],
+          "default": "unknown"
+        },
+        "mock_strategy": {
+          "enum": [
+            "fixture",
+            "local_service",
+            "in_memory",
+            "not_applicable",
+            "unresolved"
+          ]
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "text"
+      ],
+      "properties": {
+        "source": {
+          "enum": [
+            "description",
+            "internal_spec",
+            "reviewer_inference"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "line_start": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "line_end": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "requiredPolicyProperties": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "network_access",
+        "secret_access",
+        "idempotency"
+      ],
+      "properties": {
+        "network_access": {
+          "$ref": "#/$defs/accessRequirement"
+        },
+        "secret_access": {
+          "$ref": "#/$defs/accessRequirement"
+        },
+        "idempotency": {
+          "enum": [
+            "required",
+            "preferred",
+            "not_required",
+            "unknown"
+          ]
+        },
+        "data_sensitivity": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/sensitivity"
+          },
+          "default": []
+        }
+      }
+    },
+    "serviceIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intent_id",
+        "name",
+        "category",
+        "capability",
+        "source_step_refs",
+        "evidence",
+        "inputs",
+        "outputs",
+        "external_system_refs",
+        "preconditions",
+        "effects",
+        "required_policy_properties",
+        "decomposition_rationale",
+        "confidence",
+        "ambiguity"
+      ],
+      "properties": {
+        "intent_id": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "$ref": "#/$defs/serviceCategory"
+        },
+        "capability": {
+          "type": "string",
+          "minLength": 10
+        },
+        "source_step_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "inputs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/snakeIdentifier"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/snakeIdentifier"
+          }
+        },
+        "external_system_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/snakeIdentifier"
+          }
+        },
+        "preconditions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "effects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_policy_properties": {
+          "$ref": "#/$defs/requiredPolicyProperties"
+        },
+        "decomposition_rationale": {
+          "type": "string",
+          "minLength": 5
+        },
+        "confidence": {
+          "enum": [
+            "explicit",
+            "strongly_inferred",
+            "weakly_inferred",
+            "unresolvable"
+          ]
+        },
+        "ambiguity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "notes"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "none",
+                "resolved",
+                "unresolved"
+              ]
+            },
+            "notes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "sourceStepAccounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_step_ref",
+        "disposition",
+        "intent_ids",
+        "rationale"
+      ],
+      "properties": {
+        "source_step_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition": {
+          "enum": [
+            "service",
+            "orchestration",
+            "noop",
+            "unresolvable"
+          ]
+        },
+        "intent_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/snakeIdentifier"
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "to": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "condition": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "parallelGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "group_id",
+        "intent_ids"
+      ],
+      "properties": {
+        "group_id": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "intent_ids": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/snakeIdentifier"
+          }
+        }
+      }
+    },
+    "branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branch_id",
+        "decision_intent",
+        "cases"
+      ],
+      "properties": {
+        "branch_id": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "decision_intent": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "decision_artifact": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "condition",
+              "next_intents"
+            ],
+            "properties": {
+              "case_id": {
+                "$ref": "#/$defs/snakeIdentifier"
+              },
+              "condition": {
+                "type": "string",
+                "minLength": 1
+              },
+              "next_intents": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/$defs/snakeIdentifier"
+                }
+              }
+            }
+          }
+        },
+        "merge_intent": {
+          "$ref": "#/$defs/snakeIdentifier"
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_id",
+        "sensor_intent",
+        "condition",
+        "gated_intents"
+      ],
+      "properties": {
+        "gate_id": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "sensor_intent": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "condition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gated_intents": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/snakeIdentifier"
+          }
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "name",
+        "kind",
+        "data_type",
+        "role",
+        "producer",
+        "consumers",
+        "sensitivity",
+        "persistence"
+      ],
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "artifact",
+            "parameter",
+            "external_resource"
+          ]
+        },
+        "data_type": {
+          "$ref": "#/$defs/dataType"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 3
+        },
+        "schema_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "input",
+            "intermediate",
+            "output",
+            "config",
+            "decision",
+            "status",
+            "report"
+          ]
+        },
+        "producer": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/snakeIdentifier"
+            },
+            {
+              "type": "array",
+              "minItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/snakeIdentifier"
+              }
+            }
+          ]
+        },
+        "consumers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/snakeIdentifier"
+          }
+        },
+        "sensitivity": {
+          "$ref": "#/$defs/sensitivity"
+        },
+        "persistence": {
+          "enum": [
+            "transient",
+            "workflow",
+            "release",
+            "external"
+          ]
+        },
+        "fixture_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "external_system_ref": {
+          "$ref": "#/$defs/snakeIdentifier"
+        }
+      }
+    },
+    "artifactBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "port",
+        "artifact_id"
+      ],
+      "properties": {
+        "port": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "artifact_id": {
+          "$ref": "#/$defs/snakeIdentifier"
+        }
+      }
+    },
+    "secretBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "secret",
+        "kubernetes_secret",
+        "key"
+      ],
+      "properties": {
+        "secret": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "kubernetes_secret": {
+          "type": "string",
+          "minLength": 1
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intent_id",
+        "service_id",
+        "service_version",
+        "input_bindings",
+        "output_bindings",
+        "parameter_bindings",
+        "secret_bindings",
+        "rationale",
+        "confidence"
+      ],
+      "properties": {
+        "intent_id": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "service_id": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "service_version": {
+          "$ref": "#/$defs/semanticVersion"
+        },
+        "input_bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactBinding"
+          }
+        },
+        "output_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/artifactBinding"
+          }
+        },
+        "parameter_bindings": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/snakeIdentifier"
+          },
+          "additionalProperties": true
+        },
+        "secret_bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/secretBinding"
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        },
+        "confidence": {
+          "enum": [
+            "explicit",
+            "strongly_inferred",
+            "weakly_inferred"
+          ]
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cpu": {
+          "type": "string",
+          "pattern": "^[0-9]+m?$"
+        },
+        "memory": {
+          "type": "string",
+          "pattern": "^[0-9]+(?:Ki|Mi|Gi|Ti)?$"
+        },
+        "gpu": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "servicePolicyOverride": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intent_id"
+      ],
+      "properties": {
+        "intent_id": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "retries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retry_delay_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "network_access": {
+          "$ref": "#/$defs/accessRequirement"
+        },
+        "idempotency_strategy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resources": {
+          "$ref": "#/$defs/resources"
+        }
+      }
+    },
+    "compositionPolicies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default_retries",
+        "default_retry_delay_seconds",
+        "fail_fast",
+        "service_overrides",
+        "governance"
+      ],
+      "properties": {
+        "default_retries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "default_retry_delay_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fail_fast": {
+          "type": "boolean"
+        },
+        "service_overrides": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/servicePolicyOverride"
+          }
+        },
+        "governance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "allowed_sensitivities",
+            "network_default",
+            "secret_placeholders_only"
+          ],
+          "properties": {
+            "allowed_sensitivities": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/sensitivity"
+              }
+            },
+            "network_default": {
+              "$ref": "#/$defs/accessRequirement"
+            },
+            "secret_placeholders_only": {
+              "type": "boolean"
+            },
+            "notes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "default": []
+            }
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "version",
+        "namespace",
+        "service_account",
+        "artifact_repository",
+        "execution_profile"
+      ],
+      "properties": {
+        "target": {
+          "const": "argo-workflows"
+        },
+        "version": {
+          "$ref": "#/$defs/semanticVersion"
+        },
+        "namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "service_account": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact_repository": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "reference"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "minio",
+                "s3",
+                "gcs",
+                "azure",
+                "none"
+              ]
+            },
+            "reference": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "execution_profile": {
+          "enum": [
+            "mock",
+            "reference",
+            "production"
+          ]
+        }
+      }
+    },
+    "validationExpectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate",
+        "expected_status",
+        "checks"
+      ],
+      "properties": {
+        "gate": {
+          "enum": [
+            "G0",
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "G6"
+          ]
+        },
+        "expected_status": {
+          "enum": [
+            "pass",
+            "requires_runtime",
+            "not_applicable"
+          ]
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

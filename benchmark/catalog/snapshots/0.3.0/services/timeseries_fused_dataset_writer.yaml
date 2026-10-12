@@ -1,0 +1,105 @@
+schema_version: 0.1.0
+service_id: timeseries_fused_dataset_writer
+version: 1.0.0
+display_name: Timeseries Fused Dataset Writer
+category: Loader
+capability:
+  summary: Writes fused anomaly features to a configured time-series database.
+  operations:
+  - Writes fused anomaly features to a configured time-series database.
+  keywords:
+  - timeseries
+  - fused
+  - dataset
+  - writer
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: anomaly_features
+    description: Reviewed anomaly features value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: timeseries_database
+    description: Reviewed timeseries database value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: fused_dataset_reference
+    description: Reviewed fused dataset reference value.
+    channel: artifact
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: write_status
+    description: Reviewed write status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: measurement_name
+    description: Configuration for measurement name.
+    type: string
+    required: true
+  - name: write_mode
+    description: Configuration for write mode.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: timeseries-fused-dataset-writer
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.2
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.timeseries_fused_dataset_writer
+  implementation_ref: services/implementations/timeseries_fused_dataset_writer
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-03:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 03 descriptions; bindings retain inference confidence.

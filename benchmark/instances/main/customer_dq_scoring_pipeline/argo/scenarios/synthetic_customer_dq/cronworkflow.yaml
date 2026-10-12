@@ -1,0 +1,233 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: customer-dq-scoring-pipeline-synthetic-customer-dq
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters: []
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: customer-dq-scoring-pipeline-synthetic-customer-dq-scripts
+    - name: fixtures
+      configMap:
+        name: customer-dq-scoring-pipeline-synthetic-customer-dq-fixtures
+        items:
+        - key: fixture-0000
+          path: data.csv
+        - key: fixture-0001
+          path: fixture.json
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: generate-synthetic-data
+          template: run-generate-synthetic-data
+        - name: explore-raw-data
+          template: run-explore-raw-data
+          depends: generate-synthetic-data.Succeeded
+        - name: clean-data
+          template: run-clean-data
+          depends: generate-synthetic-data.Succeeded
+        - name: calculate-quality-score
+          template: run-calculate-quality-score
+          depends: clean-data.Succeeded
+        - name: feature-engineering
+          template: run-feature-engineering
+          depends: clean-data.Succeeded
+        - name: save-and-report
+          template: run-save-and-report
+          depends: calculate-quality-score.Succeeded && feature-engineering.Succeeded
+    - name: run-generate-synthetic-data
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: generate_synthetic_data
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_generate_synthetic_data.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-explore-raw-data
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: explore_raw_data
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_explore_raw_data.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-clean-data
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: clean_data
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_clean_data.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-calculate-quality-score
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: calculate_quality_score
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_calculate_quality_score.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-feature-engineering
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: feature_engineering
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/05_feature_engineering.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError
+    - name: run-save-and-report
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: save_and_report
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/06_save_and_report.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '1'
+        retryPolicy: OnError

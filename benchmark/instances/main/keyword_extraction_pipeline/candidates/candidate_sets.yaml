@@ -1,0 +1,63 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:keyword_extraction_pipeline
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_keyword_extraction_pipeline_synthetic_document_parquet_generator_candidates
+  source_step_refs:
+  - generate_documents
+  service_ids:
+  - synthetic_document_parquet_generator
+  - synthetic_customer_parquet_generator
+  - parquet_document_data_profiler
+  - parquet_document_clean_standardizer
+  - reviewed_domain_adapter
+- candidate_set_id: main_keyword_extraction_pipeline_parquet_document_data_profiler_candidates
+  source_step_refs:
+  - explore_data
+  service_ids:
+  - parquet_document_data_profiler
+  - parquet_tabular_data_profiler
+  - csv_artifact_profile_ingestor
+  - parquet_document_clean_standardizer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_keyword_extraction_pipeline_parquet_document_clean_standardizer_candidates
+  source_step_refs:
+  - clean_data
+  service_ids:
+  - parquet_document_clean_standardizer
+  - parquet_customer_data_clean_standardizer
+  - tabular_null_value_cleanser
+  - parquet_document_data_profiler
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_keyword_extraction_pipeline_document_keyword_feature_extractor_candidates
+  source_step_refs:
+  - extract_features
+  service_ids:
+  - document_keyword_feature_extractor
+  - tabular_text_feature_column_extractor
+  - parquet_tabular_feature_engineer
+  - tabular_text_sentiment_scorer
+  - document_feature_validation_quality_check
+  - reviewed_domain_adapter
+- candidate_set_id: main_keyword_extraction_pipeline_document_feature_validation_quality_check_candidates
+  source_step_refs:
+  - validate_data
+  service_ids:
+  - document_feature_validation_quality_check
+  - parquet_customer_quality_score_calculator
+  - csv_tabular_schema_validating_loader
+  - tabular_quality_score_gate
+  - document_keyword_feature_extractor
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_keyword_extraction_pipeline_structured_json_to_csv_exporter_candidates
+  source_step_refs:
+  - save_and_report
+  service_ids:
+  - structured_json_to_csv_exporter
+  - structured_json_batch_to_csv_exporter
+  - tabular_query_result_csv_writer
+  - csv_to_structured_json_table_formatter
+  - validated_parquet_to_csv_report_exporter
+  - reviewed_python_udf_transformer

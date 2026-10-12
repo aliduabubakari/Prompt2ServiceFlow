@@ -1,0 +1,24 @@
+binding_gold_version: 0.1.0
+benchmark_id: validation:val_marketing_attribution_fan_in
+bindings:
+- intent_id: extract_impressions
+  service_id: marketing_event_api_extractor
+  service_version: 1.0.0
+- intent_id: extract_clicks
+  service_id: marketing_event_api_extractor
+  service_version: 1.0.0
+- intent_id: extract_purchases
+  service_id: commerce_purchase_event_extractor
+  service_version: 1.0.0
+- intent_id: join_customer_events
+  service_id: customer_event_attribution_joiner
+  service_version: 1.0.0
+- intent_id: compute_attribution
+  service_id: attribution_metric_calculator
+  service_version: 1.0.0
+- intent_id: publish_attribution_table
+  service_id: attribution_table_publisher
+  service_version: 1.0.0
+- intent_id: send_campaign_summary
+  service_id: campaign_summary_notification_sender
+  service_version: 1.0.0

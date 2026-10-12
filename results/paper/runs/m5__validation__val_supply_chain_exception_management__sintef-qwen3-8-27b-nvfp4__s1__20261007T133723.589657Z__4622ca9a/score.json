@@ -1,0 +1,361 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-07T13:49:59.433574+00:00",
+  "instance": "benchmark/instances/validation/val_supply_chain_exception_management",
+  "workspace": "experiments/workspaces/validation/val_supply_chain_exception_management",
+  "submission": "results/paper/runs/m5__validation__val_supply_chain_exception_management__sintef-qwen3-8-27b-nvfp4__s1__20261007T133723.589657Z__4622ca9a/agent_workspace/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G3",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-07T13:49:56.714196+00:00",
+    "workspace": "experiments/workspaces/validation/val_supply_chain_exception_management",
+    "submission": "results/paper/runs/m5__validation__val_supply_chain_exception_management__sintef-qwen3-8-27b-nvfp4__s1__20261007T133723.589657Z__4622ca9a/agent_workspace/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G3",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "pass",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": []
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "route_exception_severity: output 'severity_route' expects json, got decision"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "val-supply-chain-exception-management-scripts",
+              "scenario": "base",
+              "data_size_bytes": 24949,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-supply-chain-exception-management-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 298,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-supply-chain-exception-management-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 24949,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-supply-chain-exception-management-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 298,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "wait_for_supplier_feeds",
+                "ingest_inventory",
+                "ingest_shipments",
+                "ingest_weather_alerts",
+                "ingest_supplier_capacity",
+                "harmonize_supply_state",
+                "detect_disruption_risk",
+                "route_exception_severity",
+                "generate_response_plan",
+                "publish_operations_dashboard",
+                "notify_regional_teams",
+                "archive_exception_snapshot"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 12,
+      "submission_intents": 12,
+      "gold_intents": 12,
+      "mapping": {
+        "archive_exception_snapshot": "archive_exception_snapshot",
+        "detect_disruption_risk": "detect_disruption_risk",
+        "generate_response_plan": "generate_response_plan",
+        "harmonize_supply_state": "harmonize_supply_state",
+        "ingest_inventory": "ingest_inventory",
+        "ingest_shipments": "ingest_shipments",
+        "ingest_supplier_capacity": "ingest_supplier_capacity",
+        "ingest_weather_alerts": "ingest_weather_alerts",
+        "notify_regional_teams": "notify_regional_teams",
+        "publish_operations_dashboard": "publish_operations_dashboard",
+        "route_exception_severity": "route_exception_severity",
+        "wait_for_supplier_feeds": "wait_for_supplier_feeds"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 12
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 14,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 12,
+      "total": 12,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 12,
+    "correct": 12,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "archive_exception_snapshot",
+        "gold_service": "exception_snapshot_archiver",
+        "submission_intent": "archive_exception_snapshot",
+        "submission_service": "exception_snapshot_archiver",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "detect_disruption_risk",
+        "gold_service": "disruption_risk_detector",
+        "submission_intent": "detect_disruption_risk",
+        "submission_service": "disruption_risk_detector",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "generate_response_plan",
+        "gold_service": "response_plan_generator",
+        "submission_intent": "generate_response_plan",
+        "submission_service": "response_plan_generator",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "harmonize_supply_state",
+        "gold_service": "supply_state_harmonizer",
+        "submission_intent": "harmonize_supply_state",
+        "submission_service": "supply_state_harmonizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_inventory",
+        "gold_service": "supply_chain_feed_extractor",
+        "submission_intent": "ingest_inventory",
+        "submission_service": "supply_chain_feed_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_shipments",
+        "gold_service": "supply_chain_feed_extractor",
+        "submission_intent": "ingest_shipments",
+        "submission_service": "supply_chain_feed_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_supplier_capacity",
+        "gold_service": "supply_chain_feed_extractor",
+        "submission_intent": "ingest_supplier_capacity",
+        "submission_service": "supply_chain_feed_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_weather_alerts",
+        "gold_service": "supply_chain_feed_extractor",
+        "submission_intent": "ingest_weather_alerts",
+        "submission_service": "supply_chain_feed_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "notify_regional_teams",
+        "gold_service": "regional_team_notifier",
+        "submission_intent": "notify_regional_teams",
+        "submission_service": "regional_team_notifier",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_operations_dashboard",
+        "gold_service": "operations_dashboard_publisher",
+        "submission_intent": "publish_operations_dashboard",
+        "submission_service": "operations_dashboard_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "route_exception_severity",
+        "gold_service": "exception_severity_route_decider",
+        "submission_intent": "route_exception_severity",
+        "submission_service": "exception_severity_route_decider",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "wait_for_supplier_feeds",
+        "gold_service": "multi_resource_readiness_sensor",
+        "submission_intent": "wait_for_supplier_feeds",
+        "submission_service": "multi_resource_readiness_sensor",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 10,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "source_fixture_loaded",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-pt_yghwe/artifacts/supplier_feed_status.json"
+          },
+          {
+            "assertion_id": "source_files_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-pt_yghwe/artifacts/supplier_feed_status.json"
+          },
+          {
+            "assertion_id": "source_records_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-pt_yghwe/artifacts/supplier_feed_status.json"
+          },
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-pt_yghwe/artifacts/archive_status.json"
+          },
+          {
+            "assertion_id": "final_artifact_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-pt_yghwe/artifacts/archive_status.json"
+          },
+          {
+            "assertion_id": "upstream_evidence_propagated",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-pt_yghwe/artifacts/archive_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 6,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

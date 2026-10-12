@@ -1,0 +1,38 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_data_quality_quarantine_gate
+mappings:
+- intent_id: profile_customer_extract
+  inputs:
+    customer_extract: customer_extract
+  outputs:
+    profile_report: profile_report
+    profile_status: profile_status
+- intent_id: evaluate_quality_rules
+  inputs:
+    profile_report: profile_report
+    customer_extract: customer_extract
+  outputs:
+    valid_records: valid_records
+    invalid_records: invalid_records
+    quality_decision: quality_decision
+    quality_status: quality_status
+- intent_id: load_valid_records
+  inputs:
+    valid_records: valid_records
+    customer_warehouse: customer_warehouse_resource
+  outputs:
+    valid_load_status: valid_load_status
+- intent_id: quarantine_invalid_records
+  inputs:
+    invalid_records: invalid_records
+    quarantine_bucket: quarantine_bucket_resource
+  outputs:
+    quarantine_reference: quarantine_reference
+    quarantine_status: quarantine_status
+- intent_id: write_quality_audit
+  inputs:
+    valid_load_status: valid_load_status
+    quarantine_status: quarantine_status
+  outputs:
+    quality_audit: quality_audit
+    audit_status: audit_status

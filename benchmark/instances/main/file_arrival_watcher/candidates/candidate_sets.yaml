@@ -1,0 +1,36 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:file_arrival_watcher
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_file_arrival_watcher_file_location_availability_sensor_candidates
+  source_step_refs:
+  - wait_for_file
+  service_ids:
+  - file_location_availability_sensor
+  - ftp_file_artifact_downloader
+  - filesystem_retention_cleanup_with_lock
+  - sql_query_readiness_sensor
+  - external_workflow_completion_sensor
+  - reviewed_domain_adapter
+- candidate_set_id: main_file_arrival_watcher_csv_tabular_schema_validating_loader_candidates
+  source_step_refs:
+  - validate_schema
+  service_ids:
+  - csv_tabular_schema_validating_loader
+  - csv_artifact_profile_ingestor
+  - delimited_file_tabular_dataset_loader
+  - customer_segment_csv_loader
+  - user_content_csv_scanner
+  - legacy_csv_schema_validator
+- candidate_set_id: main_file_arrival_watcher_database_csv_snapshot_importer_candidates
+  source_step_refs:
+  - load_db
+  service_ids:
+  - database_csv_snapshot_importer
+  - tabular_dataset_database_loader
+  - postgres_parameterized_sql_executor
+  - postgres_sql_file_executor
+  - database_csv_snapshot_exporter
+  - unreviewed_postgres_sql_executor

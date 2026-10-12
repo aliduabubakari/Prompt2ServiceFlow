@@ -1,0 +1,123 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: retail_inventory_reconciliation
+image: python:3.12-slim
+workflow_parameters:
+- name: north-fixture
+  default: warehouse_north.csv
+- name: south-fixture
+  default: warehouse_south.csv
+- name: east-fixture
+  default: warehouse_east.csv
+- name: west-fixture
+  default: warehouse_west.csv
+tasks:
+- intent_id: fetch_north_warehouse_csv
+  script: scripts/01_fetch_warehouse_csv.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{north-fixture}'
+  - --warehouse
+  - north
+  retries: 2
+- intent_id: fetch_south_warehouse_csv
+  script: scripts/01_fetch_warehouse_csv.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{south-fixture}'
+  - --warehouse
+  - south
+  retries: 2
+- intent_id: fetch_east_warehouse_csv
+  script: scripts/01_fetch_warehouse_csv.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{east-fixture}'
+  - --warehouse
+  - east
+  retries: 2
+- intent_id: fetch_west_warehouse_csv
+  script: scripts/01_fetch_warehouse_csv.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{west-fixture}'
+  - --warehouse
+  - west
+  retries: 2
+- intent_id: normalize_north_skus
+  script: scripts/02_normalize_skus.py
+  dependencies:
+  - fetch_north_warehouse_csv
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --warehouse
+  - north
+  retries: 2
+- intent_id: normalize_south_skus
+  script: scripts/02_normalize_skus.py
+  dependencies:
+  - fetch_south_warehouse_csv
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --warehouse
+  - south
+  retries: 2
+- intent_id: normalize_east_skus
+  script: scripts/02_normalize_skus.py
+  dependencies:
+  - fetch_east_warehouse_csv
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --warehouse
+  - east
+  retries: 2
+- intent_id: normalize_west_skus
+  script: scripts/02_normalize_skus.py
+  dependencies:
+  - fetch_west_warehouse_csv
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --warehouse
+  - west
+  retries: 2
+- intent_id: reconcile_all_inventories
+  script: scripts/03_reconcile_all_inventories.py
+  dependencies:
+  - normalize_north_skus
+  - normalize_south_skus
+  - normalize_east_skus
+  - normalize_west_skus
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: generate_final_report
+  script: scripts/04_generate_final_report.py
+  dependencies:
+  - reconcile_all_inventories
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+scenarios:
+- name: four_warehouse_reconciliation
+  parameters:
+    north-fixture: warehouse_north.csv
+    south-fixture: warehouse_south.csv
+    east-fixture: warehouse_east.csv
+    west-fixture: warehouse_west.csv
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

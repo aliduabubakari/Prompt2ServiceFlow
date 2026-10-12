@@ -1,0 +1,154 @@
+schema_version: 0.1.0
+service_id: moderation_audit_log_entry_creator
+version: 1.0.0
+display_name: Moderation Audit Log Entry Creator
+category: Loader
+capability:
+  summary: Creates a structured audit-log entry artifact from moderation action or
+    publication results and emits audit write status.
+  operations:
+  - Read one or more moderation branch result artifacts.
+  - Normalize action type, counts, route, and outcome into an audit record.
+  - Write an audit-log entry artifact with deterministic schema.
+  - Emit audit status with entry creation outcome and input result count.
+  keywords:
+  - content moderation
+  - audit log
+  - compliance
+  - branch merge
+  - status
+  limitations:
+  - Does not implement workflow merge semantics; it accepts whichever branch result
+    artifacts are bound by orchestration.
+  - Does not write to an external audit database unless modeled by a separate bound
+    implementation.
+  - Does not send notifications.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: moderation_results
+    description: One or more result artifacts from the executed moderation branch,
+      such as removal/flagging or publication results.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://moderation_branch_results/v1
+    required: true
+    cardinality: many
+    sensitivity: internal
+  outputs:
+  - name: audit_log_entry
+    description: Structured audit log entry summarizing moderation route, action,
+      counts, and outcome.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://moderation_audit_log_entry/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: audit_status
+    description: Observable audit entry creation status.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://moderation_audit_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: audit_event_type
+    description: Logical audit event type label.
+    type: string
+    required: false
+  - name: workflow_id
+    description: Optional workflow identifier included in the audit entry.
+    type: string
+    required: false
+  - name: include_bounded_references
+    description: Whether bounded content/action references may be included in the
+      audit entry.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: moderation_audit_inputs_present
+  type: precondition
+  applies_to: input
+  target: moderation_results
+  description: At least one moderation branch result artifact must be supplied.
+  expression: length(moderation_results) > 0
+- contract_id: moderation_audit_log_entry_schema
+  type: json_schema
+  applies_to: output
+  target: audit_log_entry
+  description: Audit entry summarizes moderation branch outcome without raw content
+    bodies.
+  schema_ref: schema://moderation_audit_log_entry/v1
+  expression: '{"type":"object","required":["event_type","results_count","actions_summary"],"properties":{"event_type":{"type":"string"},"workflow_id":{"type":["string","null"]},"results_count":{"type":"integer","minimum":1},"actions_summary":{"type":"object"},"content_reference_sample":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: moderation_audit_status_schema
+  type: json_schema
+  applies_to: output
+  target: audit_status
+  description: Audit status exposes entry creation outcome.
+  schema_ref: schema://moderation_audit_status/v1
+  expression: '{"type":"object","required":["success","entry_created","results_count"],"properties":{"success":{"type":"boolean"},"entry_created":{"type":"boolean"},"results_count":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: moderation_audit_effect
+  type: effect
+  applies_to: service
+  target: moderation_audit_log_entry_creator
+  description: On success, an audit log entry exists and status.entry_created is true.
+  expression: audit_status.success == true implies exists(audit_log_entry) and audit_status.entry_created
+    == true
+invocation:
+  type: argo_workflow_template
+  template_name: moderation-audit-log-entry-creator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.moderation_audit_log_entry_creator
+  implementation_ref: services/implementations/moderation_audit_log_entry_creator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - pii
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not include raw content text in audit status; include bounded identifiers/counts
+    only.
+  - Workflow merge/fan-in behavior remains orchestration-level.
+  idempotency_notes: Same branch results and audit parameters produce the same audit
+    entry artifact.
+  default_timeout_seconds: 120
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:content_moderation_pipeline#audit_log
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing registry lacks moderation-specific audit entry creation over
+    branch result artifacts.'
+  - 'Evidence status: strongly_inferred.'

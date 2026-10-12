@@ -1,0 +1,214 @@
+schema_version: 0.1.0
+service_id: database_backup_artifact_creator
+version: 1.0.0
+display_name: Database Backup Artifact Creator
+category: Maintenance
+capability:
+  summary: Creates a full or incremental backup artifact from a bound database resource
+    using caller-configured backup scope and engine/profile settings, and emits backup
+    metadata plus status.
+  operations:
+  - Resolve a bound database resource.
+  - Run a configured backup profile for full or incremental mode.
+  - Write the backup artifact to a deterministic artifact path.
+  - Compute or record checksum and basic metadata for the backup artifact when available.
+  keywords:
+  - database backup
+  - full backup
+  - incremental backup
+  - backup file
+  - database maintenance
+  - shell backup
+  limitations:
+  - Does not select whether full or incremental backup should run; bind backup_mode
+    from workflow decision or branch.
+  - Does not schedule backups, retry commands, or implement branch/merge topology.
+  - Exact database engine, backup utility, incremental checkpoint semantics, and storage
+    path must be supplied by workflow binding.
+  - Does not verify backup integrity; use a verifier service downstream.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_database
+    description: Database resource to back up.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: incremental_base_manifest
+    description: Optional prior backup manifest or checkpoint reference used for incremental
+      backups when required by the configured backup profile.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_backup_manifest/v1
+    required: false
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: backup_file
+    description: Database backup artifact produced by the invocation.
+    channel: artifact
+    data_type: binary
+    media_type: application/octet-stream
+    schema_ref: schema://database_backup_file/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: backup_manifest
+    description: Metadata describing backup mode, database binding label, output URI,
+      checksum, size, and optional checkpoint information.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_backup_manifest/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: backup_status
+    description: Observable status exposing whether backup creation was attempted
+      and completed.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://database_backup_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: backup_mode
+    description: Backup mode to execute.
+    type: string
+    required: true
+    enum:
+    - full
+    - incremental
+  - name: database_engine
+    description: Database engine/profile family used by the backup implementation.
+    type: string
+    required: true
+    enum:
+    - postgresql
+    - mysql
+    - sqlserver
+    - oracle
+    - generic
+  - name: backup_profile
+    description: Named backup command/profile supplied by runtime binding for the
+      selected database engine.
+    type: string
+    required: true
+  - name: backup_scope
+    description: Structured scope such as database names, schemas, tables, or whole-instance
+      flag.
+    type: object
+    required: false
+  - name: output_path
+    description: Deterministic output artifact path or name for the backup file.
+    type: string
+    required: true
+  - name: overwrite_output
+    description: Whether an existing artifact at output_path may be overwritten.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: database_backup_mode_contract
+  type: precondition
+  applies_to: parameter
+  target: backup_mode
+  description: Backup mode must be full or incremental.
+  expression: backup_mode in ['full','incremental']
+- contract_id: database_backup_output_path_contract
+  type: precondition
+  applies_to: parameter
+  target: output_path
+  description: Backup output path must be non-empty.
+  expression: length(trim(output_path)) > 0
+- contract_id: database_backup_manifest_schema
+  type: json_schema
+  applies_to: output
+  target: backup_manifest
+  description: Backup manifest records the artifact reference and backup metadata
+    needed for verification.
+  schema_ref: schema://database_backup_manifest/v1
+  expression: '{"type":"object","required":["backup_mode","output_uri","artifact_created"],"properties":{"backup_mode":{"type":"string","enum":["full","incremental"]},"database_engine":{"type":"string"},"output_uri":{"type":"string"},"artifact_created":{"type":"boolean"},"checksum_sha256":{"type":["string","null"]},"size_bytes":{"type":["integer","null"],"minimum":0},"checkpoint_reference":{"type":["string","null"]}}}'
+- contract_id: database_backup_status_schema
+  type: json_schema
+  applies_to: output
+  target: backup_status
+  description: Status exposes backup creation outcome for downstream validation.
+  schema_ref: schema://database_backup_status/v1
+  expression: '{"type":"object","required":["success","backup_mode","backup_attempted","output_uri"],"properties":{"success":{"type":"boolean"},"backup_mode":{"type":"string"},"backup_attempted":{"type":"boolean"},"output_uri":{"type":"string"},"bytes_written":{"type":["integer","null"],"minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: database_backup_effect
+  type: effect
+  applies_to: service
+  target: database_backup_artifact_creator
+  description: On success, a backup artifact exists at output_path, a manifest is
+    emitted, and backup_status.success is true.
+  expression: backup_status.success == true implies exists(backup_file) and backup_manifest.artifact_created
+    == true
+invocation:
+  type: argo_workflow_template
+  template_name: database-backup-artifact-creator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.database_backup_artifact_creator
+  implementation_ref: services/implementations/database_backup_artifact_creator
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - postgresql://*
+  - mysql://*
+  - sqlserver://*
+  - oracle://*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  - restricted
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Database credentials and backup contents must not be emitted in status or logs.
+  - Bind only explicitly approved database resources and backup scopes.
+  - Workflow schedule, retries, and branch selection remain outside the service catalogue.
+  idempotency_notes: Retry safety depends on deterministic output_path, overwrite/idempotent
+    artifact handling, and stable incremental checkpoint semantics in the configured
+    backup profile.
+  default_timeout_seconds: 3600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:backup_strategy_selector#full_backup_task
+  - main:backup_strategy_selector#incremental_backup_task
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The registry had SQL dump/import services but no reusable database
+    backup artifact creator supporting full and incremental backup modes with backup-file
+    output.'
+  - 'Evidence status: strongly_inferred.'

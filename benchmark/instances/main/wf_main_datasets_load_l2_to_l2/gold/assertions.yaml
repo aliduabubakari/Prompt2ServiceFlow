@@ -1,0 +1,54 @@
+assertions_version: 0.1.0
+pipeline_id: wf_main_datasets_load_l2_to_l2
+scenarios:
+- scenario: l2_ready
+  assertions:
+  - assertion_id: l2_ready
+    type: json_path_equals
+    path: artifacts/l2_decision.json
+    json_path: ready
+    expected: true
+  - assertion_id: load_id_generated
+    type: file_exists
+    path: artifacts/load_id.txt
+  - assertion_id: previous_run_complete
+    type: json_path_equals
+    path: artifacts/success_decision.json
+    json_path: completed
+    expected: true
+  - assertion_id: data_preparation_triggered
+    type: json_path_equals
+    path: artifacts/dataprep_result.json
+    json_path: workflow_id
+    expected: wf_data_preparation_for_reports
+  - assertion_id: segmentation_triggered
+    type: json_path_equals
+    path: artifacts/segment_result.json
+    json_path: workflow_id
+    expected: l1_to_l2_p_load_data_ds_client_segmentation_full
+  - assertion_id: sap_flag_published
+    type: json_path_equals
+    path: artifacts/flag_status.json
+    json_path: success
+    expected: true
+  - assertion_id: session_finalized
+    type: json_path_equals
+    path: artifacts/end_status.json
+    json_path: operation
+    expected: finalize
+- scenario: l2_not_ready
+  assertions:
+  - assertion_id: l2_blocked
+    type: json_path_equals
+    path: artifacts/l2_decision.json
+    json_path: ready
+    expected: false
+  - assertion_id: load_id_not_generated
+    type: file_absent
+    path: artifacts/load_id.txt
+  - assertion_id: sap_not_called
+    type: file_absent
+    path: artifacts/flag_status.json
+  - assertion_id: session_not_finalized
+    type: file_absent
+    path: artifacts/end_status.json

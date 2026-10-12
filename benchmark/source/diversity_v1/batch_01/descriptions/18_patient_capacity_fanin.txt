@@ -1,0 +1,65 @@
+Pipeline Summary:
+- Pipeline ID: diversity-v1__patient_capacity_fanin.py
+- Name: patient_capacity_fanin
+- Purpose: Patient Capacity Fan-in is a synthetic data-preparation workflow for Healthcare/Public Health.
+- Execution model: batch
+- Topology pattern: fan_in
+- Business domain: Healthcare/Public Health
+- Notes: Synthetic Diversity-40 source; use only as benchmark input and not as hidden gold evidence.
+
+Control Flow:
+- Dependencies (directed edges):
+  - extract_primary -> validate_schema
+  - extract_secondary -> validate_schema
+  - extract_reference -> validate_schema
+  - validate_schema -> merge_sources
+  - merge_sources -> publish_dataset
+
+Data Artifacts / I-O Identifiers:
+- file: raw_input.csv (Synthetic input data)
+- file: prepared_output.parquet (Prepared output dataset)
+
+External Systems:
+- object_storage: Fixture-backed source and publication location
+
+Pipeline Steps:
+1. extract_primary — extract_primary
+  - Objective: Extract the extract primary dataset.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. extract_secondary — extract_secondary
+  - Objective: Extract the extract secondary dataset.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. extract_reference — extract_reference
+  - Objective: Extract the extract reference dataset.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. validate_schema — validate_schema
+  - Objective: Validate every source dataset.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. merge_sources — merge_sources
+  - Objective: Merge all validated source artifacts.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. publish_dataset — publish_dataset
+  - Objective: Publish the merged dataset.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

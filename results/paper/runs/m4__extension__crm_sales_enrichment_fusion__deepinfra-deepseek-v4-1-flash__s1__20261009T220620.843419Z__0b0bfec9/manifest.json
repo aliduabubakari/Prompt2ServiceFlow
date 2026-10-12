@@ -1,0 +1,143 @@
+{
+  "run_id": "m4__extension__crm_sales_enrichment_fusion__deepinfra-deepseek-v4-1-flash__s1__20261009T220620.843419Z__0b0bfec9",
+  "batch_id": "frozen__freeze-2026-10-08.deepinfra.v22__20261008T100403.076491Z__f390947e",
+  "sample_index": 1,
+  "ablation": null,
+  "harness_version": "2.2.2",
+  "method": {
+    "id": "m4",
+    "name": "Contract-first ServiceFlowIR + repair"
+  },
+  "prompt_version": "2.1.0",
+  "runtime_compiler_version": "1.0.0",
+  "model": {
+    "model_id": "deepinfra-deepseek-v4-1-flash",
+    "model_name": "deepseek-ai/DeepSeek-V4.1-Flash",
+    "base_url": "https://api.deepinfra.com/v1/openai",
+    "temperature": 0.2,
+    "top_p": 1.0,
+    "seed": 202,
+    "max_tokens": 16384,
+    "context_window": 1048576
+  },
+  "instance": {
+    "id": "crm_sales_enrichment_fusion",
+    "split": "extension",
+    "benchmark_id": "extension:crm_sales_enrichment_fusion"
+  },
+  "catalog": {
+    "version": "0.3.2",
+    "pinned_catalog_yaml_sha256": "805a9f50fca1bf17db881246c00461f180aec735458fba41b879aa3f43ada679",
+    "sanitized_catalog_yaml_sha256": "b57b1c026ed3e30a3a8bc64e23e52fb2e397ff864fc5e427272b4721a5e1ab8b",
+    "descriptor_count": 269
+  },
+  "roster_sha256": "f2f92b327b6f26cf2bb6be988363bd6fe1cef788838dcd4e6493d710301bf2df",
+  "workspace_manifest_sha256": "cfc632a75d584d2f050a3e27e8c4aa5fe32c3cfea06787c08325af408d0117a4",
+  "freeze": {
+    "freeze_id": "freeze-2026-10-08.deepinfra.v22",
+    "status": "frozen",
+    "sha256": "1bd592489448bbfdf3557680c00eb77d67545c86f706edc8ab0a9ce13b0447be"
+  },
+  "visible_input_policy": {
+    "method_view": [
+      "task.md",
+      "candidates/",
+      "catalog/",
+      "contracts/",
+      "schemas/",
+      "fixtures/"
+    ],
+    "workspace_manifest": "experiments/workspaces/extension/crm_sales_enrichment_fusion/workspace.yaml"
+  },
+  "repair": {
+    "budget": 3,
+    "execution_feedback": true
+  },
+  "environment": {
+    "python": "3.12.3",
+    "platform": "macOS-15.6.1-arm64-arm-64bit",
+    "git_revision": "a0a9a18"
+  },
+  "started_at": "2026-10-09T22:06:20.844432+00:00",
+  "method_status": "completed",
+  "method_error": null,
+  "evaluation": {
+    "error": "evaluation failed: 'fixture'",
+    "repair_attempts": [
+      {
+        "attempt": 0,
+        "overall_status": "fail",
+        "first_failing_gate": "G3",
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "pass",
+          "G2": "pass",
+          "G3": "fail",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": true,
+        "repeated_state": false,
+        "synthetic": false
+      },
+      {
+        "attempt": 1,
+        "overall_status": "pass",
+        "first_failing_gate": null,
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "pass",
+          "G2": "pass",
+          "G3": "pass",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": true,
+        "repeated_state": false,
+        "synthetic": false
+      }
+    ]
+  },
+  "usage": {
+    "llm_calls": 2,
+    "prompt_tokens": 63376,
+    "completion_tokens": 13309,
+    "reasoning_tokens": 0,
+    "total_tokens": 76685,
+    "latency_s": 121.312,
+    "validator_calls": 2,
+    "evaluation_validator_calls": 2,
+    "cost_usd": 0.014462,
+    "per_stage": [
+      {
+        "stage": "m3_ir",
+        "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+        "usage": {
+          "prompt_tokens": 29142,
+          "completion_tokens": 6206,
+          "total_tokens": 35348,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 62.983,
+        "finish_reason": "stop",
+        "cost_usd": 0.006686
+      },
+      {
+        "stage": "m4_repair_1",
+        "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+        "usage": {
+          "prompt_tokens": 34234,
+          "completion_tokens": 7103,
+          "total_tokens": 41337,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 58.329,
+        "finish_reason": "stop",
+        "cost_usd": 0.007776
+      }
+    ]
+  },
+  "finished_at": "2026-10-09T22:08:35.812691+00:00"
+}

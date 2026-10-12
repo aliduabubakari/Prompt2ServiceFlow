@@ -1,0 +1,42 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: daily_sales_report
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: query_sales_data
+  script: scripts/01_query_sales_data.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: transform_to_csv
+  script: scripts/02_transform_to_csv.py
+  dependencies:
+  - query_sales_data
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: generate_pdf_chart
+  script: scripts/03_generate_pdf_chart.py
+  dependencies:
+  - transform_to_csv
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+- intent_id: email_sales_report
+  script: scripts/04_email_sales_report.py
+  dependencies:
+  - generate_pdf_chart
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 2
+scenarios:
+- name: daily_report_generation
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

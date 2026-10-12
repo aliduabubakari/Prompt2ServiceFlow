@@ -1,0 +1,87 @@
+schema_version: 0.1.0
+service_id: clean_partner_record_publisher
+version: 1.0.0
+display_name: Clean Partner Record Publisher
+category: Publisher
+capability:
+  summary: Publishes reconciled clean partner records to an approved output location.
+  operations:
+  - Publishes reconciled clean partner records to an approved output location.
+  keywords:
+  - clean
+  - partner
+  - record
+  - publisher
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: clean_records
+    description: Reviewed clean records value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: publication_status
+    description: Reviewed publication status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: destination_name
+    description: Configuration for destination name.
+    type: string
+    required: true
+  - name: write_mode
+    description: Configuration for write mode.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: clean-partner-record-publisher
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.3
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.clean_partner_record_publisher
+  implementation_ref: services/implementations/clean_partner_record_publisher
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-04:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 04 descriptions; bindings retain inference confidence.

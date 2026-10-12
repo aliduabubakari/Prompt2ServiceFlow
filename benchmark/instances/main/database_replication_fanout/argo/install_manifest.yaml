@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-replication-fanout-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Run deterministic production export and target import mocks.\"\
+    \"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport csv\nimport json\nimport shutil\n\
+    from pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--step\", choices=(\"export\"\
+    , \"import\"), required=True)\n    parser.add_argument(\"--database-resource\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--source-fixture\", type=Path)\n    parser.add_argument(\"--target-label\"\
+    )\n    args = parser.parse_args()\n    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True,\
+    \ exist_ok=True)\n    database = json.loads(args.database_resource.read_text(encoding=\"utf-8\"))\n\
+    \    if args.step == \"export\":\n        if args.source_fixture is None:\n            raise SystemExit(\"\
+    --source-fixture is required for export\")\n        snapshot = artifacts / \"snapshot.csv\"\n    \
+    \    shutil.copyfile(args.source_fixture, snapshot)\n        with snapshot.open(encoding=\"utf-8\"\
+    , newline=\"\") as handle:\n            rows = list(csv.DictReader(handle))\n        status = {\"\
+    success\": True, \"source_database\": database[\"target\"], \"rows_exported\": len(rows), \"errors\"\
+    : []}\n        (artifacts / \"export_status.json\").write_text(json.dumps(status, indent=2) + \"\\\
+    n\", encoding=\"utf-8\")\n        return\n    if args.target_label is None:\n        raise SystemExit(\"\
+    --target-label is required for import\")\n    with (artifacts / \"snapshot.csv\").open(encoding=\"\
+    utf-8\", newline=\"\") as handle:\n        rows = list(csv.DictReader(handle))\n    target = args.workspace\
+    \ / \"mock_databases\"\n    target.mkdir(parents=True, exist_ok=True)\n    (target / f\"{args.target_label}.json\"\
+    ).write_text(json.dumps(rows, indent=2) + \"\\n\", encoding=\"utf-8\")\n    reference = {\"target\"\
+    : database[\"target\"], \"table\": database[\"table\"], \"rows_imported\": len(rows)}\n    (artifacts\
+    \ / f\"{args.target_label}_ref.json\").write_text(json.dumps(reference, indent=2) + \"\\n\", encoding=\"\
+    utf-8\")\n    status = {\"success\": True, \"target\": args.target_label, \"rows_loaded\": len(rows),\
+    \ \"errors\": []}\n    (artifacts / f\"{args.target_label}_load_status.json\").write_text(json.dumps(status,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-replication-fanout-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"driver\": \"filesystem-mock\",\n  \"engine\": \"postgresql\",\n  \"target\": \"\
+    dev\",\n  \"table\": \"data\"\n}\n"
+  fixture-0001: "{\n  \"pipeline_id\": \"database_replication_fanout\",\n  \"inputs\": {\n    \"dev_db\"\
+    : \"dev_db.json\",\n    \"qa_db\": \"qa_db.json\",\n    \"prod_db\": \"prod_db.json\",\n    \"prod_snapshot\"\
+    : \"prod_snapshot.csv\",\n    \"staging_db\": \"staging_db.json\"\n  },\n  \"input_modalities\": [\n\
+    \    \"json\",\n    \"table\"\n  ],\n  \"systems\": [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"
+  fixture-0002: "{\n  \"driver\": \"filesystem-mock\",\n  \"engine\": \"postgresql\",\n  \"target\": \"\
+    production\",\n  \"table\": \"data\"\n}\n"
+  fixture-0003: 'id,name,amount
+
+    1,alpha,100
+
+    2,beta,200
+
+    3,gamma,300
+
+    '
+  fixture-0004: "{\n  \"driver\": \"filesystem-mock\",\n  \"engine\": \"postgresql\",\n  \"target\": \"\
+    qa\",\n  \"table\": \"data\"\n}\n"
+  fixture-0005: "{\n  \"driver\": \"filesystem-mock\",\n  \"engine\": \"postgresql\",\n  \"target\": \"\
+    staging\",\n  \"table\": \"data\"\n}\n"

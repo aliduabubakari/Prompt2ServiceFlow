@@ -1,0 +1,39 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:portfolio_rebalancing_dag
+candidate_sets:
+- candidate_set_id: main_portfolio_rebalancing_dag_brokerage_account_holdings_extractor_candidates
+  required_service_id: brokerage_account_holdings_extractor
+  labels:
+    brokerage_account_holdings_extractor: gold
+    http_json_request_extractor: missing_required_output
+    http_api_request_artifact_extractor: format_mismatch
+    warehouse_inventory_csv_extractor: target_mismatch
+    graphql_json_operation_executor: contract_mismatch
+    legacy_http_json_extractor: deprecated_or_incompatible
+- candidate_set_id: main_portfolio_rebalancing_dag_portfolio_holdings_metrics_analyzer_candidates
+  required_service_id: portfolio_holdings_metrics_analyzer
+  labels:
+    portfolio_holdings_metrics_analyzer: gold
+    transaction_csv_fraud_risk_analyzer: semantic_mismatch
+    portfolio_rebalancing_trade_calculator: contract_mismatch
+    parquet_customer_quality_score_calculator: semantic_mismatch
+    environmental_risk_score_column_calculator: target_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_portfolio_rebalancing_dag_portfolio_rebalancing_trade_calculator_candidates
+  required_service_id: portfolio_rebalancing_trade_calculator
+  labels:
+    portfolio_rebalancing_trade_calculator: gold
+    portfolio_holdings_metrics_analyzer: missing_required_output
+    multi_region_revenue_report_aggregator: semantic_mismatch
+    financial_transaction_regulatory_report_generator: target_mismatch
+    trade_order_csv_report_generator: contract_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_portfolio_rebalancing_dag_trade_order_csv_report_generator_candidates
+  required_service_id: trade_order_csv_report_generator
+  labels:
+    trade_order_csv_report_generator: gold
+    tabular_query_result_csv_writer: contract_mismatch
+    structured_json_to_csv_exporter: format_mismatch
+    validated_parquet_to_csv_report_exporter: format_mismatch
+    financial_transaction_regulatory_report_generator: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch

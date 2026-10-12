@@ -1,0 +1,69 @@
+Pipeline Summary:
+- Pipeline ID: val_customer_profile_refresh
+- Name: Customer Profile Refresh
+- Purpose: Refresh customer profiles by extracting CRM records, normalizing fields, deduplicating rows, and loading a profile table.
+- Execution model: Batch
+- Topology pattern: Linear
+- Business domain: CRM
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - extract_crm_records -> normalize_profile_fields
+  - normalize_profile_fields -> deduplicate_customers
+  - deduplicate_customers -> load_profile_table
+  - load_profile_table -> emit_refresh_summary
+- Parallel groups:
+  - none
+- Branch points:
+  - none
+- Gate or sensor dependencies:
+  - none
+
+Data Artifacts / I-O Identifiers:
+  - data_object: crm_export
+  - data_object: normalized_profiles
+  - data_object: profile_table
+
+External Systems:
+  - external_service: CRM API
+  - external_service: Customer warehouse
+
+Pipeline Steps:
+1. extract_crm_records - extract crm records
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. normalize_profile_fields - normalize profile fields
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. deduplicate_customers - deduplicate customers
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+4. load_profile_table - load profile table
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+5. emit_refresh_summary - emit refresh summary
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

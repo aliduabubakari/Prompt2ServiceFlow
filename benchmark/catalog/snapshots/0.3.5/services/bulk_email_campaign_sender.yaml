@@ -1,0 +1,164 @@
+schema_version: 0.1.0
+service_id: bulk_email_campaign_sender
+version: 1.0.0
+display_name: Bulk Email Campaign Sender
+category: Notifier
+capability:
+  summary: Sends a templated bulk email campaign to recipients selected from a customer
+    segment dataset and emits campaign delivery status.
+  operations:
+  - Read customer segment data containing email addresses and segment labels.
+  - Filter recipients using a configured segment selector.
+  - Render subject/body templates for selected recipients.
+  - Send messages through a bound email service and emit aggregate delivery results.
+  keywords:
+  - email
+  - bulk campaign
+  - marketing
+  - customer segment
+  - notification
+  - pii
+  limitations:
+  - Does not load customer data from CSV.
+  - Does not perform workflow fan-out or retries.
+  - Repeated invocations may send duplicate emails unless the provider or caller supplies
+    idempotency controls.
+  - Does not guarantee provider-level delivery beyond accepted/send-attempt status.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: customer_segments
+    description: Structured customer segment dataset containing email and segment
+      fields.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://customer_segment_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: email_service
+    description: Bound email delivery service resource.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://email_service_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: email_campaign_results
+    description: Aggregate email campaign notification result with selected, attempted,
+      sent, skipped, and failed counts.
+    channel: artifact
+    data_type: notification
+    media_type: application/json
+    schema_ref: schema://bulk_campaign_delivery_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: segment_selector
+    description: Selector for customer records eligible for the email campaign, such
+      as a segment name or rule object.
+    type: object
+    required: true
+  - name: email_column
+    description: Column containing recipient email addresses.
+    type: string
+    required: true
+  - name: subject_template
+    description: Email subject template.
+    type: string
+    required: true
+  - name: body_template
+    description: Email body template.
+    type: string
+    required: true
+  - name: campaign_id
+    description: Optional campaign identifier included in delivery status and provider
+      metadata.
+    type: string
+    required: false
+  secrets: []
+contracts:
+- contract_id: bulk_email_campaign_input_contract
+  type: precondition
+  applies_to: input
+  target: customer_segments
+  description: Customer segment data must include the configured email column and
+    at least one eligible recipient when empty campaigns are not allowed.
+  expression: email_column in customer_segments.columns
+- contract_id: bulk_campaign_delivery_status_schema
+  type: json_schema
+  applies_to: output
+  target: email_campaign_results
+  description: Campaign delivery status exposes send effect for workflow validation.
+  schema_ref: schema://bulk_campaign_delivery_status/v1
+  expression: '{"type":"object","required":["success","channel","recipients_selected","messages_attempted","messages_sent","messages_failed"],"properties":{"success":{"type":"boolean"},"channel":{"type":"string"},"campaign_id":{"type":["string","null"]},"recipients_selected":{"type":"integer","minimum":0},"messages_attempted":{"type":"integer","minimum":0},"messages_sent":{"type":"integer","minimum":0},"messages_failed":{"type":"integer","minimum":0},"messages_skipped":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: bulk_email_campaign_effect
+  type: effect
+  applies_to: service
+  target: bulk_email_campaign_sender
+  description: On success, selected email recipients were attempted or explicitly
+    skipped and an aggregate notification status was emitted.
+  expression: email_campaign_results.success == true implies email_campaign_results.channel
+    == 'email'
+invocation:
+  type: argo_workflow_template
+  template_name: bulk-email-campaign-sender-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.bulk_email_campaign_sender
+  implementation_ref: services/implementations/bulk_email_campaign_sender
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - email://*
+  - smtp://*
+  - https://*
+  secret_access: required
+  retry_safe: false
+  idempotency: non_idempotent
+  data_sensitivity:
+  - pii
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit raw recipient addresses or message bodies in status artifacts.
+  - Email provider credentials must not be logged.
+  - Status output is required so workflow validation can observe campaign delivery
+    attempts.
+  idempotency_notes: Retries may send duplicate campaign emails unless the email provider
+    or workflow binding supplies idempotency keys.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:multi_channel_marketing_campaign#send_email_campaign
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing email notification services send generic single templated
+    notifications and do not select recipients from a customer segment dataset or
+    emit bulk campaign counts.'
+  - 'Evidence status: explicit.'

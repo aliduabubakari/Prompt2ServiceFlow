@@ -1,0 +1,15 @@
+binding_gold_version: 0.1.0
+benchmark_id: main:database_replication_fanout
+bindings:
+- intent_id: dump_prod_csv
+  service_id: database_csv_snapshot_exporter
+  service_version: 1.0.0
+- intent_id: copy_dev
+  service_id: database_csv_snapshot_importer
+  service_version: 1.0.0
+- intent_id: copy_staging
+  service_id: database_csv_snapshot_importer
+  service_version: 1.0.0
+- intent_id: copy_qa
+  service_id: database_csv_snapshot_importer
+  service_version: 1.0.0

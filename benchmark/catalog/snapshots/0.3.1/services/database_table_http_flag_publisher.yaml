@@ -1,0 +1,197 @@
+schema_version: 0.1.0
+service_id: database_table_http_flag_publisher
+version: 1.0.0
+display_name: Database Table HTTP Flag Publisher
+category: Publisher
+capability:
+  summary: Reads a configured database table or query result and publishes a completion/status
+    flag to a bound HTTP endpoint, emitting request summary and publication status.
+  operations:
+  - Resolve a source database and a target HTTP API resource.
+  - Read or validate a configured source table/view or optional selection query.
+  - Render a completion/status flag payload from parameters and optional source table
+    fields.
+  - Submit the payload to the configured HTTP endpoint using the configured method
+    and expected success codes.
+  keywords:
+  - http publisher
+  - completion flag
+  - database table
+  - sap integration
+  - data warehouse
+  limitations:
+  - Does not create or load the source table.
+  - Does not infer endpoint path, payload template, or SAP-specific schema; caller
+    must bind them.
+  - Repeated invocations may publish duplicate flags unless the target API supports
+    idempotency.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_database
+    description: Database resource containing the source table/view used to build
+      or validate the completion flag.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: source_table
+    description: Logical reference to the source table/view whose availability or
+      contents support the flag publication.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://sql_table_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: http_api_resource
+    description: HTTP API resource receiving the completion flag.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://http_api_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: publish_status
+    description: Observable publication status including HTTP response, success flag,
+      and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://http_flag_publish_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: request_summary
+    description: Bounded non-secret summary of the flag request sent or attempted.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://http_flag_request_summary/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: source_table_name
+    description: Source table or view name, optionally schema-qualified.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$
+  - name: selection_sql
+    description: Optional read-only SQL used to fetch fields for the payload instead
+      of reading the table generically.
+    type: string
+    required: false
+  - name: endpoint
+    description: HTTP endpoint path or absolute URL for flag publication.
+    type: string
+    required: true
+  - name: method
+    description: HTTP method used to publish the flag.
+    type: string
+    required: true
+    enum:
+    - POST
+    - PUT
+    - PATCH
+  - name: payload_template
+    description: Structured template for the HTTP request body.
+    type: object
+    required: true
+  - name: success_status_codes
+    description: HTTP response codes treated as successful publication.
+    type: array
+    required: false
+  secrets: []
+contracts:
+- contract_id: http_flag_source_table_contract
+  type: precondition
+  applies_to: parameter
+  target: source_table_name
+  description: Source table name must be a valid identifier-like table or view reference.
+  expression: source_table_name matches '^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)?$'
+- contract_id: http_flag_endpoint_contract
+  type: precondition
+  applies_to: parameter
+  target: endpoint
+  description: Endpoint must be non-empty and resolve to an HTTP or HTTPS URL against
+    the bound API resource.
+  expression: length(trim(endpoint)) > 0 and resolved_url(http_api_resource, endpoint)
+    matches '^https?://.+'
+- contract_id: http_flag_publish_status_schema
+  type: json_schema
+  applies_to: output
+  target: publish_status
+  description: Status exposes HTTP flag publication outcome.
+  schema_ref: schema://http_flag_publish_status/v1
+  expression: '{"type":"object","required":["success","request_attempted","method","http_status_code"],"properties":{"success":{"type":"boolean"},"request_attempted":{"type":"boolean"},"method":{"type":"string"},"http_status_code":{"type":["integer","null"]},"source_table_name":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: http_flag_publisher_effect
+  type: effect
+  applies_to: service
+  target: database_table_http_flag_publisher
+  description: On success, the service read or validated the configured source table
+    and the HTTP flag request completed with an expected success code.
+  expression: publish_status.success == true implies publish_status.request_attempted
+    == true
+invocation:
+  type: argo_workflow_template
+  template_name: database-table-http-flag-publisher-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.database_table_http_flag_publisher
+  implementation_ref: services/implementations/database_table_http_flag_publisher
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - postgresql://*
+  - http://*
+  - https://*
+  secret_access: required
+  retry_safe: false
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit HTTP credentials, database credentials, or raw table contents in outputs
+    or logs.
+  - Expose only bounded request summaries and status needed for workflow validation.
+  idempotency_notes: Retry safety depends on the target HTTP API supporting idempotent
+    flag updates or caller-supplied idempotency keys.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:WF_MAIN_DATASETS_LOAD_L2_TO_L2#send_flg_to_sap
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The active pipeline publishes a DWH-derived completion flag to SAP;
+    existing HTTP services are extractors, not table-driven publishers.'
+  - 'Evidence status: strongly_inferred.'

@@ -1,0 +1,166 @@
+schema_version: 0.1.0
+service_id: validated_parquet_to_csv_report_exporter
+version: 1.0.0
+display_name: Validated Parquet to CSV Report Exporter
+category: ReportGenerator
+capability:
+  summary: Exports a processed Parquet dataset to a final CSV artifact and emits an
+    export/report status that incorporates validation results.
+  operations:
+  - Read processed document-feature Parquet data.
+  - Read validation results from an upstream quality check.
+  - Optionally include or reference validation summary in the final report status.
+  - Write a final CSV artifact using deterministic output naming or template parameters.
+  keywords:
+  - parquet
+  - csv export
+  - final report
+  - validation summary
+  - document features
+  limitations:
+  - Does not perform feature extraction or validation itself.
+  - Does not send notifications or publish externally beyond writing output artifacts.
+  - Timestamp rendering in output names should be supplied by workflow binding for
+    deterministic execution.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: processed_document_parquet
+    description: Processed document feature dataset to export.
+    channel: artifact
+    data_type: parquet
+    media_type: application/vnd.apache.parquet
+    schema_ref: schema://processed_document_features_parquet/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: validation_results
+    description: Validation results dictionary from the quality-check step.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://document_feature_validation_results/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: final_csv
+    description: Final output CSV artifact containing processed document features.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://csv_file_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: report_status
+    description: Observable export/report status including validation summary, output
+      URI, row counts, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://validated_parquet_csv_report_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: output_path_template
+    description: Deterministic CSV output path or template; workflow binding may render
+      date/time tokens.
+    type: string
+    required: true
+  - name: columns
+    description: Optional ordered list of columns to export.
+    type: array
+    required: false
+  - name: include_header
+    description: Whether to include a CSV header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  - name: require_validation_passed
+    description: Whether validation_results.valid must be true before exporting.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: validated_parquet_export_inputs
+  type: precondition
+  applies_to: service
+  target: validated_parquet_to_csv_report_exporter
+  description: Processed Parquet and validation results must be readable; output template
+    must be non-empty.
+  expression: readable(processed_document_parquet) and parquet_parseable(processed_document_parquet)
+    and readable(validation_results) and length(trim(output_path_template)) > 0
+- contract_id: validated_parquet_csv_report_status_schema
+  type: json_schema
+  applies_to: output
+  target: report_status
+  description: Report status exposes final artifact write effect and validation summary.
+  schema_ref: schema://validated_parquet_csv_report_status/v1
+  expression: '{"type":"object","required":["success","output_uri","rows_read","rows_written","validation_valid"],"properties":{"success":{"type":"boolean"},"output_uri":{"type":"string"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"validation_valid":{"type":"boolean"},"columns_exported":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: validated_parquet_csv_export_effect
+  type: effect
+  applies_to: service
+  target: validated_parquet_to_csv_report_exporter
+  description: On success, final CSV exists and rows_written equals rows_read.
+  expression: report_status.success == true implies exists(final_csv) and report_status.rows_written
+    == report_status.rows_read
+invocation:
+  type: argo_workflow_template
+  template_name: validated-parquet-to-csv-report-exporter-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.validated_parquet_to_csv_report_exporter
+  implementation_ref: services/implementations/validated_parquet_to_csv_report_exporter
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full document rows; status should expose counts, output URI, and bounded
+    diagnostics only.
+  idempotency_notes: Same processed Parquet, validation results, and output rendering
+    produce the same CSV content.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:keyword_extraction_pipeline#save_and_report
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing CSV writers expect tabular JSON query results, not processed
+    Parquet plus validation-result fan-in.'
+  - 'Evidence status: explicit.'

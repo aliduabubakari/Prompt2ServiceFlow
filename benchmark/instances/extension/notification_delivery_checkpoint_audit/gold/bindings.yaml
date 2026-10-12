@@ -1,0 +1,21 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:notification_delivery_checkpoint_audit
+bindings:
+- intent_id: ingest_bounded_events
+  service_id: notification_delivery_event_ingestor
+  service_version: 1.0.0
+- intent_id: validate_checkpoint_inputs
+  service_id: notification_delivery_checkpoint_validator
+  service_version: 1.0.0
+- intent_id: sort_and_deduplicate_records
+  service_id: checkpoint_event_sort_deduplicator
+  service_version: 1.0.0
+- intent_id: build_analysis_windows
+  service_id: checkpoint_window_builder
+  service_version: 1.0.0
+- intent_id: compute_window_metrics
+  service_id: notification_delivery_audit_metric_computer
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: checkpoint_audit_bundle_publisher
+  service_version: 1.0.0

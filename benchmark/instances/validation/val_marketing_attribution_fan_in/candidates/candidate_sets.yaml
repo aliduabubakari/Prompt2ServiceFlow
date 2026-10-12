@@ -1,0 +1,49 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_marketing_attribution_fan_in
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.2
+candidate_sets:
+- candidate_set_id: validation_val_marketing_attribution_fan_in_marketing_event_api_extractor_candidates
+  source_step_refs:
+  - extract_impressions
+  - extract_clicks
+  service_ids:
+  - marketing_event_api_extractor
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_marketing_attribution_fan_in_commerce_purchase_event_extractor_candidates
+  source_step_refs:
+  - extract_purchases
+  service_ids:
+  - commerce_purchase_event_extractor
+  - temporary_resource_cleanup
+  - csv_to_structured_json_standardizer
+- candidate_set_id: validation_val_marketing_attribution_fan_in_customer_event_attribution_joiner_candidates
+  source_step_refs:
+  - join_customer_events
+  service_ids:
+  - customer_event_attribution_joiner
+  - csv_to_structured_json_standardizer
+  - tabular_dataset_database_loader
+- candidate_set_id: validation_val_marketing_attribution_fan_in_attribution_metric_calculator_candidates
+  source_step_refs:
+  - compute_attribution
+  service_ids:
+  - attribution_metric_calculator
+  - tabular_dataset_database_loader
+  - http_json_request_extractor
+- candidate_set_id: validation_val_marketing_attribution_fan_in_attribution_table_publisher_candidates
+  source_step_refs:
+  - publish_attribution_table
+  service_ids:
+  - attribution_table_publisher
+  - http_json_request_extractor
+  - bi_dashboard_refresh_trigger
+- candidate_set_id: validation_val_marketing_attribution_fan_in_campaign_summary_notification_sender_candidates
+  source_step_refs:
+  - send_campaign_summary
+  service_ids:
+  - campaign_summary_notification_sender
+  - bi_dashboard_refresh_trigger
+  - bulk_email_campaign_sender

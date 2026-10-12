@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portfolio-rebalancing-dag-five-brokerage-accounts-scripts
+  namespace: prompt2serviceflow
+data:
+  01_fetch_holdings.py: "#!/usr/bin/env python3\n\"\"\"Fetch mock brokerage holdings for a given brokerage_id.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\nHOLDINGS\
+    \ = {\n    \"BROKERAGE_001\": [{\"symbol\":\"AAPL\",\"quantity\":100,\"price\":198.50},{\"symbol\"\
+    :\"GOOGL\",\"quantity\":50,\"price\":175.20}],\n    \"BROKERAGE_002\": [{\"symbol\":\"MSFT\",\"quantity\"\
+    :80,\"price\":420.10},{\"symbol\":\"AMZN\",\"quantity\":30,\"price\":185.75}],\n    \"BROKERAGE_003\"\
+    : [{\"symbol\":\"TSLA\",\"quantity\":60,\"price\":245.30},{\"symbol\":\"NVDA\",\"quantity\":40,\"\
+    price\":950.00}],\n    \"BROKERAGE_004\": [{\"symbol\":\"META\",\"quantity\":70,\"price\":510.25},{\"\
+    symbol\":\"NFLX\",\"quantity\":45,\"price\":625.80}],\n    \"BROKERAGE_005\": [{\"symbol\":\"JPM\"\
+    ,\"quantity\":120,\"price\":200.10},{\"symbol\":\"V\",\"quantity\":90,\"price\":280.45}],\n}\n\ndef\
+    \ main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--brokerage\",type=str,required=True); p.add_argument(\"--num\",type=str,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n    rows=HOLDINGS.get(a.brokerage,[])\n\
+    \    ds={\"columns\":[\"symbol\",\"quantity\",\"price\"],\"rows\":rows}\n    (art/f\"holdings_dataset_{a.num}.json\"\
+    ).write_text(json.dumps(ds,indent=2)+\"\\n\",encoding=\"utf-8\")\n    st={\"success\":True,\"errors\"\
+    :[]}\n    (art/f\"extraction_status_{a.num}.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+  02_analyze_portfolio.py: "#!/usr/bin/env python3\n\"\"\"Analyze portfolio metrics for a given brokerage.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"\
+    --num\",type=str,required=True)\n    a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ds=json.loads((art/f\"\
+    holdings_dataset_{a.num}.json\").read_text(encoding=\"utf-8\"))\n    total=sum(r[\"quantity\"]*r[\"\
+    price\"] for r in ds[\"rows\"])\n    alloc={r[\"symbol\"]:round(r[\"quantity\"]*r[\"price\"]/total,4)\
+    \ for r in ds[\"rows\"]}\n    analysis={\"total_value\":round(total,2),\"allocation\":alloc,\"risk_score\"\
+    :round(min(total/100000,1.0),4),\"brokerage_id\":f\"BROKERAGE_00{a.num}\"}\n    (art/f\"portfolio_analysis_{a.num}.json\"\
+    ).write_text(json.dumps(analysis,indent=2)+\"\\n\",encoding=\"utf-8\")\n    st={\"success\":True,\"\
+    errors\":[]}\n    (art/f\"analysis_status_{a.num}.json\").write_text(json.dumps(st,indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_aggregate_and_rebalance.py: "#!/usr/bin/env python3\n\"\"\"Aggregate all 5 portfolio analyses and\
+    \ calculate rebalancing trades.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"artifacts\"\n    analyses=[]\n\
+    \    for n in [\"1\",\"2\",\"3\",\"4\",\"5\"]:\n        pa=json.loads((art/f\"portfolio_analysis_{n}.json\"\
+    ).read_text(encoding=\"utf-8\"))\n        analyses.append(pa)\n    total_value=sum(a[\"total_value\"\
+    ] for a in analyses)\n    trades=[{\"brokerage_id\":a[\"brokerage_id\"],\"current_value\":a[\"total_value\"\
+    ],\"target_allocation\":round(a[\"total_value\"]/total_value,4),\"rebalance_action\":\"BUY\" if a[\"\
+    total_value\"]/total_value<0.2 else \"SELL\"} for a in analyses]\n    ds={\"columns\":[\"brokerage_id\"\
+    ,\"current_value\",\"target_allocation\",\"rebalance_action\"],\"rows\":trades}\n    (art/\"rebalancing_trades.json\"\
+    ).write_text(json.dumps(ds,indent=2)+\"\\n\",encoding=\"utf-8\")\n    st={\"success\":True,\"errors\"\
+    :[]}\n    (art/\"rebalance_status.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\nif __name__==\"__main__\": main()\n"
+  04_generate_trade_orders.py: "#!/usr/bin/env python3\n\"\"\"Export rebalancing trades to CSV.\"\"\"\n\
+    from __future__ import annotations\nimport argparse, csv, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"\n    ds=json.loads((art/\"rebalancing_trades.json\").read_text(encoding=\"\
+    utf-8\"))\n    out=art/\"trade_orders.csv\"\n    with out.open(\"w\",encoding=\"utf-8\",newline=\"\
+    \") as f:\n        w=csv.DictWriter(f,fieldnames=ds[\"columns\"]); w.writeheader(); w.writerows(ds[\"\
+    rows\"])\n    st={\"success\":True,\"errors\":[]}\n    (art/\"export_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portfolio-rebalancing-dag-five-brokerage-accounts-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock","provider":"brokerage-api","target":"artifacts/holdings_dataset_1.json"}'
+  fixture-0001: "{\n  \"pipeline_id\": \"portfolio_rebalancing_dag\",\n  \"inputs\": {\n    \"brokerage_api\"\
+    : \"brokerage_api.json\"\n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n  ],\n  \"\
+    systems\": [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"

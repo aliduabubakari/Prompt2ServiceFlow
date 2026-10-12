@@ -1,0 +1,84 @@
+Pipeline Summary:
+- Pipeline ID: val_ml_feature_refresh
+- Name: ML Feature Refresh
+- Purpose: Refresh raw events, transform features, validate drift statistics, and publish a feature table for model scoring.
+- Execution model: Batch
+- Topology pattern: Staged ETL
+- Business domain: Machine Learning
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - extract_raw_events -> clean_event_records
+  - clean_event_records -> aggregate_user_features
+  - aggregate_user_features -> compute_drift_statistics
+  - compute_drift_statistics -> validate_feature_table
+  - validate_feature_table -> publish_feature_table
+  - publish_feature_table -> notify_model_team
+- Parallel groups:
+  - none
+- Branch points:
+  - none
+- Gate or sensor dependencies:
+  - none
+
+Data Artifacts / I-O Identifiers:
+  - data_object: raw_events
+  - data_object: feature_table
+  - data_object: drift_report
+
+External Systems:
+  - external_service: Event lake
+  - external_service: Feature store
+  - external_service: Notification service
+
+Pipeline Steps:
+1. extract_raw_events - extract raw events
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. clean_event_records - clean event records
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. aggregate_user_features - aggregate user features
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+4. compute_drift_statistics - compute drift statistics
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+5. validate_feature_table - validate feature table
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+6. publish_feature_table - publish feature table
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+7. notify_model_team - notify model team
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

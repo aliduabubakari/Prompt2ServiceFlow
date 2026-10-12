@@ -1,0 +1,37 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:assignment_solution
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_assignment_solution_http_json_request_extractor_candidates
+  source_step_refs:
+  - get_user
+  service_ids:
+  - http_json_request_extractor
+  - http_api_request_artifact_extractor
+  - airvisual_nearest_city_json_extractor
+  - graphql_json_operation_executor
+  - data_gouv_dataset_resource_downloader
+  - legacy_http_json_extractor
+- candidate_set_id: main_assignment_solution_tabular_dataset_declarative_transformer_candidates
+  source_step_refs:
+  - process_user
+  service_ids:
+  - tabular_dataset_declarative_transformer
+  - tabular_null_value_cleanser
+  - tabular_query_result_csv_writer
+  - shipment_data_standardization_enricher
+  - parquet_tabular_feature_engineer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_assignment_solution_postgres_parameterized_sql_executor_candidates
+  source_step_refs:
+  - create_table
+  - insert_data
+  service_ids:
+  - postgres_parameterized_sql_executor
+  - postgres_sql_file_executor
+  - postgres_readonly_query_result_extractor
+  - tabular_dataset_database_loader
+  - hive_hql_script_executor
+  - unreviewed_postgres_sql_executor

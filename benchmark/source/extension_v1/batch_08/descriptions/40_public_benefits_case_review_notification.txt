@@ -1,0 +1,106 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__public_benefits_case_review_notification.py
+- Name: Public Benefits Case Review Notification
+- Purpose: Prepare eligibility review packets and notification records from mixed case evidence.
+- Execution model: bounded batch
+- Extension track: complex_mixed_domain
+- Topology pattern: branch_gate
+- Complexity band: complex
+- Business domain: Public Sector/Geospatial
+- Input modalities: table, json, pdf, text
+- Output modalities: review_packet, notification, audit_log
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- benefits application CSV
+- eligibility rule JSON
+- supporting document PDF
+- case note text
+
+External Systems:
+- case review queue (fixture-backed; no production system is contacted)
+- applicant notification endpoint (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_source_batch -> validate_source_contract
+  - validate_source_contract -> standardize_cross_domain_entities
+  - standardize_cross_domain_entities -> resolve_entity_conflicts
+  - resolve_entity_conflicts -> score_operational_priority
+  - score_operational_priority -> evaluate_policy_or_risk
+  - evaluate_policy_or_risk -> route_approved_records
+  - evaluate_policy_or_risk -> route_exception_records
+  - route_approved_records -> merge_route_outcomes
+  - route_exception_records -> merge_route_outcomes
+  - merge_route_outcomes -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_source_batch - Ingest Source Batch
+  - Objective: Ingest the bounded input batch for public-benefits case review notification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_source_contract - Validate Source Contract
+  - Objective: Validate required fields, identities, and policy inputs for public-benefits case review notification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. standardize_cross_domain_entities - Standardize Cross Domain Entities
+  - Objective: Standardize cross-domain entities for public-benefits case review notification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. resolve_entity_conflicts - Resolve Entity Conflicts
+  - Objective: Resolve entity conflicts across modalities and systems for public-benefits case review notification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. score_operational_priority - Score Operational Priority
+  - Objective: Score operational priority or risk for public-benefits case review notification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. evaluate_policy_or_risk - Evaluate Policy Or Risk
+  - Objective: Evaluate quality, policy, risk, or confidence rules for public-benefits case review notification.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. route_approved_records - Route Approved Records
+  - Objective: Route approved or low-risk public-benefits case review notification records.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+8. route_exception_records - Route Exception Records
+  - Objective: Route exception, high-risk, or low-confidence public-benefits case review notification records.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+9. merge_route_outcomes - Merge Route Outcomes
+  - Objective: Merge routed outcomes into a complete public-benefits case review notification disposition artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+10. publish_outputs - Publish Outputs
+  - Objective: Publish public-benefits case review notification outputs, review status, and completion metadata.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

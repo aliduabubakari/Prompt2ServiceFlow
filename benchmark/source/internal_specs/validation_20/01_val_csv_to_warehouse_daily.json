@@ -1,0 +1,154 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_csv_to_warehouse_daily",
+  "pipeline_name": "Daily CSV to Warehouse Load",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_csv_to_warehouse_daily.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Load a daily sales CSV, validate required columns, and write clean rows into a warehouse table.",
+    "business_domain": "Retail Analytics",
+    "execution_model": "Batch",
+    "topology_pattern": "Linear",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "detect_daily_file",
+        "to": "validate_columns"
+      },
+      {
+        "from": "validate_columns",
+        "to": "load_sales_table"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "SFTP drop zone",
+      "identifier": "sftp_drop_zone",
+      "details": [
+        "Validation external dependency: SFTP drop zone"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "PostgreSQL warehouse",
+      "identifier": "postgresql_warehouse",
+      "details": [
+        "Validation external dependency: PostgreSQL warehouse"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "daily_sales.csv",
+        "description": "Validation artifact: daily_sales.csv"
+      },
+      {
+        "identifier": "validated_sales_frame",
+        "description": "Validation artifact: validated_sales_frame"
+      },
+      {
+        "identifier": "sales_fact_table",
+        "description": "Validation artifact: sales_fact_table"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "detect_daily_file",
+      "name": "detect_daily_file",
+      "objective": "Detect daily file",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "validate_columns",
+      "name": "validate_columns",
+      "objective": "Validate columns",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "load_sales_table",
+      "name": "load_sales_table",
+      "objective": "Load sales table",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

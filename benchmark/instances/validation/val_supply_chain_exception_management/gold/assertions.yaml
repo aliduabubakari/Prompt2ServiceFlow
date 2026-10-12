@@ -1,0 +1,33 @@
+assertions_version: 0.1.0
+pipeline_id: val_supply_chain_exception_management
+scenarios:
+- scenario: nominal
+  assertions:
+  - assertion_id: source_fixture_loaded
+    type: json_path_equals
+    path: artifacts/supplier_feed_status.json
+    json_path: success
+    expected: true
+  - assertion_id: source_files_present
+    type: json_path_gte
+    path: artifacts/supplier_feed_status.json
+    json_path: fixture.file_count
+    minimum: 1
+  - assertion_id: source_records_present
+    type: json_path_gte
+    path: artifacts/supplier_feed_status.json
+    json_path: fixture.record_count
+    minimum: 1
+  - assertion_id: final_status_succeeds
+    type: json_path_equals
+    path: artifacts/archive_status.json
+    json_path: success
+    expected: true
+  - assertion_id: final_artifact_exists
+    type: file_exists
+    path: artifacts/archive_status.json
+  - assertion_id: upstream_evidence_propagated
+    type: json_path_gte
+    path: artifacts/archive_status.json
+    json_path: upstream_artifact_count
+    minimum: 1

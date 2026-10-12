@@ -1,0 +1,119 @@
+Pipeline Summary:
+- Pipeline ID: val_financial_risk_stress_testing
+- Name: Financial Risk Stress Testing
+- Purpose: Load market scenarios, run multiple portfolio stress calculations in parallel, branch failed validations to remediation, and produce a regulatory report.
+- Execution model: Batch
+- Topology pattern: Mixed
+- Business domain: Financial Risk
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - load_market_scenarios -> run_credit_stress
+  - load_market_scenarios -> run_liquidity_stress
+  - load_market_scenarios -> run_market_stress
+  - load_portfolio_positions -> run_credit_stress
+  - load_portfolio_positions -> run_liquidity_stress
+  - load_portfolio_positions -> run_market_stress
+  - run_credit_stress -> aggregate_stress_results
+  - run_liquidity_stress -> aggregate_stress_results
+  - run_market_stress -> aggregate_stress_results
+  - aggregate_stress_results -> validate_capital_thresholds
+  - validate_capital_thresholds -> route_validation_status
+  - route_validation_status -> write_regulatory_report
+  - route_validation_status -> open_remediation_ticket
+  - write_regulatory_report -> archive_model_inputs
+- Parallel groups:
+  - group 1: run_credit_stress, run_liquidity_stress, run_market_stress
+- Branch points:
+  - {'step': 'route_validation_status', 'conditions': ['within_threshold', 'breach_detected'], 'merge_step': None}
+- Gate or sensor dependencies:
+  - {'step': 'validate_capital_thresholds', 'condition': 'all_stress_results_available'}
+
+Data Artifacts / I-O Identifiers:
+  - data_object: market_scenarios
+  - data_object: portfolio_positions
+  - data_object: stress_results
+  - data_object: regulatory_report
+  - data_object: remediation_ticket
+
+External Systems:
+  - external_service: Market data API
+  - external_service: Portfolio warehouse
+  - external_service: Risk engine
+  - external_service: Regulatory archive
+
+Pipeline Steps:
+1. load_market_scenarios - load market scenarios
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. load_portfolio_positions - load portfolio positions
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. run_credit_stress - run credit stress
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+4. run_liquidity_stress - run liquidity stress
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+5. run_market_stress - run market stress
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+6. aggregate_stress_results - aggregate stress results
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+7. validate_capital_thresholds - validate capital thresholds
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+8. route_validation_status - route validation status
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+9. write_regulatory_report - write regulatory report
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+10. open_remediation_ticket - open remediation ticket
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+11. archive_model_inputs - archive model inputs
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

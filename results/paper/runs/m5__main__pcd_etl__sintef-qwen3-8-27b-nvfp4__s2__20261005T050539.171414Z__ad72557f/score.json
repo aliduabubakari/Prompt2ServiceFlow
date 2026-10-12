@@ -1,0 +1,425 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-05T05:20:56.991202+00:00",
+  "instance": "benchmark/instances/main/pcd_etl",
+  "workspace": "experiments/workspaces/main/pcd_etl",
+  "submission": "results/paper/runs/m5__main__pcd_etl__sintef-qwen3-8-27b-nvfp4__s2__20261005T050539.171414Z__ad72557f/agent_workspace/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G1",
+    "g6_assert_status": "pass",
+    "full_pass_g0_g6": false,
+    "node_f1": 0.42857142857142855,
+    "edge_f1": 0.09523809523809523,
+    "binding_top1_accuracy": 0.2727272727272727,
+    "binding_version_accuracy": null,
+    "wiring_f1": null,
+    "wiring_applicable": false,
+    "alignment_edit_distance": 111,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.7272727272727273,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": null
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-05T05:20:55.663998+00:00",
+    "workspace": "experiments/workspaces/main/pcd_etl",
+    "submission": "results/paper/runs/m5__main__pcd_etl__sintef-qwen3-8-27b-nvfp4__s2__20261005T050539.171414Z__ad72557f/agent_workspace/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G1",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "fail",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'sftp_availability' names consumer 'check_pcd_shared_folder', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'sftp_check_status' names consumer 'check_pcd_shared_folder', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'shared_availability' names consumer 'pcd_http_extract_phase_1', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'shared_check_status' names consumer 'pcd_http_extract_phase_1', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'pcd_api_phase_1_result' names consumer 'pcd_http_extract_phase_2', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'pcd_api_phase_1_status' names consumer 'pcd_http_extract_phase_2', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'pcd_api_phase_2_result' names consumer 'pcd_file_upload', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'pcd_api_phase_2_status' names consumer 'pcd_file_upload', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'pcd_file_upload_job_reference' names consumer 'etl_notification', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'pcd_file_upload_status' names consumer 'etl_notification', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "pcd_http_extract_phase_1: output 'response_artifact' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "pcd_http_extract_phase_2: output 'response_artifact' expects any, got json"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "pcd-etl-composition-scripts",
+              "scenario": "base",
+              "data_size_bytes": 13167,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "pcd-etl-composition-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 1164,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "pcd-etl-composition-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 13167,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "pcd-etl-composition-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 1164,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "check_pcd_sftp_folder",
+                "check_pcd_shared_folder",
+                "pcd_http_extract_phase_1",
+                "pcd_http_extract_phase_2",
+                "pcd_file_upload",
+                "etl_notification"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 6,
+      "submission_intents": 6,
+      "gold_intents": 22,
+      "mapping": {
+        "check_pcd_sftp_folder": "check_pcd_sftp_folder",
+        "check_pcd_shared_folder": "check_pcd_shared_folder",
+        "etl_notification": "etl_notification",
+        "pcd_file_upload": "pcd_file_upload",
+        "pcd_http_extract_phase_1": "chc_financial_reporting",
+        "pcd_http_extract_phase_2": "chc_budget"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 0.2727272727272727,
+      "f1": 0.42857142857142855,
+      "matched": 6
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 0.05,
+      "f1": 0.09523809523809523,
+      "true_positives": 5,
+      "false_positives": 0,
+      "false_negatives": 95
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.7272727272727273,
+    "alignment_edit_distance": 111,
+    "source_step_coverage": {
+      "covered": 24,
+      "total": 24,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 0.2727272727272727,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 22,
+    "correct": 6,
+    "confusion_by_label": {
+      "missing_intent": 16
+    },
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "chc_budget",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "pcd_http_extract_phase_2",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "chc_financial_reporting",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": "pcd_http_extract_phase_1",
+        "submission_service": "http_api_request_artifact_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "chc_primary_care_patient_services",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "check_pcd_sftp_folder",
+        "gold_service": "file_location_availability_sensor",
+        "submission_intent": "check_pcd_sftp_folder",
+        "submission_service": "file_location_availability_sensor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "check_pcd_shared_folder",
+        "gold_service": "file_location_availability_sensor",
+        "submission_intent": "check_pcd_shared_folder",
+        "submission_service": "file_location_availability_sensor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "decision_log",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "etl_notification",
+        "gold_service": "email_notification_sender",
+        "submission_intent": "etl_notification",
+        "submission_service": "email_notification_sender",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "financial_expense",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "fiscal_year_reporting_dates",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "ha_hierarchy",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "hr_records",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "nppcc_budget",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "nppcc_financial_reporting",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "pcd_file_upload",
+        "gold_service": "kubernetes_job_template_executor",
+        "submission_intent": "pcd_file_upload",
+        "submission_service": "kubernetes_job_template_executor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "pcn_budget",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "pcn_financial_reporting",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "practitioner_role_mapping",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "provincial_risk_tracking",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "status_tracker",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "upcc_financial_reporting",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "upcc_primary_care_patient_services",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      },
+      {
+        "gold_intent": "uppc_budget",
+        "gold_service": "http_api_request_artifact_extractor",
+        "submission_intent": null,
+        "outcome": "missing_intent"
+      }
+    ]
+  },
+  "wiring": {
+    "status": "not_applicable",
+    "reason": "gold and submission contain no producer-consumer wiring pairs",
+    "applicable": false,
+    "precision": null,
+    "recall": null,
+    "f1": null,
+    "true_positives": 0,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [],
+        "status": "pass"
+      }
+    ],
+    "assertions_total": 0,
+    "assertions_passed": 0,
+    "pass_rate": null,
+    "overall_status": "pass"
+  }
+}

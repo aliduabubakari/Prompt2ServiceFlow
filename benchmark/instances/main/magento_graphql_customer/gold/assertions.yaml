@@ -1,0 +1,20 @@
+assertions_version: 0.1.0
+pipeline_id: magento_graphql_customer
+scenarios:
+- scenario: magento_customer_flow
+  assertions:
+  - assertion_id: created
+    type: json_path_equals
+    path: artifacts/create_status.json
+    json_path: success
+    expected: true
+  - assertion_id: token_ok
+    type: json_path_equals
+    path: artifacts/token_status.json
+    json_path: success
+    expected: true
+  - assertion_id: got_info
+    type: json_path_equals
+    path: artifacts/get_status.json
+    json_path: success
+    expected: true

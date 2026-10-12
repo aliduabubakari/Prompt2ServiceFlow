@@ -1,0 +1,58 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_hospital_capacity_command_center
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.3
+candidate_sets:
+- candidate_set_id: validation_val_hospital_capacity_command_center_multi_resource_readiness_sensor_candidates
+  source_step_refs:
+  - wait_for_census_snapshot
+  service_ids:
+  - multi_resource_readiness_sensor
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_hospital_capacity_command_center_hospital_operational_feed_extractor_candidates
+  source_step_refs:
+  - extract_admissions
+  - extract_bed_status
+  - extract_staffing_roster
+  - extract_discharge_forecast
+  service_ids:
+  - hospital_operational_feed_extractor
+  - temporary_resource_cleanup
+  - http_json_request_extractor
+- candidate_set_id: validation_val_hospital_capacity_command_center_hospital_operational_state_merger_candidates
+  source_step_refs:
+  - merge_operational_state
+  service_ids:
+  - hospital_operational_state_merger
+  - http_json_request_extractor
+  - tabular_dataset_database_loader
+- candidate_set_id: validation_val_hospital_capacity_command_center_capacity_risk_calculator_candidates
+  source_step_refs:
+  - compute_capacity_risk
+  service_ids:
+  - capacity_risk_calculator
+  - tabular_dataset_database_loader
+  - bi_dashboard_refresh_trigger
+- candidate_set_id: validation_val_hospital_capacity_command_center_alert_level_route_decider_candidates
+  source_step_refs:
+  - route_alert_level
+  service_ids:
+  - alert_level_route_decider
+  - bi_dashboard_refresh_trigger
+  - parquet_tabular_data_profiler
+- candidate_set_id: validation_val_hospital_capacity_command_center_capacity_dashboard_publisher_candidates
+  source_step_refs:
+  - publish_dashboard
+  service_ids:
+  - capacity_dashboard_publisher
+  - parquet_tabular_data_profiler
+  - bulk_email_campaign_sender
+- candidate_set_id: validation_val_hospital_capacity_command_center_escalation_alert_sender_candidates
+  source_step_refs:
+  - send_escalation_alert
+  service_ids:
+  - escalation_alert_sender
+  - bulk_email_campaign_sender
+  - file_location_availability_sensor

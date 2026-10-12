@@ -1,0 +1,162 @@
+schema_version: 0.1.0
+service_id: inventory_reconciliation_pdf_report_generator
+version: 1.0.0
+display_name: Inventory Reconciliation PDF Report Generator
+category: ReportGenerator
+capability:
+  summary: Generates a PDF reconciliation report with summary metrics and recommendations
+    from an inventory discrepancy CSV.
+  operations:
+  - Read and parse an inventory discrepancy report CSV.
+  - Validate discrepancy and SKU columns.
+  - Compute bounded summary counts by discrepancy type and affected warehouses.
+  - Render a PDF report containing summary tables, findings, and recommendations from
+    configured recommendation rules.
+  keywords:
+  - inventory
+  - reconciliation report
+  - pdf
+  - recommendations
+  - discrepancy report
+  - retail
+  limitations:
+  - Does not reconcile inventories itself.
+  - Does not email or publish the report.
+  - Recommendation text and prioritization rules must be supplied by workflow binding
+    or approved defaults.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: discrepancy_report_csv
+    description: CSV artifact containing SKU discrepancies across warehouses.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://inventory_discrepancy_report_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: pdf_report
+    description: Rendered PDF reconciliation report with recommendations.
+    channel: artifact
+    data_type: binary
+    media_type: application/pdf
+    schema_ref: schema://inventory_reconciliation_pdf_report/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: report_status
+    description: Observable report render status with output URI, rows read, sections
+      rendered, recommendations generated, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://inventory_reconciliation_report_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: output_path
+    description: Deterministic artifact path or name for the PDF report.
+    type: string
+    required: true
+  - name: report_title
+    description: Human-readable report title.
+    type: string
+    required: false
+  - name: recommendation_rules
+    description: Declarative rules or templates for generating recommendations from
+      discrepancy rows.
+    type: object
+    required: true
+  - name: sku_column
+    description: Column containing SKU values in the discrepancy CSV.
+    type: string
+    required: false
+  - name: discrepancy_type_column
+    description: Column containing discrepancy type labels in the discrepancy CSV.
+    type: string
+    required: false
+  secrets: []
+contracts:
+- contract_id: inventory_pdf_report_input_readable
+  type: precondition
+  applies_to: input
+  target: discrepancy_report_csv
+  description: Input discrepancy CSV must be readable and parseable.
+  expression: readable(discrepancy_report_csv) and csv_parseable(discrepancy_report_csv)
+- contract_id: inventory_pdf_report_recommendation_rules_required
+  type: precondition
+  applies_to: parameter
+  target: recommendation_rules
+  description: Recommendation rules must be supplied for deterministic recommendation
+    generation.
+  expression: recommendation_rules != null and length(keys(recommendation_rules))
+    > 0
+- contract_id: inventory_pdf_report_status_schema
+  type: json_schema
+  applies_to: output
+  target: report_status
+  description: Status exposes PDF render effect for validation.
+  schema_ref: schema://inventory_reconciliation_report_status/v1
+  expression: '{"type":"object","required":["success","output_uri","rows_read","sections_rendered","recommendations_generated"],"properties":{"success":{"type":"boolean"},"output_uri":{"type":"string"},"rows_read":{"type":"integer","minimum":0},"sections_rendered":{"type":"integer","minimum":0},"recommendations_generated":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: inventory_pdf_report_effect
+  type: effect
+  applies_to: service
+  target: inventory_reconciliation_pdf_report_generator
+  description: On success, a PDF report artifact exists and status.success is true.
+  expression: report_status.success == true implies exists(pdf_report) and report_status.sections_rendered
+    >= 1
+invocation:
+  type: argo_workflow_template
+  template_name: inventory-reconciliation-pdf-report-generator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.inventory_reconciliation_pdf_report_generator
+  implementation_ref: services/implementations/inventory_reconciliation_pdf_report_generator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full discrepancy rows; report status should expose counts and output
+    URI only.
+  - Emailing, publishing, and workflow failure hooks are separate concerns.
+  idempotency_notes: Same discrepancy CSV and recommendation rules produce the same
+    PDF content aside from deterministic renderer metadata.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:retail_inventory_reconciliation#generate_final_report
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing CSV chart PDF generator does not cover recommendation-oriented
+    inventory reconciliation reporting; a reusable report generator is needed for
+    the material recommendation contract.'
+  - 'Evidence status: strongly_inferred.'

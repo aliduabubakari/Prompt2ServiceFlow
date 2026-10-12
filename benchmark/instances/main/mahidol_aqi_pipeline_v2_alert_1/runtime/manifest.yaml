@@ -1,0 +1,14 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: mahidol_aqi_pipeline_v2_alert_1
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: alert_email
+  script: scripts/01_alert.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+scenarios:
+- name: aqi_alert
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal

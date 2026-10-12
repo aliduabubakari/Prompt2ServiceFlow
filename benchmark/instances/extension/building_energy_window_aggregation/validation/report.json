@@ -1,0 +1,161 @@
+{
+  "report_version": "0.1.0",
+  "pipeline_id": "extension:building_energy_window_aggregation",
+  "generated_at": "2026-07-21T09:36:42.239607+00:00",
+  "overall_status": "pass",
+  "gates": [
+    {
+      "gate": "G0",
+      "status": "pass",
+      "checks": [
+        "Parse, schema, required files, and checksums"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G1",
+      "status": "pass",
+      "checks": [
+        "Graph integrity and complete source-step accounting"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G2",
+      "status": "pass",
+      "checks": [
+        "Catalog service/version/lifecycle resolution"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G3",
+      "status": "pass",
+      "checks": [
+        "Interface, parameter, secret, artifact, and policy closure"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G4",
+      "status": "pass",
+      "checks": [
+        "Exact gold-to-runtime task identities, dependency edges, and script syntax"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G5",
+      "status": "pass",
+      "checks": [
+        "Deterministic Argo projection, deployable bundles, ConfigMap-size checks, and structural lint"
+      ],
+      "errors": [],
+      "details": {
+        "configmap_payloads": [
+          {
+            "name": "building-energy-window-aggregation-scripts",
+            "data_size_bytes": 10053,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "building-energy-window-aggregation-fixtures",
+            "data_size_bytes": 2003,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "building-energy-window-aggregation-nominal-scripts",
+            "scenario": "nominal",
+            "data_size_bytes": 10053,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "building-energy-window-aggregation-nominal-fixtures",
+            "scenario": "nominal",
+            "data_size_bytes": 2003,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          }
+        ]
+      }
+    },
+    {
+      "gate": "G6",
+      "status": "pass",
+      "checks": [
+        "Execute every declared scenario and evaluate reviewed semantic assertions and artifact schemas"
+      ],
+      "errors": []
+    }
+  ],
+  "scenario_results": [
+    {
+      "scenario": "nominal",
+      "status": "pass",
+      "executed_tasks": [
+        "ingest_bounded_events",
+        "validate_checkpoint_inputs",
+        "sort_and_deduplicate_records",
+        "build_analysis_windows",
+        "compute_window_metrics",
+        "publish_outputs"
+      ],
+      "skipped_tasks": [],
+      "assertions": [
+        {
+          "assertion_id": "ingest_count",
+          "status": "pass",
+          "message": "value=9, expected=9"
+        },
+        {
+          "assertion_id": "windows_built",
+          "status": "pass",
+          "message": "value=5, minimum=2"
+        },
+        {
+          "assertion_id": "publish_succeeds",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "csv_exists",
+          "status": "pass",
+          "message": "energy_report.csv exists and is non-empty"
+        },
+        {
+          "assertion_id": "schema_ingest_bounded_events_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_validate_checkpoint_inputs_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_sort_and_deduplicate_records_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_build_analysis_windows_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_compute_window_metrics_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_publish_outputs_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        }
+      ]
+    }
+  ]
+}

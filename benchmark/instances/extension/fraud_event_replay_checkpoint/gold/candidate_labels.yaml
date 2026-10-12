@@ -1,0 +1,73 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:fraud_event_replay_checkpoint
+candidate_sets:
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_event_batch_ingestor_candidates
+  required_service_id: checkpoint_event_batch_ingestor
+  labels:
+    checkpoint_event_batch_ingestor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    bounded_window_checkpoint_validator: contract_mismatch
+    event_record_cleaner: format_mismatch
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_event_contract_validator_candidates
+  required_service_id: checkpoint_event_contract_validator
+  labels:
+    checkpoint_event_contract_validator: gold
+    bounded_window_checkpoint_validator: semantic_mismatch
+    event_record_cleaner: contract_mismatch
+    external_workflow_completion_sensor: format_mismatch
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_manifest_loader_candidates
+  required_service_id: checkpoint_manifest_loader
+  labels:
+    checkpoint_manifest_loader: gold
+    event_record_cleaner: semantic_mismatch
+    external_workflow_completion_sensor: contract_mismatch
+    iot_anomaly_feature_calculator: format_mismatch
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_state_transition_applier_candidates
+  required_service_id: checkpoint_state_transition_applier
+  labels:
+    checkpoint_state_transition_applier: gold
+    external_workflow_completion_sensor: semantic_mismatch
+    iot_anomaly_feature_calculator: contract_mismatch
+    dataset_quarantine_zone_writer: format_mismatch
+- candidate_set_id: extension_fraud_event_replay_checkpoint_late_event_quarantine_writer_candidates
+  required_service_id: late_event_quarantine_writer
+  labels:
+    late_event_quarantine_writer: gold
+    iot_anomaly_feature_calculator: semantic_mismatch
+    dataset_quarantine_zone_writer: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_event_policy_risk_decider_candidates
+  required_service_id: checkpoint_event_policy_risk_decider
+  labels:
+    checkpoint_event_policy_risk_decider: gold
+    dataset_quarantine_zone_writer: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    bounded_window_checkpoint_validator: format_mismatch
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_approved_record_router_candidates
+  required_service_id: checkpoint_approved_record_router
+  labels:
+    checkpoint_approved_record_router: gold
+    reviewed_domain_adapter: semantic_mismatch
+    bounded_window_checkpoint_validator: contract_mismatch
+    event_record_cleaner: format_mismatch
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_exception_review_router_candidates
+  required_service_id: checkpoint_exception_review_router
+  labels:
+    checkpoint_exception_review_router: gold
+    bounded_window_checkpoint_validator: semantic_mismatch
+    event_record_cleaner: contract_mismatch
+    external_workflow_completion_sensor: format_mismatch
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_route_outcome_merger_candidates
+  required_service_id: checkpoint_route_outcome_merger
+  labels:
+    checkpoint_route_outcome_merger: gold
+    event_record_cleaner: semantic_mismatch
+    external_workflow_completion_sensor: contract_mismatch
+    iot_anomaly_feature_calculator: format_mismatch
+- candidate_set_id: extension_fraud_event_replay_checkpoint_checkpoint_output_bundle_publisher_candidates
+  required_service_id: checkpoint_output_bundle_publisher
+  labels:
+    checkpoint_output_bundle_publisher: gold
+    external_workflow_completion_sensor: semantic_mismatch
+    iot_anomaly_feature_calculator: contract_mismatch
+    dataset_quarantine_zone_writer: format_mismatch

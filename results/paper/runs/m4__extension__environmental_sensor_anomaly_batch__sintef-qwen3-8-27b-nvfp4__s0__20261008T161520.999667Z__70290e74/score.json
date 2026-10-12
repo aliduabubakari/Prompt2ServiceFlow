@@ -1,0 +1,373 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-08T16:25:37.134057+00:00",
+  "instance": "benchmark/instances/extension/environmental_sensor_anomaly_batch",
+  "workspace": "experiments/workspaces/extension/environmental_sensor_anomaly_batch",
+  "submission": "results/paper/runs/m4__extension__environmental_sensor_anomaly_batch__sintef-qwen3-8-27b-nvfp4__s0__20261008T161520.999667Z__70290e74/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G2",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 0.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.07692307692307693
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-08T16:25:35.276690+00:00",
+    "workspace": "experiments/workspaces/extension/environmental_sensor_anomaly_batch",
+    "submission": "results/paper/runs/m4__extension__environmental_sensor_anomaly_batch__sintef-qwen3-8-27b-nvfp4__s0__20261008T161520.999667Z__70290e74/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G2",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "pass",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": []
+      },
+      {
+        "gate": "G2",
+        "status": "fail",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": [
+          {
+            "code": "G2_CATALOG_VERSION_MISMATCH",
+            "message": "declared catalog snapshot '1.0.0' does not match workspace catalog '0.3.3'"
+          },
+          {
+            "code": "G2_CATALOG_CHECKSUM_MISMATCH",
+            "message": "declared catalog sha256 does not match the sanitized workspace catalog (see catalog.sanitized_catalog_yaml_sha256 in workspace.yaml)"
+          },
+          {
+            "code": "G2_UNRESOLVED_SERVICE",
+            "message": "unresolved service sensor_event_ingestor:1.0.0 in the workspace catalog"
+          },
+          {
+            "code": "G2_UNRESOLVED_SERVICE",
+            "message": "unresolved service checkpoint_validator:1.0.0 in the workspace catalog"
+          },
+          {
+            "code": "G2_UNRESOLVED_SERVICE",
+            "message": "unresolved service record_deduplicator:1.0.0 in the workspace catalog"
+          },
+          {
+            "code": "G2_UNRESOLVED_SERVICE",
+            "message": "unresolved service window_builder:1.0.0 in the workspace catalog"
+          },
+          {
+            "code": "G2_UNRESOLVED_SERVICE",
+            "message": "unresolved service anomaly_scorer:1.0.0 in the workspace catalog"
+          },
+          {
+            "code": "G2_UNRESOLVED_SERVICE",
+            "message": "unresolved service time_index_aligner:1.0.0 in the workspace catalog"
+          },
+          {
+            "code": "G2_UNRESOLVED_SERVICE",
+            "message": "unresolved service output_publisher:1.0.0 in the workspace catalog"
+          }
+        ]
+      },
+      {
+        "gate": "G3",
+        "status": "pass",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": []
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "environmental-sensor-anomaly-batch-scripts",
+              "scenario": "base",
+              "data_size_bytes": 14116,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "environmental-sensor-anomaly-batch-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 3837,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "environmental-sensor-anomaly-batch-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 14116,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "environmental-sensor-anomaly-batch-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 3837,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_bounded_events",
+                "validate_checkpoint_inputs",
+                "sort_and_deduplicate_records",
+                "build_analysis_windows",
+                "compute_window_metrics",
+                "align_time_index",
+                "publish_outputs"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 7,
+      "submission_intents": 7,
+      "gold_intents": 7,
+      "mapping": {
+        "align_time_index": "align_time_index",
+        "build_analysis_windows": "build_analysis_windows",
+        "compute_window_metrics": "compute_window_metrics",
+        "ingest_bounded_events": "ingest_bounded_events",
+        "publish_outputs": "publish_outputs",
+        "sort_and_deduplicate_records": "sort_and_deduplicate_records",
+        "validate_checkpoint_inputs": "validate_checkpoint_inputs"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 7
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 6,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 7,
+      "total": 7,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 0.0,
+    "aligned_accuracy": 0.0,
+    "version_accuracy_given_correct_service": null,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 7,
+    "correct": 0,
+    "confusion_by_label": {
+      "invented_service": 7
+    },
+    "rates": {
+      "invented_service": 1.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "align_time_index",
+        "gold_service": "timeseries_index_alignment_transformer",
+        "submission_intent": "align_time_index",
+        "submission_service": "time_index_aligner",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "build_analysis_windows",
+        "gold_service": "bounded_analysis_window_builder",
+        "submission_intent": "build_analysis_windows",
+        "submission_service": "window_builder",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "compute_window_metrics",
+        "gold_service": "window_metric_aggregator",
+        "submission_intent": "compute_window_metrics",
+        "submission_service": "anomaly_scorer",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "ingest_bounded_events",
+        "gold_service": "bounded_timeseries_event_ingestor",
+        "submission_intent": "ingest_bounded_events",
+        "submission_service": "sensor_event_ingestor",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "publish_outputs",
+        "gold_service": "timeseries_output_bundle_publisher",
+        "submission_intent": "publish_outputs",
+        "submission_service": "output_publisher",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "sort_and_deduplicate_records",
+        "gold_service": "timeseries_record_sort_deduplicator",
+        "submission_intent": "sort_and_deduplicate_records",
+        "submission_service": "record_deduplicator",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "validate_checkpoint_inputs",
+        "gold_service": "bounded_window_checkpoint_validator",
+        "submission_intent": "validate_checkpoint_inputs",
+        "submission_service": "checkpoint_validator",
+        "outcome": "invented_service"
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 6,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "ingest_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-16rxoygn/artifacts/ingest_bounded_events_status.json"
+          },
+          {
+            "assertion_id": "ingest_event_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-16rxoygn/artifacts/ingest_bounded_events_status.json"
+          },
+          {
+            "assertion_id": "validate_rejected_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-16rxoygn/artifacts/validate_checkpoint_inputs_status.json"
+          },
+          {
+            "assertion_id": "validate_valid_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-16rxoygn/artifacts/validate_checkpoint_inputs_status.json"
+          },
+          {
+            "assertion_id": "dedup_removed",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-16rxoygn/artifacts/sort_and_deduplicate_records_status.json"
+          },
+          {
+            "assertion_id": "metrics_succeed",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-16rxoygn/artifacts/compute_window_metrics_status.json"
+          },
+          {
+            "assertion_id": "metrics_has_warnings",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-16rxoygn/artifacts/compute_window_metrics_artifact.json"
+          },
+          {
+            "assertion_id": "metrics_has_criticals",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-16rxoygn/artifacts/compute_window_metrics_artifact.json"
+          },
+          {
+            "assertion_id": "align_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-16rxoygn/artifacts/align_time_index_status.json"
+          },
+          {
+            "assertion_id": "publish_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-16rxoygn/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "alert_digest_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-16rxoygn/artifacts/alert_digest.json"
+          },
+          {
+            "assertion_id": "csv_exported",
+            "status": "pass",
+            "message": "aligned_metrics.csv exists and is non-empty"
+          },
+          {
+            "assertion_id": "checkpoint_completed",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-16rxoygn/artifacts/checkpoint_manifest.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 13,
+    "assertions_passed": 1,
+    "pass_rate": 0.07692307692307693,
+    "overall_status": "fail"
+  }
+}

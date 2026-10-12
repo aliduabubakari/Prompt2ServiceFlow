@@ -1,0 +1,39 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:database_partition_check_etl
+candidate_sets:
+- candidate_set_id: main_database_partition_check_etl_sql_query_readiness_sensor_candidates
+  required_service_id: sql_query_readiness_sensor
+  labels:
+    sql_query_readiness_sensor: gold
+    postgres_readonly_query_result_extractor: contract_mismatch
+    sql_incremental_table_extractor: missing_required_output
+    external_workflow_completion_sensor: target_mismatch
+    postgres_parameterized_sql_executor: policy_incompatible
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_database_partition_check_etl_sql_incremental_table_extractor_candidates
+  required_service_id: sql_incremental_table_extractor
+  labels:
+    sql_incremental_table_extractor: gold
+    postgres_readonly_query_result_extractor: target_mismatch
+    sql_query_readiness_sensor: missing_required_output
+    database_csv_snapshot_exporter: format_mismatch
+    postgres_parameterized_sql_executor: policy_incompatible
+    unreviewed_postgres_sql_executor: policy_incompatible
+- candidate_set_id: main_database_partition_check_etl_tabular_dataset_declarative_transformer_candidates
+  required_service_id: tabular_dataset_declarative_transformer
+  labels:
+    tabular_dataset_declarative_transformer: gold
+    tabular_null_value_cleanser: semantic_mismatch
+    tabular_query_result_csv_writer: missing_required_output
+    shipment_data_standardization_enricher: target_mismatch
+    parquet_tabular_feature_engineer: format_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_database_partition_check_etl_tabular_dataset_database_loader_candidates
+  required_service_id: tabular_dataset_database_loader
+  labels:
+    tabular_dataset_database_loader: gold
+    database_csv_snapshot_importer: format_mismatch
+    postgres_parameterized_sql_executor: contract_mismatch
+    multi_table_analytics_warehouse_loader: semantic_mismatch
+    air_quality_dimensional_postgres_loader: target_mismatch
+    legacy_database_table_loader: deprecated_or_incompatible

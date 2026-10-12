@@ -1,0 +1,42 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_iot_sensor_fusion
+mappings:
+- intent_id: collect_temperature_feed
+  inputs:
+    iot_broker: iot_broker_resource
+  outputs:
+    sensor_feed: temperature_feed
+    collection_status: temperature_collection_status
+- intent_id: collect_vibration_feed
+  inputs:
+    iot_broker: iot_broker_resource
+  outputs:
+    sensor_feed: vibration_feed
+    collection_status: vibration_collection_status
+- intent_id: collect_pressure_feed
+  inputs:
+    iot_broker: iot_broker_resource
+  outputs:
+    sensor_feed: pressure_feed
+    collection_status: pressure_collection_status
+- intent_id: align_sensor_windows
+  inputs:
+    temperature_feed: temperature_feed
+    vibration_feed: vibration_feed
+    pressure_feed: pressure_feed
+  outputs:
+    aligned_sensor_windows: aligned_sensor_windows
+    alignment_status: alignment_status
+- intent_id: compute_anomaly_features
+  inputs:
+    aligned_sensor_windows: aligned_sensor_windows
+  outputs:
+    anomaly_features: anomaly_features
+    feature_status: anomaly_feature_status
+- intent_id: write_fused_dataset
+  inputs:
+    anomaly_features: anomaly_features
+    timeseries_database: timeseries_database_resource
+  outputs:
+    fused_dataset_reference: fused_dataset_reference
+    write_status: fused_write_status

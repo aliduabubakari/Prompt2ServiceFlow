@@ -1,0 +1,281 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_marketing_attribution_fan_in",
+  "pipeline_name": "Marketing Attribution Fan-in",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_marketing_attribution_fan_in.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Extract impressions, clicks, and purchases in parallel, join the channels, and compute attribution metrics.",
+    "business_domain": "Marketing Analytics",
+    "execution_model": "Batch",
+    "topology_pattern": "Fan-out/fan-in",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "extract_impressions",
+        "to": "join_customer_events"
+      },
+      {
+        "from": "extract_clicks",
+        "to": "join_customer_events"
+      },
+      {
+        "from": "extract_purchases",
+        "to": "join_customer_events"
+      },
+      {
+        "from": "join_customer_events",
+        "to": "compute_attribution"
+      },
+      {
+        "from": "compute_attribution",
+        "to": "publish_attribution_table"
+      },
+      {
+        "from": "publish_attribution_table",
+        "to": "send_campaign_summary"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "steps": [
+          "extract_impressions",
+          "extract_clicks",
+          "extract_purchases"
+        ]
+      }
+    ],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Ad platform API",
+      "identifier": "ad_platform_api",
+      "details": [
+        "Validation external dependency: Ad platform API"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Commerce database",
+      "identifier": "commerce_database",
+      "details": [
+        "Validation external dependency: Commerce database"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Email service",
+      "identifier": "email_service",
+      "details": [
+        "Validation external dependency: Email service"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "impressions",
+        "description": "Validation artifact: impressions"
+      },
+      {
+        "identifier": "clicks",
+        "description": "Validation artifact: clicks"
+      },
+      {
+        "identifier": "purchases",
+        "description": "Validation artifact: purchases"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "extract_impressions",
+      "name": "extract_impressions",
+      "objective": "Extract impressions",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "extract_clicks",
+      "name": "extract_clicks",
+      "objective": "Extract clicks",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "extract_purchases",
+      "name": "extract_purchases",
+      "objective": "Extract purchases",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "join_customer_events",
+      "name": "join_customer_events",
+      "objective": "Join customer events",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "compute_attribution",
+      "name": "compute_attribution",
+      "objective": "Compute attribution",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_attribution_table",
+      "name": "publish_attribution_table",
+      "objective": "Publish attribution table",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "send_campaign_summary",
+      "name": "send_campaign_summary",
+      "objective": "Send campaign summary",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

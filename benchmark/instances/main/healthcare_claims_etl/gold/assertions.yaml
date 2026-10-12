@@ -1,0 +1,40 @@
+assertions_version: 0.1.0
+pipeline_id: healthcare_claims_etl
+scenarios:
+  - scenario: claims_etl_pipeline
+    assertions:
+      - assertion_id: claims_extracted
+        type: json_path_equals
+        path: artifacts/claims_load_status.json
+        json_path: success
+        expected: true
+      - assertion_id: providers_extracted
+        type: json_path_equals
+        path: artifacts/providers_load_status.json
+        json_path: success
+        expected: true
+      - assertion_id: transform_succeeded
+        type: json_path_equals
+        path: artifacts/transform_status.json
+        json_path: success
+        expected: true
+      - assertion_id: three_claims_joined
+        type: json_path_equals
+        path: artifacts/transform_status.json
+        json_path: rows_joined
+        expected: 3
+      - assertion_id: warehouse_load_succeeded
+        type: json_path_equals
+        path: artifacts/warehouse_load_status.json
+        json_path: success
+        expected: true
+      - assertion_id: two_tables_loaded
+        type: json_path_equals
+        path: artifacts/warehouse_load_status.json
+        json_path: tables_loaded
+        expected: 2
+      - assertion_id: bi_refresh_triggered
+        type: json_path_equals
+        path: artifacts/refresh_status.json
+        json_path: success
+        expected: true

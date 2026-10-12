@@ -1,0 +1,23 @@
+assertions_version: 0.1.0
+pipeline_id: building_energy_window_aggregation
+scenarios:
+- scenario: nominal
+  assertions:
+  - assertion_id: ingest_count
+    type: json_path_equals
+    path: artifacts/ingest_bounded_events_status.json
+    json_path: readings
+    expected: 9
+  - assertion_id: windows_built
+    type: json_path_gte
+    path: artifacts/build_analysis_windows_status.json
+    json_path: windows
+    minimum: 2
+  - assertion_id: publish_succeeds
+    type: json_path_equals
+    path: artifacts/publish_outputs_status.json
+    json_path: success
+    expected: true
+  - assertion_id: csv_exists
+    type: file_exists
+    path: artifacts/energy_report.csv

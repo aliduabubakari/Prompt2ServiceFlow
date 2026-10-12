@@ -1,0 +1,39 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:test_dbx_aws_dag_reuse
+candidate_sets:
+- candidate_set_id: main_test_dbx_aws_dag_reuse_workflow_load_id_generator_candidates
+  required_service_id: workflow_load_id_generator
+  labels:
+    workflow_load_id_generator: gold
+    retention_cutoff_config_resolver: missing_required_output
+    execution_date_backup_strategy_decider: semantic_mismatch
+    runtime_parameter_allowed_values_validator: missing_required_output
+    dataform_compilation_config_builder: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_test_dbx_aws_dag_reuse_databricks_notebook_run_executor_candidates
+  required_service_id: databricks_notebook_run_executor
+  labels:
+    databricks_notebook_run_executor: gold
+    external_workflow_run_trigger: target_mismatch
+    kubernetes_job_template_executor: target_mismatch
+    spark_class_object_storage_table_loader: contract_mismatch
+    google_dataform_workflow_invocation_creator: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_test_dbx_aws_dag_reuse_temporary_resource_cleanup_candidates
+  required_service_id: temporary_resource_cleanup
+  labels:
+    temporary_resource_cleanup: gold
+    filesystem_retention_cleanup_with_lock: contract_mismatch
+    redis_key_cleanup: target_mismatch
+    database_expired_session_cleanup: target_mismatch
+    airflow_metadata_retention_cleaner: target_mismatch
+    dataset_quarantine_zone_writer: semantic_mismatch
+- candidate_set_id: main_test_dbx_aws_dag_reuse_execution_date_backup_strategy_decider_candidates
+  required_service_id: execution_date_backup_strategy_decider
+  labels:
+    execution_date_backup_strategy_decider: gold
+    runtime_parameter_allowed_values_validator: missing_required_output
+    retention_cutoff_config_resolver: semantic_mismatch
+    fraud_risk_threshold_route_decider: contract_mismatch
+    database_backup_artifact_creator: semantic_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch

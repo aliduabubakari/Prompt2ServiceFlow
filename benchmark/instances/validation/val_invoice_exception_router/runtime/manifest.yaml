@@ -1,0 +1,46 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_invoice_exception_router
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: validate_invoices
+  script: scripts/01_validate_invoices.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: route_invoice_status
+  script: scripts/02_route_invoice_status.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - validate_invoices
+- intent_id: post_valid_invoices
+  script: scripts/03_post_valid_invoices.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_invoice_status
+- intent_id: create_exception_cases
+  script: scripts/04_create_exception_cases.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_invoice_status
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

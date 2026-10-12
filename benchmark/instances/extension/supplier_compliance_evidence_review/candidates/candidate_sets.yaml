@@ -1,0 +1,86 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:supplier_compliance_evidence_review
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.6
+candidate_sets:
+- candidate_set_id: extension_supplier_compliance_evidence_review_supplier_certificate_pdf_ingestor_candidates
+  source_step_refs:
+  - ingest_primary_source
+  service_ids:
+  - supplier_certificate_pdf_ingestor
+  - redaction_only_text_filter
+  - generic_human_review_ticket_creator
+  - audit_log_append_only_writer
+- candidate_set_id: extension_supplier_compliance_evidence_review_supplier_master_table_ingestor_candidates
+  source_step_refs:
+  - ingest_secondary_source
+  service_ids:
+  - supplier_master_table_ingestor
+  - generic_human_review_ticket_creator
+  - audit_log_append_only_writer
+  - privacy_policy_table_loader
+- candidate_set_id: extension_supplier_compliance_evidence_review_supplier_policy_json_ingestor_candidates
+  source_step_refs:
+  - ingest_reference_source
+  service_ids:
+  - supplier_policy_json_ingestor
+  - audit_log_append_only_writer
+  - privacy_policy_table_loader
+  - case_status_notifier
+- candidate_set_id: extension_supplier_compliance_evidence_review_supplier_compliance_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contracts
+  service_ids:
+  - supplier_compliance_contract_validator
+  - privacy_policy_table_loader
+  - case_status_notifier
+  - reviewed_domain_adapter
+- candidate_set_id: extension_supplier_compliance_evidence_review_supplier_evidence_normalizer_candidates
+  source_step_refs:
+  - normalize_sources
+  service_ids:
+  - supplier_evidence_normalizer
+  - case_status_notifier
+  - reviewed_domain_adapter
+  - redaction_only_text_filter
+- candidate_set_id: extension_supplier_compliance_evidence_review_supplier_policy_evidence_fuser_candidates
+  source_step_refs:
+  - fuse_sources
+  service_ids:
+  - supplier_policy_evidence_fuser
+  - reviewed_domain_adapter
+  - redaction_only_text_filter
+  - generic_human_review_ticket_creator
+- candidate_set_id: extension_supplier_compliance_evidence_review_supplier_sensitive_evidence_detector_candidates
+  source_step_refs:
+  - detect_sensitive_fields
+  service_ids:
+  - supplier_sensitive_evidence_detector
+  - redaction_only_text_filter
+  - generic_human_review_ticket_creator
+  - audit_log_append_only_writer
+- candidate_set_id: extension_supplier_compliance_evidence_review_supplier_evidence_minimization_transformer_candidates
+  source_step_refs:
+  - apply_redaction_or_suppression
+  service_ids:
+  - supplier_evidence_minimization_transformer
+  - generic_human_review_ticket_creator
+  - audit_log_append_only_writer
+  - privacy_policy_table_loader
+- candidate_set_id: extension_supplier_compliance_evidence_review_supplier_compliance_review_packet_builder_candidates
+  source_step_refs:
+  - create_human_review_packet
+  service_ids:
+  - supplier_compliance_review_packet_builder
+  - audit_log_append_only_writer
+  - privacy_policy_table_loader
+  - case_status_notifier
+- candidate_set_id: extension_supplier_compliance_evidence_review_supplier_compliance_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - supplier_compliance_bundle_publisher
+  - privacy_policy_table_loader
+  - case_status_notifier
+  - reviewed_domain_adapter

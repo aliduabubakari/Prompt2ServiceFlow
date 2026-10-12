@@ -1,0 +1,128 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__disaster_response_data_fusion.py
+- Name: Disaster Response Data Fusion
+- Purpose: Fuse multimodal disaster-response evidence into an auditable operational picture.
+- Execution model: bounded batch
+- Extension track: complex_mixed_domain
+- Topology pattern: fan_out_fan_in
+- Complexity band: very_complex
+- Business domain: Public Sector/Geospatial
+- Input modalities: image, geojson, json, table, text
+- Output modalities: geojson, briefing_packet, alert_digest
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- damage imagery
+- shelter status JSON
+- road closure CSV
+- incident notes text
+
+External Systems:
+- emergency data lake (fixture-backed; no production system is contacted)
+- operations briefing channel (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_source_batch -> validate_source_contract
+  - validate_source_contract -> normalize_partition_a
+  - normalize_partition_a -> fuse_partitions
+  - validate_source_contract -> normalize_partition_b
+  - normalize_partition_b -> fuse_partitions
+  - validate_source_contract -> normalize_partition_c
+  - normalize_partition_c -> fuse_partitions
+  - fuse_partitions -> standardize_cross_domain_entities
+  - standardize_cross_domain_entities -> resolve_entity_conflicts
+  - resolve_entity_conflicts -> score_operational_priority
+  - score_operational_priority -> apply_publication_or_routing_gate
+  - apply_publication_or_routing_gate -> create_stakeholder_packet
+  - create_stakeholder_packet -> publish_notifications
+  - publish_notifications -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_source_batch - Ingest Source Batch
+  - Objective: Ingest all bounded inputs for disaster response operational picture.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_source_contract - Validate Source Contract
+  - Objective: Validate contracts, identifiers, and modality assumptions for disaster response operational picture.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. normalize_partition_a - Normalize Partition A
+  - Objective: Normalize the first partition or modality for disaster response operational picture.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. normalize_partition_b - Normalize Partition B
+  - Objective: Normalize the second partition or modality for disaster response operational picture.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. normalize_partition_c - Normalize Partition C
+  - Objective: Normalize the third partition or modality for disaster response operational picture.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. fuse_partitions - Fuse Partitions
+  - Objective: Fuse normalized partitions into a unified disaster response operational picture representation.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. standardize_cross_domain_entities - Standardize Cross Domain Entities
+  - Objective: Standardize cross-domain entities for disaster response operational picture.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+8. resolve_entity_conflicts - Resolve Entity Conflicts
+  - Objective: Resolve entity conflicts across modalities and systems for disaster response operational picture.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+9. score_operational_priority - Score Operational Priority
+  - Objective: Score operational priority or risk for disaster response operational picture.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+10. apply_publication_or_routing_gate - Apply Publication Or Routing Gate
+  - Objective: Apply publication, routing, or escalation gates for disaster response operational picture.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+11. create_stakeholder_packet - Create Stakeholder Packet
+  - Objective: Create stakeholder packets for disaster response operational picture.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+12. publish_notifications - Publish Notifications
+  - Objective: Publish notifications or work-order records for disaster response operational picture.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+13. publish_outputs - Publish Outputs
+  - Objective: Publish the fused disaster response operational picture outputs and completion status.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

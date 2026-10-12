@@ -1,0 +1,47 @@
+Pipeline Summary:
+- Pipeline ID: val_log_rotation_cleanup
+- Name: Application Log Rotation Cleanup
+- Purpose: Find expired application logs and archive them before deleting local copies.
+- Execution model: Batch
+- Topology pattern: Linear
+- Business domain: Infrastructure Maintenance
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - find_expired_logs -> archive_and_delete_logs
+- Parallel groups:
+  - none
+- Branch points:
+  - none
+- Gate or sensor dependencies:
+  - none
+
+Data Artifacts / I-O Identifiers:
+  - data_object: log_file_list
+  - data_object: archive_manifest
+
+External Systems:
+  - external_service: Local filesystem
+  - external_service: Object storage
+
+Pipeline Steps:
+1. find_expired_logs - find expired logs
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. archive_and_delete_logs - archive and delete logs
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

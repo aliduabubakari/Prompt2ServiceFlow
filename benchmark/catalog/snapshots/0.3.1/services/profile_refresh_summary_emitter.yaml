@@ -1,0 +1,90 @@
+schema_version: 0.1.0
+service_id: profile_refresh_summary_emitter
+version: 1.0.0
+display_name: Profile Refresh Summary Emitter
+category: ReportGenerator
+capability:
+  summary: Emits a bounded operational summary for a completed customer-profile refresh.
+  operations:
+  - Emits a bounded operational summary for a completed customer-profile refresh.
+  keywords:
+  - profile
+  - refresh
+  - summary
+  - emitter
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: profile_table
+    description: Reviewed profile table value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: refresh_summary
+    description: Reviewed refresh summary value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: summary_status
+    description: Reviewed summary status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: summary_name
+    description: Configuration for summary name.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: profile-refresh-summary-emitter
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.1
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.profile_refresh_summary_emitter
+  implementation_ref: services/implementations/profile_refresh_summary_emitter
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-02:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 02 descriptions; bindings retain inference confidence.

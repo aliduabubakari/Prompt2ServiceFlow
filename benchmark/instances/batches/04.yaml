@@ -1,0 +1,26 @@
+batch_version: 0.1.0
+batch_id: batch_04
+target_size: 5
+strategy: Cover remaining sensor_gated, fan_out_fan_in, and linear topologies across
+  diverse domains (data_quality, procurement, inventory, data_science).
+pipelines:
+  - benchmark_id: main:customer_dq_scoring_pipeline
+    status: local_complete
+    rationale: Fan-out/fan-in data quality pipeline scoring customer records across
+      parallel quality dimensions, then aggregating into a final score.
+  - benchmark_id: main:data_transformation_pipeline
+    status: local_complete
+    rationale: Classic linear ETL with SQL extraction, Python transformation, Parquet
+      export, and email notification.
+  - benchmark_id: main:procurement_supplier_validation_v1
+    status: local_complete
+    rationale: Linear procurement pipeline validating suppliers via entity reconciliation
+      and exporting validated data.
+  - benchmark_id: main:ftp_vendor_inventory_processor
+    status: local_complete
+    rationale: Sensor-gated FTP watcher that downloads vendor inventory files,
+      validates schema, and loads to database.
+  - benchmark_id: main:multilingual_product_review_analysis_v1
+    status: local_complete
+    rationale: Linear NLP pipeline for product review ingestion, language detection,
+      sentiment scoring, and enriched CSV export.

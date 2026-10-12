@@ -1,0 +1,63 @@
+assertions_version: 0.1.0
+pipeline_id: content_moderation_pipeline
+scenarios:
+  - scenario: toxic_content_removal
+    assertions:
+      - assertion_id: scan_succeeded
+        type: json_path_equals
+        path: artifacts/scan_status.json
+        json_path: success
+        expected: true
+      - assertion_id: three_items_scanned
+        type: json_path_equals
+        path: artifacts/scan_status.json
+        json_path: total_items
+        expected: 3
+      - assertion_id: toxic_route_selected
+        type: json_path_equals
+        path: artifacts/toxicity_routing_decision.json
+        json_path: route
+        expected: remove_flag
+      - assertion_id: moderation_action_applied
+        type: json_path_equals
+        path: artifacts/action_status.json
+        json_path: success
+        expected: true
+      - assertion_id: publication_not_written
+        type: file_absent
+        path: artifacts/publication_status.json
+      - assertion_id: audit_log_created
+        type: json_path_equals
+        path: artifacts/audit_status.json
+        json_path: success
+        expected: true
+  - scenario: safe_content_publication
+    assertions:
+      - assertion_id: scan_succeeded
+        type: json_path_equals
+        path: artifacts/scan_status.json
+        json_path: success
+        expected: true
+      - assertion_id: three_items_scanned
+        type: json_path_equals
+        path: artifacts/scan_status.json
+        json_path: total_items
+        expected: 3
+      - assertion_id: safe_route_selected
+        type: json_path_equals
+        path: artifacts/toxicity_routing_decision.json
+        json_path: route
+        expected: publish
+      - assertion_id: publication_succeeded
+        type: json_path_equals
+        path: artifacts/publication_status.json
+        json_path: success
+        expected: true
+      - assertion_id: moderation_not_written
+        type: file_absent
+        path: artifacts/action_status.json
+      - assertion_id: audit_log_created
+        type: json_path_equals
+        path: artifacts/audit_status.json
+        json_path: success
+        expected: true

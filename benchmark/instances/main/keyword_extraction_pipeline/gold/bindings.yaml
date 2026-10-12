@@ -1,0 +1,21 @@
+binding_gold_version: 0.1.0
+benchmark_id: main:keyword_extraction_pipeline
+bindings:
+- intent_id: generate_documents
+  service_id: synthetic_document_parquet_generator
+  service_version: 1.0.0
+- intent_id: explore_data
+  service_id: parquet_document_data_profiler
+  service_version: 1.0.0
+- intent_id: clean_data
+  service_id: parquet_document_clean_standardizer
+  service_version: 1.0.0
+- intent_id: extract_features
+  service_id: document_keyword_feature_extractor
+  service_version: 1.0.0
+- intent_id: validate_data
+  service_id: document_feature_validation_quality_check
+  service_version: 1.0.0
+- intent_id: save_and_report
+  service_id: structured_json_to_csv_exporter
+  service_version: 1.0.0

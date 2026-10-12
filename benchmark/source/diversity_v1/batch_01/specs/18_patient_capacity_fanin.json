@@ -1,0 +1,232 @@
+{
+  "spec_version": "1.0",
+  "pipeline_id": "patient_capacity_fanin",
+  "pipeline_name": "Patient Capacity Fan-in",
+  "source": {
+    "unique_key": null,
+    "repo": "prompt2serviceflow-diversity-v1",
+    "file_path": "synthetic/patient_capacity_fanin.py",
+    "repo_url": null,
+    "detected_airflow_version": "2.x",
+    "sampled_version": null,
+    "sampled_commit": null,
+    "sampled_time": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Synthetic data-preparation workflow for Healthcare/Public Health",
+    "business_domain": "Healthcare/Public Health",
+    "execution_model": "batch",
+    "topology_pattern": "fan_in",
+    "notes": "Synthetic Diversity-40 source package."
+  },
+  "schedule": {
+    "schedule_type": "manual",
+    "schedule_expression": null,
+    "timezone": null,
+    "start_date": null,
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "extract_primary",
+        "to": "validate_schema"
+      },
+      {
+        "from": "extract_secondary",
+        "to": "validate_schema"
+      },
+      {
+        "from": "extract_reference",
+        "to": "validate_schema"
+      },
+      {
+        "from": "validate_schema",
+        "to": "merge_sources"
+      },
+      {
+        "from": "merge_sources",
+        "to": "publish_dataset"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "group_id": "source_fanin",
+        "steps": [
+          "extract_primary",
+          "extract_secondary",
+          "extract_reference"
+        ]
+      }
+    ],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "object_storage",
+      "name": "Fixture-backed object storage",
+      "identifier": "synthetic://diversity-v1",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "raw_input.csv",
+        "description": "Synthetic tabular input"
+      },
+      {
+        "identifier": "prepared_output.parquet",
+        "description": "Synthetic prepared output"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "extract_primary",
+      "name": "extract_primary",
+      "objective": "Extract the extract primary dataset.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "extract_secondary",
+      "name": "extract_secondary",
+      "objective": "Extract the extract secondary dataset.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "extract_reference",
+      "name": "extract_reference",
+      "objective": "Extract the extract reference dataset.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "validate_schema",
+      "name": "validate_schema",
+      "objective": "Validate every source dataset.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "merge_sources",
+      "name": "merge_sources",
+      "objective": "Merge all validated source artifacts.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_dataset",
+      "name": "publish_dataset",
+      "objective": "Publish the merged dataset.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

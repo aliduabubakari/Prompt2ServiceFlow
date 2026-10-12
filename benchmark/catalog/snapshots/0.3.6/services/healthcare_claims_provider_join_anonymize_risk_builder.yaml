@@ -1,0 +1,191 @@
+schema_version: 0.1.0
+service_id: healthcare_claims_provider_join_anonymize_risk_builder
+version: 1.0.0
+display_name: Healthcare Claims Provider Join Anonymize Risk Builder
+category: PrivacyService
+capability:
+  summary: Joins claims with provider data, anonymizes patient identifiers, computes
+    configurable claim risk scores, and emits transformed analytics-ready healthcare
+    data.
+  operations:
+  - Read claims and provider tabular datasets.
+  - Validate claim/provider key columns and healthcare-required fields.
+  - Join claims to providers by configured provider key.
+  - Anonymize or tokenize patient identifiers using configured method without emitting
+    raw identifiers in outputs where anonymization is required.
+  keywords:
+  - healthcare claims
+  - provider join
+  - anonymization
+  - risk scoring
+  - phi
+  - analytics transform
+  limitations:
+  - Does not load warehouse tables or refresh BI tools.
+  - Risk score semantics require caller-supplied rules or an approved profile.
+  - Does not provide reversible re-identification unless a bound tokenization implementation
+    explicitly supports it.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: claims_dataset
+    description: Parsed patient claims dataset containing claim, patient, provider,
+      procedure, amount, and service date fields.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://validated_tabular_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: phi
+  - name: providers_dataset
+    description: Parsed provider dataset containing provider identifier and descriptive
+      provider attributes.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://validated_tabular_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: transformed_healthcare_dataset
+    description: Joined, anonymized, risk-scored dataset with fact and dimension logical
+      sections for warehouse loading.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://healthcare_claims_transformed_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: restricted
+  - name: transform_status
+    description: Observable transform status with rows joined, anonymized identifiers
+      count, risk scores computed, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://healthcare_claims_transform_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: provider_key_column
+    description: Column used to join claims to provider records.
+    type: string
+    required: true
+  - name: patient_id_column
+    description: Column containing patient identifier to anonymize.
+    type: string
+    required: true
+  - name: anonymization_method
+    description: Anonymization method used for patient identifiers.
+    type: string
+    required: true
+    enum:
+    - hash
+    - tokenize
+    - drop
+  - name: risk_scoring_rules
+    description: Declarative rules or named profile for claim risk scoring.
+    type: object
+    required: true
+  - name: output_path
+    description: Deterministic artifact path for transformed dataset.
+    type: string
+    required: true
+  secrets: []
+contracts:
+- contract_id: healthcare_join_required_columns
+  type: precondition
+  applies_to: service
+  target: healthcare_claims_provider_join_anonymize_risk_builder
+  description: Claims and provider datasets must include join keys; claims must include
+    the patient identifier column.
+  expression: provider_key_column in claims_dataset.columns and provider_key_column
+    in providers_dataset.columns and patient_id_column in claims_dataset.columns
+- contract_id: healthcare_anonymization_required
+  type: effect
+  applies_to: output
+  target: transformed_healthcare_dataset
+  description: When anonymization_method is hash, tokenize, or drop, raw patient identifiers
+    must not be present in output rows under the original patient identifier column.
+  expression: anonymization_method in ['hash','tokenize','drop'] implies not raw_identifier_values_present(transformed_healthcare_dataset,
+    patient_id_column)
+- contract_id: healthcare_transformed_dataset_schema
+  type: json_schema
+  applies_to: output
+  target: transformed_healthcare_dataset
+  description: Output contains joined rows and logical warehouse sections for claims
+    fact and provider dimension materialization.
+  schema_ref: schema://healthcare_claims_transformed_dataset/v1
+  expression: '{"type":"object","required":["columns","rows","row_count","logical_tables"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0},"logical_tables":{"type":"array","items":{"type":"object","required":["target_role","rows"]}}}}'
+- contract_id: healthcare_transform_status_schema
+  type: json_schema
+  applies_to: output
+  target: transform_status
+  description: Status exposes join, anonymization, and risk scoring outcomes.
+  schema_ref: schema://healthcare_claims_transform_status/v1
+  expression: '{"type":"object","required":["success","claims_rows_read","providers_rows_read","rows_joined","identifiers_anonymized","risk_scores_computed"],"properties":{"success":{"type":"boolean"},"claims_rows_read":{"type":"integer","minimum":0},"providers_rows_read":{"type":"integer","minimum":0},"rows_joined":{"type":"integer","minimum":0},"identifiers_anonymized":{"type":"integer","minimum":0},"risk_scores_computed":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: healthcare_transform_effect
+  type: effect
+  applies_to: service
+  target: healthcare_claims_provider_join_anonymize_risk_builder
+  description: On success, joined anonymized risk-scored dataset exists and every
+    joined claim has a risk score field.
+  expression: transform_status.success == true implies exists(transformed_healthcare_dataset)
+    and transform_status.risk_scores_computed == transform_status.rows_joined
+invocation:
+  type: argo_workflow_template
+  template_name: healthcare-claims-provider-join-anonymize-risk-builder-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.healthcare_claims_provider_join_anonymize_risk_builder
+  implementation_ref: services/implementations/healthcare_claims_provider_join_anonymize_risk_builder
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - pii
+  - phi
+  - restricted
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw patient identifiers, claim rows, or PHI values.
+  - Risk scoring rules must be explicitly bound and reviewed for healthcare use.
+  - Output should contain anonymized identifiers only.
+  idempotency_notes: Same input datasets, anonymization method, and risk rules produce
+    the same transformed output for deterministic hashing/tokenization configuration.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:healthcare_claims_etl#transform_join
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service combines healthcare join semantics with
+    mandatory PII anonymization and risk scoring.'
+  - 'Evidence status: explicit.'

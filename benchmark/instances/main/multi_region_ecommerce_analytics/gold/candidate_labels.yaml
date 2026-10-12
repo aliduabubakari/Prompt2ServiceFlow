@@ -1,0 +1,30 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:multi_region_ecommerce_analytics
+candidate_sets:
+- candidate_set_id: main_multi_region_ecommerce_analytics_database_csv_snapshot_exporter_candidates
+  required_service_id: database_csv_snapshot_exporter
+  labels:
+    database_csv_snapshot_exporter: gold
+    postgres_readonly_query_result_extractor: format_mismatch
+    sql_incremental_table_extractor: contract_mismatch
+    http_api_request_artifact_extractor: target_mismatch
+    warehouse_inventory_csv_extractor: target_mismatch
+    unreviewed_postgres_sql_executor: policy_incompatible
+- candidate_set_id: main_multi_region_ecommerce_analytics_regional_sales_currency_usd_converter_candidates
+  required_service_id: regional_sales_currency_usd_converter
+  labels:
+    regional_sales_currency_usd_converter: gold
+    multi_region_revenue_report_aggregator: semantic_mismatch
+    tabular_query_result_csv_writer: contract_mismatch
+    csv_tabular_schema_validating_loader: missing_required_output
+    tabular_dataset_declarative_transformer: format_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_multi_region_ecommerce_analytics_multi_region_revenue_report_aggregator_candidates
+  required_service_id: multi_region_revenue_report_aggregator
+  labels:
+    multi_region_revenue_report_aggregator: gold
+    regional_sales_currency_usd_converter: semantic_mismatch
+    tabular_query_result_csv_writer: contract_mismatch
+    structured_json_batch_to_csv_exporter: format_mismatch
+    weather_station_csv_parquet_fusion_aggregator: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch

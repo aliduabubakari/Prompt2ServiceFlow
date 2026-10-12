@@ -1,0 +1,33 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:multilingual_product_review_analysis_v1
+mappings:
+- intent_id: load_and_modify_reviews
+  inputs:
+    csv_file: reviews_csv
+  outputs:
+    structured_json: formatted_reviews_json
+    transform_status: format_status
+- intent_id: detect_language
+  inputs:
+    structured_json: formatted_reviews_json
+  outputs:
+    language_detected_json: lang_detected_json
+    detection_status: lang_detection_status
+- intent_id: analyze_sentiment
+  inputs:
+    source_tabular_json: lang_detected_json
+  outputs:
+    sentiment_scored_json: sentiment_json
+    scoring_status: sentiment_status
+- intent_id: extract_features
+  inputs:
+    source_tabular_json: sentiment_json
+  outputs:
+    feature_extended_json: features_json
+    feature_extraction_status: feature_extraction_status
+- intent_id: save_enriched_reviews
+  inputs:
+    structured_json: features_json
+  outputs:
+    csv_file: enriched_reviews_csv
+    export_status: export_status

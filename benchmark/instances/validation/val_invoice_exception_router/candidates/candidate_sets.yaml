@@ -1,0 +1,34 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_invoice_exception_router
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.1
+candidate_sets:
+- candidate_set_id: validation_val_invoice_exception_router_invoice_batch_validator_candidates
+  source_step_refs:
+  - validate_invoices
+  service_ids:
+  - invoice_batch_validator
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_invoice_exception_router_invoice_status_route_decider_candidates
+  source_step_refs:
+  - route_invoice_status
+  service_ids:
+  - invoice_status_route_decider
+  - temporary_resource_cleanup
+  - csv_to_structured_json_standardizer
+- candidate_set_id: validation_val_invoice_exception_router_erp_invoice_posting_client_candidates
+  source_step_refs:
+  - post_valid_invoices
+  service_ids:
+  - erp_invoice_posting_client
+  - csv_to_structured_json_standardizer
+  - tabular_dataset_database_loader
+- candidate_set_id: validation_val_invoice_exception_router_exception_case_creator_candidates
+  source_step_refs:
+  - create_exception_cases
+  service_ids:
+  - exception_case_creator
+  - tabular_dataset_database_loader
+  - http_json_request_extractor

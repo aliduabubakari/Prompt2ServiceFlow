@@ -1,0 +1,400 @@
+{
+  "spec_version": "1.0",
+  "corpus": "Prompt2ServiceFlow Extension-50",
+  "corpus_version": "extension_v1",
+  "pipeline_id": "late_record_replay_quarantine",
+  "pipeline_name": "Late Record Replay Quarantine",
+  "source": {
+    "unique_key": null,
+    "repo": "prompt2serviceflow-extension-v1",
+    "file_path": "synthetic/late_record_replay_quarantine.py",
+    "repo_url": null,
+    "detected_airflow_version": "2.x",
+    "sampled_version": null,
+    "sampled_commit": null,
+    "sampled_time": null,
+    "source_fingerprint_sha256": null,
+    "source_type": "synthetic_provenance_marked"
+  },
+  "summary": {
+    "purpose": "Replay late-arriving records against a checkpoint and quarantine policy-sensitive records.",
+    "business_domain": "Legal/Compliance",
+    "execution_model": "bounded_batch",
+    "topology_pattern": "branch_gate",
+    "extension_track": "event_checkpoint_windowed_batch",
+    "complexity_band": "complex",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "quarantine_report",
+      "checkpoint_manifest",
+      "audit_log"
+    ],
+    "notes": "Synthetic Extension-50 source package. No hidden gold annotations are included."
+  },
+  "schedule": {
+    "schedule_type": "manual",
+    "schedule_expression": null,
+    "timezone": null,
+    "start_date": null,
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "ingest_source_batch",
+        "to": "validate_source_contract"
+      },
+      {
+        "from": "validate_source_contract",
+        "to": "load_previous_checkpoint"
+      },
+      {
+        "from": "load_previous_checkpoint",
+        "to": "apply_batch_to_checkpoint"
+      },
+      {
+        "from": "apply_batch_to_checkpoint",
+        "to": "quarantine_late_or_invalid_records"
+      },
+      {
+        "from": "quarantine_late_or_invalid_records",
+        "to": "evaluate_policy_or_risk"
+      },
+      {
+        "from": "evaluate_policy_or_risk",
+        "to": "route_approved_records"
+      },
+      {
+        "from": "evaluate_policy_or_risk",
+        "to": "route_exception_records"
+      },
+      {
+        "from": "route_approved_records",
+        "to": "merge_route_outcomes"
+      },
+      {
+        "from": "route_exception_records",
+        "to": "merge_route_outcomes"
+      },
+      {
+        "from": "merge_route_outcomes",
+        "to": "publish_outputs"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [
+      {
+        "step_id": "evaluate_policy_or_risk",
+        "branches": [
+          "route_approved_records",
+          "route_exception_records"
+        ],
+        "condition": "policy, risk, confidence, or quality decision"
+      }
+    ],
+    "gates": [
+      {
+        "step_id": "evaluate_policy_or_risk",
+        "gate_type": "policy_or_quality_gate"
+      }
+    ]
+  },
+  "external_systems": [
+    {
+      "type": "fixture_backed_system",
+      "name": "records archive",
+      "identifier": "synthetic://extension-v1/late_record_replay_quarantine/1",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    },
+    {
+      "type": "fixture_backed_system",
+      "name": "compliance review queue",
+      "identifier": "synthetic://extension-v1/late_record_replay_quarantine/2",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "source_bundle",
+        "description": "Fixture-backed source input bundle"
+      },
+      {
+        "identifier": "prepared_outputs",
+        "description": "Validated workflow output bundle"
+      },
+      {
+        "identifier": "audit_manifest",
+        "description": "Provenance, checksum, quality, and routing evidence"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": [],
+    "modalities": [
+      "jsonl",
+      "table"
+    ]
+  },
+  "steps": [
+    {
+      "step_id": "ingest_source_batch",
+      "name": "Ingest Source Batch",
+      "objective": "Ingest the bounded input batch for late record replay quarantine.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "validate_source_contract",
+      "name": "Validate Source Contract",
+      "objective": "Validate required fields, identities, and policy inputs for late record replay quarantine.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "load_previous_checkpoint",
+      "name": "Load Previous Checkpoint",
+      "objective": "Load the previous checkpoint or snapshot for late record replay quarantine.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "apply_batch_to_checkpoint",
+      "name": "Apply Batch To Checkpoint",
+      "objective": "Apply the finite batch to checkpoint state for late record replay quarantine.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "quarantine_late_or_invalid_records",
+      "name": "Quarantine Late Or Invalid Records",
+      "objective": "Quarantine late, duplicate, or policy-invalid records for late record replay quarantine.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "evaluate_policy_or_risk",
+      "name": "Evaluate Policy Or Risk",
+      "objective": "Evaluate quality, policy, risk, or confidence rules for late record replay quarantine.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "route_approved_records",
+      "name": "Route Approved Records",
+      "objective": "Route approved or low-risk late record replay quarantine records.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "route_exception_records",
+      "name": "Route Exception Records",
+      "objective": "Route exception, high-risk, or low-confidence late record replay quarantine records.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "merge_route_outcomes",
+      "name": "Merge Route Outcomes",
+      "objective": "Merge routed outcomes into a complete late record replay quarantine disposition artifact.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "publish_outputs",
+      "name": "Publish Outputs",
+      "objective": "Publish late record replay quarantine outputs, review status, and completion metadata.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    }
+  ]
+}

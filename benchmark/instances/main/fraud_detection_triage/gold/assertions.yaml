@@ -1,0 +1,73 @@
+assertions_version: 0.1.0
+pipeline_id: fraud_detection_triage
+scenarios:
+  - scenario: high_risk_manual_review
+    assertions:
+      - assertion_id: scoring_succeeded
+        type: json_path_equals
+        path: artifacts/scoring_status.json
+        json_path: success
+        expected: true
+      - assertion_id: high_risk_score
+        type: json_path_gte
+        path: artifacts/risk_score.json
+        json_path: score
+        minimum: 0.8
+      - assertion_id: manual_review_route_selected
+        type: json_path_equals
+        path: artifacts/routing_decision.json
+        json_path: route
+        expected: manual_review
+      - assertion_id: manual_review_requested
+        type: json_path_equals
+        path: artifacts/manual_review_status.json
+        json_path: manual_review_requested
+        expected: true
+      - assertion_id: three_transactions_marked
+        type: json_path_equals
+        path: artifacts/manual_review_status.json
+        json_path: transactions_marked_for_review
+        expected: 3
+      - assertion_id: auto_approval_not_written
+        type: file_absent
+        path: artifacts/auto_approval_status.json
+      - assertion_id: notification_sent
+        type: json_path_equals
+        path: artifacts/notification_status.json
+        json_path: sent
+        expected: true
+  - scenario: low_risk_auto_approve
+    assertions:
+      - assertion_id: scoring_succeeded
+        type: json_path_equals
+        path: artifacts/scoring_status.json
+        json_path: success
+        expected: true
+      - assertion_id: low_risk_score_below_threshold
+        type: json_path_equals
+        path: artifacts/routing_decision.json
+        json_path: auto_approve
+        expected: true
+      - assertion_id: auto_approve_route_selected
+        type: json_path_equals
+        path: artifacts/routing_decision.json
+        json_path: route
+        expected: auto_approve
+      - assertion_id: auto_approval_recorded
+        type: json_path_equals
+        path: artifacts/auto_approval_status.json
+        json_path: auto_approval_recorded
+        expected: true
+      - assertion_id: three_transactions_approved
+        type: json_path_equals
+        path: artifacts/auto_approval_status.json
+        json_path: transactions_auto_approved
+        expected: 3
+      - assertion_id: manual_review_not_written
+        type: file_absent
+        path: artifacts/manual_review_status.json
+      - assertion_id: notification_sent
+        type: json_path_equals
+        path: artifacts/notification_status.json
+        json_path: sent
+        expected: true

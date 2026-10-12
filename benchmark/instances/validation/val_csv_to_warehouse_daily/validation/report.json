@@ -1,0 +1,138 @@
+{
+  "report_version": "0.1.0",
+  "pipeline_id": "validation:val_csv_to_warehouse_daily",
+  "generated_at": "2026-07-21T09:37:21.775356+00:00",
+  "overall_status": "pass",
+  "gates": [
+    {
+      "gate": "G0",
+      "status": "pass",
+      "checks": [
+        "Parse, schema, required files, and checksums"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G1",
+      "status": "pass",
+      "checks": [
+        "Graph integrity and complete source-step accounting"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G2",
+      "status": "pass",
+      "checks": [
+        "Catalog service/version/lifecycle resolution"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G3",
+      "status": "pass",
+      "checks": [
+        "Interface, parameter, secret, artifact, and policy closure"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G4",
+      "status": "pass",
+      "checks": [
+        "Exact gold-to-runtime task identities, dependency edges, and script syntax"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G5",
+      "status": "pass",
+      "checks": [
+        "Deterministic Argo projection, deployable bundles, ConfigMap-size checks, and structural lint"
+      ],
+      "errors": [],
+      "details": {
+        "configmap_payloads": [
+          {
+            "name": "val-csv-to-warehouse-daily-scripts",
+            "data_size_bytes": 9747,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "val-csv-to-warehouse-daily-fixtures",
+            "data_size_bytes": 275,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "val-csv-to-warehouse-daily-nominal-scripts",
+            "scenario": "nominal",
+            "data_size_bytes": 9747,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "val-csv-to-warehouse-daily-nominal-fixtures",
+            "scenario": "nominal",
+            "data_size_bytes": 275,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          }
+        ]
+      }
+    },
+    {
+      "gate": "G6",
+      "status": "pass",
+      "checks": [
+        "Execute every declared scenario and evaluate reviewed semantic assertions and artifact schemas"
+      ],
+      "errors": []
+    }
+  ],
+  "scenario_results": [
+    {
+      "scenario": "nominal",
+      "status": "pass",
+      "executed_tasks": [
+        "detect_daily_file",
+        "validate_columns",
+        "load_sales_table"
+      ],
+      "skipped_tasks": [],
+      "assertions": [
+        {
+          "assertion_id": "source_fixture_loaded",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "source_files_present",
+          "status": "pass",
+          "message": "value=1, minimum=1"
+        },
+        {
+          "assertion_id": "source_records_present",
+          "status": "pass",
+          "message": "value=4, minimum=1"
+        },
+        {
+          "assertion_id": "final_status_succeeds",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "final_artifact_exists",
+          "status": "pass",
+          "message": "sales_load_status.json exists and is non-empty"
+        },
+        {
+          "assertion_id": "upstream_evidence_propagated",
+          "status": "pass",
+          "message": "value=5, minimum=1"
+        }
+      ]
+    }
+  ]
+}

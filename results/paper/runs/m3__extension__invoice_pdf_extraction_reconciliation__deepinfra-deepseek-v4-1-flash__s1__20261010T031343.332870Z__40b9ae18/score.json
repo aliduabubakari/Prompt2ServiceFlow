@@ -1,0 +1,453 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-10T03:15:09.908824+00:00",
+  "instance": "benchmark/instances/extension/invoice_pdf_extraction_reconciliation",
+  "workspace": "experiments/workspaces/extension/invoice_pdf_extraction_reconciliation",
+  "submission": "results/paper/runs/m3__extension__invoice_pdf_extraction_reconciliation__deepinfra-deepseek-v4-1-flash__s1__20261010T031343.332870Z__40b9ae18/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G3",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-10T03:15:07.149076+00:00",
+    "workspace": "experiments/workspaces/extension/invoice_pdf_extraction_reconciliation",
+    "submission": "results/paper/runs/m3__extension__invoice_pdf_extraction_reconciliation__deepinfra-deepseek-v4-1-flash__s1__20261010T031343.332870Z__40b9ae18/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G3",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "pass",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": []
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "ingest_primary_source: output 'output_artifacts' expects any, got binary"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "ingest_primary_source: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "ingest_secondary_source: output 'output_artifacts' expects any, got csv"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "ingest_secondary_source: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "ingest_reference_source: output 'output_artifacts' expects any, got json"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "ingest_reference_source: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "validate_source_contracts: input 'input_artifacts' expects any, got binary"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "validate_source_contracts: input 'input_artifacts' expects any, got csv"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "validate_source_contracts: input 'input_artifacts' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "validate_source_contracts: output 'output_artifacts' expects any, got object"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "validate_source_contracts: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "normalize_sources: input 'input_artifacts' expects any, got object"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "normalize_sources: output 'output_artifacts' expects any, got object"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "normalize_sources: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "fuse_sources: input 'input_artifacts' expects any, got object"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "fuse_sources: output 'output_artifacts' expects any, got object"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "fuse_sources: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "extract_or_parse_text: input 'input_artifacts' expects any, got object"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "extract_or_parse_text: output 'output_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "extract_or_parse_text: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "chunk_documents: input 'input_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "chunk_documents: output 'output_artifacts' expects any, got array"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "chunk_documents: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "generate_embeddings: input 'input_artifacts' expects any, got array"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "generate_embeddings: output 'output_artifacts' expects any, got array"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "generate_embeddings: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "publish_outputs: input 'input_artifacts' expects any, got array"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "publish_outputs: output 'output_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "publish_outputs: output 'execution_report' expects status, got json"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "invoice-pdf-extraction-reconciliation-scripts",
+              "scenario": "base",
+              "data_size_bytes": 20237,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "invoice-pdf-extraction-reconciliation-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 2200,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "invoice-pdf-extraction-reconciliation-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 20237,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "invoice-pdf-extraction-reconciliation-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 2200,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_primary_source",
+                "ingest_secondary_source",
+                "ingest_reference_source",
+                "validate_source_contracts",
+                "normalize_sources",
+                "fuse_sources",
+                "extract_or_parse_text",
+                "chunk_documents",
+                "generate_embeddings",
+                "publish_outputs"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 10,
+      "submission_intents": 10,
+      "gold_intents": 10,
+      "mapping": {
+        "chunk_documents": "chunk_documents",
+        "extract_or_parse_text": "extract_or_parse_text",
+        "fuse_sources": "fuse_sources",
+        "generate_embeddings": "generate_embeddings",
+        "ingest_primary_source": "ingest_primary_source",
+        "ingest_reference_source": "ingest_reference_source",
+        "ingest_secondary_source": "ingest_secondary_source",
+        "normalize_sources": "normalize_sources",
+        "publish_outputs": "publish_outputs",
+        "validate_source_contracts": "validate_source_contracts"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 10
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 9,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 10,
+      "total": 10,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 10,
+    "correct": 10,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "chunk_documents",
+        "gold_service": "semantic_document_chunker",
+        "submission_intent": "chunk_documents",
+        "submission_service": "semantic_document_chunker",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "extract_or_parse_text",
+        "gold_service": "invoice_field_extraction_parser",
+        "submission_intent": "extract_or_parse_text",
+        "submission_service": "invoice_field_extraction_parser",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "fuse_sources",
+        "gold_service": "invoice_purchase_order_context_fuser",
+        "submission_intent": "fuse_sources",
+        "submission_service": "invoice_purchase_order_context_fuser",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "generate_embeddings",
+        "gold_service": "deterministic_text_embedding_generator",
+        "submission_intent": "generate_embeddings",
+        "submission_service": "deterministic_text_embedding_generator",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_primary_source",
+        "gold_service": "invoice_pdf_bundle_ingestor",
+        "submission_intent": "ingest_primary_source",
+        "submission_service": "invoice_pdf_bundle_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_reference_source",
+        "gold_service": "vendor_registry_json_ingestor",
+        "submission_intent": "ingest_reference_source",
+        "submission_service": "vendor_registry_json_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_secondary_source",
+        "gold_service": "purchase_order_table_ingestor",
+        "submission_intent": "ingest_secondary_source",
+        "submission_service": "purchase_order_table_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "normalize_sources",
+        "gold_service": "invoice_reference_record_normalizer",
+        "submission_intent": "normalize_sources",
+        "submission_service": "invoice_reference_record_normalizer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_outputs",
+        "gold_service": "invoice_reconciliation_bundle_publisher",
+        "submission_intent": "publish_outputs",
+        "submission_service": "invoice_reconciliation_bundle_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "validate_source_contracts",
+        "gold_service": "invoice_reconciliation_contract_validator",
+        "submission_intent": "validate_source_contracts",
+        "submission_service": "invoice_reconciliation_contract_validator",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 9,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "source_fixture_loaded",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-zc280y59/artifacts/ingest_primary_source_status.json"
+          },
+          {
+            "assertion_id": "source_files_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-zc280y59/artifacts/ingest_primary_source_status.json"
+          },
+          {
+            "assertion_id": "source_records_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-zc280y59/artifacts/ingest_primary_source_status.json"
+          },
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-zc280y59/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "final_artifact_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-zc280y59/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "upstream_evidence_propagated",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-zc280y59/artifacts/publish_outputs_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 6,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

@@ -1,0 +1,37 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_csv_to_warehouse_daily
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: detect_daily_file
+  script: scripts/01_detect_daily_file.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: validate_columns
+  script: scripts/02_validate_columns.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - detect_daily_file
+- intent_id: load_sales_table
+  script: scripts/03_load_sales_table.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - validate_columns
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

@@ -1,0 +1,481 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_supply_chain_exception_management",
+  "pipeline_name": "Global Supply Chain Exception Management",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_supply_chain_exception_management.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Ingest inventory, shipment, weather, and supplier feeds, detect disruption risk, branch severe exceptions to response planning, and publish a global operations dashboard.",
+    "business_domain": "Supply Chain",
+    "execution_model": "Batch",
+    "topology_pattern": "Mixed",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "wait_for_supplier_feeds",
+        "to": "ingest_inventory"
+      },
+      {
+        "from": "wait_for_supplier_feeds",
+        "to": "ingest_shipments"
+      },
+      {
+        "from": "wait_for_supplier_feeds",
+        "to": "ingest_weather_alerts"
+      },
+      {
+        "from": "wait_for_supplier_feeds",
+        "to": "ingest_supplier_capacity"
+      },
+      {
+        "from": "ingest_inventory",
+        "to": "harmonize_supply_state"
+      },
+      {
+        "from": "ingest_shipments",
+        "to": "harmonize_supply_state"
+      },
+      {
+        "from": "ingest_weather_alerts",
+        "to": "harmonize_supply_state"
+      },
+      {
+        "from": "ingest_supplier_capacity",
+        "to": "harmonize_supply_state"
+      },
+      {
+        "from": "harmonize_supply_state",
+        "to": "detect_disruption_risk"
+      },
+      {
+        "from": "detect_disruption_risk",
+        "to": "route_exception_severity"
+      },
+      {
+        "from": "route_exception_severity",
+        "to": "generate_response_plan"
+      },
+      {
+        "from": "route_exception_severity",
+        "to": "publish_operations_dashboard"
+      },
+      {
+        "from": "generate_response_plan",
+        "to": "notify_regional_teams"
+      },
+      {
+        "from": "publish_operations_dashboard",
+        "to": "archive_exception_snapshot"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "steps": [
+          "ingest_inventory",
+          "ingest_shipments",
+          "ingest_weather_alerts",
+          "ingest_supplier_capacity"
+        ]
+      }
+    ],
+    "branch_points": [
+      {
+        "step": "route_exception_severity",
+        "conditions": [
+          "normal",
+          "severe"
+        ],
+        "merge_step": null
+      }
+    ],
+    "gates": [
+      {
+        "step": "wait_for_supplier_feeds",
+        "condition": "minimum_feed_count_met"
+      }
+    ]
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Inventory database",
+      "identifier": "inventory_database",
+      "details": [
+        "Validation external dependency: Inventory database"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Carrier API",
+      "identifier": "carrier_api",
+      "details": [
+        "Validation external dependency: Carrier API"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Weather API",
+      "identifier": "weather_api",
+      "details": [
+        "Validation external dependency: Weather API"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Supplier portal",
+      "identifier": "supplier_portal",
+      "details": [
+        "Validation external dependency: Supplier portal"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Notification service",
+      "identifier": "notification_service",
+      "details": [
+        "Validation external dependency: Notification service"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "inventory_snapshot",
+        "description": "Validation artifact: inventory_snapshot"
+      },
+      {
+        "identifier": "shipment_events",
+        "description": "Validation artifact: shipment_events"
+      },
+      {
+        "identifier": "weather_alerts",
+        "description": "Validation artifact: weather_alerts"
+      },
+      {
+        "identifier": "supplier_capacity",
+        "description": "Validation artifact: supplier_capacity"
+      },
+      {
+        "identifier": "response_plan",
+        "description": "Validation artifact: response_plan"
+      },
+      {
+        "identifier": "operations_dashboard",
+        "description": "Validation artifact: operations_dashboard"
+      },
+      {
+        "identifier": "exception_archive",
+        "description": "Validation artifact: exception_archive"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "wait_for_supplier_feeds",
+      "name": "wait_for_supplier_feeds",
+      "objective": "Wait for supplier feeds",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "ingest_inventory",
+      "name": "ingest_inventory",
+      "objective": "Ingest inventory",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "ingest_shipments",
+      "name": "ingest_shipments",
+      "objective": "Ingest shipments",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "ingest_weather_alerts",
+      "name": "ingest_weather_alerts",
+      "objective": "Ingest weather alerts",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "ingest_supplier_capacity",
+      "name": "ingest_supplier_capacity",
+      "objective": "Ingest supplier capacity",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "harmonize_supply_state",
+      "name": "harmonize_supply_state",
+      "objective": "Harmonize supply state",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "detect_disruption_risk",
+      "name": "detect_disruption_risk",
+      "objective": "Detect disruption risk",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "route_exception_severity",
+      "name": "route_exception_severity",
+      "objective": "Route exception severity",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "generate_response_plan",
+      "name": "generate_response_plan",
+      "objective": "Generate response plan",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "publish_operations_dashboard",
+      "name": "publish_operations_dashboard",
+      "objective": "Publish operations dashboard",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "notify_regional_teams",
+      "name": "notify_regional_teams",
+      "objective": "Notify regional teams",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "archive_exception_snapshot",
+      "name": "archive_exception_snapshot",
+      "objective": "Archive exception snapshot",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

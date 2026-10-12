@@ -1,0 +1,68 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: queue_backlog_snapshot_analysis
+image: python:3.12-slim
+workflow_parameters:
+- name: execution-time
+  default: '2026-07-20T09:00:00Z'
+tasks:
+- intent_id: ingest_bounded_events
+  script: scripts/01_ingest_bounded_events.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  - --execution-time
+  - '{execution-time}'
+- intent_id: validate_checkpoint_inputs
+  script: scripts/02_validate_checkpoint_inputs.py
+  dependencies:
+  - ingest_bounded_events
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: sort_and_deduplicate_records
+  script: scripts/03_sort_and_deduplicate_records.py
+  dependencies:
+  - validate_checkpoint_inputs
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: build_analysis_windows
+  script: scripts/04_build_analysis_windows.py
+  dependencies:
+  - sort_and_deduplicate_records
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: compute_window_metrics
+  script: scripts/05_compute_window_metrics.py
+  dependencies:
+  - build_analysis_windows
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: publish_outputs
+  script: scripts/06_publish_outputs.py
+  dependencies:
+  - compute_window_metrics
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  - --execution-time
+  - '{execution-time}'
+scenarios:
+- name: nominal
+  parameters:
+    execution-time: '2026-07-20T09:00:00Z'
+  fixture_root: fixtures/scenarios/nominal

@@ -1,0 +1,84 @@
+assertions_version: 0.1.0
+pipeline_id: supplier_compliance_evidence_review
+scenarios:
+- scenario: nominal
+  assertions:
+  # Ingest
+  - assertion_id: primary_certs_loaded
+    type: json_path_equals
+    path: artifacts/ingest_primary_source_status.json
+    json_path: certs_loaded
+    expected: 5
+  - assertion_id: secondary_suppliers_loaded
+    type: json_path_equals
+    path: artifacts/ingest_secondary_source_status.json
+    json_path: suppliers_loaded
+    expected: 4
+
+  # Validation: cross-reference issues
+  - assertion_id: validation_issues_found
+    type: json_path_gte
+    path: artifacts/validate_source_contracts_status.json
+    json_path: issues_found
+    minimum: 3
+  - assertion_id: missing_cert_supplier
+    type: json_path_equals
+    path: artifacts/validate_source_contracts_artifact.json
+    json_path: missing_cert_suppliers
+    expected: ["SUP-004"]
+  - assertion_id: orphan_cert_supplier
+    type: json_path_equals
+    path: artifacts/validate_source_contracts_artifact.json
+    json_path: orphan_cert_suppliers
+    expected: ["SUP-005"]
+
+  # Fuse
+  - assertion_id: fused_non_compliant
+    type: json_path_gte
+    path: artifacts/fuse_sources_artifact.json
+    json_path: summary.non_compliant
+    minimum: 1
+  - assertion_id: fused_escalated
+    type: json_path_gte
+    path: artifacts/fuse_sources_artifact.json
+    json_path: summary.escalated
+    minimum: 2
+
+  # Sensitive fields detected
+  - assertion_id: sensitive_detected
+    type: json_path_gte
+    path: artifacts/detect_sensitive_fields_status.json
+    json_path: sensitive_records_found
+    minimum: 2
+
+  # Redaction: bank_account fully suppressed
+  - assertion_id: redaction_applied
+    type: json_path_gte
+    path: artifacts/apply_redaction_or_suppression_status.json
+    json_path: records_redacted
+    minimum: 2
+
+  # Review packet generated
+  - assertion_id: review_items_count
+    type: json_path_gte
+    path: artifacts/create_human_review_packet_status.json
+    json_path: review_items
+    minimum: 1
+
+  # Publish
+  - assertion_id: publish_succeeds
+    type: json_path_equals
+    path: artifacts/publish_outputs_status.json
+    json_path: success
+    expected: true
+  - assertion_id: csv_exported
+    type: file_exists
+    path: artifacts/compliance_report.csv
+  - assertion_id: review_packet_exists
+    type: file_exists
+    path: artifacts/review_packet.json
+  - assertion_id: audit_manifest_completed
+    type: json_path_equals
+    path: artifacts/audit_manifest.json
+    json_path: status
+    expected: completed

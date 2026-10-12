@@ -1,0 +1,55 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: keyword_extraction_pipeline
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: generate_documents
+  script: scripts/01_gen.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: explore_data
+  script: scripts/02_explore.py
+  dependencies:
+  - generate_documents
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: clean_data
+  script: scripts/03_clean.py
+  dependencies:
+  - generate_documents
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: extract_features
+  script: scripts/04_extract.py
+  dependencies:
+  - clean_data
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: validate_data
+  script: scripts/05_validate.py
+  dependencies:
+  - extract_features
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: save_and_report
+  script: scripts/06_report.py
+  dependencies:
+  - extract_features
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+scenarios:
+- name: keyword_run
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal

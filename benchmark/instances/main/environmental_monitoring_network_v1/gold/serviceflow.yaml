@@ -1,0 +1,827 @@
+ir_version: 0.1.0
+composition_id: environmental_monitoring_network_v1
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:environmental_monitoring_network_v1
+  split: main
+  pipeline_id: environmental_monitoring_network_v1
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/30_environmental_monitoring_network_v1.txt
+  description_sha256: 9751b52d94b4f70a5205813779d1316f9aba2dcf7031774d52539d02ff2f9495
+  internal_spec_path: source/internal_specs/main_40/30_environmental_monitoring_network_v1.json
+  internal_spec_sha256: 52c292ff581b876a804800fee8723e81b3253aac0bb6d009e262bb4091ea9b4e
+requirement:
+  name: Environmental Monitoring Network v1
+  purpose: Integrate station locations with weather, land use, and demographic data to calculate environmental
+    risk scores and export an enriched dataset.
+  domain: environmental_monitoring
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes:
+  - 'Chains seven enrichment steps: format, geocode, weather, land use, population, risk score, and CSV
+    export.'
+  - External APIs are mocked with deterministic fixtures.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: source_filesystem
+  type: filesystem
+  name: Source filesystem
+  identifier: /data/stations
+  access_mode: read
+  authentication: none
+  mock_strategy: fixture
+- system_id: geocoding_api
+  type: http_api
+  name: HERE Geocoding API
+  identifier: geocodingHere
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+- system_id: weather_api
+  type: http_api
+  name: OpenMeteo API
+  identifier: openmeteo
+  access_mode: invoke
+  authentication: none
+  mock_strategy: fixture
+- system_id: land_use_api
+  type: http_api
+  name: Geoapify API
+  identifier: geoapify
+  access_mode: invoke
+  authentication: secret
+  mock_strategy: fixture
+- system_id: population_api
+  type: http_api
+  name: WorldPop API
+  identifier: worldpop
+  access_mode: invoke
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: load_and_modify_stations
+  name: Ingest and format station data
+  category: Transformer
+  capability: Parse the station CSV, attach dataset/table/date-column metadata, and emit structured tabular
+    JSON with format status.
+  source_step_refs:
+  - load_and_modify_stations
+  evidence:
+  - source: description
+    text: Ingest and format station data from CSV to JSON.
+  inputs:
+  - stations_csv
+  outputs:
+  - formatted_stations_json
+  - format_status
+  external_system_refs:
+  - source_filesystem
+  preconditions:
+  - A readable station CSV with expected columns is available.
+  effects:
+  - Structured tabular JSON and format status are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step maps directly to a CSV-to-JSON formatting capability with dataset
+    and date-column metadata.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: geocode_stations
+  name: Geocode station locations
+  category: Reconciler
+  capability: Enrich structured station JSON with latitude and longitude by geocoding address values through
+    a bound geocoding API.
+  source_step_refs:
+  - geocode_stations
+  evidence:
+  - source: description
+    text: Geocode station locations using HERE API.
+  inputs:
+  - formatted_stations_json
+  - geocoding_api_resource
+  outputs:
+  - geocoded_stations_json
+  - geocoding_status
+  external_system_refs:
+  - geocoding_api
+  preconditions:
+  - Structured station JSON has an address column.
+  effects:
+  - Geocoded tabular JSON with coordinate columns and geocoding status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: The source step requires a geocoding reconciliation capability specific to
+    HERE-compatible APIs.
+  confidence: explicit
+  ambiguity:
+    status: resolved
+    notes:
+    - Mock geocoding returns deterministic coordinates for fixture addresses.
+- intent_id: fetch_historical_weather
+  name: Fetch historical weather
+  category: DomainAdapter
+  capability: Enrich geocoded station JSON with historical weather variables from a bound OpenMeteo-compatible
+    API using coordinate and date parameters.
+  source_step_refs:
+  - fetch_historical_weather
+  evidence:
+  - source: description
+    text: Fetch historical weather data for station locations.
+  inputs:
+  - geocoded_stations_json
+  - weather_api_resource
+  outputs:
+  - weather_enriched_json
+  - weather_enrichment_status
+  external_system_refs:
+  - weather_api
+  preconditions:
+  - Geocoded station JSON has latitude, longitude, and date columns.
+  effects:
+  - Weather-enriched tabular JSON and enrichment status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: The source requires an explicit OpenMeteo-compatible historical weather enrichment
+    step.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: classify_land_use
+  name: Classify land use
+  category: ScoringService
+  capability: Classify land-use type for station coordinates using a bound Geoapify- compatible land-use
+    classification API.
+  source_step_refs:
+  - classify_land_use
+  evidence:
+  - source: description
+    text: Classify land use type for station locations.
+  inputs:
+  - weather_enriched_json
+  - land_use_api_resource
+  outputs:
+  - land_use_enriched_json
+  - land_use_classification_status
+  external_system_refs:
+  - land_use_api
+  preconditions:
+  - Weather-enriched JSON has latitude and longitude columns.
+  effects:
+  - Land-use-enriched tabular JSON and classification status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: The source step requires a coordinate-based land-use classification capability
+    specific to Geoapify-compatible APIs.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: fetch_population_density
+  name: Fetch population density
+  category: DomainAdapter
+  capability: Enrich land-use-enriched station JSON with population density from a bound WorldPop-compatible
+    API using coordinates and radius.
+  source_step_refs:
+  - fetch_population_density
+  evidence:
+  - source: description
+    text: Fetch population density data for station locations.
+  inputs:
+  - land_use_enriched_json
+  - population_api_resource
+  outputs:
+  - population_enriched_json
+  - population_enrichment_status
+  external_system_refs:
+  - population_api
+  preconditions:
+  - Land-use-enriched JSON has latitude and longitude columns.
+  effects:
+  - Population-density-enriched tabular JSON and enrichment status are emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+    - confidential
+  decomposition_rationale: The source step requires a WorldPop-compatible population density enrichment
+    capability.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: calculate_risk_score
+  name: Calculate environmental risk score
+  category: ScoringService
+  capability: Compute a composite environmental risk score from configured risk factor columns and append
+    it to the tabular JSON.
+  source_step_refs:
+  - calculate_risk_score
+  evidence:
+  - source: description
+    text: Calculate environmental risk score based on multiple factors.
+  inputs:
+  - population_enriched_json
+  outputs:
+  - risk_scored_json
+  - risk_scoring_status
+  external_system_refs: []
+  preconditions:
+  - Population-enriched JSON contains all required risk-factor columns.
+  effects:
+  - Risk-scored tabular JSON and scoring status are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step requires an explicit environmental risk scoring/column-extension
+    capability.
+  confidence: explicit
+  ambiguity:
+    status: resolved
+    notes:
+    - Mock uses a deterministic weighted formula on configured input columns.
+- intent_id: save_environmental_dataset
+  name: Save enriched environmental dataset
+  category: Transformer
+  capability: Export the risk-scored tabular JSON to a deterministic CSV artifact and emit export status.
+  source_step_refs:
+  - save_environmental_dataset
+  evidence:
+  - source: description
+    text: Save final enriched dataset to CSV format.
+  inputs:
+  - risk_scored_json
+  outputs:
+  - enriched_dataset_csv
+  - export_status
+  external_system_refs: []
+  preconditions:
+  - Risk-scored JSON has rows and columns ready for CSV serialization.
+  effects:
+  - An enriched CSV artifact and export status are emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source step exports the final enriched dataset to CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: load_and_modify_stations
+    to: geocode_stations
+  - from: geocode_stations
+    to: fetch_historical_weather
+  - from: fetch_historical_weather
+    to: classify_land_use
+  - from: classify_land_use
+    to: fetch_population_density
+  - from: fetch_population_density
+    to: calculate_risk_score
+  - from: calculate_risk_score
+    to: save_environmental_dataset
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: stations_csv
+  name: Station CSV
+  kind: external_resource
+  data_type: csv
+  media_type: text/csv
+  role: input
+  producer: null
+  consumers:
+  - load_and_modify_stations
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/stations.csv
+  external_system_ref: source_filesystem
+- artifact_id: formatted_stations_json
+  name: Formatted station JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/formatted_stations_json.schema.json
+  role: intermediate
+  producer: load_and_modify_stations
+  consumers:
+  - geocode_stations
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: format_status
+  name: Format status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/format_status.schema.json
+  role: status
+  producer: load_and_modify_stations
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: geocoding_api_resource
+  name: Geocoding API resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - geocode_stations
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/geocoding_api.json
+  external_system_ref: geocoding_api
+- artifact_id: geocoded_stations_json
+  name: Geocoded station JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/geocoded_stations_json.schema.json
+  role: intermediate
+  producer: geocode_stations
+  consumers:
+  - fetch_historical_weather
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: geocoding_status
+  name: Geocoding status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/geocoding_status.schema.json
+  role: status
+  producer: geocode_stations
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: weather_api_resource
+  name: Weather API resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - fetch_historical_weather
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/weather_api.json
+  external_system_ref: weather_api
+- artifact_id: weather_enriched_json
+  name: Weather-enriched JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/weather_enriched_json.schema.json
+  role: intermediate
+  producer: fetch_historical_weather
+  consumers:
+  - classify_land_use
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: weather_enrichment_status
+  name: Weather enrichment status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/weather_enrichment_status.schema.json
+  role: status
+  producer: fetch_historical_weather
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: land_use_api_resource
+  name: Land use API resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - classify_land_use
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/land_use_api.json
+  external_system_ref: land_use_api
+- artifact_id: land_use_enriched_json
+  name: Land-use-enriched JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/land_use_enriched_json.schema.json
+  role: intermediate
+  producer: classify_land_use
+  consumers:
+  - fetch_population_density
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: land_use_classification_status
+  name: Land use classification status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/land_use_classification_status.schema.json
+  role: status
+  producer: classify_land_use
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: population_api_resource
+  name: Population API resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - fetch_population_density
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/population_api.json
+  external_system_ref: population_api
+- artifact_id: population_enriched_json
+  name: Population-density-enriched JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/population_enriched_json.schema.json
+  role: intermediate
+  producer: fetch_population_density
+  consumers:
+  - calculate_risk_score
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: population_enrichment_status
+  name: Population enrichment status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/population_enrichment_status.schema.json
+  role: status
+  producer: fetch_population_density
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: risk_scored_json
+  name: Risk-scored JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/risk_scored_json.schema.json
+  role: intermediate
+  producer: calculate_risk_score
+  consumers:
+  - save_environmental_dataset
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: risk_scoring_status
+  name: Risk scoring status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/risk_scoring_status.schema.json
+  role: status
+  producer: calculate_risk_score
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: enriched_dataset_csv
+  name: Enriched dataset CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: output
+  producer: save_environmental_dataset
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: export_status
+  name: CSV export status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/export_status.schema.json
+  role: status
+  producer: save_environmental_dataset
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: load_and_modify_stations
+  service_id: csv_to_structured_json_table_formatter
+  service_version: 1.0.0
+  input_bindings:
+  - port: csv_file
+    artifact_id: stations_csv
+  output_bindings:
+  - port: structured_json
+    artifact_id: formatted_stations_json
+  - port: transform_status
+    artifact_id: format_status
+  parameter_bindings:
+    output_path: /workspace/artifacts/formatted_stations_json.json
+    dataset_id: '2'
+    table_name: JOT_
+    date_column: installation_date
+    has_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: The descriptor formats CSV into structured tabular JSON with dataset, table, and date-column
+    metadata as required by the source step.
+  confidence: strongly_inferred
+- intent_id: geocode_stations
+  service_id: tabular_address_geocoding_enricher
+  service_version: 1.0.0
+  input_bindings:
+  - port: structured_json
+    artifact_id: formatted_stations_json
+  - port: geocoding_api_resource
+    artifact_id: geocoding_api_resource
+  output_bindings:
+  - port: geocoded_json
+    artifact_id: geocoded_stations_json
+  - port: geocoding_status
+    artifact_id: geocoding_status
+  parameter_bindings:
+    address_column: location
+    latitude_column: latitude
+    longitude_column: longitude
+    geocoder_id: geocodingHere
+    dataset_id: '2'
+    output_path: /workspace/artifacts/geocoded_stations_json.json
+  secret_bindings:
+  - secret: geocoding_api_token
+    kubernetes_secret: here-api
+    key: api-token
+  rationale: The descriptor geocodes address values using a HERE-compatible geocoding API and appends
+    latitude/longitude columns.
+  confidence: strongly_inferred
+- intent_id: fetch_historical_weather
+  service_id: openmeteo_historical_weather_tabular_enricher
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_tabular_json
+    artifact_id: geocoded_stations_json
+  - port: weather_api_resource
+    artifact_id: weather_api_resource
+  output_bindings:
+  - port: weather_enriched_json
+    artifact_id: weather_enriched_json
+  - port: enrichment_status
+    artifact_id: weather_enrichment_status
+  parameter_bindings:
+    lat_column: latitude
+    lon_column: longitude
+    date_column: installation_date
+    variables:
+    - apparent_temperature_max
+    - apparent_temperature_min
+    - precipitation_sum
+    - precipitation_hours
+    date_format: '%Y%m%d'
+    output_path: /workspace/artifacts/weather_enriched_json.json
+  secret_bindings: []
+  rationale: The descriptor enriches station rows with historical weather variables from an OpenMeteo-compatible
+    API using coordinate and date inputs.
+  confidence: explicit
+- intent_id: classify_land_use
+  service_id: coordinate_land_use_classification_enricher
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_tabular_json
+    artifact_id: weather_enriched_json
+  - port: land_use_api_resource
+    artifact_id: land_use_api_resource
+  output_bindings:
+  - port: land_use_enriched_json
+    artifact_id: land_use_enriched_json
+  - port: classification_status
+    artifact_id: land_use_classification_status
+  parameter_bindings:
+    lat_column: latitude
+    lon_column: longitude
+    output_column: land_use_type
+    output_path: /workspace/artifacts/land_use_enriched_json.json
+  secret_bindings: []
+  rationale: The descriptor classifies land-use type for each station coordinate using a Geoapify-compatible
+    land-use API.
+  confidence: explicit
+- intent_id: fetch_population_density
+  service_id: worldpop_population_density_tabular_enricher
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_tabular_json
+    artifact_id: land_use_enriched_json
+  - port: population_api_resource
+    artifact_id: population_api_resource
+  output_bindings:
+  - port: population_enriched_json
+    artifact_id: population_enriched_json
+  - port: enrichment_status
+    artifact_id: population_enrichment_status
+  parameter_bindings:
+    lat_column: latitude
+    lon_column: longitude
+    radius: 5000
+    output_column: population_density
+    output_path: /workspace/artifacts/population_enriched_json.json
+  secret_bindings: []
+  rationale: The descriptor enriches station rows with population density from a WorldPop-compatible API
+    using coordinates and a search radius.
+  confidence: explicit
+- intent_id: calculate_risk_score
+  service_id: environmental_risk_score_column_calculator
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_tabular_json
+    artifact_id: population_enriched_json
+  output_bindings:
+  - port: risk_scored_json
+    artifact_id: risk_scored_json
+  - port: scoring_status
+    artifact_id: risk_scoring_status
+  parameter_bindings:
+    extender_id: environmentalRiskCalculator
+    input_columns:
+    - precipitation_sum
+    - population_density
+    - land_use_type
+    output_column: risk_score
+    output_path: /workspace/artifacts/risk_scored_json.json
+  secret_bindings: []
+  rationale: The descriptor computes a composite environmental risk score from configured input risk-factor
+    columns.
+  confidence: explicit
+- intent_id: save_environmental_dataset
+  service_id: structured_json_to_csv_exporter
+  service_version: 1.0.0
+  input_bindings:
+  - port: structured_json
+    artifact_id: risk_scored_json
+  output_bindings:
+  - port: csv_file
+    artifact_id: enriched_dataset_csv
+  - port: export_status
+    artifact_id: export_status
+  parameter_bindings:
+    output_filename: enriched_stations.csv
+    dataset_id: '2'
+    include_header: true
+    delimiter: ','
+  secret_bindings: []
+  rationale: The descriptor exports the final risk-scored tabular JSON to a deterministic CSV file.
+  confidence: explicit
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides:
+  - intent_id: geocode_stations
+    retries: 1
+    timeout_seconds: 600
+    network_access: required
+  - intent_id: fetch_historical_weather
+    retries: 1
+    timeout_seconds: 600
+    network_access: required
+  - intent_id: classify_land_use
+    retries: 1
+    timeout_seconds: 600
+    network_access: required
+  - intent_id: fetch_population_density
+    retries: 1
+    timeout_seconds: 600
+    network_access: required
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - All external API calls are mocked with deterministic fixtures.
+    - API keys and tokens use placeholder references only.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All seven source steps are accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Seven exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - secrets
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - A seven-task Argo DAG compiles deterministically
+- gate: G5
+  expected_status: pass
+  checks:
+  - Fixture scenario executes all seven steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - All enrichment
+  - scoring
+  - and export invariants hold
+source_step_accounting:
+- source_step_ref: load_and_modify_stations
+  disposition: service
+  intent_ids:
+  - load_and_modify_stations
+  rationale: The explicit source step is represented by the reviewed bound service.
+- source_step_ref: geocode_stations
+  disposition: service
+  intent_ids:
+  - geocode_stations
+  rationale: The explicit source step is represented by the reviewed bound service.
+- source_step_ref: fetch_historical_weather
+  disposition: service
+  intent_ids:
+  - fetch_historical_weather
+  rationale: The explicit source step is represented by the reviewed bound service.
+- source_step_ref: classify_land_use
+  disposition: service
+  intent_ids:
+  - classify_land_use
+  rationale: The explicit source step is represented by the reviewed bound service.
+- source_step_ref: fetch_population_density
+  disposition: service
+  intent_ids:
+  - fetch_population_density
+  rationale: The explicit source step is represented by the reviewed bound service.
+- source_step_ref: calculate_risk_score
+  disposition: service
+  intent_ids:
+  - calculate_risk_score
+  rationale: The explicit source step is represented by the reviewed bound service.
+- source_step_ref: save_environmental_dataset
+  disposition: service
+  intent_ids:
+  - save_environmental_dataset
+  rationale: The explicit source step is represented by the reviewed bound service.

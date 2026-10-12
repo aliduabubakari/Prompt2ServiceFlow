@@ -1,0 +1,90 @@
+schema_version: 0.1.0
+service_id: json_status_payload_normalizer
+version: 1.0.0
+display_name: Json Status Payload Normalizer
+category: Transformer
+capability:
+  summary: Normalizes an HTTP status payload into stable status rows.
+  operations:
+  - Normalizes an HTTP status payload into stable status rows.
+  keywords:
+  - json
+  - status
+  - payload
+  - normalizer
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: response_json
+    description: Reviewed response json value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: normalized_status_rows
+    description: Reviewed normalized status rows value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: normalization_status
+    description: Reviewed normalization status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: status_mapping
+    description: Configuration for status mapping.
+    type: object
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: json-status-payload-normalizer
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.json_status_payload_normalizer
+  implementation_ref: services/implementations/json_status_payload_normalizer
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-24T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-01:curated-extension
+  notes:
+  - Curated from sparse Validation-20 descriptions; bindings retain inference confidence.

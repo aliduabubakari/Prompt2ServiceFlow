@@ -1,0 +1,169 @@
+schema_version: 0.1.0
+service_id: backup_artifact_integrity_verifier
+version: 1.0.0
+display_name: Backup Artifact Integrity Verifier
+category: QualityCheck
+capability:
+  summary: Verifies that a database backup artifact is readable and satisfies configured
+    integrity and completeness checks, emitting a verification decision and status.
+  operations:
+  - Read a backup artifact and optional backup manifest.
+  - Verify artifact readability and non-empty size according to configured rules.
+  - Validate checksum when a manifest checksum is available or required.
+  - Run optional format/profile-specific verification checks supplied by workflow
+    binding.
+  keywords:
+  - backup verification
+  - integrity check
+  - checksum
+  - backup file
+  - quality check
+  - database maintenance
+  limitations:
+  - Does not create or restore backups.
+  - Does not infer database-engine-specific verification commands; verification profile
+    must be supplied when deeper checks are required.
+  - Does not perform workflow merge behavior or retry policy.
+  - Completeness semantics depend on the supplied manifest and verification rules.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: backup_file
+    description: Backup file artifact produced by a full or incremental backup step.
+    channel: artifact
+    data_type: binary
+    media_type: application/octet-stream
+    schema_ref: schema://database_backup_file/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: backup_manifest
+    description: Optional manifest containing expected checksum, size, backup mode,
+      and output URI metadata.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_backup_manifest/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: verification_result
+    description: Decision object indicating whether the backup passed integrity and
+      completeness checks.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://backup_verification_result/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: verification_status
+    description: Observable execution status for the verification checks.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://backup_verification_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: verification_profile
+    description: Named verification profile or tool configuration for the backup format.
+    type: string
+    required: false
+  - name: require_checksum_match
+    description: Whether checksum validation is mandatory when manifest checksum is
+      present or expected.
+    type: boolean
+    required: false
+  - name: require_non_empty
+    description: Whether zero-byte backup artifacts should fail verification.
+    type: boolean
+    required: false
+  - name: verification_rules
+    description: Optional structured rules for engine/tool-specific completeness checks.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: backup_verifier_input_readable
+  type: precondition
+  applies_to: input
+  target: backup_file
+  description: Backup file must be readable before verification.
+  expression: readable(backup_file)
+- contract_id: backup_verification_result_schema
+  type: json_schema
+  applies_to: output
+  target: verification_result
+  description: Verification decision exposes pass/fail and check-level outcomes.
+  schema_ref: schema://backup_verification_result/v1
+  expression: '{"type":"object","required":["valid","checks_run","checks_failed","artifact_readable"],"properties":{"valid":{"type":"boolean"},"checks_run":{"type":"integer","minimum":0},"checks_failed":{"type":"integer","minimum":0},"artifact_readable":{"type":"boolean"},"checksum_matched":{"type":["boolean","null"]},"completeness_passed":{"type":["boolean","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: backup_verification_status_schema
+  type: json_schema
+  applies_to: output
+  target: verification_status
+  description: Status exposes verification execution outcome.
+  schema_ref: schema://backup_verification_status/v1
+  expression: '{"type":"object","required":["success","verification_attempted","valid"],"properties":{"success":{"type":"boolean"},"verification_attempted":{"type":"boolean"},"valid":{"type":"boolean"},"profile":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: backup_verifier_effect
+  type: effect
+  applies_to: service
+  target: backup_artifact_integrity_verifier
+  description: The service does not mutate external systems and emits valid=true only
+    when no configured verification checks fail.
+  expression: no_external_mutation and (verification_result.valid == true iff verification_result.checks_failed
+    == 0)
+invocation:
+  type: argo_workflow_template
+  template_name: backup-artifact-integrity-verifier-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.backup_artifact_integrity_verifier
+  implementation_ref: services/implementations/backup_artifact_integrity_verifier
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw backup contents.
+  - Emit bounded diagnostics, checks, sizes, and checksum outcomes only.
+  - Workflow merge trigger rules are orchestration-level and not part of the verifier.
+  idempotency_notes: Same backup artifact, manifest, and verification rules produce
+    the same verification decision.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:backup_strategy_selector#verify_backup_task
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The registry did not include a backup-file integrity/completeness
+    verifier with decision output.'
+  - 'Evidence status: strongly_inferred.'

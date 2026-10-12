@@ -1,0 +1,62 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: file_arrival_watcher
+image: python:3.12-slim
+workflow_parameters:
+- name: fixture-file
+  default: transactions_20240115.csv
+tasks:
+- intent_id: wait_for_file
+  script: scripts/01_wait_for_file.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --file-location
+  - '{fixtures}/file_location.json'
+  - --fixture
+  - '{fixtures}/{fixture-file}'
+  output_parameters:
+  - name: available
+    path: /workspace/artifacts/availability.txt
+  retries: 2
+- intent_id: validate_schema
+  script: scripts/02_validate_schema.py
+  dependencies:
+  - wait_for_file
+  when: '{{tasks.wait_for_file.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/availability_decision.json
+    json_path: available
+    equals: true
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{fixture-file}'
+  retries: 2
+- intent_id: load_db
+  script: scripts/03_load_db.py
+  dependencies:
+  - validate_schema
+  when: '{{tasks.wait_for_file.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/availability_decision.json
+    json_path: available
+    equals: true
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --database-resource
+  - '{fixtures}/postgres_resource.json'
+  retries: 2
+scenarios:
+- name: file_arrives
+  parameters:
+    fixture-file: transactions_20240115.csv
+  fixture_root: fixtures/inputs
+- name: file_missing
+  parameters:
+    fixture-file: transactions_missing.csv
+  fixture_root: fixtures/inputs
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

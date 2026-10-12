@@ -1,0 +1,52 @@
+assertions_version: 0.1.0
+pipeline_id: etl_import_mondo
+scenarios:
+- scenario: new_release
+  assertions:
+  - assertion_id: parameters_valid
+    type: json_path_equals
+    path: artifacts/validation_decision.json
+    json_path: valid
+    expected: true
+  - assertion_id: asset_updated
+    type: json_path_equals
+    path: artifacts/download_status.json
+    json_path: updated
+    expected: true
+  - assertion_id: normalized_dataset_created
+    type: file_exists
+    path: artifacts/normalized_dataset/manifest.json
+  - assertion_id: index_loaded
+    type: json_path_equals
+    path: artifacts/mondo_index_reference.json
+    json_path: index_name
+    expected: mondo-v2026-01
+  - assertion_id: index_published
+    type: json_path_equals
+    path: artifacts/published_mondo_index.json
+    json_path: alias
+    expected: mondo
+  - assertion_id: slack_sent
+    type: json_path_equals
+    path: artifacts/slack_notification_status.json
+    json_path: sent
+    expected: true
+- scenario: already_current
+  assertions:
+  - assertion_id: asset_not_updated
+    type: json_path_equals
+    path: artifacts/download_status.json
+    json_path: updated
+    expected: false
+  - assertion_id: normalization_skipped
+    type: file_absent
+    path: artifacts/normalize_status.json
+  - assertion_id: indexing_skipped
+    type: file_absent
+    path: artifacts/load_status.json
+  - assertion_id: publication_skipped
+    type: file_absent
+    path: artifacts/publish_status.json
+  - assertion_id: notification_skipped
+    type: file_absent
+    path: artifacts/slack_notification_status.json

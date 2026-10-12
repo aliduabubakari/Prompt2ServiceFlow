@@ -1,0 +1,28 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:database_partition_check_etl
+mappings:
+- intent_id: wait_partition
+  inputs:
+    database: db_resource
+  outputs:
+    readiness_decision: readiness_decision
+    query_status: sensor_status
+- intent_id: extract_incremental
+  inputs:
+    source_database: db_resource
+  outputs:
+    extracted_dataset: extracted_dataset
+    extraction_status: extraction_status
+- intent_id: transform
+  inputs:
+    source_dataset: extracted_dataset
+  outputs:
+    transformed_dataset: transformed_dataset
+    transformed_data_object: transformed_obj
+    transform_status: transform_status
+- intent_id: load
+  inputs:
+    ingested_data_object: transformed_obj
+    target_database: target_db
+  outputs:
+    load_status: load_status

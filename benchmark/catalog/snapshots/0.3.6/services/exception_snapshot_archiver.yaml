@@ -1,0 +1,89 @@
+schema_version: 0.1.0
+service_id: exception_snapshot_archiver
+version: 1.0.0
+display_name: Exception Snapshot Archiver
+category: Publisher
+capability:
+  summary: Archives a supply-chain exception dashboard snapshot.
+  operations:
+  - Archives a supply-chain exception dashboard snapshot.
+  keywords:
+  - exception
+  - snapshot
+  - archiver
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: operations_dashboard
+    description: Reviewed operations dashboard value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: exception_archive
+    description: Reviewed exception archive value.
+    channel: artifact
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: archive_status
+    description: Reviewed archive status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: archive_name
+    description: Configuration for archive name.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: exception-snapshot-archiver
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.3
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.exception_snapshot_archiver
+  implementation_ref: services/implementations/exception_snapshot_archiver
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-04:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 04 descriptions; bindings retain inference confidence.

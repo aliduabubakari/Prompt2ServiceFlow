@@ -1,0 +1,110 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:pdf_policy_corpus_ingestion
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.8
+candidate_sets:
+- candidate_set_id: extension_pdf_policy_corpus_ingestion_policy_pdf_corpus_ingestor_candidates
+  source_step_refs:
+  - ingest_source_batch
+  service_ids:
+  - policy_pdf_corpus_ingestor
+  - keyword_only_document_searcher
+  - embedding_index_manifest_archiver
+  - generic_llm_prompt_runner
+- candidate_set_id: extension_pdf_policy_corpus_ingestion_policy_corpus_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contract
+  service_ids:
+  - policy_corpus_contract_validator
+  - embedding_index_manifest_archiver
+  - generic_llm_prompt_runner
+  - chunk_count_quality_checker
+- candidate_set_id: extension_pdf_policy_corpus_ingestion_ai_raw_artifact_stager_candidates
+  source_step_refs:
+  - stage_raw_artifacts
+  service_ids:
+  - ai_raw_artifact_stager
+  - generic_llm_prompt_runner
+  - chunk_count_quality_checker
+  - uncontextualized_summary_generator
+- candidate_set_id: extension_pdf_policy_corpus_ingestion_ai_record_metadata_normalizer_candidates
+  source_step_refs:
+  - normalize_records
+  service_ids:
+  - ai_record_metadata_normalizer
+  - chunk_count_quality_checker
+  - uncontextualized_summary_generator
+  - reviewed_domain_adapter
+- candidate_set_id: extension_pdf_policy_corpus_ingestion_pdf_text_extraction_parser_candidates
+  source_step_refs:
+  - extract_or_parse_text
+  service_ids:
+  - pdf_text_extraction_parser
+  - uncontextualized_summary_generator
+  - reviewed_domain_adapter
+  - keyword_only_document_searcher
+- candidate_set_id: extension_pdf_policy_corpus_ingestion_semantic_document_chunker_candidates
+  source_step_refs:
+  - chunk_documents
+  service_ids:
+  - semantic_document_chunker
+  - reviewed_domain_adapter
+  - keyword_only_document_searcher
+  - embedding_index_manifest_archiver
+- candidate_set_id: extension_pdf_policy_corpus_ingestion_deterministic_text_embedding_generator_candidates
+  source_step_refs:
+  - generate_embeddings
+  service_ids:
+  - deterministic_text_embedding_generator
+  - keyword_only_document_searcher
+  - embedding_index_manifest_archiver
+  - generic_llm_prompt_runner
+- candidate_set_id: extension_pdf_policy_corpus_ingestion_fixture_vector_index_writer_candidates
+  source_step_refs:
+  - write_vector_index
+  service_ids:
+  - fixture_vector_index_writer
+  - embedding_index_manifest_archiver
+  - generic_llm_prompt_runner
+  - chunk_count_quality_checker
+- candidate_set_id: extension_pdf_policy_corpus_ingestion_grounding_context_retriever_candidates
+  source_step_refs:
+  - retrieve_grounding_context
+  service_ids:
+  - grounding_context_retriever
+  - generic_llm_prompt_runner
+  - chunk_count_quality_checker
+  - uncontextualized_summary_generator
+- candidate_set_id: extension_pdf_policy_corpus_ingestion_policy_corpus_structured_extractor_candidates
+  source_step_refs:
+  - run_structured_extraction
+  service_ids:
+  - policy_corpus_structured_extractor
+  - chunk_count_quality_checker
+  - uncontextualized_summary_generator
+  - reviewed_domain_adapter
+- candidate_set_id: extension_pdf_policy_corpus_ingestion_policy_corpus_confidence_scorer_candidates
+  source_step_refs:
+  - score_confidence_and_policy
+  service_ids:
+  - policy_corpus_confidence_scorer
+  - uncontextualized_summary_generator
+  - reviewed_domain_adapter
+  - keyword_only_document_searcher
+- candidate_set_id: extension_pdf_policy_corpus_ingestion_policy_corpus_review_packet_builder_candidates
+  source_step_refs:
+  - create_human_review_packet
+  service_ids:
+  - policy_corpus_review_packet_builder
+  - reviewed_domain_adapter
+  - keyword_only_document_searcher
+  - embedding_index_manifest_archiver
+- candidate_set_id: extension_pdf_policy_corpus_ingestion_policy_vector_index_manifest_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - policy_vector_index_manifest_publisher
+  - keyword_only_document_searcher
+  - embedding_index_manifest_archiver
+  - generic_llm_prompt_runner

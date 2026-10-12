@@ -1,0 +1,9 @@
+assertions_version: 0.1.0
+pipeline_id: keyword_extraction_pipeline
+scenarios:
+  - scenario: keyword_run
+    assertions:
+      - {assertion_id: gen_ok, type: json_path_equals, path: artifacts/gen_status.json, json_path: success, expected: true}
+      - {assertion_id: clean_ok, type: json_path_equals, path: artifacts/clean_status.json, json_path: success, expected: true}
+      - {assertion_id: feature_ok, type: json_path_equals, path: artifacts/feature_status.json, json_path: success, expected: true}
+      - {assertion_id: report_ok, type: json_path_equals, path: artifacts/report_status.json, json_path: success, expected: true}

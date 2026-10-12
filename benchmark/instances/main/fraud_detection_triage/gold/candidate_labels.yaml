@@ -1,0 +1,48 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:fraud_detection_triage
+candidate_sets:
+- candidate_set_id: main_fraud_detection_triage_transaction_csv_fraud_risk_analyzer_candidates
+  required_service_id: transaction_csv_fraud_risk_analyzer
+  labels:
+    transaction_csv_fraud_risk_analyzer: gold
+    csv_tabular_schema_validating_loader: missing_required_output
+    portfolio_holdings_metrics_analyzer: format_mismatch
+    content_toxicity_route_decider: target_mismatch
+    tabular_quality_score_gate: semantic_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_fraud_detection_triage_fraud_risk_threshold_route_decider_candidates
+  required_service_id: fraud_risk_threshold_route_decider
+  labels:
+    fraud_risk_threshold_route_decider: gold
+    content_toxicity_route_decider: target_mismatch
+    execution_date_backup_strategy_decider: semantic_mismatch
+    financial_account_type_regulatory_route_decider: contract_mismatch
+    tabular_quality_score_gate: contract_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_fraud_detection_triage_fraud_manual_review_status_recorder_candidates
+  required_service_id: fraud_manual_review_status_recorder
+  labels:
+    fraud_manual_review_status_recorder: gold
+    fraud_auto_approval_status_recorder: contract_mismatch
+    moderated_content_action_transformer: target_mismatch
+    moderation_audit_log_entry_creator: missing_required_output
+    dataset_quarantine_zone_writer: semantic_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_fraud_detection_triage_fraud_auto_approval_status_recorder_candidates
+  required_service_id: fraud_auto_approval_status_recorder
+  labels:
+    fraud_auto_approval_status_recorder: gold
+    fraud_manual_review_status_recorder: contract_mismatch
+    safe_content_publication_publisher: target_mismatch
+    database_table_http_flag_publisher: policy_incompatible
+    tabular_dataset_database_loader: semantic_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_fraud_detection_triage_email_notification_sender_candidates
+  required_service_id: email_notification_sender
+  labels:
+    email_notification_sender: gold
+    email_attachment_notification_sender: contract_mismatch
+    status_context_email_summary_notifier: contract_mismatch
+    aqi_threshold_email_alert_notifier: semantic_mismatch
+    bulk_email_campaign_sender: semantic_mismatch
+    slack_notification_sender: target_mismatch

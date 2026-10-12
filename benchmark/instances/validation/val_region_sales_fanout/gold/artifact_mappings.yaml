@@ -1,0 +1,30 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_region_sales_fanout
+mappings:
+- intent_id: extract_global_sales
+  inputs:
+    sales_warehouse: sales_warehouse_resource
+  outputs:
+    global_sales_extract: global_sales_extract
+    extraction_status: sales_extract_status
+- intent_id: publish_na_sales
+  inputs:
+    global_sales_extract: global_sales_extract
+    dashboard_service: dashboard_service_resource
+  outputs:
+    dashboard_payload: na_dashboard_payload
+    publication_status: na_publication_status
+- intent_id: publish_eu_sales
+  inputs:
+    global_sales_extract: global_sales_extract
+    dashboard_service: dashboard_service_resource
+  outputs:
+    dashboard_payload: eu_dashboard_payload
+    publication_status: eu_publication_status
+- intent_id: publish_apac_sales
+  inputs:
+    global_sales_extract: global_sales_extract
+    dashboard_service: dashboard_service_resource
+  outputs:
+    dashboard_payload: apac_dashboard_payload
+    publication_status: apac_publication_status

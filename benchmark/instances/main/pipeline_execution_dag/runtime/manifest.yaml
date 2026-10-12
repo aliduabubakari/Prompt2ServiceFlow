@@ -1,0 +1,52 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: pipeline_execution_dag
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: load_and_modify
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - load
+- intent_id: reconciliation
+  script: scripts/01_run.py
+  dependencies:
+  - load_and_modify
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - reconcile
+- intent_id: openmeteo_extension
+  script: scripts/01_run.py
+  dependencies:
+  - reconciliation
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - weather
+- intent_id: column_extension
+  script: scripts/01_run.py
+  dependencies:
+  - openmeteo_extension
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - extend
+- intent_id: save
+  script: scripts/01_run.py
+  dependencies:
+  - column_extension
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - save
+scenarios:
+- name: run
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal

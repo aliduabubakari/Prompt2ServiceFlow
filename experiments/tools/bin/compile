@@ -1,0 +1,7 @@
+#!/bin/sh
+# Public workspace tool: deterministic ServiceFlowIR -> Argo projection.
+# See bin/README.md for the contract.
+if command -v prompt2serviceflow-compile-submission >/dev/null 2>&1; then
+    exec prompt2serviceflow-compile-submission "$@"
+fi
+exec python3 -m prompt2serviceflow.experiments.submission_cli compile "$@"

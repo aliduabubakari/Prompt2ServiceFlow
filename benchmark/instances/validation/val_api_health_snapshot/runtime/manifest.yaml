@@ -1,0 +1,34 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_api_health_snapshot
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: poll_partner_api
+  script: scripts/01_poll_partner_api.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: normalize_status_payload
+  script: scripts/02_normalize_status_payload.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - poll_partner_api
+- intent_id: store_health_snapshot
+  script: scripts/03_store_health_snapshot.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - normalize_status_payload
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal

@@ -1,0 +1,197 @@
+schema_version: 0.1.0
+service_id: wikidata_entity_reconciliation_transformer
+version: 1.0.0
+display_name: Wikidata Entity Reconciliation Transformer
+category: Reconciler
+capability:
+  summary: Reconciles configured text fields in structured tabular JSON against a
+    Wikidata-compatible entity reconciliation source and emits enriched JSON with
+    match candidates and reconciliation status.
+  operations:
+  - Read structured tabular JSON records.
+  - Extract entity-name values from a configured column.
+  - Query or invoke a bound Wikidata-compatible reconciliation resource.
+  - Attach matched entity identifiers, labels, scores, and diagnostics to each record
+    according to configured reconciliation rules.
+  keywords:
+  - wikidata
+  - entity reconciliation
+  - supplier names
+  - record linkage
+  - enrichment
+  limitations:
+  - Targets Wikidata-compatible entity reconciliation semantics; it is not a generic
+    arbitrary API client.
+  - Does not standardize input CSV or export CSV output.
+  - External Wikidata content may change over time, affecting matches.
+  - Authentication details are not assumed.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: structured_json
+    description: Standardized JSON table artifact containing supplier or other entity-name
+      records.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://structured_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: entity_reconciliation_resource
+    description: Bound Wikidata-compatible reconciliation service or endpoint resource.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://entity_reconciliation_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: reconciled_json
+    description: Structured JSON artifact enriched with entity reconciliation fields
+      for configured source records.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://reconciled_tabular_json/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: reconciliation_status
+    description: Observable reconciliation status including rows processed, matched/unmatched
+      counts, reconciliator id, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://entity_reconciliation_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: column_name
+    description: Input column containing entity names to reconcile.
+    type: string
+    required: true
+  - name: reconciliator_id
+    description: Logical reconciler identifier, such as a Wikidata entity reconciler
+      binding.
+    type: string
+    required: true
+  - name: dataset_id
+    description: Logical dataset identifier propagated in output metadata when supplied.
+    type: string
+    required: false
+  - name: output_path
+    description: Deterministic output artifact path or name for reconciled JSON.
+    type: string
+    required: true
+  - name: match_threshold
+    description: Optional minimum score for accepting a candidate match.
+    type: number
+    required: false
+  - name: max_candidates
+    description: Optional maximum number of candidates retained per record.
+    type: integer
+    required: false
+  secrets: []
+contracts:
+- contract_id: wikidata_reconciliation_input_schema
+  type: json_schema
+  applies_to: input
+  target: structured_json
+  description: Input structured JSON must contain rows and columns and include the
+    configured entity-name column.
+  schema_ref: schema://structured_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}}}}
+    and column_name in structured_json.columns'
+- contract_id: wikidata_reconciliator_required
+  type: precondition
+  applies_to: service
+  target: wikidata_entity_reconciliation_transformer
+  description: Configured reconciliator id must identify a Wikidata-compatible reconciliation
+    resource.
+  expression: length(trim(reconciliator_id)) > 0 and resolves_reconciler(entity_reconciliation_resource,
+    reconciliator_id)
+- contract_id: reconciled_tabular_json_schema
+  type: json_schema
+  applies_to: output
+  target: reconciled_json
+  description: Reconciled JSON preserves rows and adds reconciliation metadata for
+    the configured column.
+  schema_ref: schema://reconciled_tabular_json/v1
+  expression: '{"type":"object","required":["columns","rows","reconciliation"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"reconciliation":{"type":"object","required":["column_name","reconciliator_id"],"properties":{"column_name":{"type":"string"},"reconciliator_id":{"type":"string"}}}}}'
+- contract_id: wikidata_reconciliation_status_schema
+  type: json_schema
+  applies_to: output
+  target: reconciliation_status
+  description: Status exposes reconciliation effect for workflow validation.
+  schema_ref: schema://entity_reconciliation_status/v1
+  expression: '{"type":"object","required":["success","reconciliator_id","column_name","rows_processed","rows_matched","rows_unmatched"],"properties":{"success":{"type":"boolean"},"reconciliator_id":{"type":"string"},"column_name":{"type":"string"},"rows_processed":{"type":"integer","minimum":0},"rows_matched":{"type":"integer","minimum":0},"rows_unmatched":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: wikidata_reconciliation_effect
+  type: effect
+  applies_to: service
+  target: wikidata_entity_reconciliation_transformer
+  description: On success, all input rows are processed and a reconciled JSON artifact
+    is emitted.
+  expression: reconciliation_status.success == true implies exists(reconciled_json)
+    and reconciliation_status.rows_processed == reconciliation_status.rows_matched
+    + reconciliation_status.rows_unmatched
+invocation:
+  type: argo_workflow_template
+  template_name: wikidata-entity-reconciliation-transformer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.wikidata_entity_reconciliation_transformer
+  implementation_ref: services/implementations/wikidata_entity_reconciliation_transformer
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - https://www.wikidata.org/*
+  - https://query.wikidata.org/*
+  - reconciler://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit credentials or raw full supplier rows in status outputs.
+  - Respect external reconciliation service rate limits; retry cadence remains orchestration-level.
+  - The network name from the source container configuration is runtime infrastructure,
+    not catalogue semantics.
+  idempotency_notes: For fixed input data, reconciliation parameters, and a stable
+    external Wikidata snapshot, outputs are deterministic; external entity data may
+    change over time.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:procurement_supplier_validation_v1#reconcile_supplier_entities
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service performs field-level entity reconciliation
+    against Wikidata while preserving structured table artifacts and emitting match
+    counts.'
+  - 'Evidence status: explicit.'

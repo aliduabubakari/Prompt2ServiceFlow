@@ -1,0 +1,24 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:environmental_sensor_anomaly_batch
+bindings:
+- intent_id: ingest_bounded_events
+  service_id: bounded_timeseries_event_ingestor
+  service_version: 1.0.0
+- intent_id: validate_checkpoint_inputs
+  service_id: bounded_window_checkpoint_validator
+  service_version: 1.0.0
+- intent_id: sort_and_deduplicate_records
+  service_id: timeseries_record_sort_deduplicator
+  service_version: 1.0.0
+- intent_id: build_analysis_windows
+  service_id: bounded_analysis_window_builder
+  service_version: 1.0.0
+- intent_id: compute_window_metrics
+  service_id: window_metric_aggregator
+  service_version: 1.0.0
+- intent_id: align_time_index
+  service_id: timeseries_index_alignment_transformer
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: timeseries_output_bundle_publisher
+  service_version: 1.0.0

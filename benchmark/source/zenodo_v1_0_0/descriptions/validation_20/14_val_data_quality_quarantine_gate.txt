@@ -1,0 +1,70 @@
+Pipeline Summary:
+- Pipeline ID: val_data_quality_quarantine_gate
+- Name: Data Quality Quarantine Gate
+- Purpose: Profile a customer data extract, branch invalid records to quarantine, load valid records, and write an audit summary.
+- Execution model: Batch
+- Topology pattern: Branch/merge
+- Business domain: Data Governance
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - profile_customer_extract -> evaluate_quality_rules
+  - evaluate_quality_rules -> load_valid_records
+  - evaluate_quality_rules -> quarantine_invalid_records
+  - load_valid_records -> write_quality_audit
+  - quarantine_invalid_records -> write_quality_audit
+- Parallel groups:
+  - none
+- Branch points:
+  - {'step': 'evaluate_quality_rules', 'conditions': ['quality_pass', 'quality_fail'], 'merge_step': 'write_quality_audit'}
+- Gate or sensor dependencies:
+  - {'step': 'evaluate_quality_rules', 'condition': 'quality_score_available'}
+
+Data Artifacts / I-O Identifiers:
+  - data_object: customer_extract
+  - data_object: valid_records
+  - data_object: invalid_records
+
+External Systems:
+  - external_service: Customer warehouse
+  - external_service: Quarantine bucket
+
+Pipeline Steps:
+1. profile_customer_extract - profile customer extract
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. evaluate_quality_rules - evaluate quality rules
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. load_valid_records - load valid records
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+4. quarantine_invalid_records - quarantine invalid records
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+5. write_quality_audit - write quality audit
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

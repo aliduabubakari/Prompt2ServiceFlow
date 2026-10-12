@@ -1,0 +1,64 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:pcd-etl
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_pcd_etl_file_location_availability_sensor_candidates
+  source_step_refs:
+  - Check_PCD_SFTP_Folder
+  - Check_PCD_Shared_Folder
+  service_ids:
+  - file_location_availability_sensor
+  - ftp_file_artifact_downloader
+  - filesystem_retention_cleanup_with_lock
+  - sql_query_readiness_sensor
+  - kubernetes_job_template_executor
+  - reviewed_domain_adapter
+- candidate_set_id: main_pcd_etl_http_api_request_artifact_extractor_candidates
+  source_step_refs:
+  - Status_Tracker
+  - Financial_Expense
+  - UPCC_Financial_Reportingr
+  - CHC_Financial_reporting
+  - PCN_Financial_Reporting
+  - NPPCC_Financial_Reporting
+  - Fiscal_Year_Reporting_Dates
+  - UPCC_Primary_Care_Patient_Services
+  - CHC_Primary_Care_Patient_Services
+  - Practitioner_Role_Mapping
+  - Provincial_Risk_Tracking
+  - Decision_Log
+  - HA_Hierarchy
+  - HR_Records
+  - UPPC_Budget
+  - CHC_Budget
+  - PCN_Budget
+  - NPPCC_Budget
+  service_ids:
+  - http_api_request_artifact_extractor
+  - http_json_request_extractor
+  - graphql_json_operation_executor
+  - airvisual_nearest_city_json_extractor
+  - ftp_file_artifact_downloader
+  - open_network_http_json_requester
+- candidate_set_id: main_pcd_etl_kubernetes_job_template_executor_candidates
+  source_step_refs:
+  - PCD_file_upload
+  service_ids:
+  - kubernetes_job_template_executor
+  - external_workflow_run_trigger
+  - databricks_notebook_run_executor
+  - spark_class_object_storage_table_loader
+  - file_location_availability_sensor
+  - reviewed_domain_adapter
+- candidate_set_id: main_pcd_etl_email_notification_sender_candidates
+  source_step_refs:
+  - ETL_Notification
+  service_ids:
+  - email_notification_sender
+  - status_context_email_summary_notifier
+  - email_attachment_notification_sender
+  - slack_notification_sender
+  - aqi_threshold_email_alert_notifier
+  - unrestricted_email_notification_sender

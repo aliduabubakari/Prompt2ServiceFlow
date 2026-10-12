@@ -1,0 +1,59 @@
+assertions_version: 0.1.0
+pipeline_id: multi_region_ecommerce_analytics
+scenarios:
+- scenario: regional_revenue_run
+  assertions:
+  - assertion_id: us_east_exported
+    type: json_path_equals
+    path: artifacts/us_east_ingest_status.json
+    json_path: rows_exported
+    expected: 1
+  - assertion_id: us_west_exported
+    type: json_path_equals
+    path: artifacts/us_west_ingest_status.json
+    json_path: rows_exported
+    expected: 1
+  - assertion_id: eu_exported
+    type: json_path_equals
+    path: artifacts/eu_ingest_status.json
+    json_path: rows_exported
+    expected: 1
+  - assertion_id: apac_exported
+    type: json_path_equals
+    path: artifacts/apac_ingest_status.json
+    json_path: rows_exported
+    expected: 1
+  - assertion_id: us_east_converted
+    type: json_path_equals
+    path: artifacts/us_east_convert_status.json
+    json_path: rows_converted
+    expected: 1
+  - assertion_id: us_west_converted
+    type: json_path_equals
+    path: artifacts/us_west_convert_status.json
+    json_path: rows_converted
+    expected: 1
+  - assertion_id: eu_converted
+    type: json_path_equals
+    path: artifacts/eu_convert_status.json
+    json_path: rows_converted
+    expected: 1
+  - assertion_id: apac_converted
+    type: json_path_equals
+    path: artifacts/apac_convert_status.json
+    json_path: rows_converted
+    expected: 1
+  - assertion_id: four_inputs_aggregated
+    type: json_path_equals
+    path: artifacts/aggregate_status.json
+    json_path: input_file_count
+    expected: 4
+  - assertion_id: global_revenue_total
+    type: json_path_equals
+    path: artifacts/aggregate_status.json
+    json_path: total_revenue_usd
+    expected: 43230.0
+  - assertion_id: global_report_has_four_regions
+    type: csv_row_count
+    path: artifacts/global_report.csv
+    expected: 4

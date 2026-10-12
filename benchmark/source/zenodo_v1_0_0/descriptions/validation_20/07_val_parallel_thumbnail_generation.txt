@@ -1,0 +1,62 @@
+Pipeline Summary:
+- Pipeline ID: val_parallel_thumbnail_generation
+- Name: Parallel Thumbnail Generation
+- Purpose: Download new product images and generate small, medium, and large thumbnails in parallel.
+- Execution model: Batch
+- Topology pattern: Fan-out only
+- Business domain: Media Processing
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - download_new_images -> generate_small_thumbnail
+  - download_new_images -> generate_medium_thumbnail
+  - download_new_images -> generate_large_thumbnail
+- Parallel groups:
+  - group 1: generate_small_thumbnail, generate_medium_thumbnail, generate_large_thumbnail
+- Branch points:
+  - none
+- Gate or sensor dependencies:
+  - none
+
+Data Artifacts / I-O Identifiers:
+  - data_object: raw_product_images
+  - data_object: small_thumbnail
+  - data_object: medium_thumbnail
+
+External Systems:
+  - external_service: Image CDN
+  - external_service: Object storage
+
+Pipeline Steps:
+1. download_new_images - download new images
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. generate_small_thumbnail - generate small thumbnail
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. generate_medium_thumbnail - generate medium thumbnail
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+4. generate_large_thumbnail - generate large thumbnail
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

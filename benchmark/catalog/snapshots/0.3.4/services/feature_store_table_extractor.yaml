@@ -1,0 +1,94 @@
+schema_version: 0.1.0
+service_id: feature_store_table_extractor
+version: 1.0.0
+display_name: Feature Store Table Extractor
+category: Extractor
+capability:
+  summary: Reads a named customer feature table from a bound feature store.
+  operations:
+  - Reads a named customer feature table from a bound feature store.
+  keywords:
+  - feature
+  - store
+  - table
+  - extractor
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: feature_store
+    description: Reviewed feature store value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: customer_features
+    description: Reviewed customer features value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: extraction_status
+    description: Reviewed extraction status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: feature_table
+    description: Configuration for feature table.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: feature-store-table-extractor
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.feature_store_table_extractor
+  implementation_ref: services/implementations/feature_store_table_extractor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-24T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-01:curated-extension
+  notes:
+  - Curated from sparse Validation-20 descriptions; bindings retain inference confidence.

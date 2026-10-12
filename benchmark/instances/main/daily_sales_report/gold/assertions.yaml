@@ -1,0 +1,38 @@
+assertions_version: 0.1.0
+pipeline_id: daily_sales_report
+scenarios:
+  - scenario: daily_report_generation
+    assertions:
+      - assertion_id: query_succeeded
+        type: json_path_equals
+        path: artifacts/query_status.json
+        json_path: success
+        expected: true
+      - assertion_id: three_sales_rows
+        type: json_path_equals
+        path: artifacts/query_status.json
+        json_path: rows_returned
+        expected: 3
+      - assertion_id: transform_succeeded
+        type: json_path_equals
+        path: artifacts/transform_status.json
+        json_path: success
+        expected: true
+      - assertion_id: csv_has_three_rows
+        type: json_path_equals
+        path: artifacts/transform_status.json
+        json_path: rows_written
+        expected: 3
+      - assertion_id: chart_render_succeeded
+        type: json_path_equals
+        path: artifacts/chart_render_status.json
+        json_path: success
+        expected: true
+      - assertion_id: pdf_exists
+        type: file_exists
+        path: artifacts/sales_chart.pdf
+      - assertion_id: notification_sent
+        type: json_path_equals
+        path: artifacts/notification_status.json
+        json_path: sent
+        expected: true

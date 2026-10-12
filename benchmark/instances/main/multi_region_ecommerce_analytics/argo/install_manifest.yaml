@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-region-ecommerce-analytics-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Export, convert, and aggregate deterministic regional sales\
+    \ fixtures.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport csv\nimport json\n\
+    import shutil\nfrom decimal import Decimal, ROUND_HALF_UP\nfrom pathlib import Path\n\n\nREGIONS =\
+    \ (\"us_east\", \"us_west\", \"eu\", \"apac\")\n\n\ndef read_rows(path: Path) -> list[dict[str, str]]:\n\
+    \    with path.open(encoding=\"utf-8\", newline=\"\") as handle:\n        return list(csv.DictReader(handle))\n\
+    \n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\"\
+    , type=Path, required=True)\n    parser.add_argument(\"--step\", choices=(\"export\", \"convert\"\
+    , \"aggregate\"), required=True)\n    parser.add_argument(\"--region\", choices=REGIONS)\n    parser.add_argument(\"\
+    --database-resource\", type=Path)\n    parser.add_argument(\"--source-fixture\", type=Path)\n    parser.add_argument(\"\
+    --exchange-rates\", type=Path)\n    args = parser.parse_args()\n    artifacts = args.workspace / \"\
+    artifacts\"\n    artifacts.mkdir(parents=True, exist_ok=True)\n    if args.step == \"export\":\n \
+    \       if not args.region or not args.database_resource or not args.source_fixture:\n           \
+    \ raise SystemExit(\"export requires region, database resource, and source fixture\")\n        resource\
+    \ = json.loads(args.database_resource.read_text(encoding=\"utf-8\"))\n        output = artifacts /\
+    \ f\"{args.region}_sales.csv\"\n        shutil.copyfile(args.source_fixture, output)\n        rows\
+    \ = read_rows(output)\n        status = {\"success\": True, \"region\": resource[\"region\"], \"rows_exported\"\
+    : len(rows), \"errors\": []}\n        (artifacts / f\"{args.region}_ingest_status.json\").write_text(json.dumps(status,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n        return\n    if args.step == \"convert\":\n   \
+    \     if not args.region or not args.exchange_rates:\n            raise SystemExit(\"convert requires\
+    \ region and exchange rates\")\n        rate_document = json.loads(args.exchange_rates.read_text(encoding=\"\
+    utf-8\"))\n        rates = {row[\"currency\"]: Decimal(str(row[\"rate_to_usd\"])) for row in rate_document[\"\
+    rows\"]}\n        rows = read_rows(artifacts / f\"{args.region}_sales.csv\")\n        output_rows\
+    \ = []\n        for row in rows:\n            rate = rates[row[\"currency\"]]\n            revenue\
+    \ = (Decimal(row[\"revenue\"]) * rate).quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)\n     \
+    \       output_rows.append({\"product_id\": row[\"product_id\"], \"revenue_usd\": f\"{revenue:.2f}\"\
+    , \"region\": args.region})\n        output = artifacts / f\"{args.region}_usd.csv\"\n        with\
+    \ output.open(\"w\", encoding=\"utf-8\", newline=\"\") as handle:\n            writer = csv.DictWriter(handle,\
+    \ fieldnames=[\"product_id\", \"revenue_usd\", \"region\"])\n            writer.writeheader()\n  \
+    \          writer.writerows(output_rows)\n        status = {\"success\": True, \"region\": args.region,\
+    \ \"rows_converted\": len(output_rows), \"errors\": []}\n        (artifacts / f\"{args.region}_convert_status.json\"\
+    ).write_text(json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\")\n        return\n    all_rows\
+    \ = []\n    for region in REGIONS:\n        all_rows.extend(read_rows(artifacts / f\"{region}_usd.csv\"\
+    ))\n    totals: dict[str, Decimal] = {}\n    for row in all_rows:\n        totals[row[\"region\"]]\
+    \ = totals.get(row[\"region\"], Decimal(\"0\")) + Decimal(row[\"revenue_usd\"])\n    output = artifacts\
+    \ / \"global_report.csv\"\n    with output.open(\"w\", encoding=\"utf-8\", newline=\"\") as handle:\n\
+    \        writer = csv.DictWriter(handle, fieldnames=[\"region\", \"total_revenue_usd\"])\n       \
+    \ writer.writeheader()\n        for region in REGIONS:\n            writer.writerow({\"region\": region,\
+    \ \"total_revenue_usd\": f\"{totals[region]:.2f}\"})\n    status = {\n        \"success\": True,\n\
+    \        \"input_file_count\": len(REGIONS),\n        \"rows_aggregated\": len(all_rows),\n      \
+    \  \"total_revenue_usd\": float(sum(totals.values())),\n        \"errors\": [],\n    }\n    (artifacts\
+    \ / \"aggregate_status.json\").write_text(json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\
+    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-region-ecommerce-analytics-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: 'product_id,revenue,currency
+
+    P004,800000,JPY'
+  fixture-0001: "{\n  \"driver\": \"filesystem-mock\",\n  \"engine\": \"postgresql\",\n  \"target\": \"\
+    regional_sales_apac\",\n  \"table\": \"sales\",\n  \"region\": \"APAC\"\n}\n"
+  fixture-0002: 'product_id,revenue,currency
+
+    P003,10000,EUR'
+  fixture-0003: "{\n  \"driver\": \"filesystem-mock\",\n  \"engine\": \"postgresql\",\n  \"target\": \"\
+    regional_sales_eu\",\n  \"table\": \"sales\",\n  \"region\": \"EU\"\n}\n"
+  fixture-0004: "{\n  \"columns\": [\n    \"currency\",\n    \"rate_to_usd\"\n  ],\n  \"rows\": [\n  \
+    \  {\n      \"currency\": \"USD\",\n      \"rate_to_usd\": 1.0\n    },\n    {\n      \"currency\"\
+    : \"EUR\",\n      \"rate_to_usd\": 1.087\n    },\n    {\n      \"currency\": \"JPY\",\n      \"rate_to_usd\"\
+    : 0.0067\n    }\n  ]\n}\n"
+  fixture-0005: "{\n  \"pipeline_id\": \"multi_region_ecommerce_analytics\",\n  \"inputs\": {\n    \"\
+    apac_database\": \"apac_database.json\",\n    \"exchange_rates\": \"exchange_rates.json\",\n    \"\
+    apac\": \"apac.csv\",\n    \"us_west_database\": \"us_west_database.json\",\n    \"us_east_database\"\
+    : \"us_east_database.json\",\n    \"eu_database\": \"eu_database.json\",\n    \"eu\": \"eu.csv\",\n\
+    \    \"us_east\": \"us_east.csv\",\n    \"us_west\": \"us_west.csv\"\n  },\n  \"input_modalities\"\
+    : [\n    \"json\",\n    \"table\"\n  ],\n  \"systems\": [\n    \"system_a\",\n    \"system_b\"\n \
+    \ ]\n}"
+  fixture-0006: 'product_id,revenue,currency
+
+    P001,15000,USD'
+  fixture-0007: "{\n  \"driver\": \"filesystem-mock\",\n  \"engine\": \"postgresql\",\n  \"target\": \"\
+    regional_sales_us_east\",\n  \"table\": \"sales\",\n  \"region\": \"US-East\"\n}\n"
+  fixture-0008: 'product_id,revenue,currency
+
+    P002,12000,USD'
+  fixture-0009: "{\n  \"driver\": \"filesystem-mock\",\n  \"engine\": \"postgresql\",\n  \"target\": \"\
+    regional_sales_us_west\",\n  \"table\": \"sales\",\n  \"region\": \"US-West\"\n}\n"

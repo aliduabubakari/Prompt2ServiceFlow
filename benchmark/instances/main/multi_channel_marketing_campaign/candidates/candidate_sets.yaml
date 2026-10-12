@@ -1,0 +1,46 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:multi_channel_marketing_campaign
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_multi_channel_marketing_campaign_customer_segment_csv_loader_candidates
+  source_step_refs:
+  - load_customer_segment_csv
+  service_ids:
+  - customer_segment_csv_loader
+  - csv_artifact_profile_ingestor
+  - csv_tabular_schema_validating_loader
+  - delimited_file_tabular_dataset_loader
+  - user_content_csv_scanner
+  - legacy_csv_schema_validator
+- candidate_set_id: main_multi_channel_marketing_campaign_bulk_email_campaign_sender_candidates
+  source_step_refs:
+  - send_email_campaign
+  service_ids:
+  - bulk_email_campaign_sender
+  - email_notification_sender
+  - email_attachment_notification_sender
+  - status_context_email_summary_notifier
+  - bulk_sms_campaign_sender
+  - bulk_push_notification_campaign_sender
+- candidate_set_id: main_multi_channel_marketing_campaign_bulk_sms_campaign_sender_candidates
+  source_step_refs:
+  - send_sms_campaign
+  service_ids:
+  - bulk_sms_campaign_sender
+  - bulk_email_campaign_sender
+  - bulk_push_notification_campaign_sender
+  - http_api_request_artifact_extractor
+  - email_notification_sender
+  - open_network_http_json_requester
+- candidate_set_id: main_multi_channel_marketing_campaign_bulk_push_notification_campaign_sender_candidates
+  source_step_refs:
+  - send_push_notification
+  service_ids:
+  - bulk_push_notification_campaign_sender
+  - bulk_sms_campaign_sender
+  - bulk_email_campaign_sender
+  - http_api_request_artifact_extractor
+  - safe_content_publication_publisher
+  - open_network_http_json_requester

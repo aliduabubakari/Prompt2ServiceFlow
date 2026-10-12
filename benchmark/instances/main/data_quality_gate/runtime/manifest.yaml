@@ -1,0 +1,85 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: data_quality_gate
+image: python:3.12-slim
+workflow_parameters:
+- name: fixture-file
+  default: customers_high_quality.csv
+tasks:
+- intent_id: ingest_customer_csv
+  script: scripts/01_ingest_customer_csv.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{fixture-file}'
+  retries: 1
+- intent_id: assess_customer_quality
+  script: scripts/02_assess_customer_quality.py
+  dependencies:
+  - ingest_customer_csv
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --threshold
+  - '95'
+  output_parameters:
+  - name: route
+    path: /workspace/artifacts/quality_route.txt
+  retries: 1
+- intent_id: load_production_data
+  script: scripts/03_load_production_data.py
+  dependencies:
+  - assess_customer_quality
+  when: '{{tasks.assess_customer_quality.outputs.parameters.route}} == production'
+  local_condition:
+    path: artifacts/quality_decision.json
+    json_path: route
+    equals: production
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: quarantine_customer_data
+  script: scripts/04_quarantine_customer_data.py
+  dependencies:
+  - assess_customer_quality
+  when: '{{tasks.assess_customer_quality.outputs.parameters.route}} == quarantine'
+  local_condition:
+    path: artifacts/quality_decision.json
+    json_path: route
+    equals: quarantine
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: notify_data_stewards
+  script: scripts/05_notify_data_stewards.py
+  dependencies:
+  - quarantine_customer_data
+  when: '{{tasks.assess_customer_quality.outputs.parameters.route}} == quarantine'
+  local_condition:
+    path: artifacts/quality_decision.json
+    json_path: route
+    equals: quarantine
+  arguments:
+  - --workspace
+  - '{workspace}'
+- intent_id: cleanup_temporary_resources
+  script: scripts/06_cleanup_temporary_resources.py
+  depends: (load_production_data.Succeeded || notify_data_stewards.Succeeded)
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+scenarios:
+- name: high_quality_production
+  parameters:
+    fixture-file: customers_high_quality.csv
+  fixture_root: fixtures/inputs
+- name: low_quality_quarantine
+  parameters:
+    fixture-file: customers_low_quality.csv
+  fixture_root: fixtures/inputs
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

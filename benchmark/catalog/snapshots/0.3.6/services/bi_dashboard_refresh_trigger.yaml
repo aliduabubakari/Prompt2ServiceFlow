@@ -1,0 +1,180 @@
+schema_version: 0.1.0
+service_id: bi_dashboard_refresh_trigger
+version: 1.0.0
+display_name: BI Dashboard Refresh Trigger
+category: Publisher
+capability:
+  summary: Triggers a refresh for one or more configured BI dashboards or datasets
+    in a bound BI service and emits an observable refresh notification/status.
+  operations:
+  - Resolve a bound BI service resource such as Power BI or Tableau.
+  - Validate configured dashboard, dataset, workbook, or project identifiers.
+  - Submit a refresh request to the BI service.
+  - Emit refresh request reference, initiated flag, provider status, and diagnostics.
+  keywords:
+  - bi refresh
+  - dashboard refresh
+  - power bi
+  - tableau
+  - publisher
+  - notification
+  limitations:
+  - Does not render or build dashboards.
+  - Does not wait for long-running refresh completion unless a status-check mode is
+    explicitly configured.
+  - Repeated invocations may initiate duplicate refreshes unless provider idempotency
+    is available.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: refresh_context
+    description: Optional upstream transformed dataset or load status context used
+      to validate that refresh should be initiated.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://notification_summary_context/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  - name: bi_service
+    description: Cloud BI service resource used to initiate dashboard or dataset refresh.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://bi_service_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: refresh_notification
+    description: Observable notification indicating that a BI refresh was initiated
+      or skipped/failed.
+    channel: artifact
+    data_type: notification
+    media_type: application/json
+    schema_ref: schema://bi_refresh_notification/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: refresh_status
+    description: Status containing requested BI target, request attempted flag, provider
+      request id, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://bi_refresh_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: bi_tool
+    description: BI platform family for policy and mock validation.
+    type: string
+    required: true
+    enum:
+    - power_bi
+    - tableau
+    - generic_http_bi
+  - name: target_identifier
+    description: Dataset, dashboard, workbook, or refresh target identifier.
+    type: string
+    required: true
+  - name: refresh_mode
+    description: Refresh behavior to request.
+    type: string
+    required: false
+    enum:
+    - full
+    - incremental
+    - provider_default
+  - name: wait_for_completion
+    description: Whether the service should wait for provider terminal refresh status
+      before returning.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: bi_refresh_target_required
+  type: precondition
+  applies_to: parameter
+  target: target_identifier
+  description: BI refresh target identifier must be non-empty.
+  expression: length(trim(target_identifier)) > 0
+- contract_id: bi_refresh_status_schema
+  type: json_schema
+  applies_to: output
+  target: refresh_status
+  description: Status exposes BI refresh request outcome.
+  schema_ref: schema://bi_refresh_status/v1
+  expression: '{"type":"object","required":["success","bi_tool","target_identifier","request_attempted","refresh_initiated"],"properties":{"success":{"type":"boolean"},"bi_tool":{"type":"string"},"target_identifier":{"type":"string"},"request_attempted":{"type":"boolean"},"refresh_initiated":{"type":"boolean"},"provider_request_id":{"type":["string","null"]},"provider_state":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: bi_refresh_notification_schema
+  type: json_schema
+  applies_to: output
+  target: refresh_notification
+  description: Notification output exposes refresh initiation for downstream validation.
+  schema_ref: schema://bi_refresh_notification/v1
+  expression: '{"type":"object","required":["refresh_initiated","target_identifier","bi_tool"],"properties":{"refresh_initiated":{"type":"boolean"},"target_identifier":{"type":"string"},"bi_tool":{"type":"string"},"message":{"type":["string","null"]}}}'
+- contract_id: bi_refresh_effect
+  type: effect
+  applies_to: service
+  target: bi_dashboard_refresh_trigger
+  description: On success, a BI refresh request was attempted and initiation is observable
+    in both status and notification outputs.
+  expression: refresh_status.success == true implies refresh_status.request_attempted
+    == true and refresh_notification.refresh_initiated == refresh_status.refresh_initiated
+invocation:
+  type: argo_workflow_template
+  template_name: bi-dashboard-refresh-trigger-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.bi_dashboard_refresh_trigger
+  implementation_ref: services/implementations/bi_dashboard_refresh_trigger
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - https://api.powerbi.com/*
+  - https://*.tableau.com/*
+  - https://*
+  secret_access: required
+  retry_safe: false
+  idempotency: non_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit BI service credentials or tokens in outputs/logs.
+  - Status output is required so workflow validation can observe refresh initiation.
+  - Long polling cadence and retries remain orchestration-level concerns.
+  idempotency_notes: Retries may initiate duplicate BI refreshes unless the BI provider
+    supports idempotency or rejects concurrent refreshes.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:healthcare_claims_etl#refresh_bi
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service models BI dashboard/dataset refresh initiation
+    with observable notification/status output.'
+  - 'Evidence status: explicit.'

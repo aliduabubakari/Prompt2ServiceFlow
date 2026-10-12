@@ -1,0 +1,108 @@
+schema_version: 0.1.0
+service_id: sensor_window_alignment_fuser
+version: 1.0.0
+display_name: Sensor Window Alignment Fuser
+category: Integrator
+capability:
+  summary: Aligns temperature, vibration, and pressure feeds into timestamp windows.
+  operations:
+  - Aligns temperature, vibration, and pressure feeds into timestamp windows.
+  keywords:
+  - sensor
+  - window
+  - alignment
+  - fuser
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: temperature_feed
+    description: Reviewed temperature feed value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: vibration_feed
+    description: Reviewed vibration feed value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: pressure_feed
+    description: Reviewed pressure feed value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: aligned_sensor_windows
+    description: Reviewed aligned sensor windows value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: alignment_status
+    description: Reviewed alignment status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: timestamp_column
+    description: Configuration for timestamp column.
+    type: string
+    required: true
+  - name: window_seconds
+    description: Configuration for window seconds.
+    type: integer
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: sensor-window-alignment-fuser
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.2
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.sensor_window_alignment_fuser
+  implementation_ref: services/implementations/sensor_window_alignment_fuser
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-03:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 03 descriptions; bindings retain inference confidence.

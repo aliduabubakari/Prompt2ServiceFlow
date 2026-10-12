@@ -1,0 +1,198 @@
+schema_version: 0.1.0
+service_id: postgres_parameterized_sql_executor
+version: 1.0.0
+display_name: PostgreSQL Parameterized SQL Executor
+category: Loader
+capability:
+  summary: Executes caller-supplied PostgreSQL SQL statements, including DDL and parameterized
+    DML, against a bound PostgreSQL database and emits affected table references plus
+    execution status.
+  operations:
+  - Connect to a bound PostgreSQL database resource.
+  - Execute one or more SQL statements in supplied order.
+  - Bind parameters from an optional JSON object for parameterized statements.
+  - Report affected tables, rows affected when available, and success/failure status.
+  keywords:
+  - postgresql
+  - sql
+  - ddl
+  - dml
+  - parameterized query
+  - create table
+  - insert
+  - database mutation
+  limitations:
+  - Targets PostgreSQL-compatible databases only.
+  - Does not infer or validate business SQL semantics beyond supplied contracts.
+  - Idempotency depends on caller-supplied SQL, constraints, and write mode.
+  - Does not manage workflow ordering or retries.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: postgres_database
+    description: PostgreSQL-compatible database resource used to execute SQL.
+    channel: external_resource
+    data_type: object
+    schema_ref: schema://postgres_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: parameter_values
+    description: Optional JSON object containing values to bind into parameterized
+      SQL statements, such as firstname, lastname, and email.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://sql_parameter_values/v1
+    required: false
+    cardinality: one
+    sensitivity: pii
+  outputs:
+  - name: affected_tables
+    description: Logical references to PostgreSQL tables affected or expected to be
+      affected by the SQL statements.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://sql_affected_table_references/v1
+    required: true
+    cardinality: many
+    sensitivity: internal
+  - name: execution_status
+    description: Observable SQL execution status containing success, statement counts,
+      affected row count, target tables, and errors.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://postgres_sql_execution_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: sql_statements
+    description: Array of SQL statements to execute in order.
+    type: array
+    required: true
+  - name: target_tables
+    description: Optional array of expected affected table names, optionally schema-qualified.
+    type: array
+    required: false
+  - name: transaction_mode
+    description: Transaction behavior for multiple statements.
+    type: string
+    required: false
+    enum:
+    - single_transaction
+    - autocommit
+  - name: statement_type
+    description: Declared statement class for policy and mock validation.
+    type: string
+    required: false
+    enum:
+    - ddl
+    - dml
+    - mixed
+  secrets: []
+contracts:
+- contract_id: postgres_sql_non_empty_contract
+  type: precondition
+  applies_to: parameter
+  target: sql_statements
+  description: At least one non-empty SQL statement must be supplied.
+  expression: length(sql_statements) > 0 and all(length(trim(s)) > 0 for s in sql_statements)
+- contract_id: postgres_target_table_contract
+  type: precondition
+  applies_to: parameter
+  target: target_tables
+  description: Configured target table names must be valid SQL identifier-like names,
+    optionally schema-qualified.
+  expression: target_tables == null or all(t matches '^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$'
+    for t in target_tables)
+- contract_id: sql_parameter_values_schema
+  type: json_schema
+  applies_to: input
+  target: parameter_values
+  description: Parameter values, when supplied, are a JSON object keyed by parameter
+    name.
+  schema_ref: schema://sql_parameter_values/v1
+  expression: '{"type":"object","additionalProperties":true}'
+- contract_id: postgres_affected_tables_schema
+  type: json_schema
+  applies_to: output
+  target: affected_tables
+  description: Affected table references expose database table identifiers and operation
+    type when known.
+  schema_ref: schema://sql_affected_table_references/v1
+  expression: '{"type":"array","items":{"type":"object","required":["table_name"],"properties":{"schema_name":{"type":["string","null"]},"table_name":{"type":"string"},"operation":{"type":["string","null"]}}}}'
+- contract_id: postgres_sql_execution_status_schema
+  type: json_schema
+  applies_to: output
+  target: execution_status
+  description: Status exposes database mutation outcome for downstream validation.
+  schema_ref: schema://postgres_sql_execution_status/v1
+  expression: '{"type":"object","required":["success","statements_submitted","statements_succeeded","affected_tables"],"properties":{"success":{"type":"boolean"},"statements_submitted":{"type":"integer","minimum":0},"statements_succeeded":{"type":"integer","minimum":0},"rows_affected":{"type":["integer","null"],"minimum":0},"affected_tables":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: postgres_sql_executor_effect
+  type: effect
+  applies_to: service
+  target: postgres_parameterized_sql_executor
+  description: On success, all submitted statements completed and execution_status.success
+    is true.
+  expression: execution_status.success == true implies execution_status.statements_succeeded
+    == execution_status.statements_submitted
+invocation:
+  type: argo_workflow_template
+  template_name: postgres-parameterized-sql-executor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.postgres_parameterized_sql_executor
+  implementation_ref: services/implementations/postgres_parameterized_sql_executor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - postgresql://*
+  secret_access: required
+  retry_safe: false
+  idempotency: unknown
+  data_sensitivity:
+  - pii
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - PostgreSQL credentials must not be emitted in logs or status.
+  - Caller-supplied SQL should be reviewed or constrained before binding.
+  - Status output is required so downstream validation can observe the database effect
+    without inspecting PostgreSQL directly.
+  idempotency_notes: DDL with CREATE TABLE IF NOT EXISTS may be idempotent; INSERT
+    statements can duplicate rows unless constrained or written with conflict handling.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:assignment_solution#create_table
+  - main:assignment_solution#insert_data
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing database loader requires tabular metadata and cannot create
+    tables or execute parameterized single-record SQL. A PostgreSQL SQL executor covers
+    both DDL and DML source steps without being pipeline-specific.'
+  - 'Evidence status: strongly_inferred.'

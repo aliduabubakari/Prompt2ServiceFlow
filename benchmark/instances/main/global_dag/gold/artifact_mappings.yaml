@@ -1,0 +1,117 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:global_dag
+mappings:
+- intent_id: ingest_get_city_code_geo
+  inputs:
+    http_api_resource: http_api_resource
+  outputs:
+    response_artifact: ingest_get_city_code_geo_result
+    extraction_status: ingest_get_city_code_geo_status
+- intent_id: ingest_get_nuclear_json
+  inputs: {}
+  outputs:
+    response_json: ingest_get_nuclear_json_result
+    extraction_status: ingest_get_nuclear_json_status
+- intent_id: ingest_get_death_resource_list
+  inputs: {}
+  outputs:
+    response_json: ingest_get_death_resource_list_result
+    extraction_status: ingest_get_death_resource_list_status
+- intent_id: ingest_get_thermal_json
+  inputs: {}
+  outputs:
+    response_json: ingest_get_thermal_json_result
+    extraction_status: ingest_get_thermal_json_status
+- intent_id: ingest_get_nuclear_data
+  inputs:
+    dataset_metadata_json: ingest_get_nuclear_json_result
+  outputs:
+    downloaded_files: ingest_get_nuclear_data_result
+    download_status: ingest_get_nuclear_data_status
+- intent_id: ingest_get_death_resources
+  inputs:
+    dataset_metadata_json: ingest_get_death_resource_list_result
+  outputs:
+    downloaded_files: ingest_get_death_resources_result
+    download_status: ingest_get_death_resources_status
+- intent_id: ingest_get_thermal_data
+  inputs:
+    dataset_metadata_json: ingest_get_thermal_json_result
+  outputs:
+    downloaded_files: ingest_get_thermal_data_result
+    download_status: ingest_get_thermal_data_status
+- intent_id: stage_import_nuclear_clean_data
+  inputs:
+    raw_power_plant_csv: nuclear_raw_csv
+  outputs:
+    clean_power_plant_csv: nuclear_clean_csv
+    transform_status: stage_import_nuclear_clean_data_status
+- intent_id: stage_import_thermal_clean_data
+  inputs:
+    raw_power_plant_csv: thermal_raw_csv
+  outputs:
+    clean_power_plant_csv: thermal_clean_csv
+    transform_status: stage_import_thermal_clean_data_status
+- intent_id: stage_create_power_plants_table
+  inputs:
+    sql_script_file: create_power_plants_sql
+    postgres_database: postgres_database_resource
+  outputs:
+    affected_tables: power_plants_table
+    execution_status: stage_create_power_plants_table_status
+- intent_id: stage_create_death_table
+  inputs:
+    sql_script_file: create_deaths_sql
+    postgres_database: postgres_database_resource
+  outputs:
+    affected_tables: deaths_table
+    execution_status: stage_create_death_table_status
+- intent_id: stage_store_deaths_in_postgres
+  inputs:
+    sql_script_file: death_insert_sql
+    postgres_database: postgres_database_resource
+  outputs:
+    affected_tables: stored_deaths_table
+    execution_status: stage_store_deaths_in_postgres_status
+- intent_id: stage_store_plants_in_postgres
+  inputs:
+    sql_script_file: plant_insert_sql
+    postgres_database: postgres_database_resource
+  outputs:
+    affected_tables: stored_power_plants_table
+    execution_status: stage_store_plants_in_postgres_status
+- intent_id: stage_load_data_from_ingestion
+  inputs:
+    source_files: death_source_files
+    redis_resource: redis_resource
+  outputs:
+    redis_key_references: death_redis_keys
+    load_status: stage_load_data_from_ingestion_status
+- intent_id: stage_cleanse_death_data
+  inputs:
+    redis_resource: redis_resource
+    city_geo_csv: city_geo_csv
+  outputs:
+    death_insert_sql_file: death_insert_sql
+    generation_status: stage_cleanse_death_data_status
+- intent_id: stage_death_emptiness_check
+  inputs:
+    file_location_resource: death_sql_location
+  outputs:
+    availability_decision: stage_death_emptiness_check_decision
+    check_status: stage_death_emptiness_check_status
+- intent_id: stage_clean_tmp_death_files
+  inputs: {}
+  outputs:
+    cleanup_status: stage_clean_tmp_death_files_status
+- intent_id: stage_clean_tmp_death_redis
+  inputs:
+    redis_resource: redis_resource
+  outputs:
+    redis_cleanup_status: stage_clean_tmp_death_redis_status
+- intent_id: stage_create_plant_persist_sql_query
+  inputs:
+    source_csv_files: clean_power_plants_csv
+  outputs:
+    insert_sql_file: plant_insert_sql
+    generation_status: stage_create_plant_persist_sql_query_status

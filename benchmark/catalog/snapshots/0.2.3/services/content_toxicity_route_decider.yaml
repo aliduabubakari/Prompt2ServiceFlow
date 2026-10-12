@@ -1,0 +1,165 @@
+schema_version: 0.1.0
+service_id: content_toxicity_route_decider
+version: 1.0.0
+display_name: Content Toxicity Route Decider
+category: ScoringService
+capability:
+  summary: Scores or reads toxicity scores for scanned content, compares them to a
+    configured threshold, and emits an observable routing decision for moderation
+    orchestration.
+  operations:
+  - Read scanned content records.
+  - Compute or read per-item toxicity scores using configured deterministic rules
+    or bound score column.
+  - Compare maximum or configured aggregate toxicity score to the threshold.
+  - Emit scored content plus route decision fields for downstream branch binding.
+  keywords:
+  - toxicity
+  - content moderation
+  - routing decision
+  - threshold
+  - scoring
+  limitations:
+  - Does not perform Argo/Airflow branch routing; it only emits a decision artifact.
+  - Does not remove, flag, publish, or audit content.
+  - Does not call an external toxicity API under this contract; external model/API
+    scoring would require a separate bound service contract.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: content_scan_dataset
+    description: Structured content scan dataset produced by a CSV scanning step.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://content_scan_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  outputs:
+  - name: scored_content_dataset
+    description: Content records enriched with toxicity scores and moderation eligibility
+      flags.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://toxicity_scored_content_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: routing_decision
+    description: Decision object containing threshold comparison, selected route label,
+      and branch booleans.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://content_toxicity_routing_decision/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: toxicity_threshold
+    description: Threshold above which content is routed for removal/flagging.
+    type: number
+    required: true
+    minimum: 0.0
+    maximum: 1.0
+  - name: text_column
+    description: Column containing content text to score when rule/model scoring is
+      used.
+    type: string
+    required: true
+  - name: scoring_mode
+    description: How toxicity scores are obtained.
+    type: string
+    required: true
+    enum:
+    - provided_score_column
+    - rule_based
+    - mock_deterministic
+  - name: toxicity_score_column
+    description: Input column containing precomputed toxicity scores when scoring_mode
+      is provided_score_column.
+    type: string
+    required: false
+  - name: toxic_route_label
+    description: Route label emitted when score is above threshold.
+    type: string
+    required: false
+  - name: safe_route_label
+    description: Route label emitted when score is at or below threshold.
+    type: string
+    required: false
+  secrets: []
+contracts:
+- contract_id: toxicity_threshold_range
+  type: precondition
+  applies_to: parameter
+  target: toxicity_threshold
+  description: Toxicity threshold must be within [0,1].
+  expression: 0 <= toxicity_threshold <= 1
+- contract_id: toxicity_route_decision_schema
+  type: json_schema
+  applies_to: output
+  target: routing_decision
+  description: Decision exposes threshold comparison and branch labels.
+  schema_ref: schema://content_toxicity_routing_decision/v1
+  expression: '{"type":"object","required":["toxicity_threshold","max_toxicity_score","route","should_remove_and_flag","should_publish","items_above_threshold"],"properties":{"toxicity_threshold":{"type":"number"},"max_toxicity_score":{"type":"number"},"route":{"type":"string"},"should_remove_and_flag":{"type":"boolean"},"should_publish":{"type":"boolean"},"items_above_threshold":{"type":"integer","minimum":0}}}'
+- contract_id: toxicity_route_effect
+  type: effect
+  applies_to: service
+  target: content_toxicity_route_decider
+  description: Removal route is selected exactly when max toxicity is greater than
+    threshold.
+  expression: routing_decision.should_remove_and_flag == (routing_decision.max_toxicity_score
+    > toxicity_threshold)
+invocation:
+  type: argo_workflow_template
+  template_name: content-toxicity-route-decider-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.content_toxicity_route_decider
+  implementation_ref: services/implementations/content_toxicity_route_decider
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - pii
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw content text or user identifiers.
+  - Branch edges remain workflow-level orchestration.
+  idempotency_notes: Same scanned dataset, threshold, and deterministic scoring configuration
+    produce the same decision.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:content_moderation_pipeline#toxicity_check
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing registry lacks a toxicity threshold scoring/routing capability.'
+  - 'Evidence status: strongly_inferred.'

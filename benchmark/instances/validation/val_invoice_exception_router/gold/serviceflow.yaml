@@ -1,0 +1,467 @@
+ir_version: 0.1.0
+composition_id: val_invoice_exception_router
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.1
+  sha256: 1b343511eb11bdaac318a5be39f384dda55f001773a7b37f2dc2572c9ff6b4e5
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_invoice_exception_router
+  split: validation
+  pipeline_id: val_invoice_exception_router
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/09_val_invoice_exception_router.txt
+  description_sha256: 760d0b926bf674fe473b33ab9facd7f207183647214d43be061e6959548a8de6
+  internal_spec_path: source/internal_specs/validation_20/09_val_invoice_exception_router.json
+  internal_spec_sha256: 94dba5e2fe1552e8b0771d886cd4a91307acd50d8d8d2c16840fe6f7e0e30959
+requirement:
+  name: Val Invoice Exception Router
+  purpose: Validate invoices, route valid invoices to ERP posting, and route invalid invoices to exception
+    handling.
+  domain: validation_holdout
+  execution_model: batch
+  topology: branch_merge
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: erp_api
+  type: http_api
+  name: ERP API
+  identifier: erp_api
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: exception_tracker
+  type: http_api
+  name: Exception tracker
+  identifier: exception_tracker
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: validate_invoices
+  name: Validate Invoices
+  category: QualityCheck
+  capability: Perform the reviewed validate invoices capability.
+  source_step_refs:
+  - validate_invoices
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: validate_invoices.'
+  inputs:
+  - invoice_batch
+  outputs:
+  - valid_invoice_rows
+  - invalid_invoice_rows
+  - invoice_validation_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared valid_invoice_rows, invalid_invoice_rows, invoice_validation_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: route_invoice_status
+  name: Route Invoice Status
+  category: DomainAdapter
+  capability: Perform the reviewed route invoice status capability.
+  source_step_refs:
+  - route_invoice_status
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: route_invoice_status.'
+  inputs:
+  - valid_invoice_rows
+  - invalid_invoice_rows
+  - invoice_validation_status
+  outputs:
+  - invoice_route_decision
+  - invoice_routing_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared invoice_route_decision, invoice_routing_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: post_valid_invoices
+  name: Post Valid Invoices
+  category: Publisher
+  capability: Perform the reviewed post valid invoices capability.
+  source_step_refs:
+  - post_valid_invoices
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: post_valid_invoices.'
+  inputs:
+  - valid_invoice_rows
+  - erp_api_resource
+  outputs:
+  - posting_status
+  external_system_refs:
+  - erp_api
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared posting_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: create_exception_cases
+  name: Create Exception Cases
+  category: Publisher
+  capability: Perform the reviewed create exception cases capability.
+  source_step_refs:
+  - create_exception_cases
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: create_exception_cases.'
+  inputs:
+  - invalid_invoice_rows
+  - exception_tracker_resource
+  outputs:
+  - exception_case_records
+  - exception_status
+  external_system_refs:
+  - exception_tracker
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared exception_case_records, exception_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: validate_invoices
+  disposition: service
+  intent_ids:
+  - validate_invoices
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: route_invoice_status
+  disposition: service
+  intent_ids:
+  - route_invoice_status
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: post_valid_invoices
+  disposition: service
+  intent_ids:
+  - post_valid_invoices
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: create_exception_cases
+  disposition: service
+  intent_ids:
+  - create_exception_cases
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: validate_invoices
+    to: route_invoice_status
+  - from: route_invoice_status
+    to: post_valid_invoices
+  - from: route_invoice_status
+    to: create_exception_cases
+  parallel_groups: []
+  branches:
+  - branch_id: invoice_exception_route
+    decision_intent: route_invoice_status
+    decision_artifact: invoice_route_decision
+    cases:
+    - case_id: valid
+      condition: invoice_route_decision.route == valid
+      next_intents:
+      - post_valid_invoices
+    - case_id: invalid
+      condition: invoice_route_decision.route == invalid
+      next_intents:
+      - create_exception_cases
+  gates: []
+artifacts:
+- artifact_id: invoice_batch
+  name: Invoice Batch
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: erp_api_resource
+  name: Erp Api Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: erp_api
+- artifact_id: exception_tracker_resource
+  name: Exception Tracker Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: exception_tracker
+- artifact_id: valid_invoice_rows
+  name: Valid Invoice Rows
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: validate_invoices
+  consumers:
+  - route_invoice_status
+  - post_valid_invoices
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: invalid_invoice_rows
+  name: Invalid Invoice Rows
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: validate_invoices
+  consumers:
+  - route_invoice_status
+  - create_exception_cases
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: invoice_validation_status
+  name: Invoice Validation Status
+  kind: artifact
+  data_type: status
+  role: intermediate
+  producer: validate_invoices
+  consumers:
+  - route_invoice_status
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: invoice_route_decision
+  name: Invoice Route Decision
+  kind: artifact
+  data_type: json
+  role: output
+  producer: route_invoice_status
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: invoice_routing_status
+  name: Invoice Routing Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: route_invoice_status
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: posting_status
+  name: Posting Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: post_valid_invoices
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: exception_case_records
+  name: Exception Case Records
+  kind: artifact
+  data_type: json
+  role: output
+  producer: create_exception_cases
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: exception_status
+  name: Exception Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: create_exception_cases
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: validate_invoices
+  service_id: invoice_batch_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: invoice_batch
+    artifact_id: invoice_batch
+  output_bindings:
+  - port: valid_invoice_rows
+    artifact_id: valid_invoice_rows
+  - port: invalid_invoice_rows
+    artifact_id: invalid_invoice_rows
+  - port: validation_status
+    artifact_id: invoice_validation_status
+  parameter_bindings:
+    validation_rules:
+      required:
+      - invoice_id
+      - amount
+      - vendor_id
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: route_invoice_status
+  service_id: invoice_status_route_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: valid_invoice_rows
+    artifact_id: valid_invoice_rows
+  - port: invalid_invoice_rows
+    artifact_id: invalid_invoice_rows
+  - port: validation_status
+    artifact_id: invoice_validation_status
+  output_bindings:
+  - port: route_decision
+    artifact_id: invoice_route_decision
+  - port: routing_status
+    artifact_id: invoice_routing_status
+  parameter_bindings:
+    valid_route: post_valid_invoices
+    invalid_route: create_exception_cases
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: post_valid_invoices
+  service_id: erp_invoice_posting_client
+  service_version: 1.0.0
+  input_bindings:
+  - port: valid_invoice_rows
+    artifact_id: valid_invoice_rows
+  - port: erp_api
+    artifact_id: erp_api_resource
+  output_bindings:
+  - port: posting_status
+    artifact_id: posting_status
+  parameter_bindings:
+    posting_endpoint: /invoices/post
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: create_exception_cases
+  service_id: exception_case_creator
+  service_version: 1.0.0
+  input_bindings:
+  - port: invalid_invoice_rows
+    artifact_id: invalid_invoice_rows
+  - port: exception_tracker
+    artifact_id: exception_tracker_resource
+  output_bindings:
+  - port: exception_case_records
+    artifact_id: exception_case_records
+  - port: exception_status
+    artifact_id: exception_status
+  parameter_bindings:
+    case_type: invoice_validation_exception
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

@@ -1,0 +1,18 @@
+binding_gold_version: 0.1.0
+benchmark_id: main:pipeline_execution_dag
+bindings:
+- intent_id: load_and_modify
+  service_id: csv_to_structured_json_table_formatter
+  service_version: 1.0.0
+- intent_id: reconciliation
+  service_id: tabular_entity_reconciliation_enricher
+  service_version: 1.0.0
+- intent_id: openmeteo_extension
+  service_id: openmeteo_historical_weather_tabular_enricher
+  service_version: 1.0.0
+- intent_id: column_extension
+  service_id: environmental_risk_score_column_calculator
+  service_version: 1.0.0
+- intent_id: save
+  service_id: structured_json_to_csv_exporter
+  service_version: 1.0.0

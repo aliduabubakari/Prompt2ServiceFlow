@@ -1,0 +1,167 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: building-energy-window-aggregation-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_bounded_events.py: "#!/usr/bin/env python3\n\"\"\"Ingest energy meter readings JSONL and building\
+    \ registry CSV.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True)\n\
+    \    p.add_argument(\"--fixture\",type=Path,required=True); p.add_argument(\"--execution-time\",type=str,default=None)\n\
+    \    a=p.parse_args(); r=a.workspace; art=r/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n\
+    \    fx=json.loads(a.fixture.read_text(encoding=\"utf-8\")); fd=a.fixture.parent\n    readings=[]\n\
+    \    with (fd/fx[\"inputs\"][\"readings\"]).open(encoding=\"utf-8\") as f:\n        for i,line in\
+    \ enumerate(f,1):\n            line=line.strip()\n            if line: m=json.loads(line); m[\"_line\"\
+    ]=i; readings.append(m)\n    buildings={}\n    with (fd/fx[\"inputs\"][\"buildings\"]).open(encoding=\"\
+    utf-8\",newline=\"\") as f:\n        for row in csv.DictReader(f): buildings[row[\"building_id\"]]=row\n\
+    \    result={\"readings\":readings,\"buildings\":buildings,\"total\":len(readings),\"ingested_at\"\
+    :a.execution_time}\n    (art/\"ingest_bounded_events_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"ingest_bounded_events_status.json\").write_text(json.dumps({\"\
+    success\":True,\"readings\":len(readings),\"buildings\":len(buildings),\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  02_validate_checkpoint_inputs.py: "#!/usr/bin/env python3\n\"\"\"Validate: required fields, building\
+    \ existence, power factor range.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_bounded_events_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    readings,buildings=ingested[\"readings\"],ingested[\"buildings\"\
+    ]\n    fx=json.loads(a.fixture.read_text(encoding=\"utf-8\")); pf_min=fx.get(\"power_factor_min\"\
+    ,0.85)\n    required={\"meter_id\",\"building_id\",\"timestamp\",\"energy_kwh\",\"demand_kw\"}; errors=[];\
+    \ valid=[]\n    for r in readings:\n        issues=[]\n        if required-set(r.keys()): issues.append(f\"\
+    missing_fields: {required-set(r.keys())}\")\n        if r.get(\"building_id\") not in buildings: issues.append(f\"\
+    unknown_building: {r.get('building_id')}\")\n        if r.get(\"power_factor\",1.0)<pf_min: issues.append(f\"\
+    low_power_factor: {r.get('power_factor')}<{pf_min}\")\n        if issues: errors.append({\"meter_id\"\
+    :r.get(\"meter_id\",\"?\"),\"issues\":issues})\n        else: valid.append(r)\n    result={\"valid\"\
+    :valid,\"errors\":errors,\"total_valid\":len(valid),\"total_rejected\":len(errors)}\n    (art/\"validate_checkpoint_inputs_artifact.json\"\
+    ).write_text(json.dumps(result,indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"validate_checkpoint_inputs_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"valid\":len(valid),\"rejected\":len(errors),\"errors\"\
+    :errors},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_sort_and_deduplicate_records.py: "#!/usr/bin/env python3\n\"\"\"Sort by timestamp, deduplicate by\
+    \ meter_id+timestamp.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    validated=json.loads((art/\"validate_checkpoint_inputs_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    readings=validated[\"valid\"]; readings.sort(key=lambda r:(r.get(\"timestamp\",\"\"\
+    ),r.get(\"meter_id\",\"\")))\n    seen=set(); deduped=[]; dups=[]\n    for r in readings:\n      \
+    \  key=(r.get(\"meter_id\",\"\"),r.get(\"timestamp\",\"\"))\n        if key in seen: dups.append(key)\n\
+    \        else: seen.add(key); deduped.append(r)\n    result={\"events\":deduped,\"total_before\":len(readings),\"\
+    total_after\":len(deduped),\"duplicates_removed\":len(dups)}\n    (art/\"sort_and_deduplicate_records_artifact.json\"\
+    ).write_text(json.dumps(result,indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"sort_and_deduplicate_records_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"deduped\":len(deduped),\"dups\":len(dups),\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_build_analysis_windows.py: "#!/usr/bin/env python3\n\"\"\"Build analysis windows: group readings\
+    \ by building + fixed time windows.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from datetime import datetime, timedelta\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n\
+    \    a=p.parse_args(); art=a.workspace/\"artifacts\"\n    fx=json.loads(a.fixture.read_text(encoding=\"\
+    utf-8\")); wm=fx.get(\"window_size_minutes\",30)\n    sorted_d=json.loads((art/\"sort_and_deduplicate_records_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    events=sorted_d[\"events\"]; buildings={}\n    for e in events:\
+    \ buildings.setdefault(e[\"building_id\"],[]).append(e)\n    windows=[]; bs=datetime.fromisoformat(fx[\"\
+    batch_window_start\"].replace(\"Z\",\"+00:00\"))\n    be=datetime.fromisoformat(fx[\"batch_window_end\"\
+    ].replace(\"Z\",\"+00:00\"))\n    for bid,bev in buildings.items():\n        ws=bs; wi=0\n       \
+    \ while ws<be:\n            we=ws+timedelta(minutes=wm)\n            win=[e for e in bev if ws<=datetime.fromisoformat(e[\"\
+    timestamp\"].replace(\"Z\",\"+00:00\"))<we]\n            if win: windows.append({\"building_id\":bid,\"\
+    window_index\":wi,\"window_start\":ws.isoformat()+\"Z\",\"window_end\":we.isoformat()+\"Z\",\"events\"\
+    :win,\"event_count\":len(win)})\n            ws=we; wi+=1\n    result={\"windows\":windows,\"total_windows\"\
+    :len(windows)}\n    (art/\"build_analysis_windows_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"build_analysis_windows_status.json\").write_text(json.dumps({\"\
+    success\":True,\"windows\":len(windows),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"\
+    __main__\": main()\n"
+  05_compute_window_metrics.py: "#!/usr/bin/env python3\n\"\"\"Compute window metrics: demand vs limit,\
+    \ energy total, power factor, at-risk flags.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_bounded_events_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    windows=json.loads((art/\"build_analysis_windows_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    fx=json.loads(a.fixture.read_text(encoding=\"utf-8\")); dth=fx.get(\"\
+    demand_threshold_pct\",85)\n    buildings=ingested[\"buildings\"]; metrics=[]\n    for w in windows[\"\
+    windows\"]:\n        b=buildings.get(w[\"building_id\"],{}); limit=float(b.get(\"demand_limit_kw\"\
+    ,100))\n        max_demand=max(e.get(\"demand_kw\",0) for e in w[\"events\"])\n        total_energy=sum(e.get(\"\
+    energy_kwh\",0) for e in w[\"events\"])\n        avg_pf=round(sum(e.get(\"power_factor\",0) for e\
+    \ in w[\"events\"])/max(w[\"event_count\"],1),2)\n        demand_pct=round(max_demand/limit*100,1);\
+    \ at_risk=demand_pct>=dth\n        metrics.append({\"building_id\":w[\"building_id\"],\"window_index\"\
+    :w[\"window_index\"],\"window_start\":w[\"window_start\"],\n                        \"event_count\"\
+    :w[\"event_count\"],\"total_energy_kwh\":round(total_energy,1),\"max_demand_kw\":max_demand,\n   \
+    \                     \"demand_limit_kw\":limit,\"demand_pct\":demand_pct,\"demand_at_risk\":at_risk,\"\
+    avg_power_factor\":avg_pf})\n    summary={\"total_windows\":len(metrics),\"total_energy\":round(sum(m[\"\
+    total_energy_kwh\"] for m in metrics),1),\n             \"windows_at_risk\":sum(1 for m in metrics\
+    \ if m[\"demand_at_risk\"])}\n    result={\"per_window_metrics\":metrics,\"summary\":summary}\n  \
+    \  (art/\"compute_window_metrics_artifact.json\").write_text(json.dumps(result,indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    (art/\"compute_window_metrics_status.json\").write_text(json.dumps({\"success\":True,\"\
+    windows\":len(metrics),\"at_risk\":summary[\"windows_at_risk\"],\"errors\":[]},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+  06_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish: energy report CSV + audit manifest.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib import Path\n\n\
+    def main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    p.add_argument(\"--execution-time\",type=str,default=None);\
+    \ a=p.parse_args(); art=a.workspace/\"artifacts\"\n    et=a.execution_time or \"2026-07-20T09:00:00Z\"\
+    ; fx=json.loads(a.fixture.read_text(encoding=\"utf-8\"))\n    metrics=json.loads((art/\"compute_window_metrics_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    summary={\"total\":metrics[\"summary\"][\"total_windows\"],\"\
+    energy\":metrics[\"summary\"][\"total_energy\"],\"at_risk\":metrics[\"summary\"][\"windows_at_risk\"\
+    ]}\n    manifest={\"checkpoint_id\":f\"ckpt_energy_{et[:10].replace('-','_')}\",\"checkpoint_time\"\
+    :et,\n              \"pipeline_id\":fx[\"pipeline_id\"],\"summary\":summary,\"output_files\":[\"energy_report.csv\"\
+    ,\"audit_manifest.json\"],\"status\":\"completed\"}\n    (art/\"audit_manifest.json\").write_text(json.dumps(manifest,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    csv_rel=\"energy_report.csv\"\n    with (art/csv_rel).open(\"w\",encoding=\"\
+    utf-8\",newline=\"\") as f:\n        w=csv.DictWriter(f,fieldnames=[\"building_id\",\"window_start\"\
+    ,\"event_count\",\"total_energy_kwh\",\"max_demand_kw\",\"demand_limit_kw\",\"demand_pct\",\"demand_at_risk\"\
+    ,\"avg_power_factor\"],extrasaction='ignore')\n        w.writeheader()\n        for m in metrics[\"\
+    per_window_metrics\"]: w.writerow(m)\n    (art/\"publish_outputs_artifact.json\").write_text(json.dumps({\"\
+    manifest\":manifest,\"csv\":csv_rel},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"publish_outputs_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"csv\":csv_rel,\"summary\":summary,\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: building-energy-window-aggregation-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: 'building_id,building_name,building_type,area_sqm,demand_limit_kw,owner
+
+    BLD-A,Headquarters,office,5000,80,Corporate
+
+    BLD-B,Data Center,data_center,2000,150,IT Operations
+
+    BLD-C,Warehouse,storage,8000,30,Logistics
+
+    '
+  fixture-0001: '{"meter_id": "MTR-01", "building_id": "BLD-A", "timestamp": "2026-07-20T08:00:00Z", "energy_kwh":
+    12.5, "demand_kw": 45.0, "power_factor": 0.92}
+
+    {"meter_id": "MTR-01", "building_id": "BLD-A", "timestamp": "2026-07-20T08:15:00Z", "energy_kwh":
+    14.2, "demand_kw": 52.0, "power_factor": 0.90}
+
+    {"meter_id": "MTR-01", "building_id": "BLD-A", "timestamp": "2026-07-20T08:30:00Z", "energy_kwh":
+    15.8, "demand_kw": 58.0, "power_factor": 0.88}
+
+    {"meter_id": "MTR-01", "building_id": "BLD-A", "timestamp": "2026-07-20T08:45:00Z", "energy_kwh":
+    16.0, "demand_kw": 60.0, "power_factor": 0.87}
+
+    {"meter_id": "MTR-02", "building_id": "BLD-B", "timestamp": "2026-07-20T08:00:00Z", "energy_kwh":
+    35.0, "demand_kw": 120.0, "power_factor": 0.95}
+
+    {"meter_id": "MTR-02", "building_id": "BLD-B", "timestamp": "2026-07-20T08:15:00Z", "energy_kwh":
+    38.5, "demand_kw": 135.0, "power_factor": 0.93}
+
+    {"meter_id": "MTR-02", "building_id": "BLD-B", "timestamp": "2026-07-20T08:30:00Z", "energy_kwh":
+    36.2, "demand_kw": 128.0, "power_factor": 0.94}
+
+    {"meter_id": "MTR-03", "building_id": "BLD-C", "timestamp": "2026-07-20T08:00:00Z", "energy_kwh":
+    5.0, "demand_kw": 18.0, "power_factor": 0.98}
+
+    {"meter_id": "MTR-03", "building_id": "BLD-C", "timestamp": "2026-07-20T08:15:00Z", "energy_kwh":
+    5.2, "demand_kw": 19.0, "power_factor": 0.97}
+
+    '
+  fixture-0002: "{\n  \"pipeline_id\": \"building_energy_window_aggregation\",\n  \"inputs\": {\"readings\"\
+    : \"energy_readings.jsonl\", \"buildings\": \"building_registry.csv\"},\n  \"input_modalities\": [\"\
+    time_series\", \"table\"],\n  \"systems\": [\"building management system\", \"energy analytics dashboard\"\
+    ],\n  \"batch_window_start\": \"2026-07-20T08:00:00Z\",\n  \"batch_window_end\": \"2026-07-20T09:00:00Z\"\
+    ,\n  \"window_size_minutes\": 30,\n  \"demand_threshold_pct\": 85,\n  \"power_factor_min\": 0.85\n\
+    }\n"

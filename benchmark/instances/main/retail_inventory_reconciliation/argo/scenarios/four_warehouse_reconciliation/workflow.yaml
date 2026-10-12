@@ -1,0 +1,398 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: retail-inventory-reconciliation-four-wareho-fa70dc61-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: retail-inventory-reconciliation-four-wareho-fa70dc61
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: four-warehouse-reconciliation
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: north-fixture
+      value: warehouse_north.csv
+    - name: south-fixture
+      value: warehouse_south.csv
+    - name: east-fixture
+      value: warehouse_east.csv
+    - name: west-fixture
+      value: warehouse_west.csv
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: retail-inventory-reconciliation-four-wareho-fa70dc61-scripts
+  - name: fixtures
+    configMap:
+      name: retail-inventory-reconciliation-four-wareho-fa70dc61-fixtures
+      items:
+      - key: fixture-0000
+        path: fixture.json
+      - key: fixture-0001
+        path: warehouse_east.csv
+      - key: fixture-0002
+        path: warehouse_north.csv
+      - key: fixture-0003
+        path: warehouse_south.csv
+      - key: fixture-0004
+        path: warehouse_west.csv
+      - key: fixture-0005
+        path: warehouse_wms.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: fetch-north-warehouse-csv
+        template: run-fetch-north-warehouse-csv
+      - name: fetch-south-warehouse-csv
+        template: run-fetch-south-warehouse-csv
+      - name: fetch-east-warehouse-csv
+        template: run-fetch-east-warehouse-csv
+      - name: fetch-west-warehouse-csv
+        template: run-fetch-west-warehouse-csv
+      - name: normalize-north-skus
+        template: run-normalize-north-skus
+        depends: fetch-north-warehouse-csv.Succeeded
+      - name: normalize-south-skus
+        template: run-normalize-south-skus
+        depends: fetch-south-warehouse-csv.Succeeded
+      - name: normalize-east-skus
+        template: run-normalize-east-skus
+        depends: fetch-east-warehouse-csv.Succeeded
+      - name: normalize-west-skus
+        template: run-normalize-west-skus
+        depends: fetch-west-warehouse-csv.Succeeded
+      - name: reconcile-all-inventories
+        template: run-reconcile-all-inventories
+        depends: normalize-north-skus.Succeeded && normalize-south-skus.Succeeded && normalize-east-skus.Succeeded
+          && normalize-west-skus.Succeeded
+      - name: generate-final-report
+        template: run-generate-final-report
+        depends: reconcile-all-inventories.Succeeded
+  - name: run-fetch-north-warehouse-csv
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: fetch_north_warehouse_csv
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_fetch_warehouse_csv.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.north-fixture}}
+      - --warehouse
+      - north
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-fetch-south-warehouse-csv
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: fetch_south_warehouse_csv
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_fetch_warehouse_csv.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.south-fixture}}
+      - --warehouse
+      - south
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-fetch-east-warehouse-csv
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: fetch_east_warehouse_csv
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_fetch_warehouse_csv.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.east-fixture}}
+      - --warehouse
+      - east
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-fetch-west-warehouse-csv
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: fetch_west_warehouse_csv
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_fetch_warehouse_csv.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.west-fixture}}
+      - --warehouse
+      - west
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-normalize-north-skus
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: normalize_north_skus
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_normalize_skus.py
+      - --workspace
+      - /workspace
+      - --warehouse
+      - north
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-normalize-south-skus
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: normalize_south_skus
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_normalize_skus.py
+      - --workspace
+      - /workspace
+      - --warehouse
+      - south
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-normalize-east-skus
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: normalize_east_skus
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_normalize_skus.py
+      - --workspace
+      - /workspace
+      - --warehouse
+      - east
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-normalize-west-skus
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: normalize_west_skus
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_normalize_skus.py
+      - --workspace
+      - /workspace
+      - --warehouse
+      - west
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-reconcile-all-inventories
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: reconcile_all_inventories
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_reconcile_all_inventories.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-generate-final-report
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: generate_final_report
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_generate_final_report.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError

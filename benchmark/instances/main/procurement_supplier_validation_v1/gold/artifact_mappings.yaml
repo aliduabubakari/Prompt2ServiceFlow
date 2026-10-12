@@ -1,0 +1,22 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:procurement_supplier_validation_v1
+mappings:
+- intent_id: load_and_modify_suppliers
+  inputs:
+    csv_file: suppliers_csv
+  outputs:
+    structured_json: formatted_suppliers_json
+    transform_status: format_status
+- intent_id: reconcile_supplier_entities
+  inputs:
+    structured_json: formatted_suppliers_json
+    entity_reconciliation_resource: wikidata_resource
+  outputs:
+    reconciled_json: reconciled_suppliers_json
+    reconciliation_status: reconciliation_status
+- intent_id: save_validated_suppliers
+  inputs:
+    structured_json: reconciled_suppliers_json
+  outputs:
+    csv_file: enriched_suppliers_csv
+    export_status: export_status

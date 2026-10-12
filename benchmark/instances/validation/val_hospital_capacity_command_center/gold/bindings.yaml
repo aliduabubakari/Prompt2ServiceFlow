@@ -1,0 +1,33 @@
+binding_gold_version: 0.1.0
+benchmark_id: validation:val_hospital_capacity_command_center
+bindings:
+- intent_id: wait_for_census_snapshot
+  service_id: multi_resource_readiness_sensor
+  service_version: 1.0.0
+- intent_id: extract_admissions
+  service_id: hospital_operational_feed_extractor
+  service_version: 1.0.0
+- intent_id: extract_bed_status
+  service_id: hospital_operational_feed_extractor
+  service_version: 1.0.0
+- intent_id: extract_staffing_roster
+  service_id: hospital_operational_feed_extractor
+  service_version: 1.0.0
+- intent_id: extract_discharge_forecast
+  service_id: hospital_operational_feed_extractor
+  service_version: 1.0.0
+- intent_id: merge_operational_state
+  service_id: hospital_operational_state_merger
+  service_version: 1.0.0
+- intent_id: compute_capacity_risk
+  service_id: capacity_risk_calculator
+  service_version: 1.0.0
+- intent_id: route_alert_level
+  service_id: alert_level_route_decider
+  service_version: 1.0.0
+- intent_id: publish_dashboard
+  service_id: capacity_dashboard_publisher
+  service_version: 1.0.0
+- intent_id: send_escalation_alert
+  service_id: escalation_alert_sender
+  service_version: 1.0.0

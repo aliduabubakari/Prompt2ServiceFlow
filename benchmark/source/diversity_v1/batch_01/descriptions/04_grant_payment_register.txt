@@ -1,0 +1,51 @@
+Pipeline Summary:
+- Pipeline ID: diversity-v1__grant_payment_register.py
+- Name: grant_payment_register
+- Purpose: Grant Payment Register is a synthetic data-preparation workflow for Public Sector/Geospatial.
+- Execution model: batch
+- Topology pattern: linear
+- Business domain: Public Sector/Geospatial
+- Notes: Synthetic Diversity-40 source; use only as benchmark input and not as hidden gold evidence.
+
+Control Flow:
+- Dependencies (directed edges):
+  - extract_source -> validate_schema
+  - validate_schema -> transform_records
+  - transform_records -> publish_dataset
+
+Data Artifacts / I-O Identifiers:
+- file: raw_input.csv (Synthetic input data)
+- file: prepared_output.parquet (Prepared output dataset)
+
+External Systems:
+- object_storage: Fixture-backed source and publication location
+
+Pipeline Steps:
+1. extract_source — extract_source
+  - Objective: Extract the source dataset into a raw tabular artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_schema — validate_schema
+  - Objective: Validate required columns, formats, and record identity.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. transform_records — transform_records
+  - Objective: Standardize records and derive required fields.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. publish_dataset — publish_dataset
+  - Objective: Publish the validated dataset and completion status.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

@@ -1,0 +1,42 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:compliance_evidence_summarizer
+bindings:
+- intent_id: ingest_primary_source
+  service_id: compliance_evidence_bundle_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_secondary_source
+  service_id: control_framework_json_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_reference_source
+  service_id: audit_request_table_ingestor
+  service_version: 1.0.0
+- intent_id: validate_source_contracts
+  service_id: compliance_evidence_contract_validator
+  service_version: 1.0.0
+- intent_id: normalize_sources
+  service_id: compliance_evidence_normalizer
+  service_version: 1.0.0
+- intent_id: fuse_sources
+  service_id: compliance_control_context_fuser
+  service_version: 1.0.0
+- intent_id: extract_or_parse_text
+  service_id: pdf_text_extraction_parser
+  service_version: 1.0.0
+- intent_id: chunk_documents
+  service_id: semantic_document_chunker
+  service_version: 1.0.0
+- intent_id: generate_embeddings
+  service_id: deterministic_text_embedding_generator
+  service_version: 1.0.0
+- intent_id: write_vector_index
+  service_id: fixture_vector_index_writer
+  service_version: 1.0.0
+- intent_id: retrieve_grounding_context
+  service_id: grounding_context_retriever
+  service_version: 1.0.0
+- intent_id: run_structured_extraction
+  service_id: compliance_control_mapping_summarizer
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: compliance_summary_bundle_publisher
+  service_version: 1.0.0

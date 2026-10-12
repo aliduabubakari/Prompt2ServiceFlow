@@ -1,0 +1,512 @@
+ir_version: 0.1.0
+composition_id: val_customer_profile_refresh
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.1
+  sha256: 1b343511eb11bdaac318a5be39f384dda55f001773a7b37f2dc2572c9ff6b4e5
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_customer_profile_refresh
+  split: validation
+  pipeline_id: val_customer_profile_refresh
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/06_val_customer_profile_refresh.txt
+  description_sha256: 060bbe76e06e24bb90b680d2f04a38c842700a445dd23dbf54d82dbbd4343812
+  internal_spec_path: source/internal_specs/validation_20/06_val_customer_profile_refresh.json
+  internal_spec_sha256: 09c881282449c2bf3e4607d806d879c354c241ee6f796b36f722c855b13d67ad
+requirement:
+  name: Val Customer Profile Refresh
+  purpose: Refresh customer profiles by extracting CRM records, normalizing fields, deduplicating rows,
+    loading a profile table, and emitting a refresh summary.
+  domain: validation_holdout
+  execution_model: batch
+  topology: linear
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: crm_api
+  type: http_api
+  name: CRM API
+  identifier: crm_api
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: customer_warehouse
+  type: database
+  name: Customer warehouse
+  identifier: customer_warehouse
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: extract_crm_records
+  name: Extract Crm Records
+  category: Extractor
+  capability: Perform the reviewed extract crm records capability.
+  source_step_refs:
+  - extract_crm_records
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: extract_crm_records.'
+  inputs:
+  - crm_api_resource
+  outputs:
+  - crm_records
+  - crm_extraction_status
+  external_system_refs:
+  - crm_api
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared crm_records, crm_extraction_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: normalize_profile_fields
+  name: Normalize Profile Fields
+  category: Transformer
+  capability: Perform the reviewed normalize profile fields capability.
+  source_step_refs:
+  - normalize_profile_fields
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: normalize_profile_fields.'
+  inputs:
+  - crm_records
+  outputs:
+  - normalized_profiles
+  - normalization_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared normalized_profiles, normalization_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: deduplicate_customers
+  name: Deduplicate Customers
+  category: Reconciler
+  capability: Perform the reviewed deduplicate customers capability.
+  source_step_refs:
+  - deduplicate_customers
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: deduplicate_customers.'
+  inputs:
+  - normalized_profiles
+  outputs:
+  - deduplicated_profiles
+  - dedup_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared deduplicated_profiles, dedup_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: load_profile_table
+  name: Load Profile Table
+  category: Loader
+  capability: Perform the reviewed load profile table capability.
+  source_step_refs:
+  - load_profile_table
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: load_profile_table.'
+  inputs:
+  - deduplicated_profiles
+  - customer_warehouse_resource
+  outputs:
+  - profile_table
+  - profile_load_status
+  external_system_refs:
+  - customer_warehouse
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared profile_table, profile_load_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: emit_refresh_summary
+  name: Emit Refresh Summary
+  category: ReportGenerator
+  capability: Perform the reviewed emit refresh summary capability.
+  source_step_refs:
+  - emit_refresh_summary
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: emit_refresh_summary.'
+  inputs:
+  - profile_table
+  outputs:
+  - refresh_summary
+  - summary_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared refresh_summary, summary_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: extract_crm_records
+  disposition: service
+  intent_ids:
+  - extract_crm_records
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: normalize_profile_fields
+  disposition: service
+  intent_ids:
+  - normalize_profile_fields
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: deduplicate_customers
+  disposition: service
+  intent_ids:
+  - deduplicate_customers
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: load_profile_table
+  disposition: service
+  intent_ids:
+  - load_profile_table
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: emit_refresh_summary
+  disposition: service
+  intent_ids:
+  - emit_refresh_summary
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: extract_crm_records
+    to: normalize_profile_fields
+  - from: normalize_profile_fields
+    to: deduplicate_customers
+  - from: deduplicate_customers
+    to: load_profile_table
+  - from: load_profile_table
+    to: emit_refresh_summary
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: crm_api_resource
+  name: Crm Api Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: crm_api
+- artifact_id: customer_warehouse_resource
+  name: Customer Warehouse Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: customer_warehouse
+- artifact_id: crm_records
+  name: Crm Records
+  kind: artifact
+  data_type: json
+  role: intermediate
+  producer: extract_crm_records
+  consumers:
+  - normalize_profile_fields
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: crm_extraction_status
+  name: Crm Extraction Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: extract_crm_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalized_profiles
+  name: Normalized Profiles
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: normalize_profile_fields
+  consumers:
+  - deduplicate_customers
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalization_status
+  name: Normalization Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: normalize_profile_fields
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: deduplicated_profiles
+  name: Deduplicated Profiles
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: deduplicate_customers
+  consumers:
+  - load_profile_table
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: dedup_status
+  name: Dedup Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: deduplicate_customers
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: profile_table
+  name: Profile Table
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: load_profile_table
+  consumers:
+  - emit_refresh_summary
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: profile_load_status
+  name: Profile Load Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: load_profile_table
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: refresh_summary
+  name: Refresh Summary
+  kind: artifact
+  data_type: json
+  role: output
+  producer: emit_refresh_summary
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: summary_status
+  name: Summary Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: emit_refresh_summary
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: extract_crm_records
+  service_id: crm_api_record_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: crm_api
+    artifact_id: crm_api_resource
+  output_bindings:
+  - port: crm_records
+    artifact_id: crm_records
+  - port: extraction_status
+    artifact_id: crm_extraction_status
+  parameter_bindings:
+    object_name: customers
+    updated_since: scheduled_interval_start
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: normalize_profile_fields
+  service_id: customer_profile_field_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: crm_records
+    artifact_id: crm_records
+  output_bindings:
+  - port: normalized_profiles
+    artifact_id: normalized_profiles
+  - port: normalization_status
+    artifact_id: normalization_status
+  parameter_bindings:
+    normalization_profile:
+      email: lowercase
+      phone: e164
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: deduplicate_customers
+  service_id: customer_profile_deduplicator
+  service_version: 1.0.0
+  input_bindings:
+  - port: normalized_profiles
+    artifact_id: normalized_profiles
+  output_bindings:
+  - port: deduplicated_profiles
+    artifact_id: deduplicated_profiles
+  - port: dedup_status
+    artifact_id: dedup_status
+  parameter_bindings:
+    identity_keys:
+    - email
+    - crm_id
+    survivorship_policy: latest_updated_at
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: load_profile_table
+  service_id: customer_profile_table_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: deduplicated_profiles
+    artifact_id: deduplicated_profiles
+  - port: customer_warehouse
+    artifact_id: customer_warehouse_resource
+  output_bindings:
+  - port: profile_table
+    artifact_id: profile_table
+  - port: load_status
+    artifact_id: profile_load_status
+  parameter_bindings:
+    target_table: customer_profile
+    write_mode: upsert
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: emit_refresh_summary
+  service_id: profile_refresh_summary_emitter
+  service_version: 1.0.0
+  input_bindings:
+  - port: profile_table
+    artifact_id: profile_table
+  output_bindings:
+  - port: refresh_summary
+    artifact_id: refresh_summary
+  - port: summary_status
+    artifact_id: summary_status
+  parameter_bindings:
+    summary_name: customer_profile_refresh
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

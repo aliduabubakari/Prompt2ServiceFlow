@@ -1,0 +1,143 @@
+{
+  "run_id": "m4__extension__document_image_compliance_packet__deepinfra-deepseek-v4-1-flash__s0__20261009T230733.338567Z__613c76c3",
+  "batch_id": "frozen__freeze-2026-10-08.deepinfra.v22__20261008T100403.076491Z__f390947e",
+  "sample_index": 0,
+  "ablation": null,
+  "harness_version": "2.2.2",
+  "method": {
+    "id": "m4",
+    "name": "Contract-first ServiceFlowIR + repair"
+  },
+  "prompt_version": "2.1.0",
+  "runtime_compiler_version": "1.0.0",
+  "model": {
+    "model_id": "deepinfra-deepseek-v4-1-flash",
+    "model_name": "deepseek-ai/DeepSeek-V4.1-Flash",
+    "base_url": "https://api.deepinfra.com/v1/openai",
+    "temperature": 0.2,
+    "top_p": 1.0,
+    "seed": 101,
+    "max_tokens": 16384,
+    "context_window": 1048576
+  },
+  "instance": {
+    "id": "document_image_compliance_packet",
+    "split": "extension",
+    "benchmark_id": "extension:document_image_compliance_packet"
+  },
+  "catalog": {
+    "version": "0.3.1",
+    "pinned_catalog_yaml_sha256": "a8497f3589304d2ff9cb5a734a99b5188d558fa6fdb55f153419458c117b302f",
+    "sanitized_catalog_yaml_sha256": "bc8dd0533a85e872647baf2c03172c20ec036618f1423dd998012b575b22fdba",
+    "descriptor_count": 251
+  },
+  "roster_sha256": "f2f92b327b6f26cf2bb6be988363bd6fe1cef788838dcd4e6493d710301bf2df",
+  "workspace_manifest_sha256": "955cda7b504a3a04dde754b1ff2a203871b1581988dc36704343f835abf9bc39",
+  "freeze": {
+    "freeze_id": "freeze-2026-10-08.deepinfra.v22",
+    "status": "frozen",
+    "sha256": "1bd592489448bbfdf3557680c00eb77d67545c86f706edc8ab0a9ce13b0447be"
+  },
+  "visible_input_policy": {
+    "method_view": [
+      "task.md",
+      "candidates/",
+      "catalog/",
+      "contracts/",
+      "schemas/",
+      "fixtures/"
+    ],
+    "workspace_manifest": "experiments/workspaces/extension/document_image_compliance_packet/workspace.yaml"
+  },
+  "repair": {
+    "budget": 3,
+    "execution_feedback": true
+  },
+  "environment": {
+    "python": "3.12.3",
+    "platform": "macOS-15.6.1-arm64-arm-64bit",
+    "git_revision": "a0a9a18"
+  },
+  "started_at": "2026-10-09T23:07:33.339807+00:00",
+  "method_status": "completed",
+  "method_error": null,
+  "evaluation": {
+    "error": "evaluation failed: 'status'",
+    "repair_attempts": [
+      {
+        "attempt": 0,
+        "overall_status": "fail",
+        "first_failing_gate": "G3",
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "pass",
+          "G2": "pass",
+          "G3": "fail",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": true,
+        "repeated_state": false,
+        "synthetic": false
+      },
+      {
+        "attempt": 1,
+        "overall_status": "pass",
+        "first_failing_gate": null,
+        "gate_statuses": {
+          "G0": "pass",
+          "G1": "pass",
+          "G2": "pass",
+          "G3": "pass",
+          "G4": "pass",
+          "G5": "pass",
+          "G6-Exec": "pass"
+        },
+        "selected_as_best": true,
+        "repeated_state": false,
+        "synthetic": false
+      }
+    ]
+  },
+  "usage": {
+    "llm_calls": 2,
+    "prompt_tokens": 62952,
+    "completion_tokens": 13296,
+    "reasoning_tokens": 0,
+    "total_tokens": 76248,
+    "latency_s": 59.1,
+    "validator_calls": 2,
+    "evaluation_validator_calls": 2,
+    "cost_usd": 0.014398,
+    "per_stage": [
+      {
+        "stage": "m3_ir",
+        "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+        "usage": {
+          "prompt_tokens": 29343,
+          "completion_tokens": 6178,
+          "total_tokens": 35521,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 27.975,
+        "finish_reason": "stop",
+        "cost_usd": 0.006703
+      },
+      {
+        "stage": "m4_repair_1",
+        "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+        "usage": {
+          "prompt_tokens": 33609,
+          "completion_tokens": 7118,
+          "total_tokens": 40727,
+          "reasoning_tokens": 0
+        },
+        "latency_s": 31.125,
+        "finish_reason": "stop",
+        "cost_usd": 0.007695
+      }
+    ]
+  },
+  "finished_at": "2026-10-09T23:08:44.197595+00:00"
+}

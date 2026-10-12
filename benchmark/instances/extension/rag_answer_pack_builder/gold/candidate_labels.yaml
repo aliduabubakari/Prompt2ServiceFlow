@@ -1,0 +1,94 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:rag_answer_pack_builder
+candidate_sets:
+- candidate_set_id: extension_rag_answer_pack_builder_rag_source_bundle_ingestor_candidates
+  required_service_id: rag_source_bundle_ingestor
+  labels:
+    rag_source_bundle_ingestor: gold
+    image_caption_only_generator: semantic_mismatch
+    invoice_ocr_without_reconciliation: contract_mismatch
+    rag_index_without_answer_generator: format_mismatch
+- candidate_set_id: extension_rag_answer_pack_builder_rag_answer_pack_contract_validator_candidates
+  required_service_id: rag_answer_pack_contract_validator
+  labels:
+    rag_answer_pack_contract_validator: gold
+    invoice_ocr_without_reconciliation: semantic_mismatch
+    rag_index_without_answer_generator: contract_mismatch
+    generic_control_mapping_table_joiner: format_mismatch
+- candidate_set_id: extension_rag_answer_pack_builder_rag_document_partition_normalizer_candidates
+  required_service_id: rag_document_partition_normalizer
+  labels:
+    rag_document_partition_normalizer: gold
+    rag_index_without_answer_generator: semantic_mismatch
+    generic_control_mapping_table_joiner: contract_mismatch
+    meeting_summary_without_action_owner: format_mismatch
+- candidate_set_id: extension_rag_answer_pack_builder_rag_question_partition_normalizer_candidates
+  required_service_id: rag_question_partition_normalizer
+  labels:
+    rag_question_partition_normalizer: gold
+    generic_control_mapping_table_joiner: semantic_mismatch
+    meeting_summary_without_action_owner: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_rag_answer_pack_builder_rag_config_partition_normalizer_candidates
+  required_service_id: rag_config_partition_normalizer
+  labels:
+    rag_config_partition_normalizer: gold
+    meeting_summary_without_action_owner: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    image_caption_only_generator: format_mismatch
+- candidate_set_id: extension_rag_answer_pack_builder_rag_corpus_question_config_fuser_candidates
+  required_service_id: rag_corpus_question_config_fuser
+  labels:
+    rag_corpus_question_config_fuser: gold
+    reviewed_domain_adapter: semantic_mismatch
+    image_caption_only_generator: contract_mismatch
+    invoice_ocr_without_reconciliation: format_mismatch
+- candidate_set_id: extension_rag_answer_pack_builder_pdf_text_extraction_parser_candidates
+  required_service_id: pdf_text_extraction_parser
+  labels:
+    pdf_text_extraction_parser: gold
+    image_caption_only_generator: semantic_mismatch
+    invoice_ocr_without_reconciliation: contract_mismatch
+    rag_index_without_answer_generator: format_mismatch
+- candidate_set_id: extension_rag_answer_pack_builder_semantic_document_chunker_candidates
+  required_service_id: semantic_document_chunker
+  labels:
+    semantic_document_chunker: gold
+    invoice_ocr_without_reconciliation: semantic_mismatch
+    rag_index_without_answer_generator: contract_mismatch
+    generic_control_mapping_table_joiner: format_mismatch
+- candidate_set_id: extension_rag_answer_pack_builder_deterministic_text_embedding_generator_candidates
+  required_service_id: deterministic_text_embedding_generator
+  labels:
+    deterministic_text_embedding_generator: gold
+    rag_index_without_answer_generator: semantic_mismatch
+    generic_control_mapping_table_joiner: contract_mismatch
+    meeting_summary_without_action_owner: format_mismatch
+- candidate_set_id: extension_rag_answer_pack_builder_fixture_vector_index_writer_candidates
+  required_service_id: fixture_vector_index_writer
+  labels:
+    fixture_vector_index_writer: gold
+    generic_control_mapping_table_joiner: semantic_mismatch
+    meeting_summary_without_action_owner: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_rag_answer_pack_builder_grounding_context_retriever_candidates
+  required_service_id: grounding_context_retriever
+  labels:
+    grounding_context_retriever: gold
+    meeting_summary_without_action_owner: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    image_caption_only_generator: format_mismatch
+- candidate_set_id: extension_rag_answer_pack_builder_rag_grounded_answer_generator_candidates
+  required_service_id: rag_grounded_answer_generator
+  labels:
+    rag_grounded_answer_generator: gold
+    reviewed_domain_adapter: semantic_mismatch
+    image_caption_only_generator: contract_mismatch
+    invoice_ocr_without_reconciliation: format_mismatch
+- candidate_set_id: extension_rag_answer_pack_builder_rag_answer_pack_publisher_candidates
+  required_service_id: rag_answer_pack_publisher
+  labels:
+    rag_answer_pack_publisher: gold
+    image_caption_only_generator: semantic_mismatch
+    invoice_ocr_without_reconciliation: contract_mismatch
+    rag_index_without_answer_generator: format_mismatch

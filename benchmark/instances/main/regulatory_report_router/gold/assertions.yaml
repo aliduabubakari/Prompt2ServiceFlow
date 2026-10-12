@@ -1,0 +1,17 @@
+assertions_version: 0.1.0
+pipeline_id: regulatory_report_router
+scenarios:
+  - scenario: international_fatca
+    assertions:
+      - {assertion_id: csv_read, type: json_path_equals, path: artifacts/read_status.json, json_path: success, expected: true}
+      - {assertion_id: fatca_route, type: json_path_equals, path: artifacts/routing_decision.json, json_path: route, expected: fatca}
+      - {assertion_id: fatca_report_generated, type: json_path_equals, path: artifacts/fatca_report_status.json, json_path: success, expected: true}
+      - {assertion_id: irs_not_written, type: file_absent, path: artifacts/irs_report_status.json}
+      - {assertion_id: archive_success, type: json_path_equals, path: artifacts/archive_status.json, json_path: success, expected: true}
+  - scenario: domestic_irs
+    assertions:
+      - {assertion_id: csv_read, type: json_path_equals, path: artifacts/read_status.json, json_path: success, expected: true}
+      - {assertion_id: irs_route, type: json_path_equals, path: artifacts/routing_decision.json, json_path: route, expected: irs}
+      - {assertion_id: irs_report_generated, type: json_path_equals, path: artifacts/irs_report_status.json, json_path: success, expected: true}
+      - {assertion_id: fatca_not_written, type: file_absent, path: artifacts/fatca_report_status.json}
+      - {assertion_id: archive_success, type: json_path_equals, path: artifacts/archive_status.json, json_path: success, expected: true}

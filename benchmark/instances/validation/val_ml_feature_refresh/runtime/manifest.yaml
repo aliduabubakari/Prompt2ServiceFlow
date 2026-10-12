@@ -1,0 +1,73 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_ml_feature_refresh
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: extract_raw_events
+  script: scripts/01_extract_raw_events.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: clean_event_records
+  script: scripts/02_clean_event_records.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - extract_raw_events
+- intent_id: aggregate_user_features
+  script: scripts/03_aggregate_user_features.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - clean_event_records
+- intent_id: compute_drift_statistics
+  script: scripts/04_compute_drift_statistics.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - aggregate_user_features
+- intent_id: validate_feature_table
+  script: scripts/05_validate_feature_table.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - compute_drift_statistics
+- intent_id: publish_feature_table
+  script: scripts/06_publish_feature_table.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - validate_feature_table
+- intent_id: notify_model_team
+  script: scripts/07_notify_model_team.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - publish_feature_table
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

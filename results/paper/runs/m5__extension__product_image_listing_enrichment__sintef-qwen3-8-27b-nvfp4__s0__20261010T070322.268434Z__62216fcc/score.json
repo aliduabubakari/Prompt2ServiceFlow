@@ -1,0 +1,342 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-10T07:21:32.580240+00:00",
+  "instance": "benchmark/instances/extension/product_image_listing_enrichment",
+  "workspace": "experiments/workspaces/extension/product_image_listing_enrichment",
+  "submission": "results/paper/runs/m5__extension__product_image_listing_enrichment__sintef-qwen3-8-27b-nvfp4__s0__20261010T070322.268434Z__62216fcc/agent_workspace/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G0",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-10T07:21:30.997876+00:00",
+    "workspace": "experiments/workspaces/extension/product_image_listing_enrichment",
+    "submission": "results/paper/runs/m5__extension__product_image_listing_enrichment__sintef-qwen3-8-27b-nvfp4__s0__20261010T070322.268434Z__62216fcc/agent_workspace/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G0",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "fail",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": [
+          {
+            "code": "G0_SCHEMA_ERROR",
+            "message": "$.artifacts[1].producer: ['ingest_source_batch'] is not valid under any of the given schemas",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G0_SCHEMA_ERROR",
+            "message": "$.artifacts[2].producer: ['validate_source_contract'] is not valid under any of the given schemas",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G0_SCHEMA_ERROR",
+            "message": "$.artifacts[3].producer: ['extract_branch_features'] is not valid under any of the given schemas",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G0_SCHEMA_ERROR",
+            "message": "$.artifacts[4].producer: ['enrich_branch_context'] is not valid under any of the given schemas",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G0_SCHEMA_ERROR",
+            "message": "$.artifacts[5].producer: ['score_branch_quality'] is not valid under any of the given schemas",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G0_SCHEMA_ERROR",
+            "message": "$.artifacts[6].producer: ['merge_branch_outputs'] is not valid under any of the given schemas",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G0_SCHEMA_ERROR",
+            "message": "$.artifacts[7].producer: ['publish_outputs'] is not valid under any of the given schemas",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G0_SCHEMA_ERROR",
+            "message": "$.artifacts[8].producer: ['publish_outputs'] is not valid under any of the given schemas",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G1",
+        "status": "skipped",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "skipped",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": [
+          {
+            "code": "G2_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G3",
+        "status": "skipped",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "skipped",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": [
+          {
+            "code": "G4_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "product-image-listing-enrichment-scripts",
+              "scenario": "base",
+              "data_size_bytes": 14157,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "product-image-listing-enrichment-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 1844,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "product-image-listing-enrichment-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 14157,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "product-image-listing-enrichment-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 1844,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_source_batch",
+                "validate_source_contract",
+                "extract_branch_features",
+                "enrich_branch_context",
+                "score_branch_quality",
+                "merge_branch_outputs",
+                "publish_outputs"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 7,
+      "submission_intents": 7,
+      "gold_intents": 7,
+      "mapping": {
+        "enrich_branch_context": "enrich_branch_context",
+        "extract_branch_features": "extract_branch_features",
+        "ingest_source_batch": "ingest_source_batch",
+        "merge_branch_outputs": "merge_branch_outputs",
+        "publish_outputs": "publish_outputs",
+        "score_branch_quality": "score_branch_quality",
+        "validate_source_contract": "validate_source_contract"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 7
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 8,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 7,
+      "total": 7,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 7,
+    "correct": 7,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "enrich_branch_context",
+        "gold_service": "multimodal_context_enricher",
+        "submission_intent": "enrich_branch_context",
+        "submission_service": "multimodal_context_enricher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "extract_branch_features",
+        "gold_service": "multimodal_branch_feature_extractor",
+        "submission_intent": "extract_branch_features",
+        "submission_service": "multimodal_branch_feature_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_source_batch",
+        "gold_service": "multimodal_source_bundle_ingestor",
+        "submission_intent": "ingest_source_batch",
+        "submission_service": "multimodal_source_bundle_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "merge_branch_outputs",
+        "gold_service": "multimodal_branch_output_merger",
+        "submission_intent": "merge_branch_outputs",
+        "submission_service": "multimodal_branch_output_merger",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_outputs",
+        "gold_service": "multimodal_output_bundle_publisher",
+        "submission_intent": "publish_outputs",
+        "submission_service": "multimodal_output_bundle_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "score_branch_quality",
+        "gold_service": "multimodal_branch_quality_scorer",
+        "submission_intent": "score_branch_quality",
+        "submission_service": "multimodal_branch_quality_scorer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "validate_source_contract",
+        "gold_service": "multimodal_source_contract_validator",
+        "submission_intent": "validate_source_contract",
+        "submission_service": "multimodal_source_contract_validator",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 8,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-mm8cf3vw/artifacts/publish_outputs_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 1,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

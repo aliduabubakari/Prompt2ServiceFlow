@@ -1,0 +1,7 @@
+#!/bin/sh
+# Public workspace tool: gold-free submission validation (G0-G5 + G6-Exec).
+# See bin/README.md for the contract.
+if command -v prompt2serviceflow-validate-submission >/dev/null 2>&1; then
+    exec prompt2serviceflow-validate-submission "$@"
+fi
+exec python3 -m prompt2serviceflow.experiments.submission_cli validate "$@"

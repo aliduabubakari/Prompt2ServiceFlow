@@ -1,0 +1,33 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:invoice_pdf_extraction_reconciliation
+bindings:
+- intent_id: ingest_primary_source
+  service_id: invoice_pdf_bundle_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_secondary_source
+  service_id: purchase_order_table_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_reference_source
+  service_id: vendor_registry_json_ingestor
+  service_version: 1.0.0
+- intent_id: validate_source_contracts
+  service_id: invoice_reconciliation_contract_validator
+  service_version: 1.0.0
+- intent_id: normalize_sources
+  service_id: invoice_reference_record_normalizer
+  service_version: 1.0.0
+- intent_id: fuse_sources
+  service_id: invoice_purchase_order_context_fuser
+  service_version: 1.0.0
+- intent_id: extract_or_parse_text
+  service_id: invoice_field_extraction_parser
+  service_version: 1.0.0
+- intent_id: chunk_documents
+  service_id: semantic_document_chunker
+  service_version: 1.0.0
+- intent_id: generate_embeddings
+  service_id: deterministic_text_embedding_generator
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: invoice_reconciliation_bundle_publisher
+  service_version: 1.0.0

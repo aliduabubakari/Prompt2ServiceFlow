@@ -1,0 +1,693 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prompt2serviceflow.local/schemas/service_descriptor.schema.json",
+  "title": "Prompt2ServiceFlow Service Descriptor",
+  "description": "A model-visible, versioned descriptor for one reusable service capability. Benchmark correctness labels are intentionally excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "service_id",
+    "version",
+    "display_name",
+    "category",
+    "capability",
+    "lifecycle",
+    "interface",
+    "contracts",
+    "invocation",
+    "policies",
+    "compatibility",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "service_id": {
+      "$ref": "#/$defs/snakeIdentifier"
+    },
+    "version": {
+      "$ref": "#/$defs/semanticVersion"
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "category": {
+      "$ref": "#/$defs/serviceCategory"
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "operations",
+        "keywords"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 10
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 2
+          }
+        },
+        "keywords": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 2
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 3
+          },
+          "default": []
+        }
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "experimental",
+            "active",
+            "deprecated",
+            "retired"
+          ]
+        },
+        "deprecated_since": {
+          "$ref": "#/$defs/semanticVersion"
+        },
+        "retirement_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "replacement": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "service_id",
+            "version"
+          ],
+          "properties": {
+            "service_id": {
+              "$ref": "#/$defs/snakeIdentifier"
+            },
+            "version": {
+              "$ref": "#/$defs/semanticVersion"
+            }
+          }
+        }
+      }
+    },
+    "interface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputs",
+        "outputs",
+        "parameters",
+        "secrets"
+      ],
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dataPort"
+          },
+          "default": []
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/dataPort"
+          }
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameterDefinition"
+          },
+          "default": []
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/secretDefinition"
+          },
+          "default": []
+        }
+      }
+    },
+    "contracts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/contract"
+      },
+      "default": []
+    },
+    "invocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "template_name",
+        "template_entrypoint",
+        "image",
+        "mock_supported"
+      ],
+      "properties": {
+        "type": {
+          "const": "argo_workflow_template"
+        },
+        "template_name": {
+          "$ref": "#/$defs/dnsLabel"
+        },
+        "template_entrypoint": {
+          "$ref": "#/$defs/dnsLabel"
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1
+        },
+        "image_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "implementation_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mock_supported": {
+          "type": "boolean"
+        }
+      }
+    },
+    "policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "network_access",
+        "secret_access",
+        "retry_safe",
+        "idempotency",
+        "data_sensitivity",
+        "resources"
+      ],
+      "properties": {
+        "network_access": {
+          "$ref": "#/$defs/accessRequirement"
+        },
+        "allowed_network_targets": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": []
+        },
+        "secret_access": {
+          "$ref": "#/$defs/accessRequirement"
+        },
+        "retry_safe": {
+          "type": "boolean"
+        },
+        "idempotency": {
+          "enum": [
+            "idempotent",
+            "conditionally_idempotent",
+            "non_idempotent",
+            "unknown"
+          ]
+        },
+        "idempotency_notes": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "data_sensitivity": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/sensitivity"
+          }
+        },
+        "resources": {
+          "$ref": "#/$defs/resources"
+        },
+        "governance_notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": []
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime",
+        "supported_architectures",
+        "incompatible_services"
+      ],
+      "properties": {
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "target",
+            "minimum_version"
+          ],
+          "properties": {
+            "target": {
+              "const": "argo-workflows"
+            },
+            "minimum_version": {
+              "$ref": "#/$defs/semanticVersion"
+            },
+            "maximum_version_exclusive": {
+              "$ref": "#/$defs/semanticVersion"
+            }
+          }
+        },
+        "supported_architectures": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "amd64",
+              "arm64"
+            ]
+          }
+        },
+        "incompatible_services": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "service_id",
+              "reason"
+            ],
+            "properties": {
+              "service_id": {
+                "$ref": "#/$defs/snakeIdentifier"
+              },
+              "version_range": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 3
+              }
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "owner",
+        "created_at",
+        "review_status",
+        "source_refs"
+      ],
+      "properties": {
+        "origin": {
+          "enum": [
+            "curated",
+            "adapted",
+            "generated"
+          ]
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "review_status": {
+          "enum": [
+            "candidate",
+            "reviewed"
+          ]
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": []
+        }
+      }
+    }
+  },
+  "$defs": {
+    "snakeIdentifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$",
+      "maxLength": 120
+    },
+    "semanticVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "dnsLabel": {
+      "type": "string",
+      "pattern": "^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$",
+      "maxLength": 63
+    },
+    "serviceCategory": {
+      "enum": [
+        "Sensor",
+        "Extractor",
+        "QualityCheck",
+        "DataProfiler",
+        "Transformer",
+        "Integrator",
+        "Aggregator",
+        "Reconciler",
+        "PrivacyService",
+        "ScoringService",
+        "Loader",
+        "Publisher",
+        "ReportGenerator",
+        "Notifier",
+        "ExternalWorkflowAdapter",
+        "Maintenance",
+        "DomainAdapter"
+      ]
+    },
+    "dataType": {
+      "enum": [
+        "string",
+        "integer",
+        "number",
+        "boolean",
+        "object",
+        "array",
+        "json",
+        "csv",
+        "parquet",
+        "text",
+        "binary",
+        "directory",
+        "markdown",
+        "image",
+        "model",
+        "table",
+        "decision",
+        "status",
+        "notification",
+        "any"
+      ]
+    },
+    "sensitivity": {
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted",
+        "pii",
+        "phi",
+        "financial"
+      ]
+    },
+    "accessRequirement": {
+      "enum": [
+        "forbidden",
+        "optional",
+        "required"
+      ]
+    },
+    "dataPort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "description",
+        "channel",
+        "data_type",
+        "required",
+        "cardinality",
+        "sensitivity"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 3
+        },
+        "channel": {
+          "enum": [
+            "artifact",
+            "parameter",
+            "external_resource"
+          ]
+        },
+        "data_type": {
+          "$ref": "#/$defs/dataType"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 3
+        },
+        "schema_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "cardinality": {
+          "enum": [
+            "one",
+            "many"
+          ]
+        },
+        "sensitivity": {
+          "$ref": "#/$defs/sensitivity"
+        }
+      }
+    },
+    "parameterDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "description",
+        "type",
+        "required"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 3
+        },
+        "type": {
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean",
+            "object",
+            "array"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "default": {},
+        "enum": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        }
+      }
+    },
+    "secretDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "description",
+        "required"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 3
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "environment_variable": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_id",
+        "type",
+        "applies_to",
+        "target",
+        "description"
+      ],
+      "properties": {
+        "contract_id": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "type": {
+          "enum": [
+            "json_schema",
+            "tabular_schema",
+            "semantic",
+            "precondition",
+            "effect"
+          ]
+        },
+        "applies_to": {
+          "enum": [
+            "input",
+            "output",
+            "parameter",
+            "service"
+          ]
+        },
+        "target": {
+          "$ref": "#/$defs/snakeIdentifier"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 3
+        },
+        "schema_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expression": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "schema_ref"
+          ]
+        },
+        {
+          "required": [
+            "expression"
+          ]
+        }
+      ]
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cpu",
+        "memory"
+      ],
+      "properties": {
+        "cpu": {
+          "type": "string",
+          "pattern": "^[0-9]+m?$"
+        },
+        "memory": {
+          "type": "string",
+          "pattern": "^[0-9]+(?:Ki|Mi|Gi|Ti)?$"
+        },
+        "gpu": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    }
+  }
+}

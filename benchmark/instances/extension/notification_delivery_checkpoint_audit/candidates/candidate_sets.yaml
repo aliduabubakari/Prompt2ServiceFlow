@@ -1,0 +1,54 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:notification_delivery_checkpoint_audit
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.5
+candidate_sets:
+- candidate_set_id: extension_notification_delivery_checkpoint_audit_notification_delivery_event_ingestor_candidates
+  source_step_refs:
+  - ingest_bounded_events
+  service_ids:
+  - notification_delivery_event_ingestor
+  - checkpoint_position_only_loader
+  - checkpoint_event_sort_deduplicator
+  - append_only_event_archiver
+- candidate_set_id: extension_notification_delivery_checkpoint_audit_notification_delivery_checkpoint_validator_candidates
+  source_step_refs:
+  - validate_checkpoint_inputs
+  service_ids:
+  - notification_delivery_checkpoint_validator
+  - checkpoint_event_sort_deduplicator
+  - append_only_event_archiver
+  - generic_queue_metric_counter
+- candidate_set_id: extension_notification_delivery_checkpoint_audit_checkpoint_event_sort_deduplicator_candidates
+  source_step_refs:
+  - sort_and_deduplicate_records
+  service_ids:
+  - checkpoint_event_sort_deduplicator
+  - append_only_event_archiver
+  - generic_queue_metric_counter
+  - audit_log_redaction_only_filter
+- candidate_set_id: extension_notification_delivery_checkpoint_audit_checkpoint_window_builder_candidates
+  source_step_refs:
+  - build_analysis_windows
+  service_ids:
+  - checkpoint_window_builder
+  - generic_queue_metric_counter
+  - audit_log_redaction_only_filter
+  - reviewed_domain_adapter
+- candidate_set_id: extension_notification_delivery_checkpoint_audit_notification_delivery_audit_metric_computer_candidates
+  source_step_refs:
+  - compute_window_metrics
+  service_ids:
+  - notification_delivery_audit_metric_computer
+  - audit_log_redaction_only_filter
+  - reviewed_domain_adapter
+  - checkpoint_position_only_loader
+- candidate_set_id: extension_notification_delivery_checkpoint_audit_checkpoint_audit_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - checkpoint_audit_bundle_publisher
+  - reviewed_domain_adapter
+  - checkpoint_position_only_loader
+  - checkpoint_event_sort_deduplicator

@@ -1,0 +1,65 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:multi_region_ecommerce_analytics
+mappings:
+- intent_id: ingest_us_east
+  inputs:
+    source_database: us_east_database_resource
+  outputs:
+    csv_snapshot: us_east_sales_csv
+    export_status: us_east_ingest_status
+- intent_id: ingest_us_west
+  inputs:
+    source_database: us_west_database_resource
+  outputs:
+    csv_snapshot: us_west_sales_csv
+    export_status: us_west_ingest_status
+- intent_id: ingest_eu
+  inputs:
+    source_database: eu_database_resource
+  outputs:
+    csv_snapshot: eu_sales_csv
+    export_status: eu_ingest_status
+- intent_id: ingest_apac
+  inputs:
+    source_database: apac_database_resource
+  outputs:
+    csv_snapshot: apac_sales_csv
+    export_status: apac_ingest_status
+- intent_id: convert_currency_us_east
+  inputs:
+    sales_data_file: us_east_sales_csv
+    exchange_rate_table: exchange_rates
+  outputs:
+    converted_sales_file: us_east_usd_dataset
+    conversion_status: us_east_convert_status
+- intent_id: convert_currency_us_west
+  inputs:
+    sales_data_file: us_west_sales_csv
+    exchange_rate_table: exchange_rates
+  outputs:
+    converted_sales_file: us_west_usd_dataset
+    conversion_status: us_west_convert_status
+- intent_id: convert_currency_eu
+  inputs:
+    sales_data_file: eu_sales_csv
+    exchange_rate_table: exchange_rates
+  outputs:
+    converted_sales_file: eu_usd_dataset
+    conversion_status: eu_convert_status
+- intent_id: convert_currency_apac
+  inputs:
+    sales_data_file: apac_sales_csv
+    exchange_rate_table: exchange_rates
+  outputs:
+    converted_sales_file: apac_usd_dataset
+    conversion_status: apac_convert_status
+- intent_id: aggregate_global_revenue
+  inputs:
+    converted_sales_files:
+    - us_east_usd_dataset
+    - us_west_usd_dataset
+    - eu_usd_dataset
+    - apac_usd_dataset
+  outputs:
+    global_revenue_report: global_report
+    aggregation_status: aggregate_status

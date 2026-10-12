@@ -1,0 +1,53 @@
+assertions_version: 0.1.0
+pipeline_id: global_dag
+scenarios:
+- scenario: death_records_present
+  assertions:
+  - assertion_id: metadata_downloaded
+    type: json_path_equals
+    path: artifacts/ingest_get_nuclear_json_status.json
+    json_path: success
+    expected: true
+  - assertion_id: death_resources_selected
+    type: json_array_length
+    path: artifacts/ingest_get_death_resources_result.json
+    json_path: files
+    expected: 2
+  - assertion_id: death_sql_has_content
+    type: json_path_equals
+    path: artifacts/stage_death_emptiness_check_decision.json
+    json_path: has_content
+    expected: true
+  - assertion_id: deaths_stored
+    type: json_path_equals
+    path: artifacts/stage_store_deaths_in_postgres_status.json
+    json_path: success
+    expected: true
+  - assertion_id: redis_cleaned
+    type: json_path_equals
+    path: artifacts/stage_clean_tmp_death_redis_status.json
+    json_path: success
+    expected: true
+  - assertion_id: plants_stored
+    type: json_path_equals
+    path: artifacts/stage_store_plants_in_postgres_status.json
+    json_path: success
+    expected: true
+- scenario: death_records_empty
+  assertions:
+  - assertion_id: death_sql_empty
+    type: json_path_equals
+    path: artifacts/stage_death_emptiness_check_decision.json
+    json_path: has_content
+    expected: false
+  - assertion_id: death_store_skipped
+    type: file_absent
+    path: artifacts/stage_store_deaths_in_postgres_status.json
+  - assertion_id: death_cleanup_skipped
+    type: file_absent
+    path: artifacts/stage_clean_tmp_death_files_status.json
+  - assertion_id: plant_branch_completed
+    type: json_path_equals
+    path: artifacts/stage_store_plants_in_postgres_status.json
+    json_path: success
+    expected: true

@@ -1,0 +1,47 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:healthcare_claims_etl
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_healthcare_claims_etl_delimited_file_tabular_dataset_loader_candidates
+  source_step_refs:
+  - extract_claims
+  - extract_providers
+  service_ids:
+  - delimited_file_tabular_dataset_loader
+  - csv_tabular_schema_validating_loader
+  - csv_artifact_profile_ingestor
+  - customer_segment_csv_loader
+  - csv_to_structured_json_standardizer
+  - legacy_csv_schema_validator
+- candidate_set_id: main_healthcare_claims_etl_healthcare_claims_provider_join_anonymize_risk_builder_candidates
+  source_step_refs:
+  - transform_join
+  service_ids:
+  - healthcare_claims_provider_join_anonymize_risk_builder
+  - tabular_dataset_declarative_transformer
+  - shipment_data_standardization_enricher
+  - transaction_csv_fraud_risk_analyzer
+  - environmental_risk_score_column_calculator
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_healthcare_claims_etl_multi_table_analytics_warehouse_loader_candidates
+  source_step_refs:
+  - load_warehouse
+  service_ids:
+  - multi_table_analytics_warehouse_loader
+  - tabular_dataset_database_loader
+  - air_quality_dimensional_postgres_loader
+  - postgres_parameterized_sql_executor
+  - snowflake_ctas_atomic_table_replacer
+  - legacy_database_table_loader
+- candidate_set_id: main_healthcare_claims_etl_bi_dashboard_refresh_trigger_candidates
+  source_step_refs:
+  - refresh_bi
+  service_ids:
+  - bi_dashboard_refresh_trigger
+  - status_context_email_summary_notifier
+  - slack_notification_sender
+  - external_workflow_run_trigger
+  - database_table_http_flag_publisher
+  - reviewed_domain_adapter

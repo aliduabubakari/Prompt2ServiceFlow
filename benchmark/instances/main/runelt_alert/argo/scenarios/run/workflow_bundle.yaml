@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runelt-alert-run-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Mock Snowflake CTAS.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json\nfrom pathlib import Path\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n\
+    \    (art/\"target_table.json\").write_text(json.dumps({\"tables\":[{\"name\":\"analytics.mau_summary\"\
+    ,\"rows\":1000}]},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"exec_status.json\").write_text(json.dumps({\"\
+    success\":True,\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runelt-alert-run-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"pipeline_id\": \"runelt_alert\",\n  \"inputs\": {\n    \"snowflake\": \"snowflake.json\"\
+    \n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n  ],\n  \"systems\": [\n    \"system_a\"\
+    ,\n    \"system_b\"\n  ]\n}"
+  fixture-0001: '{"driver":"filesystem-mock","engine":"snowflake"}'
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: runelt-alert-run-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: runelt-alert-run
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: run
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters: []
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: runelt-alert-run-scripts
+  - name: fixtures
+    configMap:
+      name: runelt-alert-run-fixtures
+      items:
+      - key: fixture-0000
+        path: fixture.json
+      - key: fixture-0001
+        path: snowflake.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: run-ctas-mau-summary
+        template: run-run-ctas-mau-summary
+  - name: run-run-ctas-mau-summary
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: run_ctas_mau_summary
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_run.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

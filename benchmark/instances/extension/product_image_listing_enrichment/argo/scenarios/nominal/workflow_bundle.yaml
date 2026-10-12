@@ -1,0 +1,427 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: product-image-listing-enrichment-nominal-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_source_batch.py: "#!/usr/bin/env python3\n\"\"\"Ingest product listings JSON and category\
+    \ rules CSV.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib import\
+    \ Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True)\n\
+    \    p.add_argument(\"--fixture\",type=Path,required=True); p.add_argument(\"--execution-time\",type=str,default=None)\n\
+    \    a=p.parse_args(); r=a.workspace; art=r/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n\
+    \    fx=json.loads(a.fixture.read_text(encoding=\"utf-8\")); fd=a.fixture.parent\n    products=json.loads((fd/fx[\"\
+    inputs\"][\"products\"]).read_text(encoding=\"utf-8\"))\n    rules={}\n    with (fd/fx[\"inputs\"\
+    ][\"rules\"]).open(encoding=\"utf-8\",newline=\"\") as f:\n        for row in csv.DictReader(f): rules[row[\"\
+    category\"]]=row\n    result={\"products\":products,\"rules\":rules,\"total\":len(products),\"ingested_at\"\
+    :a.execution_time}\n    (art/\"ingest_source_batch_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"ingest_source_batch_status.json\").write_text(json.dumps({\"\
+    success\":True,\"products\":len(products),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif\
+    \ __name__==\"__main__\": main()\n"
+  02_validate_source_contract.py: "#!/usr/bin/env python3\n\"\"\"Validate: required fields, category existence,\
+    \ image quality minimum.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    products,rules=ingested[\"products\"],ingested[\"rules\"]; required={\"product_id\"\
+    ,\"title\",\"category\",\"image_quality_score\"}\n    errors=[]; valid=[]\n    for prd in products:\n\
+    \        issues=[]\n        if required-set(prd.keys()): issues.append(f\"missing_fields: {required-set(prd.keys())}\"\
+    )\n        if prd.get(\"category\") not in rules: issues.append(f\"unknown_category: {prd.get('category')}\"\
+    )\n        rule=rules.get(prd.get(\"category\",\"\"),{})\n        if prd.get(\"image_quality_score\"\
+    ,0)<float(rule.get(\"quality_threshold\",0.5)): issues.append(f\"low_quality: {prd.get('image_quality_score')}<{rule.get('quality_threshold')}\"\
+    )\n        if issues: errors.append({\"product_id\":prd.get(\"product_id\",\"?\"),\"issues\":issues})\n\
+    \        else: valid.append(prd)\n    result={\"valid\":valid,\"errors\":errors,\"total_valid\":len(valid),\"\
+    total_rejected\":len(errors)}\n    (art/\"validate_source_contract_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"validate_source_contract_status.json\").write_text(json.dumps({\"\
+    success\":True,\"valid\":len(valid),\"rejected\":len(errors),\"errors\":errors},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_extract_branch_features.py: "#!/usr/bin/env python3\n\"\"\"Extract branch features: price tier, image\
+    \ sufficiency, description completeness.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    features=[]\n    for prd in validated[\"valid\"]:\n        price_tier=\"\
+    premium\" if prd[\"price\"]>100 else (\"mid\" if prd[\"price\"]>30 else \"budget\")\n        features.append({\"\
+    product_id\":prd[\"product_id\"],\"price\":prd[\"price\"],\"price_tier\":price_tier,\n           \
+    \              \"image_count\":prd[\"image_count\"],\"description_length\":prd[\"description_length\"\
+    ]})\n    (art/\"extract_branch_features_artifact.json\").write_text(json.dumps({\"features\":features,\"\
+    total\":len(features)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"extract_branch_features_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"extracted\":len(features),\"errors\":[]},indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_enrich_branch_context.py: "#!/usr/bin/env python3\n\"\"\"Enrich branch context: match category rules,\
+    \ check compliance per listing.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    rules=ingested[\"rules\"]; enriched=[]\n    for prd in validated[\"\
+    valid\"]:\n        r=rules.get(prd[\"category\"],{})\n        img_ok=prd[\"image_count\"]>=int(r.get(\"\
+    min_images\",1))\n        desc_ok=prd.get(\"description_length\",0)>=int(r.get(\"min_description_chars\"\
+    ,100))\n        dim_ok=not (r.get(\"requires_dimensions\")==\"true\" and not prd.get(\"has_dimensions\"\
+    ))\n        issues=sum([not img_ok, not desc_ok, not dim_ok])\n        enriched.append({\"product_id\"\
+    :prd[\"product_id\"],\"category\":prd[\"category\"],\"images_ok\":img_ok,\"description_ok\":desc_ok,\"\
+    dimensions_ok\":dim_ok,\"compliance_issues\":issues})\n    (art/\"enrich_branch_context_artifact.json\"\
+    ).write_text(json.dumps({\"enriched\":enriched,\"total\":len(enriched)},indent=2)+\"\\n\",encoding=\"\
+    utf-8\")\n    (art/\"enrich_branch_context_status.json\").write_text(json.dumps({\"success\":True,\"\
+    enriched\":len(enriched),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\"\
+    : main()\n"
+  05_score_branch_quality.py: "#!/usr/bin/env python3\n\"\"\"Score branch quality: grade image quality.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"\
+    --fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"artifacts\"\n    fx=json.loads(a.fixture.read_text(encoding=\"\
+    utf-8\")); grades=fx[\"quality_grades\"]\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    scored=[]\n    for prd in validated[\"valid\"]:\n        q=prd[\"\
+    image_quality_score\"]\n        g=\"excellent\" if q>=grades[\"excellent\"] else (\"good\" if q>=grades[\"\
+    good\"] else \"poor\")\n        scored.append({\"product_id\":prd[\"product_id\"],\"image_quality\"\
+    :q,\"quality_grade\":g})\n    (art/\"score_branch_quality_artifact.json\").write_text(json.dumps({\"\
+    scores\":scored,\"total\":len(scored)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"score_branch_quality_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"scored\":len(scored),\"errors\":[]},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  06_merge_branch_outputs.py: "#!/usr/bin/env python3\n\"\"\"Merge: combine features, enrichment, quality\
+    \ scores.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\
+    \ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    feats=json.loads((art/\"extract_branch_features_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    enr=json.loads((art/\"enrich_branch_context_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    scor=json.loads((art/\"score_branch_quality_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    fm={r[\"product_id\"]:r for r in feats[\"features\"]}; em={r[\"product_id\"]:r for\
+    \ r in enr[\"enriched\"]}; sm={r[\"product_id\"]:r for r in scor[\"scores\"]}\n    merged=[]\n   \
+    \ for pid in fm:\n        m={**fm[pid]}; e=em.get(pid,{}); s=sm.get(pid,{})\n        for k,v in e.items():\n\
+    \            if k!=\"product_id\": m[k]=v\n        for k,v in s.items():\n            if k!=\"product_id\"\
+    : m[k]=v\n        merged.append(m)\n    (art/\"merge_branch_outputs_artifact.json\").write_text(json.dumps({\"\
+    merged\":merged,\"total\":len(merged)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"merge_branch_outputs_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"merged\":len(merged),\"errors\":[]},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  07_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish: enrichment report CSV + audit manifest.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib import Path\n\n\
+    def main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    p.add_argument(\"--execution-time\",type=str,default=None);\
+    \ a=p.parse_args(); art=a.workspace/\"artifacts\"\n    et=a.execution_time or \"2026-07-20T12:00:00Z\"\
+    ; fx=json.loads(a.fixture.read_text(encoding=\"utf-8\"))\n    merged=json.loads((art/\"merge_branch_outputs_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    val=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    summary={\"total\":merged[\"total\"]+val[\"total_rejected\"\
+    ],\"valid\":merged[\"total\"],\"rejected\":val[\"total_rejected\"],\n             \"excellent\":sum(1\
+    \ for m in merged[\"merged\"] if m.get(\"quality_grade\")==\"excellent\"),\n             \"good\"\
+    :sum(1 for m in merged[\"merged\"] if m.get(\"quality_grade\")==\"good\"),\n             \"compliant\"\
+    :sum(1 for m in merged[\"merged\"] if m.get(\"compliance_issues\",99)==0)}\n    manifest={\"checkpoint_id\"\
+    :f\"ckpt_product_{et[:10].replace('-','_')}\",\"checkpoint_time\":et,\n              \"pipeline_id\"\
+    :fx[\"pipeline_id\"],\"summary\":summary,\"output_files\":[\"product_enrichment.csv\",\"audit_manifest.json\"\
+    ],\"status\":\"completed\"}\n    (art/\"audit_manifest.json\").write_text(json.dumps(manifest,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    csv_rel=\"product_enrichment.csv\"\n    with (art/csv_rel).open(\"\
+    w\",encoding=\"utf-8\",newline=\"\") as f:\n        w=csv.DictWriter(f,fieldnames=[\"product_id\"\
+    ,\"price_tier\",\"image_count\",\"quality_grade\",\"images_ok\",\"description_ok\",\"dimensions_ok\"\
+    ,\"compliance_issues\"],extrasaction='ignore')\n        w.writeheader()\n        for m in merged[\"\
+    merged\"]: w.writerow(m)\n    (art/\"publish_outputs_artifact.json\").write_text(json.dumps({\"manifest\"\
+    :manifest,\"csv\":csv_rel},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"publish_outputs_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"csv\":csv_rel,\"summary\":summary,\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: product-image-listing-enrichment-nominal-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: 'category,min_images,min_description_chars,requires_dimensions,quality_threshold
+
+    electronics,3,150,true,0.70
+
+    clothing,3,100,true,0.60
+
+    home,2,100,true,0.65
+
+    '
+  fixture-0001: "{\n  \"input_modalities\": [\n    \"image\",\n    \"json\",\n    \"table\"\n  ],\n  \"\
+    inputs\": {\n    \"products\": \"product_listings.json\",\n    \"rules\": \"category_rules.csv\"\n\
+    \  },\n  \"pipeline_id\": \"product_image_listing_enrichment\",\n  \"quality_grades\": {\n    \"excellent\"\
+    : 0.85,\n    \"good\": 0.7,\n    \"poor\": 0.5\n  },\n  \"sample_media\": {\n    \"image\": \"sample_image.png\"\
+    \n  },\n  \"systems\": [\n    \"product catalog system\",\n    \"listing quality dashboard\"\n  ]\n\
+    }\n"
+  fixture-0002: "[\n  {\"product_id\": \"PRD-001\", \"title\": \"Wireless Bluetooth Headphones\", \"category\"\
+    : \"electronics\", \"price\": 79.99, \"image_count\": 5, \"image_quality_score\": 0.92, \"has_dimensions\"\
+    : true, \"description_length\": 250, \"brand\": \"SoundMax\"},\n  {\"product_id\": \"PRD-002\", \"\
+    title\": \"Organic Cotton T-Shirt\", \"category\": \"clothing\", \"price\": 24.99, \"image_count\"\
+    : 3, \"image_quality_score\": 0.85, \"has_dimensions\": false, \"description_length\": 120, \"brand\"\
+    : \"EcoWear\"},\n  {\"product_id\": \"PRD-003\", \"title\": \"Stainless Steel Water Bottle\", \"category\"\
+    : \"home\", \"price\": 34.50, \"image_count\": 2, \"image_quality_score\": 0.72, \"has_dimensions\"\
+    : true, \"description_length\": 180, \"brand\": \"HydroFlask\"},\n  {\"product_id\": \"PRD-004\",\
+    \ \"title\": \"Gaming Mouse RGB\", \"category\": \"electronics\", \"price\": 59.99, \"image_count\"\
+    : 4, \"image_quality_score\": 0.95, \"has_dimensions\": true, \"description_length\": 310, \"brand\"\
+    : \"GameTech\"},\n  {\"product_id\": \"PRD-005\", \"title\": \"Running Shoes\", \"category\": \"clothing\"\
+    , \"price\": 120.00, \"image_count\": 6, \"image_quality_score\": 0.40, \"has_dimensions\": true,\
+    \ \"description_length\": 95, \"brand\": \"SpeedStep\"}\n]\n"
+binaryData:
+  fixture-0003: iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGklEQVR42mMw/7XkPyWYYdSAUQNGDRguBgAA+SPUH5uzIlcAAAAASUVORK5CYII=
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: product-image-listing-enrichment-nominal-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: product-image-listing-enrichment-nominal
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: nominal
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: execution-time
+      value: '2026-07-20T12:00:00Z'
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: product-image-listing-enrichment-nominal-scripts
+  - name: fixtures
+    configMap:
+      name: product-image-listing-enrichment-nominal-fixtures
+      items:
+      - key: fixture-0000
+        path: category_rules.csv
+      - key: fixture-0001
+        path: fixture.json
+      - key: fixture-0002
+        path: product_listings.json
+      - key: fixture-0003
+        path: sample_image.png
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-source-batch
+        template: run-ingest-source-batch
+      - name: validate-source-contract
+        template: run-validate-source-contract
+        depends: ingest-source-batch.Succeeded
+      - name: extract-branch-features
+        template: run-extract-branch-features
+        depends: validate-source-contract.Succeeded
+      - name: enrich-branch-context
+        template: run-enrich-branch-context
+        depends: validate-source-contract.Succeeded
+      - name: score-branch-quality
+        template: run-score-branch-quality
+        depends: validate-source-contract.Succeeded
+      - name: merge-branch-outputs
+        template: run-merge-branch-outputs
+        depends: extract-branch-features.Succeeded && enrich-branch-context.Succeeded && score-branch-quality.Succeeded
+      - name: publish-outputs
+        template: run-publish-outputs
+        depends: merge-branch-outputs.Succeeded
+  - name: run-ingest-source-batch
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_source_batch
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_ingest_source_batch.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-validate-source-contract
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: validate_source_contract
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_validate_source_contract.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-extract-branch-features
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: extract_branch_features
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_extract_branch_features.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-enrich-branch-context
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: enrich_branch_context
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_enrich_branch_context.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-score-branch-quality
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: score_branch_quality
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_score_branch_quality.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-merge-branch-outputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: merge_branch_outputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/06_merge_branch_outputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-publish-outputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: publish_outputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/07_publish_outputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

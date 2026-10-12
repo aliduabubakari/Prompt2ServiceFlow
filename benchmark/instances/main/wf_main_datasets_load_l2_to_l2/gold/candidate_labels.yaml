@@ -1,0 +1,57 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:WF_MAIN_DATASETS_LOAD_L2_TO_L2
+candidate_sets:
+- candidate_set_id: main_wf_main_datasets_load_l2_to_l2_sql_query_readiness_sensor_candidates
+  required_service_id: sql_query_readiness_sensor
+  labels:
+    sql_query_readiness_sensor: gold
+    postgres_readonly_query_result_extractor: missing_required_output
+    sql_incremental_table_extractor: semantic_mismatch
+    external_workflow_completion_sensor: target_mismatch
+    postgres_parameterized_sql_executor: policy_incompatible
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_wf_main_datasets_load_l2_to_l2_workflow_load_id_generator_candidates
+  required_service_id: workflow_load_id_generator
+  labels:
+    workflow_load_id_generator: gold
+    retention_cutoff_config_resolver: missing_required_output
+    execution_date_backup_strategy_decider: semantic_mismatch
+    runtime_parameter_allowed_values_validator: missing_required_output
+    dataform_compilation_config_builder: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_wf_main_datasets_load_l2_to_l2_workflow_session_metadata_recorder_candidates
+  required_service_id: workflow_session_metadata_recorder
+  labels:
+    workflow_session_metadata_recorder: gold
+    airflow_metadata_retention_cleaner: semantic_mismatch
+    postgres_parameterized_sql_executor: contract_mismatch
+    tabular_dataset_database_loader: semantic_mismatch
+    database_statistics_analyzer: semantic_mismatch
+    legacy_database_table_loader: deprecated_or_incompatible
+- candidate_set_id: main_wf_main_datasets_load_l2_to_l2_external_workflow_task_completion_sensor_candidates
+  required_service_id: external_workflow_task_completion_sensor
+  labels:
+    external_workflow_task_completion_sensor: gold
+    external_workflow_completion_sensor: contract_mismatch
+    google_dataform_workflow_invocation_sensor: target_mismatch
+    sql_query_readiness_sensor: target_mismatch
+    external_workflow_run_trigger: policy_incompatible
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_wf_main_datasets_load_l2_to_l2_external_workflow_run_trigger_candidates
+  required_service_id: external_workflow_run_trigger
+  labels:
+    external_workflow_run_trigger: gold
+    external_workflow_completion_sensor: missing_required_output
+    external_workflow_task_completion_sensor: semantic_mismatch
+    google_dataform_workflow_invocation_creator: target_mismatch
+    databricks_notebook_run_executor: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_wf_main_datasets_load_l2_to_l2_database_table_http_flag_publisher_candidates
+  required_service_id: database_table_http_flag_publisher
+  labels:
+    database_table_http_flag_publisher: gold
+    http_api_request_artifact_extractor: semantic_mismatch
+    database_csv_snapshot_exporter: missing_required_output
+    postgres_readonly_query_result_extractor: missing_required_output
+    bi_dashboard_refresh_trigger: target_mismatch
+    open_network_http_json_requester: policy_incompatible

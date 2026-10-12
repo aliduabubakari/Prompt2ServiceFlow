@@ -1,0 +1,126 @@
+schema_version: 0.1.0
+service_id: reviewed_python_udf_transformer
+version: 1.0.0
+display_name: Reviewed Python UDF Transformer
+category: Transformer
+capability:
+  summary: Executes a reviewed Python transformation extension when no specific service
+    fits.
+  operations:
+  - Read zero or more bound workflow artifacts.
+  - Execute only a reviewed, registered implementation.
+  - Emit transformed artifacts and an observable execution report.
+  keywords:
+  - reviewed extension
+  - generic adapter
+  - escape hatch
+  - custom transformation
+  limitations:
+  - Requires prior human review and registration of the implementation.
+  - Provides weaker domain-specific contracts than dedicated services.
+  - Must not be selected when a specific compatible service is available.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: input_artifacts
+    description: Artifacts supplied to the reviewed extension.
+    channel: artifact
+    data_type: any
+    required: false
+    cardinality: many
+    sensitivity: restricted
+  outputs:
+  - name: transformed_artifacts
+    description: Artifacts produced by the reviewed extension.
+    channel: artifact
+    data_type: any
+    required: true
+    cardinality: many
+    sensitivity: restricted
+  - name: execution_report
+    description: Observable execution status and produced artifact references.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://reviewed_extension_execution_report/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: udf_id
+    description: Identifier of the reviewed implementation to invoke.
+    type: string
+    required: true
+    pattern: ^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$
+  - name: extension_parameters
+    description: Implementation-specific parameters reviewed with the extension.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: reviewed_extension_identifier
+  type: precondition
+  applies_to: parameter
+  target: udf_id
+  description: The extension identifier must resolve to a reviewed implementation.
+  expression: reviewed_registry_contains(udf_id)
+- contract_id: reviewed_extension_execution_report
+  type: json_schema
+  applies_to: output
+  target: execution_report
+  description: The report exposes success and produced artifact references.
+  schema_ref: schema://reviewed_extension_execution_report/v1
+  expression: '{"type":"object","required":["success","implementation_id","produced_artifacts"],"properties":{"success":{"type":"boolean"},"implementation_id":{"type":"string"},"produced_artifacts":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+invocation:
+  type: argo_workflow_template
+  template_name: reviewed-python-udf-transformer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.reviewed_python_udf_transformer
+  implementation_ref: services/implementations/reviewed_python_udf_transformer
+  mock_supported: true
+policies:
+  network_access: optional
+  allowed_network_targets: []
+  secret_access: optional
+  retry_safe: false
+  idempotency: unknown
+  idempotency_notes: Depends on the reviewed implementation.
+  default_timeout_seconds: 600
+  data_sensitivity:
+  - public
+  - internal
+  - confidential
+  - restricted
+  - pii
+  - phi
+  - financial
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Use requires explicit human approval and a registered implementation.
+  - Selection frequency must be reported as benchmark escape-hatch usage.
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: reviewed
+  source_refs:
+  - catalog-curation:0.1.0
+  notes:
+  - Controlled generic extension maintained in the curated catalogue.
+  - Use requires explicit review when a dedicated capability is unavailable.

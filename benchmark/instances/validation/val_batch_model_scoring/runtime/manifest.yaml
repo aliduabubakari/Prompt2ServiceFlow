@@ -1,0 +1,45 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_batch_model_scoring
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: load_feature_table
+  script: scripts/01_load_feature_table.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: load_model_artifact
+  script: scripts/02_load_model_artifact.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: score_customers
+  script: scripts/03_score_customers.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - load_feature_table
+  - load_model_artifact
+- intent_id: write_predictions
+  script: scripts/04_write_predictions.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - score_customers
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

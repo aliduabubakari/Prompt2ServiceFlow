@@ -1,0 +1,149 @@
+schema_version: 0.1.0
+service_id: document_keyword_feature_extractor
+version: 1.0.0
+display_name: Document Keyword Feature Extractor
+category: Transformer
+capability:
+  summary: Extracts keyword-related and text-complexity features from cleaned document
+    records and writes a processed Parquet dataset.
+  operations:
+  - Read cleaned document text from Parquet.
+  - Tokenize or otherwise analyze configured text columns.
+  - Calculate keyword density and configured complexity metrics.
+  - Append feature columns and write a processed Parquet artifact with transform status.
+  keywords:
+  - keyword extraction
+  - keyword density
+  - text complexity
+  - documents
+  - parquet
+  - feature engineering
+  limitations:
+  - Does not train or serve ML models.
+  - Keyword lists, extraction rules, and complexity metrics must be configured or
+    accepted from defaults.
+  - Does not validate business thresholds; use a quality-check service separately.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: cleaned_document_parquet
+    description: Cleaned document dataset in Parquet format.
+    channel: artifact
+    data_type: parquet
+    media_type: application/vnd.apache.parquet
+    schema_ref: schema://cleaned_document_parquet_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: processed_document_parquet
+    description: Document dataset with keyword and complexity features in Parquet
+      format.
+    channel: artifact
+    data_type: parquet
+    media_type: application/vnd.apache.parquet
+    schema_ref: schema://processed_document_features_parquet/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: feature_status
+    description: Observable feature extraction status with row counts, feature columns,
+      and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://document_keyword_feature_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: text_column
+    description: Cleaned document text column to analyze.
+    type: string
+    required: true
+  - name: output_path
+    description: Deterministic processed Parquet output path.
+    type: string
+    required: true
+  - name: keyword_rules
+    description: Keyword list or extraction configuration used to calculate density
+      and related metrics.
+    type: object
+    required: false
+  - name: complexity_metrics
+    description: List or object describing text complexity metrics to compute.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: keyword_feature_input_contract
+  type: precondition
+  applies_to: input
+  target: cleaned_document_parquet
+  description: Input must be readable Parquet and contain the configured text column.
+  expression: readable(cleaned_document_parquet) and parquet_parseable(cleaned_document_parquet)
+    and text_column in columns(cleaned_document_parquet)
+- contract_id: keyword_feature_status_schema
+  type: json_schema
+  applies_to: output
+  target: feature_status
+  description: Status exposes feature extraction outcome.
+  schema_ref: schema://document_keyword_feature_status/v1
+  expression: '{"type":"object","required":["success","rows_read","rows_written","feature_columns","output_uri"],"properties":{"success":{"type":"boolean"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"feature_columns":{"type":"array","items":{"type":"string"}},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: keyword_feature_effect
+  type: effect
+  applies_to: service
+  target: document_keyword_feature_extractor
+  description: On success, processed Parquet exists and at least one feature column
+    is emitted.
+  expression: feature_status.success == true implies exists(processed_document_parquet)
+    and length(feature_status.feature_columns) > 0
+invocation:
+  type: argo_workflow_template
+  template_name: document-keyword-feature-extractor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.document_keyword_feature_extractor
+  implementation_ref: services/implementations/document_keyword_feature_extractor
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Avoid logging raw document text or full token lists unless explicitly configured.
+  idempotency_notes: Same cleaned input and extraction parameters produce the same
+    feature dataset.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:keyword_extraction_pipeline#extract_features
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing keyword-feature extractor for document Parquet artifacts
+    exists in the registry.'
+  - 'Evidence status: explicit.'

@@ -1,0 +1,48 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:supply_chain_shipment_etl
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_supply_chain_shipment_etl_csv_tabular_schema_validating_loader_candidates
+  source_step_refs:
+  - ingest_vendor_a
+  - ingest_vendor_b
+  - ingest_vendor_c
+  service_ids:
+  - csv_tabular_schema_validating_loader
+  - csv_artifact_profile_ingestor
+  - delimited_file_tabular_dataset_loader
+  - customer_segment_csv_loader
+  - csv_to_structured_json_standardizer
+  - legacy_csv_schema_validator
+- candidate_set_id: main_supply_chain_shipment_etl_shipment_data_standardization_enricher_candidates
+  source_step_refs:
+  - cleanse_data
+  service_ids:
+  - shipment_data_standardization_enricher
+  - tabular_dataset_declarative_transformer
+  - tabular_null_value_cleanser
+  - inventory_sku_csv_normalizer
+  - csv_to_structured_json_standardizer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_supply_chain_shipment_etl_tabular_dataset_database_loader_candidates
+  source_step_refs:
+  - load_to_db
+  service_ids:
+  - tabular_dataset_database_loader
+  - postgres_parameterized_sql_executor
+  - database_csv_snapshot_importer
+  - postgres_sql_file_executor
+  - multi_table_analytics_warehouse_loader
+  - air_quality_dimensional_postgres_loader
+- candidate_set_id: main_supply_chain_shipment_etl_status_context_email_summary_notifier_candidates
+  source_step_refs:
+  - send_summary_email
+  service_ids:
+  - status_context_email_summary_notifier
+  - email_notification_sender
+  - email_attachment_notification_sender
+  - branch_processing_completion_notifier
+  - slack_notification_sender
+  - aqi_threshold_email_alert_notifier

@@ -1,0 +1,174 @@
+schema_version: 0.1.0
+service_id: tabular_dashboard_report_generator
+version: 1.0.0
+display_name: Tabular Dashboard Report Generator
+category: ReportGenerator
+capability:
+  summary: Generates a configurable dashboard report from a validated tabular dataset,
+    including metrics, grouped summaries, and chart-ready sections, then emits the
+    report artifact and render status.
+  operations:
+  - Read a validated tabular dataset artifact.
+  - Validate a caller-supplied dashboard specification containing metrics, dimensions,
+    chart sections, and output format.
+  - Compute configured aggregations and summaries from tabular rows.
+  - Render an executive-style dashboard artifact such as HTML, PDF, or Markdown and
+    emit render status.
+  keywords:
+  - dashboard
+  - report generation
+  - tabular data
+  - sales metrics
+  - visualization
+  - executive report
+  limitations:
+  - Does not query databases or read CSV directly; upstream services must provide
+    validated tabular data.
+  - Does not send email or publish the dashboard externally.
+  - Dashboard content depends on caller-supplied dashboard_spec and available input
+    columns.
+  - Does not infer product, regional, or revenue metric definitions without configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: validated_dataset
+    description: Validated tabular dataset used as the dashboard data source.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://validated_tabular_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  outputs:
+  - name: dashboard_report
+    description: Rendered dashboard artifact, for example an HTML executive dashboard
+      containing sales metrics and visualizations.
+    channel: artifact
+    data_type: text
+    media_type: text/html
+    schema_ref: schema://dashboard_report_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  - name: render_status
+    description: Observable dashboard generation status including output URI, sections
+      rendered, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://dashboard_render_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: dashboard_spec
+    description: Structured dashboard configuration defining metrics, dimensions,
+      chart sections, titles, and layout.
+    type: object
+    required: true
+  - name: output_format
+    description: Report output format.
+    type: string
+    required: true
+    enum:
+    - html
+    - pdf
+    - markdown
+  - name: output_path
+    description: Deterministic output artifact path or name for the rendered dashboard.
+    type: string
+    required: true
+  - name: fail_on_empty_dataset
+    description: Whether an empty input dataset should fail dashboard generation.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: dashboard_input_dataset_schema
+  type: json_schema
+  applies_to: input
+  target: validated_dataset
+  description: Input dataset must contain columns, rows, and row count.
+  schema_ref: schema://validated_tabular_dataset/v1
+  expression: '{"type":"object","required":["columns","rows","row_count"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0}}}'
+- contract_id: dashboard_spec_schema
+  type: json_schema
+  applies_to: parameter
+  target: dashboard_spec
+  description: Dashboard spec must define at least one section or metric.
+  schema_ref: schema://dashboard_spec/v1
+  expression: '{"type":"object","anyOf":[{"required":["sections"]},{"required":["metrics"]}],"properties":{"title":{"type":["string","null"]},"metrics":{"type":"array","items":{"type":"object"}},"sections":{"type":"array","items":{"type":"object"}}},"additionalProperties":true}'
+- contract_id: dashboard_output_format_contract
+  type: precondition
+  applies_to: parameter
+  target: output_format
+  description: Output format must be supported by the renderer.
+  expression: output_format in ['html','pdf','markdown']
+- contract_id: dashboard_render_status_schema
+  type: json_schema
+  applies_to: output
+  target: render_status
+  description: Status exposes render outcome for workflow validation.
+  schema_ref: schema://dashboard_render_status/v1
+  expression: '{"type":"object","required":["success","output_uri","output_format","sections_rendered"],"properties":{"success":{"type":"boolean"},"output_uri":{"type":"string"},"output_format":{"type":"string"},"sections_rendered":{"type":"integer","minimum":0},"rows_read":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: dashboard_report_generation_effect
+  type: effect
+  applies_to: service
+  target: tabular_dashboard_report_generator
+  description: On success, a dashboard report artifact exists and render_status.success=true.
+  expression: render_status.success == true implies exists(dashboard_report) and render_status.sections_rendered
+    >= 1
+invocation:
+  type: argo_workflow_template
+  template_name: tabular-dashboard-report-generator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.tabular_dashboard_report_generator
+  implementation_ref: services/implementations/tabular_dashboard_report_generator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - financial
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw sales rows or sensitive financial values beyond bounded report
+    diagnostics.
+  - Publishing or emailing the dashboard is a separate service if required.
+  idempotency_notes: Same validated dataset and dashboard specification produce the
+    same dashboard content aside from deterministic renderer metadata.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:executive_sales_dashboard#generate_dashboard
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: A reusable dashboard generator is needed for multi-section executive
+    reports; existing chart generation service only covers a single CSV-to-PDF chart
+    pattern.'
+  - 'Evidence status: strongly_inferred.'

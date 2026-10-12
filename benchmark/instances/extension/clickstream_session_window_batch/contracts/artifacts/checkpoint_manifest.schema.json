@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Checkpoint Manifest",
+  "description": "Schema for the checkpoint manifest produced at pipeline completion.",
+  "type": "object",
+  "required": ["checkpoint_id", "checkpoint_time", "batch_window", "pipeline_id", "status"],
+  "properties": {
+    "checkpoint_id": {"type": "string"},
+    "checkpoint_time": {"type": "string", "format": "date-time"},
+    "previous_checkpoint_id": {"type": "string"},
+    "batch_window": {
+      "type": "object",
+      "required": ["start", "end"],
+      "properties": {
+        "start": {"type": "string", "format": "date-time"},
+        "end": {"type": "string", "format": "date-time"}
+      }
+    },
+    "pipeline_id": {"type": "string"},
+    "execution_summary": {
+      "type": "object",
+      "properties": {
+        "total_windows": {"type": "integer"},
+        "total_events": {"type": "integer"},
+        "conversion_windows": {"type": "integer"},
+        "unique_users": {"type": "integer"}
+      }
+    },
+    "output_files": {"type": "array", "items": {"type": "string"}},
+    "status": {"type": "string", "enum": ["ready", "completed", "failed"]}
+  }
+}

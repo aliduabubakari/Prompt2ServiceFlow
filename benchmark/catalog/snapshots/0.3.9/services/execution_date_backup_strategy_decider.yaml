@@ -1,0 +1,155 @@
+schema_version: 0.1.0
+service_id: execution_date_backup_strategy_decider
+version: 1.0.0
+display_name: Execution Date Backup Strategy Decider
+category: Transformer
+capability:
+  summary: Determines a backup strategy label from a workflow execution date by evaluating
+    configured day-of-week rules and emits a branch decision artifact without performing
+    workflow branching.
+  operations:
+  - Parse a supplied execution date or timestamp parameter.
+  - Compute day of week using configured calendar/timezone semantics.
+  - Compare the computed day against configured full-backup days.
+  - Emit a decision containing selected strategy, reason, computed day-of-week, and
+    configured branch labels.
+  keywords:
+  - execution date
+  - day of week
+  - backup strategy
+  - branch decision
+  - calendar rule
+  - database maintenance
+  limitations:
+  - Does not branch or route workflow execution; downstream branch edges are orchestration-level.
+  - Does not perform any backup or verification.
+  - Timezone and weekday numbering must be supplied or accepted from workflow binding
+    defaults.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: execution_date
+    description: Workflow execution date or logical date used to select the backup
+      strategy.
+    channel: parameter
+    data_type: string
+    media_type: text/plain
+    schema_ref: schema://workflow_execution_date/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: backup_strategy_decision
+    description: Decision object indicating selected backup strategy and branch label
+      for downstream orchestration binding.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://backup_strategy_decision/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: full_backup_days
+    description: Day-of-week values on which a full backup should be selected, using
+      configured weekday numbering.
+    type: array
+    required: true
+  - name: weekday_numbering
+    description: Weekday numbering convention used to interpret full_backup_days.
+    type: string
+    required: false
+    enum:
+    - python_monday_0
+    - cron_sunday_0
+    - iso_monday_1
+  - name: full_strategy_label
+    description: Strategy label emitted when execution date matches a full-backup
+      day.
+    type: string
+    required: false
+  - name: incremental_strategy_label
+    description: Strategy label emitted when execution date does not match a full-backup
+      day.
+    type: string
+    required: false
+  - name: timezone
+    description: Optional timezone used when interpreting execution_date.
+    type: string
+    required: false
+  secrets: []
+contracts:
+- contract_id: backup_strategy_execution_date_parseable
+  type: precondition
+  applies_to: input
+  target: execution_date
+  description: Execution date must be parseable as a date or timestamp before day-of-week
+    evaluation.
+  expression: parseable_datetime(execution_date)
+- contract_id: backup_strategy_decision_schema
+  type: json_schema
+  applies_to: output
+  target: backup_strategy_decision
+  description: Decision exposes selected strategy and computed weekday for workflow
+    validation.
+  schema_ref: schema://backup_strategy_decision/v1
+  expression: '{"type":"object","required":["selected_strategy","day_of_week","matched_full_backup_day","reason"],"properties":{"selected_strategy":{"type":"string","enum":["full","incremental"]},"branch_label":{"type":["string","null"]},"day_of_week":{"type":"integer"},"matched_full_backup_day":{"type":"boolean"},"reason":{"type":"string"}}}'
+- contract_id: backup_strategy_decider_effect
+  type: effect
+  applies_to: service
+  target: execution_date_backup_strategy_decider
+  description: Service is deterministic and read-only; selected_strategy is full exactly
+    when computed day_of_week is in full_backup_days.
+  expression: no_external_mutation and (backup_strategy_decision.selected_strategy
+    == 'full' iff backup_strategy_decision.day_of_week in full_backup_days)
+invocation:
+  type: argo_workflow_template
+  template_name: execution-date-backup-strategy-decider-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.execution_date_backup_strategy_decider
+  implementation_ref: services/implementations/execution_date_backup_strategy_decider
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Use this service only to emit an observable decision; branch routing remains in
+    the Argo workflow.
+  - Do not encode credentials or database identifiers in branch labels.
+  idempotency_notes: Same execution_date, weekday numbering, timezone, and full_backup_days
+    produce the same decision.
+  default_timeout_seconds: 60
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:backup_strategy_selector#date_check_task
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The registry did not contain a reusable calendar-based backup strategy
+    decider with a decision output.'
+  - 'Evidence status: explicit.'

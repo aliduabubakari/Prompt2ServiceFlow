@@ -1,0 +1,83 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__support_profile_context_join.py
+- Name: Support Profile Context Join
+- Purpose: Join nested support-ticket payloads with customer profile tables for routing context.
+- Execution model: bounded batch
+- Extension track: api_json_table_fusion
+- Topology pattern: fan_in
+- Complexity band: medium
+- Business domain: Marketing/Customer Operations
+- Input modalities: json, table, text
+- Output modalities: table, json
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- support ticket API export
+- customer profile CSV
+- subscription plan lookup
+
+External Systems:
+- support API fixture (fixture-backed; no production system is contacted)
+- customer analytics bucket (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_primary_source -> validate_source_contracts
+  - ingest_secondary_source -> validate_source_contracts
+  - ingest_reference_source -> validate_source_contracts
+  - validate_source_contracts -> normalize_sources
+  - normalize_sources -> fuse_sources
+  - fuse_sources -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_primary_source - Ingest Primary Source
+  - Objective: Ingest the primary source for support ticket and customer profile context.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. ingest_secondary_source - Ingest Secondary Source
+  - Objective: Ingest the secondary source for support ticket and customer profile context.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. ingest_reference_source - Ingest Reference Source
+  - Objective: Ingest reference data needed to interpret support ticket and customer profile context.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. validate_source_contracts - Validate Source Contracts
+  - Objective: Validate schemas, identities, and freshness constraints across all support ticket and customer profile context sources.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. normalize_sources - Normalize Sources
+  - Objective: Normalize source-specific fields into a shared representation for support ticket and customer profile context.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. fuse_sources - Fuse Sources
+  - Objective: Fuse normalized sources into a coherent support ticket and customer profile context artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. publish_outputs - Publish Outputs
+  - Objective: Publish the prepared support ticket and customer profile context outputs and completion status.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

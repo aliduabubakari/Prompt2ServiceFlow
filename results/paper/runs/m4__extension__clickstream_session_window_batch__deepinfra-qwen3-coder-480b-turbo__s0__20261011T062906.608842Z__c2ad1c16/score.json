@@ -1,0 +1,431 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-11T06:30:55.158299+00:00",
+  "instance": "benchmark/instances/extension/clickstream_session_window_batch",
+  "workspace": "experiments/workspaces/extension/clickstream_session_window_batch",
+  "submission": "results/paper/runs/m4__extension__clickstream_session_window_batch__deepinfra-qwen3-coder-480b-turbo__s0__20261011T062906.608842Z__c2ad1c16/submission",
+  "summary": {
+    "public_gates_status": "pass",
+    "first_failing_gate": null,
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-11T06:30:51.698331+00:00",
+    "workspace": "experiments/workspaces/extension/clickstream_session_window_batch",
+    "submission": "results/paper/runs/m4__extension__clickstream_session_window_batch__deepinfra-qwen3-coder-480b-turbo__s0__20261011T062906.608842Z__c2ad1c16/submission",
+    "overall_status": "pass",
+    "first_failing_gate": null,
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "pass",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": []
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "pass",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": []
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "extension-v1-clickstream-session-window-batch-scripts",
+              "scenario": "base",
+              "data_size_bytes": 12887,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-clickstream-session-window-batch-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 2118,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-clickstream-session-window-bat-900af485-scripts",
+              "scenario": "boundary",
+              "data_size_bytes": 12887,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-clickstream-session-window-bat-900af485-fixtures",
+              "scenario": "boundary",
+              "data_size_bytes": 2118,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-clickstream-session-window-bat-ef7f6335-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 12887,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-clickstream-session-window-bat-ef7f6335-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 3674,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "boundary",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_bounded_events",
+                "validate_checkpoint_inputs",
+                "sort_and_deduplicate_records",
+                "build_analysis_windows",
+                "compute_window_metrics",
+                "publish_outputs"
+              ],
+              "skipped_tasks": []
+            },
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_bounded_events",
+                "validate_checkpoint_inputs",
+                "sort_and_deduplicate_records",
+                "build_analysis_windows",
+                "compute_window_metrics",
+                "publish_outputs"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 6,
+      "submission_intents": 6,
+      "gold_intents": 6,
+      "mapping": {
+        "build_analysis_windows": "build_analysis_windows",
+        "compute_window_metrics": "compute_window_metrics",
+        "ingest_bounded_events": "ingest_bounded_events",
+        "publish_outputs": "publish_outputs",
+        "sort_and_deduplicate_records": "sort_and_deduplicate_records",
+        "validate_checkpoint_inputs": "validate_checkpoint_inputs"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 6
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 5,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 6,
+      "total": 6,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 6,
+    "correct": 6,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "build_analysis_windows",
+        "gold_service": "checkpoint_window_builder",
+        "submission_intent": "build_analysis_windows",
+        "submission_service": "checkpoint_window_builder",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "compute_window_metrics",
+        "gold_service": "checkpoint_window_metric_computer",
+        "submission_intent": "compute_window_metrics",
+        "submission_service": "checkpoint_window_metric_computer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_bounded_events",
+        "gold_service": "checkpoint_bounded_event_ingestor",
+        "submission_intent": "ingest_bounded_events",
+        "submission_service": "checkpoint_bounded_event_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_outputs",
+        "gold_service": "checkpoint_output_bundle_publisher",
+        "submission_intent": "publish_outputs",
+        "submission_service": "checkpoint_output_bundle_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "sort_and_deduplicate_records",
+        "gold_service": "checkpoint_event_sort_deduplicator",
+        "submission_intent": "sort_and_deduplicate_records",
+        "submission_service": "checkpoint_event_sort_deduplicator",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "validate_checkpoint_inputs",
+        "gold_service": "checkpoint_boundary_validator",
+        "submission_intent": "validate_checkpoint_inputs",
+        "submission_service": "checkpoint_boundary_validator",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 5,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "boundary",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "boundary_ingest_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-boundary-6__sto6f/artifacts/ingest_bounded_events_status.json"
+          },
+          {
+            "assertion_id": "boundary_rejected_zero",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-boundary-6__sto6f/artifacts/validate_checkpoint_inputs_status.json"
+          },
+          {
+            "assertion_id": "boundary_dedup_removed",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-boundary-6__sto6f/artifacts/sort_and_deduplicate_records_status.json"
+          },
+          {
+            "assertion_id": "boundary_window_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-boundary-6__sto6f/artifacts/build_analysis_windows_status.json"
+          },
+          {
+            "assertion_id": "boundary_csv_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-boundary-6__sto6f/artifacts/per_window_metrics.csv"
+          }
+        ],
+        "status": "fail"
+      },
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "ingest_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/ingest_bounded_events_status.json"
+          },
+          {
+            "assertion_id": "ingest_event_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/ingest_bounded_events_status.json"
+          },
+          {
+            "assertion_id": "validate_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/validate_checkpoint_inputs_status.json"
+          },
+          {
+            "assertion_id": "validate_rejected_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/validate_checkpoint_inputs_status.json"
+          },
+          {
+            "assertion_id": "validate_valid_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/validate_checkpoint_inputs_status.json"
+          },
+          {
+            "assertion_id": "dedup_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/sort_and_deduplicate_records_status.json"
+          },
+          {
+            "assertion_id": "dedup_removed_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/sort_and_deduplicate_records_status.json"
+          },
+          {
+            "assertion_id": "dedup_final_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/sort_and_deduplicate_records_status.json"
+          },
+          {
+            "assertion_id": "windows_succeed",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/build_analysis_windows_status.json"
+          },
+          {
+            "assertion_id": "window_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/build_analysis_windows_status.json"
+          },
+          {
+            "assertion_id": "metrics_succeed",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/compute_window_metrics_status.json"
+          },
+          {
+            "assertion_id": "metrics_total_windows",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/compute_window_metrics_artifact.json"
+          },
+          {
+            "assertion_id": "metrics_total_events",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/compute_window_metrics_artifact.json"
+          },
+          {
+            "assertion_id": "metrics_conversion_windows",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/compute_window_metrics_artifact.json"
+          },
+          {
+            "assertion_id": "metrics_unique_users",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/compute_window_metrics_artifact.json"
+          },
+          {
+            "assertion_id": "publish_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "checkpoint_status_completed",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/checkpoint_manifest.json"
+          },
+          {
+            "assertion_id": "csv_exported",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "csv_file_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/per_window_metrics.csv"
+          },
+          {
+            "assertion_id": "csv_has_rows",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/per_window_metrics.csv"
+          },
+          {
+            "assertion_id": "no_revoked_user_in_windows",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-sseipniw/artifacts/compute_window_metrics_artifact.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 26,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

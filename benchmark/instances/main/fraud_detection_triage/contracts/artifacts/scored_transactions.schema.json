@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["transactions"],
+  "properties": {
+    "transactions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["transaction_id", "score"],
+        "properties": {
+          "transaction_id": {"type": "string"},
+          "score": {"type": "number", "minimum": 0, "maximum": 1},
+          "features": {"type": "object"}
+        }
+      }
+    }
+  }
+}

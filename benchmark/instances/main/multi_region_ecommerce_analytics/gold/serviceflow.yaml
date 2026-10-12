@@ -1,0 +1,947 @@
+ir_version: 0.1.0
+composition_id: multi_region_ecommerce_analytics
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:multi_region_ecommerce_analytics
+  split: main
+  pipeline_id: multi_region_ecommerce_analytics
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/38_multi_region_ecommerce_analytics.txt
+  description_sha256: af24ff4a4d5a9a16665cecfa21113b23893c988775badae92737b2b4cf3df6c0
+  internal_spec_path: source/internal_specs/main_40/38_multi_region_ecommerce_analytics.json
+  internal_spec_sha256: 79a7c315065d176b00f88afe2e2d3b74db980aab4680e0dfbca228ebf74d8e91
+requirement:
+  name: Multi-Region Ecommerce Analytics
+  purpose: Ingest sales from 4 regions, convert currencies to USD, and aggregate into global report.
+  domain: ecommerce
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: high
+  notes:
+  - "Fan-out/fan-in: 4 regions \xD7 2 phases \u2192 aggregate."
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: regional_sales_databases
+  type: database
+  name: Regional sales databases
+  identifier: regional_sales
+  access_mode: read
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_us_east
+  name: Ingest us_east
+  category: Extractor
+  capability: Export the US-East regional sales database as a CSV snapshot.
+  source_step_refs:
+  - ingest_us_east
+  evidence:
+  - source: description
+    text: Ingest us_east.
+  inputs:
+  - us_east_database_resource
+  outputs:
+  - us_east_sales_csv
+  - us_east_ingest_status
+  external_system_refs:
+  - regional_sales_databases
+  preconditions: []
+  effects:
+  - Data ingested.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source ingests this region from a database before currency conversion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: ingest_us_west
+  name: Ingest us_west
+  category: Extractor
+  capability: Export the US-West regional sales database as a CSV snapshot.
+  source_step_refs:
+  - ingest_us_west
+  evidence:
+  - source: description
+    text: Ingest us_west.
+  inputs:
+  - us_west_database_resource
+  outputs:
+  - us_west_sales_csv
+  - us_west_ingest_status
+  external_system_refs:
+  - regional_sales_databases
+  preconditions: []
+  effects:
+  - Data ingested.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source ingests this region from a database before currency conversion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: ingest_eu
+  name: Ingest eu
+  category: Extractor
+  capability: Export the EU regional sales database as a CSV snapshot.
+  source_step_refs:
+  - ingest_eu
+  evidence:
+  - source: description
+    text: Ingest eu.
+  inputs:
+  - eu_database_resource
+  outputs:
+  - eu_sales_csv
+  - eu_ingest_status
+  external_system_refs:
+  - regional_sales_databases
+  preconditions: []
+  effects:
+  - Data ingested.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source ingests this region from a database before currency conversion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: ingest_apac
+  name: Ingest apac
+  category: Extractor
+  capability: Export the APAC regional sales database as a CSV snapshot.
+  source_step_refs:
+  - ingest_apac
+  evidence:
+  - source: description
+    text: Ingest apac.
+  inputs:
+  - apac_database_resource
+  outputs:
+  - apac_sales_csv
+  - apac_ingest_status
+  external_system_refs:
+  - regional_sales_databases
+  preconditions: []
+  effects:
+  - Data ingested.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source ingests this region from a database before currency conversion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: convert_currency_us_east
+  name: Convert us_east
+  category: Transformer
+  capability: Convert US-East sales revenue to USD using the reviewed exchange-rate table.
+  source_step_refs:
+  - convert_currency_us_east
+  evidence:
+  - source: description
+    text: Convert us_east currency.
+  inputs:
+  - us_east_sales_csv
+  - exchange_rates
+  outputs:
+  - us_east_usd_dataset
+  - us_east_convert_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Currency converted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source applies a region-specific currency conversion after ingestion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: convert_currency_us_west
+  name: Convert us_west
+  category: Transformer
+  capability: Convert US-West sales revenue to USD using the reviewed exchange-rate table.
+  source_step_refs:
+  - convert_currency_us_west
+  evidence:
+  - source: description
+    text: Convert us_west currency.
+  inputs:
+  - us_west_sales_csv
+  - exchange_rates
+  outputs:
+  - us_west_usd_dataset
+  - us_west_convert_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Currency converted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source applies a region-specific currency conversion after ingestion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: convert_currency_eu
+  name: Convert eu
+  category: Transformer
+  capability: Convert EU sales revenue to USD using the reviewed exchange-rate table.
+  source_step_refs:
+  - convert_currency_eu
+  evidence:
+  - source: description
+    text: Convert eu currency.
+  inputs:
+  - eu_sales_csv
+  - exchange_rates
+  outputs:
+  - eu_usd_dataset
+  - eu_convert_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Currency converted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source applies a region-specific currency conversion after ingestion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: convert_currency_apac
+  name: Convert apac
+  category: Transformer
+  capability: Convert APAC sales revenue to USD using the reviewed exchange-rate table.
+  source_step_refs:
+  - convert_currency_apac
+  evidence:
+  - source: description
+    text: Convert apac currency.
+  inputs:
+  - apac_sales_csv
+  - exchange_rates
+  outputs:
+  - apac_usd_dataset
+  - apac_convert_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Currency converted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source applies a region-specific currency conversion after ingestion.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: aggregate_global_revenue
+  name: Aggregate global revenue
+  category: Aggregator
+  capability: Aggregate all four USD-converted regional sales files into a global revenue report.
+  source_step_refs:
+  - aggregate_global_revenue
+  evidence:
+  - source: description
+    text: Aggregate revenue.
+  inputs:
+  - us_east_usd_dataset
+  - us_west_usd_dataset
+  - eu_usd_dataset
+  - apac_usd_dataset
+  outputs:
+  - global_report
+  - aggregate_status
+  external_system_refs: []
+  preconditions: []
+  effects:
+  - Global report emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: The source explicitly fans in all converted regional files into one report.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: ingest_us_east
+    to: convert_currency_us_east
+  - from: ingest_us_west
+    to: convert_currency_us_west
+  - from: ingest_eu
+    to: convert_currency_eu
+  - from: ingest_apac
+    to: convert_currency_apac
+  - from: convert_currency_us_east
+    to: aggregate_global_revenue
+  - from: convert_currency_us_west
+    to: aggregate_global_revenue
+  - from: convert_currency_eu
+    to: aggregate_global_revenue
+  - from: convert_currency_apac
+    to: aggregate_global_revenue
+  parallel_groups:
+  - group_id: ingest_phase
+    intent_ids:
+    - ingest_us_east
+    - ingest_us_west
+    - ingest_eu
+    - ingest_apac
+  - group_id: convert_phase
+    intent_ids:
+    - convert_currency_us_east
+    - convert_currency_us_west
+    - convert_currency_eu
+    - convert_currency_apac
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: us_east_database_resource
+  name: US-East sales database resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - ingest_us_east
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/us_east_database.json
+  external_system_ref: regional_sales_databases
+- artifact_id: us_east_sales_csv
+  name: US-East sales CSV snapshot
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: ingest_us_east
+  consumers:
+  - convert_currency_us_east
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: us_east_ingest_status
+  name: US-East snapshot export status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_us_east
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: us_west_database_resource
+  name: US-West sales database resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - ingest_us_west
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/us_west_database.json
+  external_system_ref: regional_sales_databases
+- artifact_id: us_west_sales_csv
+  name: US-West sales CSV snapshot
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: ingest_us_west
+  consumers:
+  - convert_currency_us_west
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: us_west_ingest_status
+  name: US-West snapshot export status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_us_west
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: eu_database_resource
+  name: EU sales database resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - ingest_eu
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/eu_database.json
+  external_system_ref: regional_sales_databases
+- artifact_id: eu_sales_csv
+  name: EU sales CSV snapshot
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: ingest_eu
+  consumers:
+  - convert_currency_eu
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: eu_ingest_status
+  name: EU snapshot export status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_eu
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: apac_database_resource
+  name: APAC sales database resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - ingest_apac
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/apac_database.json
+  external_system_ref: regional_sales_databases
+- artifact_id: apac_sales_csv
+  name: APAC sales CSV snapshot
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: ingest_apac
+  consumers:
+  - convert_currency_apac
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: apac_ingest_status
+  name: APAC snapshot export status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_apac
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: exchange_rates
+  name: Versioned exchange-rate table
+  kind: external_resource
+  data_type: table
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - convert_currency_us_east
+  - convert_currency_us_west
+  - convert_currency_eu
+  - convert_currency_apac
+  sensitivity: internal
+  persistence: external
+  fixture_ref: fixtures/inputs/exchange_rates.json
+  external_system_ref: regional_sales_databases
+- artifact_id: us_east_usd_dataset
+  name: US-East USD sales CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: convert_currency_us_east
+  consumers:
+  - aggregate_global_revenue
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: us_east_convert_status
+  name: US-East currency-conversion status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: convert_currency_us_east
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: us_west_usd_dataset
+  name: US-West USD sales CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: convert_currency_us_west
+  consumers:
+  - aggregate_global_revenue
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: us_west_convert_status
+  name: US-West currency-conversion status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: convert_currency_us_west
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: eu_usd_dataset
+  name: EU USD sales CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: convert_currency_eu
+  consumers:
+  - aggregate_global_revenue
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: eu_convert_status
+  name: EU currency-conversion status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: convert_currency_eu
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: apac_usd_dataset
+  name: APAC USD sales CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: convert_currency_apac
+  consumers:
+  - aggregate_global_revenue
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: apac_convert_status
+  name: APAC currency-conversion status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: convert_currency_apac
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/st.schema.json
+- artifact_id: global_report
+  name: Global USD revenue report
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: output
+  producer: aggregate_global_revenue
+  consumers: []
+  sensitivity: confidential
+  persistence: release
+- artifact_id: aggregate_status
+  name: Global revenue aggregation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: aggregate_global_revenue
+  consumers: []
+  sensitivity: internal
+  persistence: release
+  schema_ref: contracts/artifacts/st.schema.json
+bindings:
+- intent_id: ingest_us_east
+  service_id: database_csv_snapshot_exporter
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_database
+    artifact_id: us_east_database_resource
+  output_bindings:
+  - port: csv_snapshot
+    artifact_id: us_east_sales_csv
+  - port: export_status
+    artifact_id: us_east_ingest_status
+  parameter_bindings:
+    export_spec:
+      table: sales
+      region: US-East
+    output_path: /workspace/artifacts/us_east_sales.csv
+    include_header: true
+    overwrite_output: true
+  secret_bindings: []
+  rationale: Exports the US-East source database as the source-required CSV artifact.
+  confidence: explicit
+- intent_id: ingest_us_west
+  service_id: database_csv_snapshot_exporter
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_database
+    artifact_id: us_west_database_resource
+  output_bindings:
+  - port: csv_snapshot
+    artifact_id: us_west_sales_csv
+  - port: export_status
+    artifact_id: us_west_ingest_status
+  parameter_bindings:
+    export_spec:
+      table: sales
+      region: US-West
+    output_path: /workspace/artifacts/us_west_sales.csv
+    include_header: true
+    overwrite_output: true
+  secret_bindings: []
+  rationale: Exports the US-West source database as the source-required CSV artifact.
+  confidence: explicit
+- intent_id: ingest_eu
+  service_id: database_csv_snapshot_exporter
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_database
+    artifact_id: eu_database_resource
+  output_bindings:
+  - port: csv_snapshot
+    artifact_id: eu_sales_csv
+  - port: export_status
+    artifact_id: eu_ingest_status
+  parameter_bindings:
+    export_spec:
+      table: sales
+      region: EU
+    output_path: /workspace/artifacts/eu_sales.csv
+    include_header: true
+    overwrite_output: true
+  secret_bindings: []
+  rationale: Exports the EU source database as the source-required CSV artifact.
+  confidence: explicit
+- intent_id: ingest_apac
+  service_id: database_csv_snapshot_exporter
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_database
+    artifact_id: apac_database_resource
+  output_bindings:
+  - port: csv_snapshot
+    artifact_id: apac_sales_csv
+  - port: export_status
+    artifact_id: apac_ingest_status
+  parameter_bindings:
+    export_spec:
+      table: sales
+      region: APAC
+    output_path: /workspace/artifacts/apac_sales.csv
+    include_header: true
+    overwrite_output: true
+  secret_bindings: []
+  rationale: Exports the APAC source database as the source-required CSV artifact.
+  confidence: explicit
+- intent_id: convert_currency_us_east
+  service_id: regional_sales_currency_usd_converter
+  service_version: 1.0.0
+  input_bindings:
+  - port: sales_data_file
+    artifact_id: us_east_sales_csv
+  - port: exchange_rate_table
+    artifact_id: exchange_rates
+  output_bindings:
+  - port: converted_sales_file
+    artifact_id: us_east_usd_dataset
+  - port: conversion_status
+    artifact_id: us_east_convert_status
+  parameter_bindings:
+    region: US-East
+    target_currency: USD
+    amount_columns:
+    - revenue
+    currency_column: currency
+    missing_rate_policy: fail
+    output_path: /workspace/artifacts/us_east_usd.csv
+  secret_bindings: []
+  rationale: Converts the exported US-East CSV with the bound rate table.
+  confidence: explicit
+- intent_id: convert_currency_us_west
+  service_id: regional_sales_currency_usd_converter
+  service_version: 1.0.0
+  input_bindings:
+  - port: sales_data_file
+    artifact_id: us_west_sales_csv
+  - port: exchange_rate_table
+    artifact_id: exchange_rates
+  output_bindings:
+  - port: converted_sales_file
+    artifact_id: us_west_usd_dataset
+  - port: conversion_status
+    artifact_id: us_west_convert_status
+  parameter_bindings:
+    region: US-West
+    target_currency: USD
+    amount_columns:
+    - revenue
+    currency_column: currency
+    missing_rate_policy: fail
+    output_path: /workspace/artifacts/us_west_usd.csv
+  secret_bindings: []
+  rationale: Converts the exported US-West CSV with the bound rate table.
+  confidence: explicit
+- intent_id: convert_currency_eu
+  service_id: regional_sales_currency_usd_converter
+  service_version: 1.0.0
+  input_bindings:
+  - port: sales_data_file
+    artifact_id: eu_sales_csv
+  - port: exchange_rate_table
+    artifact_id: exchange_rates
+  output_bindings:
+  - port: converted_sales_file
+    artifact_id: eu_usd_dataset
+  - port: conversion_status
+    artifact_id: eu_convert_status
+  parameter_bindings:
+    region: EU
+    target_currency: USD
+    amount_columns:
+    - revenue
+    currency_column: currency
+    missing_rate_policy: fail
+    output_path: /workspace/artifacts/eu_usd.csv
+  secret_bindings: []
+  rationale: Converts the exported EU CSV with the bound rate table.
+  confidence: explicit
+- intent_id: convert_currency_apac
+  service_id: regional_sales_currency_usd_converter
+  service_version: 1.0.0
+  input_bindings:
+  - port: sales_data_file
+    artifact_id: apac_sales_csv
+  - port: exchange_rate_table
+    artifact_id: exchange_rates
+  output_bindings:
+  - port: converted_sales_file
+    artifact_id: apac_usd_dataset
+  - port: conversion_status
+    artifact_id: apac_convert_status
+  parameter_bindings:
+    region: APAC
+    target_currency: USD
+    amount_columns:
+    - revenue
+    currency_column: currency
+    missing_rate_policy: fail
+    output_path: /workspace/artifacts/apac_usd.csv
+  secret_bindings: []
+  rationale: Converts the exported APAC CSV with the bound rate table.
+  confidence: explicit
+- intent_id: aggregate_global_revenue
+  service_id: multi_region_revenue_report_aggregator
+  service_version: 1.0.0
+  input_bindings:
+  - port: converted_sales_files
+    artifact_id: us_east_usd_dataset
+  - port: converted_sales_files
+    artifact_id: us_west_usd_dataset
+  - port: converted_sales_files
+    artifact_id: eu_usd_dataset
+  - port: converted_sales_files
+    artifact_id: apac_usd_dataset
+  output_bindings:
+  - port: global_revenue_report
+    artifact_id: global_report
+  - port: aggregation_status
+    artifact_id: aggregate_status
+  parameter_bindings:
+    report_currency: USD
+    revenue_column: revenue_usd
+    region_column: region
+    grouping_columns:
+    - region
+    output_path_template: /workspace/artifacts/global_report.csv
+    include_header: true
+  secret_bindings: []
+  rationale: Fans in all four converted regional CSVs through the cardinality-many catalogue port.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides:
+  - intent_id: ingest_us_east
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 300
+    network_access: required
+  - intent_id: ingest_us_west
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 300
+    network_access: required
+  - intent_id: ingest_eu
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 300
+    network_access: required
+  - intent_id: ingest_apac
+    retries: 2
+    retry_delay_seconds: 300
+    timeout_seconds: 300
+    network_access: required
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Mock data.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas, files, and provenance checks validate.
+- gate: G1
+  expected_status: pass
+  checks:
+  - Every source step is explicitly service- or orchestration-accounted.
+- gate: G2
+  expected_status: pass
+  checks:
+  - Database export, currency conversion, and cardinality-many aggregation bindings resolve.
+- gate: G3
+  expected_status: pass
+  checks:
+  - Regional resource, CSV, rate-table, and multi-input aggregation contracts close.
+- gate: G4
+  expected_status: pass
+  checks:
+  - The two-phase fan-out/fan-in Argo DAG compiles.
+- gate: G5
+  expected_status: pass
+  checks:
+  - All four regional exports and conversions execute before aggregation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - Regional USD values, four-input fan-in, and global revenue total assertions hold.
+source_step_accounting:
+- source_step_ref: start_pipeline
+  disposition: orchestration
+  intent_ids: []
+  rationale: The source step controls workflow sequencing or failure handling and does not invoke a reusable
+    catalogue service.
+- source_step_ref: ingest_us_east
+  disposition: service
+  intent_ids:
+  - ingest_us_east
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: ingest_us_west
+  disposition: service
+  intent_ids:
+  - ingest_us_west
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: ingest_eu
+  disposition: service
+  intent_ids:
+  - ingest_eu
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: ingest_apac
+  disposition: service
+  intent_ids:
+  - ingest_apac
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: convert_currency_us_east
+  disposition: service
+  intent_ids:
+  - convert_currency_us_east
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: convert_currency_us_west
+  disposition: service
+  intent_ids:
+  - convert_currency_us_west
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: convert_currency_eu
+  disposition: service
+  intent_ids:
+  - convert_currency_eu
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: convert_currency_apac
+  disposition: service
+  intent_ids:
+  - convert_currency_apac
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: aggregate_global_revenue
+  disposition: service
+  intent_ids:
+  - aggregate_global_revenue
+  rationale: The source step invokes the reviewed service intent or intents listed.
+- source_step_ref: end_pipeline
+  disposition: orchestration
+  intent_ids: []
+  rationale: The source step controls workflow sequencing or failure handling and does not invoke a reusable
+    catalogue service.

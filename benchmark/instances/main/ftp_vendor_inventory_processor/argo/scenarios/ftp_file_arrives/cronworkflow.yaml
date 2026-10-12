@@ -1,0 +1,171 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: ftp-vendor-inventory-processor-ftp-file-arrives
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters: []
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: ftp-vendor-inventory-processor-ftp-file-arrives-scripts
+    - name: fixtures
+      configMap:
+        name: ftp-vendor-inventory-processor-ftp-file-arrives-fixtures
+        items:
+        - key: fixture-0000
+          path: db_resource.json
+        - key: fixture-0001
+          path: fixture.json
+        - key: fixture-0002
+          path: ftp_server.json
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: wait-for-ftp-file
+          template: run-wait-for-ftp-file
+        - name: download-vendor-file
+          template: run-download-vendor-file
+          depends: wait-for-ftp-file.Succeeded
+        - name: cleanse-vendor-data
+          template: run-cleanse-vendor-data
+          depends: download-vendor-file.Succeeded
+        - name: merge-with-internal-inventory
+          template: run-merge-with-internal-inventory
+          depends: cleanse-vendor-data.Succeeded
+    - name: run-wait-for-ftp-file
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: wait_for_ftp_file
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_wait_ftp.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-download-vendor-file
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: download_vendor_file
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_download.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-cleanse-vendor-data
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanse_vendor_data
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_cleanse.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-merge-with-internal-inventory
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: merge_with_internal_inventory
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_merge.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError

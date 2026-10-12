@@ -1,0 +1,21 @@
+binding_gold_version: 0.1.0
+benchmark_id: validation:val_claims_adjudication_branch
+bindings:
+- intent_id: ingest_claims
+  service_id: claims_database_batch_extractor
+  service_version: 1.0.0
+- intent_id: score_claim_risk
+  service_id: claim_risk_scoring_service
+  service_version: 1.0.0
+- intent_id: route_claim
+  service_id: claim_risk_route_decider
+  service_version: 1.0.0
+- intent_id: manual_adjudication
+  service_id: manual_claim_adjudication_recorder
+  service_version: 1.0.0
+- intent_id: auto_approve_claim
+  service_id: low_risk_claim_auto_approver
+  service_version: 1.0.0
+- intent_id: write_settlement_summary
+  service_id: claim_settlement_summary_writer
+  service_version: 1.0.0

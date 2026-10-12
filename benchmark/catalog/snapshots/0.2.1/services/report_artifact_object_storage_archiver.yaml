@@ -1,0 +1,178 @@
+schema_version: 0.1.0
+service_id: report_artifact_object_storage_archiver
+version: 1.0.0
+display_name: Report Artifact Object Storage Archiver
+category: Loader
+capability:
+  summary: Packages one or more report artifacts into a compressed archive and writes
+    the archive to a bound object-storage destination, emitting archive reference
+    and status.
+  operations:
+  - Read one or more report artifacts.
+  - Validate required inputs are present and readable according to archive policy.
+  - Create a compressed archive using the configured archive format.
+  - Write the archive to object storage under a configured destination prefix and
+    emit status.
+  keywords:
+  - archive
+  - object storage
+  - reports
+  - compression
+  - secure storage
+  - loader
+  limitations:
+  - Does not implement branch fan-in or decide which upstream reports ran; orchestration
+    binds available reports.
+  - Does not submit reports to regulators.
+  - Requires an explicitly bound object-storage destination.
+  - Idempotency depends on deterministic archive naming and overwrite behavior.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: report_artifacts
+    description: Report artifacts to include in the archive, such as FATCA and IRS
+      report files.
+    channel: artifact
+    data_type: any
+    schema_ref: schema://report_artifact_references/v1
+    required: true
+    cardinality: many
+    sensitivity: financial
+  - name: archive_destination
+    description: Object-storage resource used as the secure archive destination.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://object_storage_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: archive_object
+    description: Reference to the compressed archive object written to object storage.
+    channel: artifact
+    data_type: binary
+    media_type: application/octet-stream
+    schema_ref: schema://archive_object_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  - name: archive_status
+    description: Observable archive status with input count, archive format, destination
+      URI, bytes written when available, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://report_archive_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: archive_format
+    description: Compression/container format for the archive.
+    type: string
+    required: true
+    enum:
+    - zip
+    - tar_gzip
+  - name: destination_prefix
+    description: Object-storage prefix where the archive object is written.
+    type: string
+    required: true
+  - name: archive_name
+    description: Deterministic archive object name.
+    type: string
+    required: true
+  - name: require_all_inputs
+    description: Whether all declared report inputs must be present before archiving.
+    type: boolean
+    required: false
+  - name: overwrite_existing
+    description: Whether an existing archive object at the destination may be overwritten.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: report_archive_inputs_present
+  type: precondition
+  applies_to: input
+  target: report_artifacts
+  description: At least one readable report artifact must be supplied.
+  expression: length(report_artifacts) > 0 and all(readable(r) for r in report_artifacts)
+- contract_id: report_archive_format_contract
+  type: precondition
+  applies_to: parameter
+  target: archive_format
+  description: Archive format and object name must be valid and non-empty.
+  expression: archive_format in ['zip','tar_gzip'] and length(trim(archive_name))
+    > 0 and length(trim(destination_prefix)) > 0
+- contract_id: report_archive_status_schema
+  type: json_schema
+  applies_to: output
+  target: archive_status
+  description: Status exposes archive write effect for workflow validation.
+  schema_ref: schema://report_archive_status/v1
+  expression: '{"type":"object","required":["success","archive_format","reports_included","destination_uri","archive_created"],"properties":{"success":{"type":"boolean"},"archive_format":{"type":"string"},"reports_included":{"type":"integer","minimum":0},"destination_uri":{"type":"string"},"archive_created":{"type":"boolean"},"bytes_written":{"type":["integer","null"],"minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: report_archive_effect
+  type: effect
+  applies_to: service
+  target: report_artifact_object_storage_archiver
+  description: On success, the archive object exists in the configured object-storage
+    destination and status.archive_created is true.
+  expression: archive_status.success == true implies exists(archive_object) and archive_status.archive_created
+    == true
+invocation:
+  type: argo_workflow_template
+  template_name: report-artifact-object-storage-archiver-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.report_artifact_object_storage_archiver
+  implementation_ref: services/implementations/report_artifact_object_storage_archiver
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - object-storage://*
+  - s3://*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - financial
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit object-storage credentials or raw report contents in status/logs.
+  - Archive destination must be explicitly bound and access-controlled.
+  - Workflow fan-in and retry policy remain orchestration-level concerns.
+  idempotency_notes: Retry-safe when archive_name, destination_prefix, input report
+    artifacts, and overwrite/identical-object handling are stable.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:regulatory_report_router#archive_reports
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing registry service packages report artifacts and writes
+    an observable compressed archive to object storage.'
+  - 'Evidence status: explicit.'

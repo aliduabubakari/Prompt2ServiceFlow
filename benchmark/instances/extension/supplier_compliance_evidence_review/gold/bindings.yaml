@@ -1,0 +1,33 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:supplier_compliance_evidence_review
+bindings:
+- intent_id: ingest_primary_source
+  service_id: supplier_certificate_pdf_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_secondary_source
+  service_id: supplier_master_table_ingestor
+  service_version: 1.0.0
+- intent_id: ingest_reference_source
+  service_id: supplier_policy_json_ingestor
+  service_version: 1.0.0
+- intent_id: validate_source_contracts
+  service_id: supplier_compliance_contract_validator
+  service_version: 1.0.0
+- intent_id: normalize_sources
+  service_id: supplier_evidence_normalizer
+  service_version: 1.0.0
+- intent_id: fuse_sources
+  service_id: supplier_policy_evidence_fuser
+  service_version: 1.0.0
+- intent_id: detect_sensitive_fields
+  service_id: supplier_sensitive_evidence_detector
+  service_version: 1.0.0
+- intent_id: apply_redaction_or_suppression
+  service_id: supplier_evidence_minimization_transformer
+  service_version: 1.0.0
+- intent_id: create_human_review_packet
+  service_id: supplier_compliance_review_packet_builder
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: supplier_compliance_bundle_publisher
+  service_version: 1.0.0

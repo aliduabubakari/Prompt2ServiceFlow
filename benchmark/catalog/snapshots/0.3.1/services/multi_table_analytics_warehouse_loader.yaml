@@ -1,0 +1,179 @@
+schema_version: 0.1.0
+service_id: multi_table_analytics_warehouse_loader
+version: 1.0.0
+display_name: Multi Table Analytics Warehouse Loader
+category: Loader
+capability:
+  summary: Loads logical sections from a transformed tabular dataset into multiple
+    configured analytics warehouse tables and emits per-table and aggregate load status.
+  operations:
+  - Read a transformed dataset with logical table sections or row selection rules.
+  - Resolve a bound analytics warehouse database resource.
+  - Apply caller-supplied table mappings and write modes for each target table.
+  - Load each target table and emit affected table references plus per-table row counts.
+  keywords:
+  - analytics warehouse
+  - multi table load
+  - fact table
+  - dimension table
+  - database loader
+  limitations:
+  - Does not transform or score rows.
+  - Does not infer warehouse schemas; table mappings must be supplied.
+  - Idempotency depends on write mode and target constraints.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: transformed_dataset
+    description: Transformed dataset containing rows or logical sections to load into
+      warehouse tables.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://healthcare_claims_transformed_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: restricted
+  - name: warehouse_database
+    description: Analytics warehouse database resource receiving the loaded tables.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: loaded_tables
+    description: Logical references to warehouse tables loaded or confirmed.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://sql_table_references/v1
+    required: true
+    cardinality: many
+    sensitivity: internal
+  - name: load_status
+    description: Observable aggregate and per-table load status with rows read/written
+      and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://multi_table_warehouse_load_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: table_mappings
+    description: Array/object mapping source logical sections or row selectors to
+      target warehouse tables and columns.
+    type: object
+    required: true
+  - name: write_mode
+    description: Default write behavior for table loads.
+    type: string
+    required: true
+    enum:
+    - append
+    - replace
+    - upsert
+    - truncate_then_load
+  - name: transaction_mode
+    description: Whether loads should be committed as one transaction or independently
+      where supported.
+    type: string
+    required: false
+    enum:
+    - single_transaction
+    - per_table
+  secrets: []
+contracts:
+- contract_id: multi_table_mapping_non_empty
+  type: precondition
+  applies_to: parameter
+  target: table_mappings
+  description: At least one target table mapping must be supplied; target names must
+    be SQL identifier-like, optionally schema-qualified.
+  expression: length(keys(table_mappings)) > 0 and all(target_table matches '^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)?$'
+    for target_table in mapped_targets(table_mappings))
+- contract_id: multi_table_load_status_schema
+  type: json_schema
+  applies_to: output
+  target: load_status
+  description: Status exposes all target table load effects.
+  schema_ref: schema://multi_table_warehouse_load_status/v1
+  expression: '{"type":"object","required":["success","tables_requested","tables_loaded","rows_read","rows_written","table_results"],"properties":{"success":{"type":"boolean"},"tables_requested":{"type":"integer","minimum":1},"tables_loaded":{"type":"integer","minimum":0},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"table_results":{"type":"array","items":{"type":"object","required":["target_table","success","rows_written"]}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: multi_table_loaded_tables_schema
+  type: json_schema
+  applies_to: output
+  target: loaded_tables
+  description: Loaded table references enumerate affected warehouse tables.
+  schema_ref: schema://sql_table_references/v1
+  expression: '{"type":"array","minItems":1,"items":{"type":"object","required":["table_name"],"properties":{"schema_name":{"type":["string","null"]},"table_name":{"type":"string"},"operation":{"type":["string","null"]}}}}'
+- contract_id: multi_table_loader_effect
+  type: effect
+  applies_to: service
+  target: multi_table_analytics_warehouse_loader
+  description: On success, every configured target table mapping has a successful
+    table result and is included in loaded_tables.
+  expression: load_status.success == true implies load_status.tables_loaded == load_status.tables_requested
+invocation:
+  type: argo_workflow_template
+  template_name: multi-table-analytics-warehouse-loader-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.multi_table_analytics_warehouse_loader
+  implementation_ref: services/implementations/multi_table_analytics_warehouse_loader
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - postgresql://*
+  - snowflake://*
+  - bigquery://*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  - pii
+  - phi
+  - restricted
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit warehouse credentials or raw healthcare rows.
+  - Status must expose load effects without requiring direct database inspection.
+  - Bind only approved analytics warehouse targets.
+  idempotency_notes: Retry safety depends on write_mode and target constraints; replace,
+    truncate_then_load, and stable upsert mappings are retry-safe, while append may
+    duplicate rows.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:healthcare_claims_etl#load_warehouse
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The pipeline requires a reusable multi-table warehouse load effect
+    for a fact and dimension table from a single transformed dataset.'
+  - 'Evidence status: explicit.'

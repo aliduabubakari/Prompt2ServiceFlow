@@ -1,0 +1,145 @@
+schema_version: 0.1.0
+service_id: legacy_database_table_loader
+version: 0.9.0
+display_name: Legacy Database Table Loader
+category: Loader
+capability:
+  summary: Loads tabular data into a database table using a deprecated legacy interface.
+  operations:
+  - Read tabular dataset reference from metadata.
+  - Connect to a configured database resource.
+  - Load or upsert rows into a configured target table.
+  - Emit row counts and success/failure status.
+  keywords:
+  - database load
+  - tabular data
+  - loader
+  - production sink
+  - status
+  limitations:
+  - Deprecated; new compositions must use the documented replacement.
+  - Retained only for compatibility with legacy workflows.
+lifecycle:
+  status: deprecated
+  deprecated_since: 0.1.0
+  replacement:
+    service_id: tabular_dataset_database_loader
+    version: 1.0.0
+interface:
+  inputs:
+  - name: ingested_data_object
+    description: Metadata and reference for the tabular dataset to load.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://tabular_ingest_metadata/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: target_database
+    description: Database resource used as the load target.
+    channel: external_resource
+    data_type: object
+    schema_ref: schema://database_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: load_status
+    description: Observable database load completion status with success flag, target
+      table, and row counts.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://tabular_database_load_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: target_table
+    description: Target database table name.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_\.]*$
+  - name: write_mode
+    description: Database write behavior.
+    type: string
+    required: false
+    enum:
+    - append
+    - replace
+    - upsert
+    - insert_ignore_duplicates
+  secrets: []
+contracts:
+- contract_id: database_loader_target_table_contract
+  type: precondition
+  applies_to: parameter
+  target: target_table
+  description: Target table must be a non-empty SQL identifier-like name, optionally
+    schema-qualified.
+  expression: target_table matches '^[A-Za-z_][A-Za-z0-9_\.]*$'
+- contract_id: database_load_status_schema
+  type: json_schema
+  applies_to: output
+  target: load_status
+  description: Load status exposes loader effect for workflow validation.
+  schema_ref: schema://tabular_database_load_status/v1
+  expression: '{"type":"object","required":["success","target_table","rows_read","rows_written"],"properties":{"success":{"type":"boolean"},"target_table":{"type":"string"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"write_mode":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: database_loader_effect
+  type: effect
+  applies_to: service
+  target: legacy_database_table_loader
+  description: On success, rows from the input dataset are written or confirmed in
+    the configured target table and status.success is true.
+  expression: load_status.success == true implies load_status.rows_written >= 0
+invocation:
+  type: argo_workflow_template
+  template_name: legacy-database-table-loader-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.legacy_database_table_loader
+  implementation_ref: services/implementations/legacy_database_table_loader
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - pii
+  - confidential
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Database credentials must not be emitted in outputs or logs.
+  - Bind only approved target database resources.
+  idempotency_notes: Retry safety depends on write_mode and database constraints;
+    upsert or duplicate-ignore modes are idempotent when keys are stable.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: reviewed
+  source_refs:
+  - catalog-curation:0.1.0
+  notes:
+  - Curated supplementary service derived from tabular_dataset_database_loader.
+  - Lifecycle and policy metadata reflect catalogue governance constraints.

@@ -1,0 +1,46 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_ml_feature_refresh
+mappings:
+- intent_id: extract_raw_events
+  inputs:
+    event_lake: event_lake_resource
+  outputs:
+    raw_events: raw_events
+    extraction_status: event_extract_status
+- intent_id: clean_event_records
+  inputs:
+    raw_events: raw_events
+  outputs:
+    clean_events: clean_events
+    cleaning_status: cleaning_status
+- intent_id: aggregate_user_features
+  inputs:
+    clean_events: clean_events
+  outputs:
+    feature_table: feature_table
+    aggregation_status: aggregation_status
+- intent_id: compute_drift_statistics
+  inputs:
+    feature_table: feature_table
+  outputs:
+    drift_report: drift_report
+    drift_status: drift_status
+- intent_id: validate_feature_table
+  inputs:
+    feature_table: feature_table
+    drift_report: drift_report
+  outputs:
+    validated_feature_table: validated_feature_table
+    validation_status: feature_validation_status
+- intent_id: publish_feature_table
+  inputs:
+    validated_feature_table: validated_feature_table
+    feature_store: feature_store_resource
+  outputs:
+    feature_publication_status: feature_publication_status
+- intent_id: notify_model_team
+  inputs:
+    feature_publication_status: feature_publication_status
+    notification_service: notification_service_resource
+  outputs:
+    model_team_notification_status: model_team_notification_status

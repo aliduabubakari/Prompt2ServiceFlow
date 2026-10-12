@@ -1,0 +1,69 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:WF_MAIN_DATASETS_LOAD_L2_TO_L2
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_wf_main_datasets_load_l2_to_l2_sql_query_readiness_sensor_candidates
+  source_step_refs:
+  - wait_for_l2_full_load
+  service_ids:
+  - sql_query_readiness_sensor
+  - postgres_readonly_query_result_extractor
+  - sql_incremental_table_extractor
+  - external_workflow_completion_sensor
+  - postgres_parameterized_sql_executor
+  - reviewed_domain_adapter
+- candidate_set_id: main_wf_main_datasets_load_l2_to_l2_workflow_load_id_generator_candidates
+  source_step_refs:
+  - get_load_id
+  service_ids:
+  - workflow_load_id_generator
+  - retention_cutoff_config_resolver
+  - execution_date_backup_strategy_decider
+  - runtime_parameter_allowed_values_validator
+  - dataform_compilation_config_builder
+  - reviewed_domain_adapter
+- candidate_set_id: main_wf_main_datasets_load_l2_to_l2_workflow_session_metadata_recorder_candidates
+  source_step_refs:
+  - workflow_registration
+  - end
+  service_ids:
+  - workflow_session_metadata_recorder
+  - airflow_metadata_retention_cleaner
+  - postgres_parameterized_sql_executor
+  - tabular_dataset_database_loader
+  - database_statistics_analyzer
+  - legacy_database_table_loader
+- candidate_set_id: main_wf_main_datasets_load_l2_to_l2_external_workflow_task_completion_sensor_candidates
+  source_step_refs:
+  - wait_for_success_end
+  service_ids:
+  - external_workflow_task_completion_sensor
+  - external_workflow_completion_sensor
+  - google_dataform_workflow_invocation_sensor
+  - sql_query_readiness_sensor
+  - external_workflow_run_trigger
+  - reviewed_domain_adapter
+- candidate_set_id: main_wf_main_datasets_load_l2_to_l2_external_workflow_run_trigger_candidates
+  source_step_refs:
+  - run_sys_kill_all_session_pg
+  - run_wf_data_preparation_for_reports
+  - load_ds_client_segmentation
+  service_ids:
+  - external_workflow_run_trigger
+  - external_workflow_completion_sensor
+  - external_workflow_task_completion_sensor
+  - google_dataform_workflow_invocation_creator
+  - databricks_notebook_run_executor
+  - reviewed_domain_adapter
+- candidate_set_id: main_wf_main_datasets_load_l2_to_l2_database_table_http_flag_publisher_candidates
+  source_step_refs:
+  - send_flg_to_sap
+  service_ids:
+  - database_table_http_flag_publisher
+  - http_api_request_artifact_extractor
+  - database_csv_snapshot_exporter
+  - postgres_readonly_query_result_extractor
+  - bi_dashboard_refresh_trigger
+  - open_network_http_json_requester

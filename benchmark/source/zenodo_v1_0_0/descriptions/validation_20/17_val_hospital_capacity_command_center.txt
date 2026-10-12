@@ -1,0 +1,112 @@
+Pipeline Summary:
+- Pipeline ID: val_hospital_capacity_command_center
+- Name: Hospital Capacity Command Center
+- Purpose: Wait for clinical census data, combine admissions, bed status, staffing, and discharge forecasts, then publish capacity alerts.
+- Execution model: Batch
+- Topology pattern: Mixed
+- Business domain: Healthcare Operations
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - wait_for_census_snapshot -> extract_admissions
+  - wait_for_census_snapshot -> extract_bed_status
+  - wait_for_census_snapshot -> extract_staffing_roster
+  - wait_for_census_snapshot -> extract_discharge_forecast
+  - extract_admissions -> merge_operational_state
+  - extract_bed_status -> merge_operational_state
+  - extract_staffing_roster -> merge_operational_state
+  - extract_discharge_forecast -> merge_operational_state
+  - merge_operational_state -> compute_capacity_risk
+  - compute_capacity_risk -> route_alert_level
+  - route_alert_level -> publish_dashboard
+  - route_alert_level -> send_escalation_alert
+- Parallel groups:
+  - group 1: extract_admissions, extract_bed_status, extract_staffing_roster, extract_discharge_forecast
+- Branch points:
+  - {'step': 'route_alert_level', 'conditions': ['normal', 'critical'], 'merge_step': None}
+- Gate or sensor dependencies:
+  - {'step': 'wait_for_census_snapshot', 'condition': 'census_snapshot_ready'}
+
+Data Artifacts / I-O Identifiers:
+  - data_object: census_snapshot
+  - data_object: bed_status
+  - data_object: staffing_roster
+  - data_object: capacity_dashboard
+  - data_object: alert_payload
+  - data_object: risk_report
+
+External Systems:
+  - external_service: EHR database
+  - external_service: Staffing system
+  - external_service: Forecast API
+  - external_service: Alerting service
+
+Pipeline Steps:
+1. wait_for_census_snapshot - wait for census snapshot
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. extract_admissions - extract admissions
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. extract_bed_status - extract bed status
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+4. extract_staffing_roster - extract staffing roster
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+5. extract_discharge_forecast - extract discharge forecast
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+6. merge_operational_state - merge operational state
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+7. compute_capacity_risk - compute capacity risk
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+8. route_alert_level - route alert level
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+9. publish_dashboard - publish dashboard
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+10. send_escalation_alert - send escalation alert
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

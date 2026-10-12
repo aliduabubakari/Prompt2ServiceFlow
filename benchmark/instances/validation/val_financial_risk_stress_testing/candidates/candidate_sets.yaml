@@ -1,0 +1,65 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_financial_risk_stress_testing
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.3
+candidate_sets:
+- candidate_set_id: validation_val_financial_risk_stress_testing_financial_dataset_extractor_candidates
+  source_step_refs:
+  - load_market_scenarios
+  - load_portfolio_positions
+  service_ids:
+  - financial_dataset_extractor
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_financial_risk_stress_testing_portfolio_stress_runner_candidates
+  source_step_refs:
+  - run_credit_stress
+  - run_liquidity_stress
+  - run_market_stress
+  service_ids:
+  - portfolio_stress_runner
+  - temporary_resource_cleanup
+  - http_json_request_extractor
+- candidate_set_id: validation_val_financial_risk_stress_testing_stress_result_aggregator_candidates
+  source_step_refs:
+  - aggregate_stress_results
+  service_ids:
+  - stress_result_aggregator
+  - http_json_request_extractor
+  - tabular_dataset_database_loader
+- candidate_set_id: validation_val_financial_risk_stress_testing_capital_threshold_validator_candidates
+  source_step_refs:
+  - validate_capital_thresholds
+  service_ids:
+  - capital_threshold_validator
+  - tabular_dataset_database_loader
+  - bi_dashboard_refresh_trigger
+- candidate_set_id: validation_val_financial_risk_stress_testing_risk_validation_route_decider_candidates
+  source_step_refs:
+  - route_validation_status
+  service_ids:
+  - risk_validation_route_decider
+  - bi_dashboard_refresh_trigger
+  - parquet_tabular_data_profiler
+- candidate_set_id: validation_val_financial_risk_stress_testing_regulatory_report_writer_candidates
+  source_step_refs:
+  - write_regulatory_report
+  service_ids:
+  - regulatory_report_writer
+  - parquet_tabular_data_profiler
+  - bulk_email_campaign_sender
+- candidate_set_id: validation_val_financial_risk_stress_testing_review_case_opener_candidates
+  source_step_refs:
+  - open_remediation_ticket
+  service_ids:
+  - review_case_opener
+  - bulk_email_campaign_sender
+  - file_location_availability_sensor
+- candidate_set_id: validation_val_financial_risk_stress_testing_model_input_archive_publisher_candidates
+  source_step_refs:
+  - archive_model_inputs
+  service_ids:
+  - model_input_archive_publisher
+  - file_location_availability_sensor
+  - reviewed_domain_adapter

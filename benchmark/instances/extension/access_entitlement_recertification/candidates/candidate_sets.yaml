@@ -1,0 +1,110 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:access_entitlement_recertification
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.6
+candidate_sets:
+- candidate_set_id: extension_access_entitlement_recertification_identity_provider_export_ingestor_candidates
+  source_step_refs:
+  - ingest_primary_source
+  service_ids:
+  - identity_provider_export_ingestor
+  - redaction_only_text_filter
+  - generic_human_review_ticket_creator
+  - audit_log_append_only_writer
+- candidate_set_id: extension_access_entitlement_recertification_resource_entitlement_table_ingestor_candidates
+  source_step_refs:
+  - ingest_secondary_source
+  service_ids:
+  - resource_entitlement_table_ingestor
+  - generic_human_review_ticket_creator
+  - audit_log_append_only_writer
+  - privacy_policy_table_loader
+- candidate_set_id: extension_access_entitlement_recertification_manager_directory_reference_ingestor_candidates
+  source_step_refs:
+  - ingest_reference_source
+  service_ids:
+  - manager_directory_reference_ingestor
+  - audit_log_append_only_writer
+  - privacy_policy_table_loader
+  - case_status_notifier
+- candidate_set_id: extension_access_entitlement_recertification_entitlement_recertification_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contracts
+  service_ids:
+  - entitlement_recertification_contract_validator
+  - privacy_policy_table_loader
+  - case_status_notifier
+  - reviewed_domain_adapter
+- candidate_set_id: extension_access_entitlement_recertification_entitlement_identity_normalizer_candidates
+  source_step_refs:
+  - normalize_sources
+  service_ids:
+  - entitlement_identity_normalizer
+  - case_status_notifier
+  - reviewed_domain_adapter
+  - redaction_only_text_filter
+- candidate_set_id: extension_access_entitlement_recertification_entitlement_identity_resource_fuser_candidates
+  source_step_refs:
+  - fuse_sources
+  service_ids:
+  - entitlement_identity_resource_fuser
+  - reviewed_domain_adapter
+  - redaction_only_text_filter
+  - generic_human_review_ticket_creator
+- candidate_set_id: extension_access_entitlement_recertification_entitlement_sensitive_attribute_detector_candidates
+  source_step_refs:
+  - detect_sensitive_fields
+  service_ids:
+  - entitlement_sensitive_attribute_detector
+  - redaction_only_text_filter
+  - generic_human_review_ticket_creator
+  - audit_log_append_only_writer
+- candidate_set_id: extension_access_entitlement_recertification_entitlement_minimization_transformer_candidates
+  source_step_refs:
+  - apply_redaction_or_suppression
+  service_ids:
+  - entitlement_minimization_transformer
+  - generic_human_review_ticket_creator
+  - audit_log_append_only_writer
+  - privacy_policy_table_loader
+- candidate_set_id: extension_access_entitlement_recertification_entitlement_recertification_packet_builder_candidates
+  source_step_refs:
+  - create_human_review_packet
+  service_ids:
+  - entitlement_recertification_packet_builder
+  - audit_log_append_only_writer
+  - privacy_policy_table_loader
+  - case_status_notifier
+- candidate_set_id: extension_access_entitlement_recertification_policy_decision_audit_recorder_candidates
+  source_step_refs:
+  - record_policy_decision
+  service_ids:
+  - policy_decision_audit_recorder
+  - privacy_policy_table_loader
+  - case_status_notifier
+  - reviewed_domain_adapter
+- candidate_set_id: extension_access_entitlement_recertification_policy_audit_log_writer_candidates
+  source_step_refs:
+  - write_audit_log
+  service_ids:
+  - policy_audit_log_writer
+  - case_status_notifier
+  - reviewed_domain_adapter
+  - redaction_only_text_filter
+- candidate_set_id: extension_access_entitlement_recertification_reviewer_notification_publisher_candidates
+  source_step_refs:
+  - notify_reviewer_or_owner
+  service_ids:
+  - reviewer_notification_publisher
+  - reviewed_domain_adapter
+  - redaction_only_text_filter
+  - generic_human_review_ticket_creator
+- candidate_set_id: extension_access_entitlement_recertification_policy_review_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - policy_review_bundle_publisher
+  - redaction_only_text_filter
+  - generic_human_review_ticket_creator
+  - audit_log_append_only_writer

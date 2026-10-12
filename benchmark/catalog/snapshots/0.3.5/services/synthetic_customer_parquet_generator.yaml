@@ -1,0 +1,143 @@
+schema_version: 0.1.0
+service_id: synthetic_customer_parquet_generator
+version: 1.0.0
+display_name: Synthetic Customer Parquet Generator
+category: Extractor
+capability:
+  summary: Generates configurable synthetic customer records and writes them to a
+    Parquet artifact with generation status.
+  operations:
+  - Generate synthetic customer rows with configured record count and schema profile.
+  - Optionally use a random seed for deterministic mock execution.
+  - Write generated rows to a Parquet artifact at the configured output path.
+  - Emit generation status with row count, columns, output URI, and diagnostics.
+  keywords:
+  - synthetic data
+  - customer data
+  - parquet
+  - data quality
+  - test data
+  - generator
+  limitations:
+  - Does not clean, profile, score, or engineer features.
+  - Generated records are synthetic but may resemble PII and should be handled accordingly.
+  - Exact schema fields and distributions must be supplied by schema_profile or implementation
+    defaults.
+  - Deterministic output requires a stable random_seed.
+lifecycle:
+  status: active
+interface:
+  inputs: []
+  outputs:
+  - name: customer_parquet
+    description: Generated raw synthetic customer dataset in Parquet format.
+    channel: artifact
+    data_type: parquet
+    media_type: application/vnd.apache.parquet
+    schema_ref: schema://customer_parquet_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: generation_status
+    description: Observable status including success flag, rows generated, output
+      URI, columns, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://synthetic_customer_generation_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: record_count
+    description: Number of synthetic customer records to generate.
+    type: integer
+    required: true
+    minimum: 0.0
+  - name: output_path
+    description: Deterministic output path or artifact name for the generated Parquet
+      dataset.
+    type: string
+    required: true
+  - name: schema_profile
+    description: Optional schema/distribution profile defining customer fields and
+      synthetic value generation behavior.
+    type: object
+    required: false
+  - name: random_seed
+    description: Optional seed for deterministic generation.
+    type: integer
+    required: false
+  secrets: []
+contracts:
+- contract_id: synthetic_customer_record_count_contract
+  type: precondition
+  applies_to: parameter
+  target: record_count
+  description: Record count must be non-negative.
+  expression: record_count >= 0
+- contract_id: synthetic_customer_generation_status_schema
+  type: json_schema
+  applies_to: output
+  target: generation_status
+  description: Generation status exposes artifact creation effect.
+  schema_ref: schema://synthetic_customer_generation_status/v1
+  expression: '{"type":"object","required":["success","rows_generated","output_uri","columns"],"properties":{"success":{"type":"boolean"},"rows_generated":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"columns":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: synthetic_customer_generation_effect
+  type: effect
+  applies_to: service
+  target: synthetic_customer_parquet_generator
+  description: On success, the raw customer Parquet artifact exists and row count
+    matches the requested record_count.
+  expression: generation_status.success == true implies exists(customer_parquet) and
+    generation_status.rows_generated == record_count
+invocation:
+  type: argo_workflow_template
+  template_name: synthetic-customer-parquet-generator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.synthetic_customer_parquet_generator
+  implementation_ref: services/implementations/synthetic_customer_parquet_generator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - pii
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Synthetic customer fields may resemble personal data; avoid logging raw rows.
+  - Output path binding should be constrained to workflow artifact storage.
+  idempotency_notes: Idempotent when random_seed, schema_profile, record_count, and
+    output_path are stable; otherwise generated values may differ between invocations.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:customer_dq_scoring_pipeline#generate_synthetic_data
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing synthetic document generator is document/text-specific and
+    would lose the customer-data schema contract.'
+  - 'Evidence status: explicit.'

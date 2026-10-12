@@ -1,0 +1,148 @@
+schema_version: 0.1.0
+service_id: fraud_manual_review_status_recorder
+version: 1.0.0
+display_name: Fraud Manual Review Status Recorder
+category: Transformer
+capability:
+  summary: Creates an artifact-level manual-review processing status for transactions
+    routed as high risk, exposing counts, route validation, and action status.
+  operations:
+  - Read routing decision and optional scored transaction dataset.
+  - Validate that the manual-review route is selected when route validation is enabled.
+  - Select high-risk transaction references when row-level scores are supplied.
+  - Emit a manual review status artifact for downstream merge/notification validation.
+  keywords:
+  - fraud detection
+  - manual review
+  - triage status
+  - high risk transactions
+  limitations:
+  - Does not integrate with an external case-management or manual-review queue unless
+    modeled by a separate adapter.
+  - Does not perform human review.
+  - Does not perform branch routing.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: routing_decision
+    description: Fraud routing decision selecting manual review or auto approval.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://fraud_transaction_routing_decision/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: scored_transactions
+    description: Optional scored transaction dataset used to include bounded high-risk
+      transaction references.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://fraud_scored_transaction_dataset/v1
+    required: false
+    cardinality: one
+    sensitivity: financial
+  outputs:
+  - name: manual_review_status
+    description: Status of manual-review branch processing, including whether review
+      was requested and item counts.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://fraud_manual_review_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: validate_route_selected
+    description: Whether invocation should fail if the routing decision does not select
+      manual review.
+    type: boolean
+    required: false
+  - name: transaction_id_field
+    description: Optional field containing transaction identifiers for bounded references.
+    type: string
+    required: false
+  - name: max_reference_count
+    description: Maximum number of bounded transaction references to include in the
+      status.
+    type: integer
+    required: false
+    minimum: 0.0
+  secrets: []
+contracts:
+- contract_id: manual_review_route_precondition
+  type: precondition
+  applies_to: input
+  target: routing_decision
+  description: When route validation is enabled, routing_decision.manual_review must
+    be true.
+  expression: validate_route_selected != true or routing_decision.manual_review ==
+    true
+- contract_id: manual_review_status_schema
+  type: json_schema
+  applies_to: output
+  target: manual_review_status
+  description: Manual review status exposes branch processing effect.
+  schema_ref: schema://fraud_manual_review_status/v1
+  expression: '{"type":"object","required":["success","route","manual_review_requested","transactions_marked_for_review"],"properties":{"success":{"type":"boolean"},"route":{"type":"string"},"manual_review_requested":{"type":"boolean"},"transactions_marked_for_review":{"type":"integer","minimum":0},"bounded_transaction_refs":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: manual_review_status_effect
+  type: effect
+  applies_to: service
+  target: fraud_manual_review_status_recorder
+  description: On success, a manual-review status is emitted and manual_review_requested
+    reflects the routing decision.
+  expression: manual_review_status.success == true implies manual_review_status.manual_review_requested
+    == routing_decision.manual_review
+invocation:
+  type: argo_workflow_template
+  template_name: fraud-manual-review-status-recorder-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.fraud_manual_review_status_recorder
+  implementation_ref: services/implementations/fraud_manual_review_status_recorder
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - financial
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw transaction details; include only bounded references and counts.
+  - External human-review systems require a separate explicit adapter if later specified.
+  idempotency_notes: Same routing decision and scored transactions produce the same
+    status artifact.
+  default_timeout_seconds: 120
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:fraud_detection_triage#route_to_manual_review
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing service records fraud manual-review branch status; content
+    moderation actions are not semantically equivalent.'
+  - 'Evidence status: strongly_inferred.'

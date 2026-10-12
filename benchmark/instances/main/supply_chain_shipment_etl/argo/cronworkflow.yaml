@@ -1,0 +1,257 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: supply-chain-shipment-etl
+  namespace: prompt2serviceflow
+spec:
+  schedules:
+  - 0 0 * * *
+  timezone: UTC
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    entrypoint: pipeline
+    serviceAccountName: prompt2serviceflow-runner
+    arguments:
+      parameters:
+      - name: vendor-a-fixture
+        value: vendor_a_shipments.csv
+      - name: vendor-b-fixture
+        value: vendor_b_shipments.csv
+      - name: vendor-c-fixture
+        value: vendor_c_shipments.csv
+    podGC:
+      strategy: OnWorkflowCompletion
+    volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    volumes:
+    - name: scripts
+      configMap:
+        name: supply-chain-shipment-etl-scripts
+    - name: fixtures
+      configMap:
+        name: supply-chain-shipment-etl-fixtures
+        items:
+        - key: fixture-0000
+          path: email_service.json
+        - key: fixture-0001
+          path: fixture.json
+        - key: fixture-0002
+          path: inventory_db_resource.json
+        - key: fixture-0003
+          path: vendor_a_shipments.csv
+        - key: fixture-0004
+          path: vendor_b_shipments.csv
+        - key: fixture-0005
+          path: vendor_c_shipments.csv
+    templates:
+    - name: pipeline
+      dag:
+        tasks:
+        - name: ingest-vendor-a
+          template: run-ingest-vendor-a
+        - name: ingest-vendor-b
+          template: run-ingest-vendor-b
+        - name: ingest-vendor-c
+          template: run-ingest-vendor-c
+        - name: cleanse-data
+          template: run-cleanse-data
+          depends: ingest-vendor-a.Succeeded && ingest-vendor-b.Succeeded && ingest-vendor-c.Succeeded
+        - name: load-to-db
+          template: run-load-to-db
+          depends: cleanse-data.Succeeded
+        - name: send-summary-email
+          template: run-send-summary-email
+          depends: load-to-db.Succeeded
+    - name: run-ingest-vendor-a
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: ingest_vendor_a
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/01_ingest_vendor_a.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/{{workflow.parameters.vendor-a-fixture}}
+        - --vendor
+        - vendor_a
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-ingest-vendor-b
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: ingest_vendor_b
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/02_ingest_vendor_b.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/{{workflow.parameters.vendor-b-fixture}}
+        - --vendor
+        - vendor_b
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-ingest-vendor-c
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: ingest_vendor_c
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/03_ingest_vendor_c.py
+        - --workspace
+        - /workspace
+        - --fixture
+        - /opt/p2sf/fixtures/{{workflow.parameters.vendor-c-fixture}}
+        - --vendor
+        - vendor_c
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-cleanse-data
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: cleanse_data
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/04_cleanse_data.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-load-to-db
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: load_to_db
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/05_load_to_db.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError
+    - name: run-send-summary-email
+      metadata:
+        annotations:
+          prompt2serviceflow/intent-id: send_summary_email
+      container:
+        image: python:3.12-slim
+        command:
+        - python
+        args:
+        - /opt/p2sf/scripts/06_send_summary_email.py
+        - --workspace
+        - /workspace
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/p2sf/scripts
+        - name: fixtures
+          mountPath: /opt/p2sf/fixtures
+        - name: workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      retryStrategy:
+        limit: '2'
+        retryPolicy: OnError

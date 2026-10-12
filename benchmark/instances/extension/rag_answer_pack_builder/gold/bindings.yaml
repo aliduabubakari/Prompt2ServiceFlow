@@ -1,0 +1,42 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:rag_answer_pack_builder
+bindings:
+- intent_id: ingest_source_batch
+  service_id: rag_source_bundle_ingestor
+  service_version: 1.0.0
+- intent_id: validate_source_contract
+  service_id: rag_answer_pack_contract_validator
+  service_version: 1.0.0
+- intent_id: normalize_partition_a
+  service_id: rag_document_partition_normalizer
+  service_version: 1.0.0
+- intent_id: normalize_partition_b
+  service_id: rag_question_partition_normalizer
+  service_version: 1.0.0
+- intent_id: normalize_partition_c
+  service_id: rag_config_partition_normalizer
+  service_version: 1.0.0
+- intent_id: fuse_partitions
+  service_id: rag_corpus_question_config_fuser
+  service_version: 1.0.0
+- intent_id: extract_or_parse_text
+  service_id: pdf_text_extraction_parser
+  service_version: 1.0.0
+- intent_id: chunk_documents
+  service_id: semantic_document_chunker
+  service_version: 1.0.0
+- intent_id: generate_embeddings
+  service_id: deterministic_text_embedding_generator
+  service_version: 1.0.0
+- intent_id: write_vector_index
+  service_id: fixture_vector_index_writer
+  service_version: 1.0.0
+- intent_id: retrieve_grounding_context
+  service_id: grounding_context_retriever
+  service_version: 1.0.0
+- intent_id: run_structured_extraction
+  service_id: rag_grounded_answer_generator
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: rag_answer_pack_publisher
+  service_version: 1.0.0

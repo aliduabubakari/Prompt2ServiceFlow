@@ -1,0 +1,62 @@
+Pipeline Summary:
+- Pipeline ID: val_weekly_report_packager
+- Name: Weekly Report Packager
+- Purpose: Collect weekly KPI extracts, render a PDF report, and publish the report bundle.
+- Execution model: Batch
+- Topology pattern: Linear
+- Business domain: Business Reporting
+- Notes: Prospective validation pipeline not used in the model-development corpus.
+
+Control Flow:
+- Dependencies (directed edges):
+  - collect_kpi_extracts -> render_pdf_report
+  - render_pdf_report -> compress_report_bundle
+  - compress_report_bundle -> publish_bundle
+- Parallel groups:
+  - none
+- Branch points:
+  - none
+- Gate or sensor dependencies:
+  - none
+
+Data Artifacts / I-O Identifiers:
+  - data_object: kpi_extract
+  - data_object: weekly_report.pdf
+  - data_object: report_bundle.zip
+
+External Systems:
+  - external_service: Data warehouse
+  - external_service: Object storage
+
+Pipeline Steps:
+1. collect_kpi_extracts - collect kpi extracts
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+2. render_pdf_report - render pdf report
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+3. compress_report_bundle - compress report bundle
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+4. publish_bundle - publish bundle
+  - Objective: implement this operation as a task in the workflow
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: 5 minutes
+
+Scheduling:
+- Schedule type: cron
+- Schedule expression: @daily
+- Timezone: UTC
+- Start date: 2026-01-01
+- Catchup/backfill: False

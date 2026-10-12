@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Execution Status",
+  "description": "Standard execution status with structured error reporting.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "success"
+  ],
+  "properties": {
+    "success": {
+      "type": "boolean",
+      "description": "Whether the task completed without errors."
+    },
+    "errors": {
+      "type": "array",
+      "description": "Structured error objects or strings.",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "object"
+          }
+        ]
+      }
+    }
+  }
+}

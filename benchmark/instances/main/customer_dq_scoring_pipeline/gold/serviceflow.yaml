@@ -1,0 +1,583 @@
+ir_version: 0.1.0
+composition_id: customer_dq_scoring_pipeline
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:customer_dq_scoring_pipeline
+  split: main
+  pipeline_id: customer_dq_scoring_pipeline
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/33_customer_dq_scoring_pipeline.txt
+  description_sha256: 500dbb86c639117c7efd61e2cc545bf8b9381a499c67b59f1aa2cf860baee2b9
+  internal_spec_path: source/internal_specs/main_40/33_customer_dq_scoring_pipeline.json
+  internal_spec_sha256: c191f61db3efcf4bf7310ea82e0bbd5dae46468a72fff877312ea929e15df301
+requirement:
+  name: Customer DQ Scoring Pipeline
+  purpose: Generate synthetic customer data, clean and explore, calculate quality scores and engineer
+    features in parallel, then export a CSV and DQ report.
+  domain: data_quality
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: high
+  notes:
+  - Exploration and cleaning fan out from generation.
+  - Quality scoring and feature engineering fan out from cleaning and merge at save/report.
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: local_filesystem
+  type: filesystem
+  name: Temporary storage
+  identifier: /tmp/airflow_dq_processing
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: generate_synthetic_data
+  name: Generate synthetic customer data
+  category: Extractor
+  capability: Generate synthetic customer parquet records.
+  source_step_refs:
+  - generate_synthetic_data
+  evidence:
+  - source: description
+    text: Generate synthetic customer data records.
+  inputs: []
+  outputs:
+  - raw_customer_parquet
+  - generation_status
+  external_system_refs:
+  - local_filesystem
+  preconditions: []
+  effects:
+  - Raw customer parquet and status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: not_required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step creates synthetic data with no inputs.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: explore_raw_data
+  name: Explore raw data
+  category: DataProfiler
+  capability: Profile the raw customer parquet and emit a report.
+  source_step_refs:
+  - explore_raw_data
+  evidence:
+  - source: description
+    text: Perform exploratory data analysis on raw data.
+  inputs:
+  - raw_customer_parquet
+  outputs:
+  - profile_report
+  - profile_status
+  external_system_refs: []
+  preconditions:
+  - Raw parquet available.
+  effects:
+  - Profile report emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step profiles raw data.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: clean_data
+  name: Clean and standardize data
+  category: Transformer
+  capability: Apply cleaning rules to the raw customer parquet.
+  source_step_refs:
+  - clean_data
+  evidence:
+  - source: description
+    text: Clean and standardize customer data.
+  inputs:
+  - raw_customer_parquet
+  outputs:
+  - cleaned_customer_parquet
+  - cleaning_status
+  external_system_refs: []
+  preconditions:
+  - Raw parquet available.
+  effects:
+  - Cleaned parquet emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step cleans customer data.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: calculate_quality_score
+  name: Calculate quality score
+  category: QualityCheck
+  capability: Compute DQ scores from cleaned parquet.
+  source_step_refs:
+  - calculate_quality_score
+  evidence:
+  - source: description
+    text: Calculate data quality scores.
+  inputs:
+  - cleaned_customer_parquet
+  outputs:
+  - dq_scores
+  - scoring_status
+  external_system_refs: []
+  preconditions:
+  - Cleaned parquet available.
+  effects:
+  - DQ scores emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step scores data quality.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: feature_engineering
+  name: Feature engineering
+  category: Transformer
+  capability: Add derived features to cleaned parquet.
+  source_step_refs:
+  - feature_engineering
+  evidence:
+  - source: description
+    text: Add derived features to customer data.
+  inputs:
+  - cleaned_customer_parquet
+  outputs:
+  - feature_enriched_parquet
+  - feature_status
+  external_system_refs: []
+  preconditions:
+  - Cleaned parquet available.
+  effects:
+  - Feature-enriched parquet emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step engineers features.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: save_and_report
+  name: Save and report
+  category: ReportGenerator
+  capability: Export CSV and DQ report from features and scores.
+  source_step_refs:
+  - save_and_report
+  evidence:
+  - source: description
+    text: Save final data and generate quality report.
+  inputs:
+  - feature_enriched_parquet
+  - dq_scores
+  outputs:
+  - final_csv_export
+  - dq_report_json
+  - report_status
+  external_system_refs: []
+  preconditions:
+  - Feature parquet and DQ scores available.
+  effects:
+  - CSV and JSON report emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step exports final data and report.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: generate_synthetic_data
+    to: explore_raw_data
+  - from: generate_synthetic_data
+    to: clean_data
+  - from: clean_data
+    to: calculate_quality_score
+  - from: clean_data
+    to: feature_engineering
+  - from: calculate_quality_score
+    to: save_and_report
+  - from: feature_engineering
+    to: save_and_report
+  parallel_groups:
+  - group_id: quality_features_phase
+    intent_ids:
+    - calculate_quality_score
+    - feature_engineering
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: raw_customer_parquet
+  name: Raw customer parquet
+  kind: artifact
+  data_type: parquet
+  media_type: application/octet-stream
+  role: intermediate
+  producer: generate_synthetic_data
+  consumers:
+  - explore_raw_data
+  - clean_data
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: generation_status
+  name: Generation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: generate_synthetic_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: profile_report
+  name: Profile report
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/profile_report.schema.json
+  role: status
+  producer: explore_raw_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: profile_status
+  name: Profile status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: explore_raw_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: cleaned_customer_parquet
+  name: Cleaned customer parquet
+  kind: artifact
+  data_type: parquet
+  media_type: application/octet-stream
+  role: intermediate
+  producer: clean_data
+  consumers:
+  - calculate_quality_score
+  - feature_engineering
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: cleaning_status
+  name: Cleaning status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: clean_data
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: dq_scores
+  name: DQ scores
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/dq_scores.schema.json
+  role: intermediate
+  producer: calculate_quality_score
+  consumers:
+  - save_and_report
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: scoring_status
+  name: Scoring status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: calculate_quality_score
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: feature_enriched_parquet
+  name: Feature-enriched parquet
+  kind: artifact
+  data_type: parquet
+  media_type: application/octet-stream
+  role: intermediate
+  producer: feature_engineering
+  consumers:
+  - save_and_report
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: feature_status
+  name: Feature status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: feature_engineering
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: final_csv_export
+  name: Final CSV export
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: output
+  producer: save_and_report
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: dq_report_json
+  name: DQ report JSON
+  kind: artifact
+  data_type: json
+  media_type: application/json
+  schema_ref: contracts/artifacts/dq_report.schema.json
+  role: output
+  producer: save_and_report
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: report_status
+  name: Report status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: save_and_report
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: generate_synthetic_data
+  service_id: synthetic_customer_parquet_generator
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: customer_parquet
+    artifact_id: raw_customer_parquet
+  - port: generation_status
+    artifact_id: generation_status
+  parameter_bindings:
+    record_count: 10
+    output_path: /workspace/artifacts/raw_customers.parquet
+  secret_bindings: []
+  rationale: Generates synthetic customer data.
+  confidence: explicit
+- intent_id: explore_raw_data
+  service_id: parquet_document_data_profiler
+  service_version: 1.0.0
+  input_bindings:
+  - port: document_parquet
+    artifact_id: raw_customer_parquet
+  output_bindings:
+  - port: profile_report
+    artifact_id: profile_report
+  - port: profile_status
+    artifact_id: profile_status
+  parameter_bindings: {}
+  secret_bindings: []
+  rationale: Profiles raw customer data.
+  confidence: explicit
+- intent_id: clean_data
+  service_id: parquet_customer_data_clean_standardizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: raw_customer_parquet
+    artifact_id: raw_customer_parquet
+  output_bindings:
+  - port: cleaned_customer_parquet
+    artifact_id: cleaned_customer_parquet
+  - port: cleaning_status
+    artifact_id: cleaning_status
+  parameter_bindings:
+    cleaning_rules:
+      drop_duplicates: true
+      fill_missing: mean
+    output_path: /workspace/artifacts/cleaned_customers.parquet
+  secret_bindings: []
+  rationale: Cleans customer parquet data.
+  confidence: explicit
+- intent_id: calculate_quality_score
+  service_id: parquet_customer_quality_score_calculator
+  service_version: 1.0.0
+  input_bindings:
+  - port: cleaned_customer_parquet
+    artifact_id: cleaned_customer_parquet
+  output_bindings:
+  - port: dq_scores
+    artifact_id: dq_scores
+  - port: scoring_status
+    artifact_id: scoring_status
+  parameter_bindings:
+    quality_rules:
+      completeness: true
+      validity: true
+  secret_bindings: []
+  rationale: Scores customer data quality.
+  confidence: explicit
+- intent_id: feature_engineering
+  service_id: parquet_tabular_feature_engineer
+  service_version: 1.0.0
+  input_bindings:
+  - port: source_parquet
+    artifact_id: cleaned_customer_parquet
+  output_bindings:
+  - port: feature_enriched_parquet
+    artifact_id: feature_enriched_parquet
+  - port: feature_status
+    artifact_id: feature_status
+  parameter_bindings:
+    feature_rules:
+      add_age_group: true
+    output_path: /workspace/artifacts/final_customers.parquet
+  secret_bindings: []
+  rationale: Engineers features from cleaned data.
+  confidence: explicit
+- intent_id: save_and_report
+  service_id: parquet_quality_report_csv_exporter
+  service_version: 1.0.0
+  input_bindings:
+  - port: feature_enriched_parquet
+    artifact_id: feature_enriched_parquet
+  - port: dq_scores
+    artifact_id: dq_scores
+  output_bindings:
+  - port: csv_export
+    artifact_id: final_csv_export
+  - port: dq_report_json
+    artifact_id: dq_report_json
+  - port: report_status
+    artifact_id: report_status
+  parameter_bindings:
+    csv_output_path_template: /workspace/artifacts/cleaned_customers.csv
+    report_output_path_template: /workspace/artifacts/dq_report.json
+  secret_bindings: []
+  rationale: Exports final CSV and DQ report.
+  confidence: explicit
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - All data is synthetically generated and mocked.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All six source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Six exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Fan-out/fan-in Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Single scenario executes all six steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - All quality and export invariants hold
+source_step_accounting:
+- source_step_ref: generate_synthetic_data
+  disposition: service
+  intent_ids:
+  - generate_synthetic_data
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: explore_raw_data
+  disposition: service
+  intent_ids:
+  - explore_raw_data
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: clean_data
+  disposition: service
+  intent_ids:
+  - clean_data
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: calculate_quality_score
+  disposition: service
+  intent_ids:
+  - calculate_quality_score
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: feature_engineering
+  disposition: service
+  intent_ids:
+  - feature_engineering
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: save_and_report
+  disposition: service
+  intent_ids:
+  - save_and_report
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

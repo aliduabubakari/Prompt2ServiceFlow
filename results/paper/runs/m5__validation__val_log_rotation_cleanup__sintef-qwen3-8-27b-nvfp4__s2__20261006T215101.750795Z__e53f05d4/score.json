@@ -1,0 +1,216 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-06T22:00:58.500001+00:00",
+  "instance": "benchmark/instances/validation/val_log_rotation_cleanup",
+  "workspace": "experiments/workspaces/validation/val_log_rotation_cleanup",
+  "submission": "results/paper/runs/m5__validation__val_log_rotation_cleanup__sintef-qwen3-8-27b-nvfp4__s2__20261006T215101.750795Z__e53f05d4/agent_workspace/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G0",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": null,
+    "edge_f1": null,
+    "binding_top1_accuracy": null,
+    "binding_version_accuracy": null,
+    "wiring_f1": null,
+    "wiring_applicable": null,
+    "alignment_edit_distance": null,
+    "over_decomposition_rate": null,
+    "under_decomposition_rate": null,
+    "source_step_coverage": null,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-06T22:00:54.411060+00:00",
+    "workspace": "experiments/workspaces/validation/val_log_rotation_cleanup",
+    "submission": "results/paper/runs/m5__validation__val_log_rotation_cleanup__sintef-qwen3-8-27b-nvfp4__s2__20261006T215101.750795Z__e53f05d4/agent_workspace/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G0",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "fail",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": [
+          {
+            "code": "G0_PARSE_ERROR",
+            "message": "serviceflow.yaml does not parse: while parsing a block collection\n  in \"<unicode string>\", line 31, column 4:\n       - system_id: local_filesystem\n       ^\nexpected <block end>, but found '<block mapping start>'\n  in \"<unicode string>\", line 32, column 5:\n        type: filesystem\n        ^",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G1",
+        "status": "skipped",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "skipped",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": [
+          {
+            "code": "G2_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G3",
+        "status": "skipped",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "skipped",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": [
+          {
+            "code": "G4_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "val-log-rotation-cleanup-scripts",
+              "scenario": "base",
+              "data_size_bytes": 4082,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-log-rotation-cleanup-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 273,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-log-rotation-cleanup-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 4082,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-log-rotation-cleanup-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 273,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "find_expired_logs",
+                "archive_and_delete_logs"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "status": "unscored",
+    "reason": "no parseable submission ServiceFlowIR"
+  },
+  "binding": {
+    "status": "unscored",
+    "reason": "no parseable submission ServiceFlowIR"
+  },
+  "wiring": {
+    "status": "unscored",
+    "reason": "no parseable submission ServiceFlowIR"
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "source_fixture_loaded",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-0uh93f43/artifacts/availability_status.json"
+          },
+          {
+            "assertion_id": "source_files_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-0uh93f43/artifacts/availability_status.json"
+          },
+          {
+            "assertion_id": "source_records_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-0uh93f43/artifacts/availability_status.json"
+          },
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-0uh93f43/artifacts/cleanup_status.json"
+          },
+          {
+            "assertion_id": "final_artifact_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-0uh93f43/artifacts/cleanup_status.json"
+          },
+          {
+            "assertion_id": "upstream_evidence_propagated",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-0uh93f43/artifacts/cleanup_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 6,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

@@ -1,0 +1,46 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:ftp_vendor_inventory_processor
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_ftp_vendor_inventory_processor_file_location_availability_sensor_candidates
+  source_step_refs:
+  - wait_for_ftp_file
+  service_ids:
+  - file_location_availability_sensor
+  - ftp_file_artifact_downloader
+  - sql_query_readiness_sensor
+  - external_workflow_completion_sensor
+  - filesystem_retention_cleanup_with_lock
+  - reviewed_domain_adapter
+- candidate_set_id: main_ftp_vendor_inventory_processor_ftp_file_artifact_downloader_candidates
+  source_step_refs:
+  - download_vendor_file
+  service_ids:
+  - ftp_file_artifact_downloader
+  - file_location_availability_sensor
+  - checksum_manifest_object_storage_file_sync
+  - http_api_request_artifact_extractor
+  - warehouse_inventory_csv_extractor
+  - reviewed_domain_adapter
+- candidate_set_id: main_ftp_vendor_inventory_processor_tabular_null_value_cleanser_candidates
+  source_step_refs:
+  - cleanse_vendor_data
+  service_ids:
+  - tabular_null_value_cleanser
+  - csv_artifact_profile_ingestor
+  - csv_tabular_schema_validating_loader
+  - tabular_dataset_declarative_transformer
+  - inventory_sku_csv_normalizer
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_ftp_vendor_inventory_processor_tabular_dataset_database_loader_candidates
+  source_step_refs:
+  - merge_with_internal_inventory
+  service_ids:
+  - tabular_dataset_database_loader
+  - database_csv_snapshot_importer
+  - postgres_parameterized_sql_executor
+  - air_quality_dimensional_postgres_loader
+  - multi_table_analytics_warehouse_loader
+  - legacy_database_table_loader

@@ -1,0 +1,181 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_batch_model_scoring",
+  "pipeline_name": "Batch Model Scoring Pipeline",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_batch_model_scoring.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Load a customer feature table, score customers with a saved model, and write predictions.",
+    "business_domain": "Customer Analytics",
+    "execution_model": "Batch",
+    "topology_pattern": "Linear",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "load_feature_table",
+        "to": "score_customers"
+      },
+      {
+        "from": "load_model_artifact",
+        "to": "score_customers"
+      },
+      {
+        "from": "score_customers",
+        "to": "write_predictions"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Feature store",
+      "identifier": "feature_store",
+      "details": [
+        "Validation external dependency: Feature store"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Model registry",
+      "identifier": "model_registry",
+      "details": [
+        "Validation external dependency: Model registry"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "customer_features",
+        "description": "Validation artifact: customer_features"
+      },
+      {
+        "identifier": "churn_model.pkl",
+        "description": "Validation artifact: churn_model.pkl"
+      },
+      {
+        "identifier": "prediction_table",
+        "description": "Validation artifact: prediction_table"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "load_feature_table",
+      "name": "load_feature_table",
+      "objective": "Load feature table",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "load_model_artifact",
+      "name": "load_model_artifact",
+      "objective": "Load model artifact",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "score_customers",
+      "name": "score_customers",
+      "objective": "Score customers",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "write_predictions",
+      "name": "write_predictions",
+      "objective": "Write predictions",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

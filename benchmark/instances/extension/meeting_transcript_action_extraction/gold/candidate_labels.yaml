@@ -1,0 +1,94 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:meeting_transcript_action_extraction
+candidate_sets:
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_transcript_batch_ingestor_candidates
+  required_service_id: meeting_transcript_batch_ingestor
+  labels:
+    meeting_transcript_batch_ingestor: gold
+    image_caption_only_generator: semantic_mismatch
+    invoice_ocr_without_reconciliation: contract_mismatch
+    rag_index_without_answer_generator: format_mismatch
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_transcript_contract_validator_candidates
+  required_service_id: meeting_transcript_contract_validator
+  labels:
+    meeting_transcript_contract_validator: gold
+    invoice_ocr_without_reconciliation: semantic_mismatch
+    rag_index_without_answer_generator: contract_mismatch
+    generic_control_mapping_table_joiner: format_mismatch
+- candidate_set_id: extension_meeting_transcript_action_extraction_ai_raw_artifact_stager_candidates
+  required_service_id: ai_raw_artifact_stager
+  labels:
+    ai_raw_artifact_stager: gold
+    rag_index_without_answer_generator: semantic_mismatch
+    generic_control_mapping_table_joiner: contract_mismatch
+    meeting_summary_without_action_owner: format_mismatch
+- candidate_set_id: extension_meeting_transcript_action_extraction_ai_record_metadata_normalizer_candidates
+  required_service_id: ai_record_metadata_normalizer
+  labels:
+    ai_record_metadata_normalizer: gold
+    generic_control_mapping_table_joiner: semantic_mismatch
+    meeting_summary_without_action_owner: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_transcript_text_parser_candidates
+  required_service_id: meeting_transcript_text_parser
+  labels:
+    meeting_transcript_text_parser: gold
+    meeting_summary_without_action_owner: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    image_caption_only_generator: format_mismatch
+- candidate_set_id: extension_meeting_transcript_action_extraction_semantic_document_chunker_candidates
+  required_service_id: semantic_document_chunker
+  labels:
+    semantic_document_chunker: gold
+    reviewed_domain_adapter: semantic_mismatch
+    image_caption_only_generator: contract_mismatch
+    invoice_ocr_without_reconciliation: format_mismatch
+- candidate_set_id: extension_meeting_transcript_action_extraction_deterministic_text_embedding_generator_candidates
+  required_service_id: deterministic_text_embedding_generator
+  labels:
+    deterministic_text_embedding_generator: gold
+    image_caption_only_generator: semantic_mismatch
+    invoice_ocr_without_reconciliation: contract_mismatch
+    rag_index_without_answer_generator: format_mismatch
+- candidate_set_id: extension_meeting_transcript_action_extraction_fixture_vector_index_writer_candidates
+  required_service_id: fixture_vector_index_writer
+  labels:
+    fixture_vector_index_writer: gold
+    invoice_ocr_without_reconciliation: semantic_mismatch
+    rag_index_without_answer_generator: contract_mismatch
+    generic_control_mapping_table_joiner: format_mismatch
+- candidate_set_id: extension_meeting_transcript_action_extraction_grounding_context_retriever_candidates
+  required_service_id: grounding_context_retriever
+  labels:
+    grounding_context_retriever: gold
+    rag_index_without_answer_generator: semantic_mismatch
+    generic_control_mapping_table_joiner: contract_mismatch
+    meeting_summary_without_action_owner: format_mismatch
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_decision_action_extractor_candidates
+  required_service_id: meeting_decision_action_extractor
+  labels:
+    meeting_decision_action_extractor: gold
+    generic_control_mapping_table_joiner: semantic_mismatch
+    meeting_summary_without_action_owner: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_action_confidence_scorer_candidates
+  required_service_id: meeting_action_confidence_scorer
+  labels:
+    meeting_action_confidence_scorer: gold
+    meeting_summary_without_action_owner: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    image_caption_only_generator: format_mismatch
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_action_review_packet_builder_candidates
+  required_service_id: meeting_action_review_packet_builder
+  labels:
+    meeting_action_review_packet_builder: gold
+    reviewed_domain_adapter: semantic_mismatch
+    image_caption_only_generator: contract_mismatch
+    invoice_ocr_without_reconciliation: format_mismatch
+- candidate_set_id: extension_meeting_transcript_action_extraction_meeting_action_register_publisher_candidates
+  required_service_id: meeting_action_register_publisher
+  labels:
+    meeting_action_register_publisher: gold
+    image_caption_only_generator: semantic_mismatch
+    invoice_ocr_without_reconciliation: contract_mismatch
+    rag_index_without_answer_generator: format_mismatch

@@ -1,0 +1,39 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:pcd-etl
+candidate_sets:
+- candidate_set_id: main_pcd_etl_file_location_availability_sensor_candidates
+  required_service_id: file_location_availability_sensor
+  labels:
+    file_location_availability_sensor: gold
+    ftp_file_artifact_downloader: semantic_mismatch
+    filesystem_retention_cleanup_with_lock: semantic_mismatch
+    sql_query_readiness_sensor: target_mismatch
+    kubernetes_job_template_executor: contract_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_pcd_etl_http_api_request_artifact_extractor_candidates
+  required_service_id: http_api_request_artifact_extractor
+  labels:
+    http_api_request_artifact_extractor: gold
+    http_json_request_extractor: format_mismatch
+    graphql_json_operation_executor: contract_mismatch
+    airvisual_nearest_city_json_extractor: target_mismatch
+    ftp_file_artifact_downloader: target_mismatch
+    open_network_http_json_requester: policy_incompatible
+- candidate_set_id: main_pcd_etl_kubernetes_job_template_executor_candidates
+  required_service_id: kubernetes_job_template_executor
+  labels:
+    kubernetes_job_template_executor: gold
+    external_workflow_run_trigger: target_mismatch
+    databricks_notebook_run_executor: target_mismatch
+    spark_class_object_storage_table_loader: contract_mismatch
+    file_location_availability_sensor: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_pcd_etl_email_notification_sender_candidates
+  required_service_id: email_notification_sender
+  labels:
+    email_notification_sender: gold
+    status_context_email_summary_notifier: contract_mismatch
+    email_attachment_notification_sender: missing_required_output
+    slack_notification_sender: target_mismatch
+    aqi_threshold_email_alert_notifier: semantic_mismatch
+    unrestricted_email_notification_sender: policy_incompatible

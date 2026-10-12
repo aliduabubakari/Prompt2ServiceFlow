@@ -1,0 +1,921 @@
+ir_version: 0.1.0
+composition_id: retail_inventory_reconciliation
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:retail_inventory_reconciliation
+  split: main
+  pipeline_id: retail_inventory_reconciliation
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/39_retail_inventory_reconciliation.txt
+  description_sha256: 1a1d09939818c677a0dfddee9e746aee93d4253db24d86579efd0caecf380137
+  internal_spec_path: source/internal_specs/main_40/39_retail_inventory_reconciliation.json
+  internal_spec_sha256: 767da71da1324294508493f7d7fc0966faf905cc56e82c4740aa312b43b8c348
+requirement:
+  name: Retail Inventory Reconciliation
+  purpose: Fetch inventory CSVs from 4 warehouses, normalize SKU formats, reconcile discrepancies, and
+    generate a final PDF report.
+  domain: retail
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: high
+  notes:
+  - 'Two parallel phases: fetch (4x) and normalize (4x).'
+  - Reconcile and report steps merge the fan-out paths.
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: warehouse_wms
+  type: other
+  name: Warehouse Management System
+  identifier: warehouse-wms
+  access_mode: read
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: fetch_north_warehouse_csv
+  name: Fetch north warehouse CSV
+  category: Extractor
+  capability: Retrieve inventory CSV from the north warehouse management system.
+  source_step_refs:
+  - fetch_north_warehouse_csv
+  evidence:
+  - source: description
+    text: Fetch inventory CSV from north warehouse management system.
+  inputs:
+  - warehouse_wms_resource
+  outputs:
+  - north_inventory_csv
+  - north_fetch_status
+  external_system_refs:
+  - warehouse_wms
+  preconditions:
+  - WMS available.
+  effects:
+  - Inventory CSV and status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step fetches inventory CSV from north warehouse.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: fetch_south_warehouse_csv
+  name: Fetch south warehouse CSV
+  category: Extractor
+  capability: Retrieve inventory CSV from the south warehouse management system.
+  source_step_refs:
+  - fetch_south_warehouse_csv
+  evidence:
+  - source: description
+    text: Fetch inventory CSV from south warehouse management system.
+  inputs:
+  - warehouse_wms_resource
+  outputs:
+  - south_inventory_csv
+  - south_fetch_status
+  external_system_refs:
+  - warehouse_wms
+  preconditions:
+  - WMS available.
+  effects:
+  - Inventory CSV and status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step fetches inventory CSV from south warehouse.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: fetch_east_warehouse_csv
+  name: Fetch east warehouse CSV
+  category: Extractor
+  capability: Retrieve inventory CSV from the east warehouse management system.
+  source_step_refs:
+  - fetch_east_warehouse_csv
+  evidence:
+  - source: description
+    text: Fetch inventory CSV from east warehouse management system.
+  inputs:
+  - warehouse_wms_resource
+  outputs:
+  - east_inventory_csv
+  - east_fetch_status
+  external_system_refs:
+  - warehouse_wms
+  preconditions:
+  - WMS available.
+  effects:
+  - Inventory CSV and status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step fetches inventory CSV from east warehouse.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: fetch_west_warehouse_csv
+  name: Fetch west warehouse CSV
+  category: Extractor
+  capability: Retrieve inventory CSV from the west warehouse management system.
+  source_step_refs:
+  - fetch_west_warehouse_csv
+  evidence:
+  - source: description
+    text: Fetch inventory CSV from west warehouse management system.
+  inputs:
+  - warehouse_wms_resource
+  outputs:
+  - west_inventory_csv
+  - west_fetch_status
+  external_system_refs:
+  - warehouse_wms
+  preconditions:
+  - WMS available.
+  effects:
+  - Inventory CSV and status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step fetches inventory CSV from west warehouse.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: normalize_north_skus
+  name: Normalize north SKUs
+  category: Transformer
+  capability: Standardize SKU formats for north warehouse inventory.
+  source_step_refs:
+  - normalize_north_skus
+  evidence:
+  - source: description
+    text: Standardize SKU formats for north warehouse inventory data.
+  inputs:
+  - north_inventory_csv
+  outputs:
+  - normalized_north_csv
+  - north_normalization_status
+  external_system_refs: []
+  preconditions:
+  - N/A.
+  effects:
+  - N/A.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step normalizes north warehouse SKUs.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: normalize_south_skus
+  name: Normalize south SKUs
+  category: Transformer
+  capability: Standardize SKU formats for south warehouse inventory.
+  source_step_refs:
+  - normalize_south_skus
+  evidence:
+  - source: description
+    text: Standardize SKU formats for south warehouse inventory data.
+  inputs:
+  - south_inventory_csv
+  outputs:
+  - normalized_south_csv
+  - south_normalization_status
+  external_system_refs: []
+  preconditions:
+  - N/A.
+  effects:
+  - N/A.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step normalizes south warehouse SKUs.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: normalize_east_skus
+  name: Normalize east SKUs
+  category: Transformer
+  capability: Standardize SKU formats for east warehouse inventory.
+  source_step_refs:
+  - normalize_east_skus
+  evidence:
+  - source: description
+    text: Standardize SKU formats for east warehouse inventory data.
+  inputs:
+  - east_inventory_csv
+  outputs:
+  - normalized_east_csv
+  - east_normalization_status
+  external_system_refs: []
+  preconditions:
+  - N/A.
+  effects:
+  - N/A.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step normalizes east warehouse SKUs.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: normalize_west_skus
+  name: Normalize west SKUs
+  category: Transformer
+  capability: Standardize SKU formats for west warehouse inventory.
+  source_step_refs:
+  - normalize_west_skus
+  evidence:
+  - source: description
+    text: Standardize SKU formats for west warehouse inventory data.
+  inputs:
+  - west_inventory_csv
+  outputs:
+  - normalized_west_csv
+  - west_normalization_status
+  external_system_refs: []
+  preconditions:
+  - N/A.
+  effects:
+  - N/A.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step normalizes west warehouse SKUs.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: reconcile_all_inventories
+  name: Reconcile all inventories
+  category: Reconciler
+  capability: Cross-reference all normalized inventories and identify SKU discrepancies.
+  source_step_refs:
+  - reconcile_all_inventories
+  evidence:
+  - source: description
+    text: Reconcile all normalized inventories and identify discrepancies.
+  inputs:
+  - normalized_north_csv
+  outputs:
+  - discrepancy_report_csv
+  - reconciliation_status
+  external_system_refs: []
+  preconditions:
+  - N/A.
+  effects:
+  - N/A.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step reconciles across all warehouses.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: generate_final_report
+  name: Generate final PDF report
+  category: ReportGenerator
+  capability: Create a final reconciliation PDF with recommendations.
+  source_step_refs:
+  - generate_final_report
+  evidence:
+  - source: description
+    text: Generate final reconciliation report with recommendations.
+  inputs:
+  - discrepancy_report_csv
+  outputs:
+  - final_pdf_report
+  - report_status
+  external_system_refs: []
+  preconditions:
+  - N/A.
+  effects:
+  - N/A.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: Source step generates final PDF report.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: fetch_north_warehouse_csv
+    to: normalize_north_skus
+  - from: fetch_south_warehouse_csv
+    to: normalize_south_skus
+  - from: fetch_east_warehouse_csv
+    to: normalize_east_skus
+  - from: fetch_west_warehouse_csv
+    to: normalize_west_skus
+  - from: normalize_north_skus
+    to: reconcile_all_inventories
+  - from: normalize_south_skus
+    to: reconcile_all_inventories
+  - from: normalize_east_skus
+    to: reconcile_all_inventories
+  - from: normalize_west_skus
+    to: reconcile_all_inventories
+  - from: reconcile_all_inventories
+    to: generate_final_report
+  parallel_groups:
+  - group_id: fetch_phase
+    intent_ids:
+    - fetch_north_warehouse_csv
+    - fetch_south_warehouse_csv
+    - fetch_east_warehouse_csv
+    - fetch_west_warehouse_csv
+  - group_id: normalize_phase
+    intent_ids:
+    - normalize_north_skus
+    - normalize_south_skus
+    - normalize_east_skus
+    - normalize_west_skus
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: warehouse_wms_resource
+  name: WMS resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - fetch_north_warehouse_csv
+  - fetch_south_warehouse_csv
+  - fetch_east_warehouse_csv
+  - fetch_west_warehouse_csv
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/warehouse_wms.json
+  external_system_ref: warehouse_wms
+- artifact_id: north_inventory_csv
+  name: North inventory CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: fetch_north_warehouse_csv
+  consumers:
+  - normalize_north_skus
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: north_fetch_status
+  name: North fetch status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: fetch_north_warehouse_csv
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: south_inventory_csv
+  name: South inventory CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: fetch_south_warehouse_csv
+  consumers:
+  - normalize_south_skus
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: south_fetch_status
+  name: South fetch status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: fetch_south_warehouse_csv
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: east_inventory_csv
+  name: East inventory CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: fetch_east_warehouse_csv
+  consumers:
+  - normalize_east_skus
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: east_fetch_status
+  name: East fetch status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: fetch_east_warehouse_csv
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: west_inventory_csv
+  name: West inventory CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: fetch_west_warehouse_csv
+  consumers:
+  - normalize_west_skus
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: west_fetch_status
+  name: West fetch status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: fetch_west_warehouse_csv
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalized_north_csv
+  name: Normalized north CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: normalize_north_skus
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: north_normalization_status
+  name: North norm status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: normalize_north_skus
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalized_south_csv
+  name: Normalized south CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: normalize_south_skus
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: south_normalization_status
+  name: South norm status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: normalize_south_skus
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalized_east_csv
+  name: Normalized east CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: normalize_east_skus
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: east_normalization_status
+  name: East norm status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: normalize_east_skus
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalized_west_csv
+  name: Normalized west CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: normalize_west_skus
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: west_normalization_status
+  name: West norm status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: normalize_west_skus
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: discrepancy_report_csv
+  name: Discrepancy report CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: intermediate
+  producer: reconcile_all_inventories
+  consumers:
+  - generate_final_report
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: reconciliation_status
+  name: Reconciliation status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: reconcile_all_inventories
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: final_pdf_report
+  name: Final PDF report
+  kind: artifact
+  data_type: binary
+  media_type: application/pdf
+  role: output
+  producer: generate_final_report
+  consumers: []
+  sensitivity: internal
+  persistence: release
+- artifact_id: report_status
+  name: Report status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/status.schema.json
+  role: status
+  producer: generate_final_report
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: fetch_north_warehouse_csv
+  service_id: warehouse_inventory_csv_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: warehouse_management_system
+    artifact_id: warehouse_wms_resource
+  output_bindings:
+  - port: inventory_csv
+    artifact_id: north_inventory_csv
+  - port: extraction_status
+    artifact_id: north_fetch_status
+  parameter_bindings:
+    warehouse_id: north
+    output_path: /workspace/artifacts/north_inventory.csv
+  secret_bindings: []
+  rationale: Fetches north warehouse inventory.
+  confidence: explicit
+- intent_id: fetch_south_warehouse_csv
+  service_id: warehouse_inventory_csv_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: warehouse_management_system
+    artifact_id: warehouse_wms_resource
+  output_bindings:
+  - port: inventory_csv
+    artifact_id: south_inventory_csv
+  - port: extraction_status
+    artifact_id: south_fetch_status
+  parameter_bindings:
+    warehouse_id: south
+    output_path: /workspace/artifacts/south_inventory.csv
+  secret_bindings: []
+  rationale: Fetches south warehouse inventory.
+  confidence: explicit
+- intent_id: fetch_east_warehouse_csv
+  service_id: warehouse_inventory_csv_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: warehouse_management_system
+    artifact_id: warehouse_wms_resource
+  output_bindings:
+  - port: inventory_csv
+    artifact_id: east_inventory_csv
+  - port: extraction_status
+    artifact_id: east_fetch_status
+  parameter_bindings:
+    warehouse_id: east
+    output_path: /workspace/artifacts/east_inventory.csv
+  secret_bindings: []
+  rationale: Fetches east warehouse inventory.
+  confidence: explicit
+- intent_id: fetch_west_warehouse_csv
+  service_id: warehouse_inventory_csv_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: warehouse_management_system
+    artifact_id: warehouse_wms_resource
+  output_bindings:
+  - port: inventory_csv
+    artifact_id: west_inventory_csv
+  - port: extraction_status
+    artifact_id: west_fetch_status
+  parameter_bindings:
+    warehouse_id: west
+    output_path: /workspace/artifacts/west_inventory.csv
+  secret_bindings: []
+  rationale: Fetches west warehouse inventory.
+  confidence: explicit
+- intent_id: normalize_north_skus
+  service_id: inventory_sku_csv_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: inventory_csv
+    artifact_id: north_inventory_csv
+  output_bindings:
+  - port: normalized_inventory_csv
+    artifact_id: normalized_north_csv
+  - port: normalization_status
+    artifact_id: north_normalization_status
+  parameter_bindings:
+    warehouse_id: north
+    sku_column: sku
+    normalization_rules:
+      case: upper
+      strip_hyphen: underscore
+    output_path: /workspace/artifacts/normalized_north.csv
+    has_header: true
+  secret_bindings: []
+  rationale: Normalizes north warehouse SKUs.
+  confidence: explicit
+- intent_id: normalize_south_skus
+  service_id: inventory_sku_csv_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: inventory_csv
+    artifact_id: south_inventory_csv
+  output_bindings:
+  - port: normalized_inventory_csv
+    artifact_id: normalized_south_csv
+  - port: normalization_status
+    artifact_id: south_normalization_status
+  parameter_bindings:
+    warehouse_id: south
+    sku_column: sku
+    normalization_rules:
+      case: upper
+      strip_hyphen: underscore
+    output_path: /workspace/artifacts/normalized_south.csv
+    has_header: true
+  secret_bindings: []
+  rationale: Normalizes south warehouse SKUs.
+  confidence: explicit
+- intent_id: normalize_east_skus
+  service_id: inventory_sku_csv_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: inventory_csv
+    artifact_id: east_inventory_csv
+  output_bindings:
+  - port: normalized_inventory_csv
+    artifact_id: normalized_east_csv
+  - port: normalization_status
+    artifact_id: east_normalization_status
+  parameter_bindings:
+    warehouse_id: east
+    sku_column: sku
+    normalization_rules:
+      case: upper
+      strip_hyphen: underscore
+    output_path: /workspace/artifacts/normalized_east.csv
+    has_header: true
+  secret_bindings: []
+  rationale: Normalizes east warehouse SKUs.
+  confidence: explicit
+- intent_id: normalize_west_skus
+  service_id: inventory_sku_csv_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: inventory_csv
+    artifact_id: west_inventory_csv
+  output_bindings:
+  - port: normalized_inventory_csv
+    artifact_id: normalized_west_csv
+  - port: normalization_status
+    artifact_id: west_normalization_status
+  parameter_bindings:
+    warehouse_id: west
+    sku_column: sku
+    normalization_rules:
+      case: upper
+      strip_hyphen: underscore
+    output_path: /workspace/artifacts/normalized_west.csv
+    has_header: true
+  secret_bindings: []
+  rationale: Normalizes west warehouse SKUs.
+  confidence: explicit
+- intent_id: reconcile_all_inventories
+  service_id: multi_warehouse_inventory_discrepancy_reconciler
+  service_version: 1.0.0
+  input_bindings:
+  - port: normalized_inventory_csvs
+    artifact_id: normalized_north_csv
+  output_bindings:
+  - port: discrepancy_report_csv
+    artifact_id: discrepancy_report_csv
+  - port: reconciliation_status
+    artifact_id: reconciliation_status
+  parameter_bindings:
+    warehouse_labels:
+    - north
+    - south
+    - east
+    - west
+    sku_column: sku
+    quantity_column: quantity
+    output_path: /workspace/artifacts/discrepancy_report.csv
+  secret_bindings: []
+  rationale: Reconciles all four normalized inventories.
+  confidence: explicit
+- intent_id: generate_final_report
+  service_id: inventory_reconciliation_pdf_report_generator
+  service_version: 1.0.0
+  input_bindings:
+  - port: discrepancy_report_csv
+    artifact_id: discrepancy_report_csv
+  output_bindings:
+  - port: pdf_report
+    artifact_id: final_pdf_report
+  - port: report_status
+    artifact_id: report_status
+  parameter_bindings:
+    output_path: /workspace/artifacts/reconciliation_report.pdf
+    recommendation_rules:
+      threshold: 10
+      action: review
+  secret_bindings: []
+  rationale: Generates final reconciliation PDF.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - All warehouse data is mocked.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All ten source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Ten exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Fan-out/fan-in Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Single scenario executes all ten steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - All fetch
+  - normalize
+  - reconcile
+  - and report invariants hold
+source_step_accounting:
+- source_step_ref: fetch_north_warehouse_csv
+  disposition: service
+  intent_ids:
+  - fetch_north_warehouse_csv
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: fetch_south_warehouse_csv
+  disposition: service
+  intent_ids:
+  - fetch_south_warehouse_csv
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: fetch_east_warehouse_csv
+  disposition: service
+  intent_ids:
+  - fetch_east_warehouse_csv
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: fetch_west_warehouse_csv
+  disposition: service
+  intent_ids:
+  - fetch_west_warehouse_csv
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: normalize_north_skus
+  disposition: service
+  intent_ids:
+  - normalize_north_skus
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: normalize_south_skus
+  disposition: service
+  intent_ids:
+  - normalize_south_skus
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: normalize_east_skus
+  disposition: service
+  intent_ids:
+  - normalize_east_skus
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: normalize_west_skus
+  disposition: service
+  intent_ids:
+  - normalize_west_skus
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: reconcile_all_inventories
+  disposition: service
+  intent_ids:
+  - reconcile_all_inventories
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: generate_final_report
+  disposition: service
+  intent_ids:
+  - generate_final_report
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

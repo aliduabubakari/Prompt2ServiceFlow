@@ -1,0 +1,572 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smart-city-incident-routing-nominal-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_source_batch.py: "#!/usr/bin/env python3\n\"\"\"Ingest incident reports, asset registry, and\
+    \ routing policy.\"\"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib\
+    \ import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True)\n\
+    \    p.add_argument(\"--fixture\",type=Path,required=True); p.add_argument(\"--execution-time\",type=str,default=None)\n\
+    \    a=p.parse_args(); r=a.workspace; art=r/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n\
+    \    fx=json.loads(a.fixture.read_text(encoding=\"utf-8\")); fd=a.fixture.parent\n    incidents=json.loads((fd/fx[\"\
+    inputs\"][\"incidents\"]).read_text(encoding=\"utf-8\"))\n    assets={}\n    with (fd/fx[\"inputs\"\
+    ][\"assets\"]).open(encoding=\"utf-8\",newline=\"\") as f:\n        for row in csv.DictReader(f):\
+    \ assets[row[\"asset_id\"]]=row\n    policy=json.loads((fd/fx[\"inputs\"][\"policy\"]).read_text(encoding=\"\
+    utf-8\"))\n    result={\"incidents\":incidents,\"assets\":assets,\"policy\":policy,\"total\":len(incidents),\"\
+    ingested_at\":a.execution_time}\n    (art/\"ingest_source_batch_artifact.json\").write_text(json.dumps(result,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"ingest_source_batch_status.json\").write_text(json.dumps({\"\
+    success\":True,\"incidents\":len(incidents),\"assets\":len(assets),\"errors\":[]},indent=2)+\"\\n\"\
+    ,encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  02_validate_source_contract.py: "#!/usr/bin/env python3\n\"\"\"Validate: required incident fields, priority\
+    \ validity, coordinate presence.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    incidents=ingested[\"incidents\"]; valid_p={\"critical\",\"\
+    high\",\"medium\",\"low\"}; required={\"incident_id\",\"type\",\"location\",\"priority\"}\n    errors=[];\
+    \ valid=[]\n    for inc in incidents:\n        issues=[]\n        if required-set(inc.keys()): issues.append(f\"\
+    missing_fields: {required-set(inc.keys())}\")\n        if inc.get(\"priority\") not in valid_p: issues.append(f\"\
+    invalid_priority: {inc.get('priority')}\")\n        if issues: errors.append({\"incident_id\":inc.get(\"\
+    incident_id\",\"?\"),\"issues\":issues})\n        else: valid.append(inc)\n    result={\"valid\":valid,\"\
+    errors\":errors,\"total_valid\":len(valid),\"total_rejected\":len(errors)}\n    (art/\"validate_source_contract_artifact.json\"\
+    ).write_text(json.dumps(result,indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"validate_source_contract_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"valid\":len(valid),\"rejected\":len(errors),\"errors\"\
+    :errors},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_normalize_partition_a.py: "#!/usr/bin/env python3\n\"\"\"Normalize A: incident metadata \u2014 type,\
+    \ priority, source, age.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom datetime\
+    \ import datetime\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    now=datetime(2026,7,20,12,0,0)\n    norm=[]\n    for inc in\
+    \ validated[\"valid\"]:\n        age_h=(now-datetime.fromisoformat(inc[\"reported_at\"].replace(\"\
+    Z\",\"+00:00\")).replace(tzinfo=None)).total_seconds()/3600\n        norm.append({\"incident_id\"\
+    :inc[\"incident_id\"],\"type\":inc[\"type\"],\"priority\":inc[\"priority\"],\n                   \
+    \  \"source\":inc.get(\"reported_by\",\"?\"),\"age_hours\":round(age_h,1)})\n    (art/\"normalize_partition_a_artifact.json\"\
+    ).write_text(json.dumps({\"partition\":\"A\",\"records\":norm,\"total\":len(norm)},indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\n    (art/\"normalize_partition_a_status.json\").write_text(json.dumps({\"\
+    success\":True,\"normalized\":len(norm),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"\
+    __main__\": main()\n"
+  04_normalize_partition_b.py: "#!/usr/bin/env python3\n\"\"\"Normalize B: asset proximity \u2014 match\
+    \ incidents to nearest registered assets.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    assets=ingested[\"assets\"]\n    # Simple location-based matching\
+    \ (substring)\n    norm=[]\n    for inc in validated[\"valid\"]:\n        matched=[aid for aid,ast\
+    \ in assets.items() if any(w in inc.get(\"location\",\"\") for w in ast.get(\"location\",\"\").replace(\"\
+    &\",\"\").split())]\n        norm.append({\"incident_id\":inc[\"incident_id\"],\"nearby_assets\":matched,\"\
+    asset_count\":len(matched)})\n    (art/\"normalize_partition_b_artifact.json\").write_text(json.dumps({\"\
+    partition\":\"B\",\"records\":norm,\"total\":len(norm)},indent=2)+\"\\n\",encoding=\"utf-8\")\n  \
+    \  (art/\"normalize_partition_b_status.json\").write_text(json.dumps({\"success\":True,\"normalized\"\
+    :len(norm),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  05_normalize_partition_c.py: "#!/usr/bin/env python3\n\"\"\"Normalize C: policy matching \u2014 compute\
+    \ priority score and SLA targets.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    validated=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    policy=ingested[\"policy\"]; pweights=policy[\"priority_weights\"\
+    ]; sla=policy[\"response_sla_minutes\"]\n    norm=[]\n    for inc in validated[\"valid\"]:\n     \
+    \   score=pweights.get(inc[\"priority\"],0)\n        norm.append({\"incident_id\":inc[\"incident_id\"\
+    ],\"priority_score\":score,\"sla_minutes\":sla.get(inc[\"priority\"],480),\n                     \"\
+    auto_dispatch\":inc[\"type\"] in policy[\"auto_dispatch_types\"]})\n    (art/\"normalize_partition_c_artifact.json\"\
+    ).write_text(json.dumps({\"partition\":\"C\",\"records\":norm,\"total\":len(norm)},indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\n    (art/\"normalize_partition_c_status.json\").write_text(json.dumps({\"\
+    success\":True,\"normalized\":len(norm),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"\
+    __main__\": main()\n"
+  06_fuse_partitions.py: "#!/usr/bin/env python3\n\"\"\"Fuse partitions: combine A+B+C into unified incident\
+    \ records.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\
+    \ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"\
+    artifacts\"\n    pa=json.loads((art/\"normalize_partition_a_artifact.json\").read_text(encoding=\"\
+    utf-8\"))\n    pb=json.loads((art/\"normalize_partition_b_artifact.json\").read_text(encoding=\"utf-8\"\
+    ))\n    pc=json.loads((art/\"normalize_partition_c_artifact.json\").read_text(encoding=\"utf-8\"))\n\
+    \    am={r[\"incident_id\"]:r for r in pa[\"records\"]}; bm={r[\"incident_id\"]:r for r in pb[\"records\"\
+    ]}\n    cm={r[\"incident_id\"]:r for r in pc[\"records\"]}; fused=[]\n    for iid in am: fused.append({**am[iid],**bm.get(iid,{}),**cm.get(iid,{})})\n\
+    \    (art/\"fuse_partitions_artifact.json\").write_text(json.dumps({\"fused\":fused,\"total\":len(fused)},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"fuse_partitions_status.json\").write_text(json.dumps({\"success\"\
+    :True,\"fused\":len(fused),\"errors\":[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\"\
+    : main()\n"
+  07_standardize_cross_domain_entities.py: "#!/usr/bin/env python3\n\"\"\"Standardize cross-domain entities:\
+    \ map incident types to departments and asset types.\"\"\"\nfrom __future__ import annotations\nimport\
+    \ argparse, json\nfrom pathlib import Path\n\nDEPT_MAP={\"pothole\":\"Transportation\",\"power_outage\"\
+    :\"Utilities\",\"graffiti\":\"Parks & Recreation\",\n          \"flooding\":\"Water Management\",\"\
+    noise_complaint\":\"Code Enforcement\"}\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    fused=json.loads((art/\"fuse_partitions_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    std=[]\n    for f in fused[\"fused\"]:\n        dept=DEPT_MAP.get(f[\"\
+    type\"],\"General\")\n        std.append({**f,\"responsible_dept\":dept,\"has_nearby_asset\":len(f.get(\"\
+    nearby_assets\",[]))>0})\n    (art/\"standardize_cross_domain_entities_artifact.json\").write_text(json.dumps({\"\
+    standardized\":std,\"total\":len(std)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"standardize_cross_domain_entities_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"standardized\":len(std),\"errors\":[]},indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  08_resolve_entity_conflicts.py: "#!/usr/bin/env python3\n\"\"\"Resolve entity conflicts: flag duplicate-like\
+    \ incidents, conflicting priorities.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\n\
+    from pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\"\
+    ,type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n    a=p.parse_args();\
+    \ art=a.workspace/\"artifacts\"\n    std=json.loads((art/\"standardize_cross_domain_entities_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    resolved=[]; seen_types={}\n    for s in std[\"standardized\"\
+    ]:\n        conflict=seen_types.get(s[\"type\"])\n        seen_types[s[\"type\"]]=s[\"incident_id\"\
+    ]\n        resolved.append({**s,\"potential_duplicate\":bool(conflict),\"conflict_with\":conflict\
+    \ or \"\"})\n    (art/\"resolve_entity_conflicts_artifact.json\").write_text(json.dumps({\"resolved\"\
+    :resolved,\"total\":len(resolved)},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"resolve_entity_conflicts_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"resolved\":len(resolved),\"errors\":[]},indent=2)+\"\\\
+    n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  09_score_operational_priority.py: "#!/usr/bin/env python3\n\"\"\"Score operational priority: final routing\
+    \ decision based on score, SLA, auto-dispatch.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser(); p.add_argument(\"\
+    --workspace\",type=Path,required=True); p.add_argument(\"--fixture\",type=Path,required=True)\n  \
+    \  a=p.parse_args(); art=a.workspace/\"artifacts\"\n    ingested=json.loads((art/\"ingest_source_batch_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    resolved=json.loads((art/\"resolve_entity_conflicts_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    policy=ingested[\"policy\"]; threshold=policy[\"escalation_threshold\"\
+    ]; scored=[]\n    for r in resolved[\"resolved\"]:\n        dispatch=\"auto\" if r.get(\"auto_dispatch\"\
+    ) else (\"escalate\" if r[\"priority_score\"]>=threshold else \"queue\")\n        scored.append({**r,\"\
+    dispatch_action\":dispatch,\"routing_decision\":f\"{dispatch}:{r['responsible_dept']}\"})\n    (art/\"\
+    score_operational_priority_artifact.json\").write_text(json.dumps({\"scored\":scored,\"total\":len(scored)},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    (art/\"score_operational_priority_status.json\").write_text(json.dumps({\"\
+    success\":True,\"scored\":len(scored),\n        \"auto\":sum(1 for s in scored if s[\"dispatch_action\"\
+    ]==\"auto\"),\n        \"escalate\":sum(1 for s in scored if s[\"dispatch_action\"]==\"escalate\"\
+    ),\n        \"queue\":sum(1 for s in scored if s[\"dispatch_action\"]==\"queue\"),\"errors\":[]},indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  10_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish: routing dispatch CSV + audit manifest.\"\
+    \"\"\nfrom __future__ import annotations\nimport argparse, csv, json\nfrom pathlib import Path\n\n\
+    def main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ p.add_argument(\"--fixture\",type=Path,required=True)\n    p.add_argument(\"--execution-time\",type=str,default=None);\
+    \ a=p.parse_args(); art=a.workspace/\"artifacts\"\n    et=a.execution_time or \"2026-07-20T12:00:00Z\"\
+    ; fx=json.loads(a.fixture.read_text(encoding=\"utf-8\"))\n    scored=json.loads((art/\"score_operational_priority_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    val=json.loads((art/\"validate_source_contract_artifact.json\"\
+    ).read_text(encoding=\"utf-8\"))\n    summary={\"total\":scored[\"total\"]+val[\"total_rejected\"\
+    ],\"valid\":scored[\"total\"],\"rejected\":val[\"total_rejected\"],\n             \"auto_dispatched\"\
+    :sum(1 for s in scored[\"scored\"] if s[\"dispatch_action\"]==\"auto\"),\n             \"escalated\"\
+    :sum(1 for s in scored[\"scored\"] if s[\"dispatch_action\"]==\"escalate\"),\n             \"queued\"\
+    :sum(1 for s in scored[\"scored\"] if s[\"dispatch_action\"]==\"queue\")}\n    manifest={\"checkpoint_id\"\
+    :f\"ckpt_city_incident_{et[:10].replace('-','_')}\",\"checkpoint_time\":et,\n              \"pipeline_id\"\
+    :fx[\"pipeline_id\"],\"summary\":summary,\"output_files\":[\"dispatch_report.csv\",\"audit_manifest.json\"\
+    ],\"status\":\"completed\"}\n    (art/\"audit_manifest.json\").write_text(json.dumps(manifest,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    csv_rel=\"dispatch_report.csv\"\n    with (art/csv_rel).open(\"w\"\
+    ,encoding=\"utf-8\",newline=\"\") as f:\n        w=csv.DictWriter(f,fieldnames=[\"incident_id\",\"\
+    type\",\"priority\",\"source\",\"age_hours\",\"priority_score\",\"responsible_dept\",\"dispatch_action\"\
+    ,\"routing_decision\"],extrasaction='ignore')\n        w.writeheader()\n        for s in scored[\"\
+    scored\"]: w.writerow(s)\n    (art/\"publish_outputs_artifact.json\").write_text(json.dumps({\"manifest\"\
+    :manifest,\"csv\":csv_rel},indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"publish_outputs_status.json\"\
+    ).write_text(json.dumps({\"success\":True,\"csv_exported\":csv_rel,\"summary\":summary,\"errors\"\
+    :[]},indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smart-city-incident-routing-nominal-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: 'asset_id,asset_type,location,status,last_maintenance,responsible_dept,response_time_min
+
+    AST-TRF-01,traffic_light,Main St & 5th Ave,operational,2026-06-15,Transportation,30
+
+    AST-PWR-02,power_transformer,Elm Street Block 4,degraded,2026-03-01,Utilities,15
+
+    AST-DRN-03,drainage_pump,River Road Underpass,operational,2026-05-20,Water Management,45
+
+    AST-PRK-04,park_facility,Central Park East,operational,2026-07-01,Parks & Recreation,120
+
+    '
+  fixture-0001: "{\n  \"input_modalities\": [\n    \"json\",\n    \"image\",\n    \"time_series\",\n \
+    \   \"table\"\n  ],\n  \"inputs\": {\n    \"assets\": \"asset_registry.csv\",\n    \"incidents\":\
+    \ \"incident_reports.json\",\n    \"policy\": \"routing_policy.json\"\n  },\n  \"pipeline_id\": \"\
+    smart_city_incident_routing\",\n  \"sample_media\": {\n    \"image\": \"sample_image.png\"\n  },\n\
+    \  \"systems\": [\n    \"city incident management system\",\n    \"asset registry\",\n    \"dispatch\
+    \ system\"\n  ]\n}\n"
+  fixture-0002: "[\n  {\"incident_id\": \"INC-001\", \"type\": \"pothole\", \"location\": \"Main St &\
+    \ 5th Ave\", \"priority\": \"medium\", \"reported_by\": \"citizen_app\", \"description\": \"Large\
+    \ pothole causing traffic hazard\", \"reported_at\": \"2026-07-20T08:00:00Z\", \"coordinates\": {\"\
+    lat\": 40.7128, \"lon\": -74.0060}},\n  {\"incident_id\": \"INC-002\", \"type\": \"power_outage\"\
+    , \"location\": \"Elm Street Block 4\", \"priority\": \"critical\", \"reported_by\": \"sensor_network\"\
+    , \"description\": \"Full block power loss, transformer sparking\", \"reported_at\": \"2026-07-20T07:30:00Z\"\
+    , \"coordinates\": {\"lat\": 40.7150, \"lon\": -74.0080}},\n  {\"incident_id\": \"INC-003\", \"type\"\
+    : \"graffiti\", \"location\": \"Central Park East\", \"priority\": \"low\", \"reported_by\": \"citizen_app\"\
+    , \"description\": \"Graffiti on park bench\", \"reported_at\": \"2026-07-20T09:00:00Z\", \"coordinates\"\
+    : {\"lat\": 40.7200, \"lon\": -73.9990}},\n  {\"incident_id\": \"INC-004\", \"type\": \"flooding\"\
+    , \"location\": \"River Road Underpass\", \"priority\": \"high\", \"reported_by\": \"sensor_network\"\
+    , \"description\": \"Water level rising, road impassable\", \"reported_at\": \"2026-07-20T06:00:00Z\"\
+    , \"coordinates\": {\"lat\": 40.7180, \"lon\": -74.0100}},\n  {\"incident_id\": \"INC-005\", \"type\"\
+    : \"noise_complaint\", \"location\": \"Oak Ave 200 block\", \"priority\": \"low\", \"reported_by\"\
+    : \"citizen_app\", \"description\": \"Construction noise before 7am\", \"reported_at\": \"2026-07-20T05:30:00Z\"\
+    , \"coordinates\": {\"lat\": 40.7100, \"lon\": -74.0050}}\n]\n"
+  fixture-0003: "{\n  \"policy_id\": \"city-incident-routing-v3\",\n  \"description\": \"Municipal incident\
+    \ routing and prioritization policy\",\n  \"priority_weights\": {\"critical\": 100, \"high\": 50,\
+    \ \"medium\": 20, \"low\": 5},\n  \"escalation_threshold\": 60,\n  \"auto_dispatch_types\": [\"power_outage\"\
+    , \"flooding\"],\n  \"sensor_trusted_sources\": [\"sensor_network\"],\n  \"citizen_report_confidence\"\
+    : 0.7,\n  \"response_sla_minutes\": {\"critical\": 15, \"high\": 30, \"medium\": 120, \"low\": 480}\n\
+    }\n"
+binaryData:
+  fixture-0004: iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGklEQVR42mP4sCj6PyWYYdSAUQNGDRguBgAAyhHsH3nWSrIAAAAASUVORK5CYII=
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: smart-city-incident-routing-nominal-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: smart-city-incident-routing-nominal
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: nominal
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: execution-time
+      value: '2026-07-20T12:00:00Z'
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: smart-city-incident-routing-nominal-scripts
+  - name: fixtures
+    configMap:
+      name: smart-city-incident-routing-nominal-fixtures
+      items:
+      - key: fixture-0000
+        path: asset_registry.csv
+      - key: fixture-0001
+        path: fixture.json
+      - key: fixture-0002
+        path: incident_reports.json
+      - key: fixture-0003
+        path: routing_policy.json
+      - key: fixture-0004
+        path: sample_image.png
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-source-batch
+        template: run-ingest-source-batch
+      - name: validate-source-contract
+        template: run-validate-source-contract
+        depends: ingest-source-batch.Succeeded
+      - name: normalize-partition-a
+        template: run-normalize-partition-a
+        depends: validate-source-contract.Succeeded
+      - name: normalize-partition-b
+        template: run-normalize-partition-b
+        depends: validate-source-contract.Succeeded
+      - name: normalize-partition-c
+        template: run-normalize-partition-c
+        depends: validate-source-contract.Succeeded
+      - name: fuse-partitions
+        template: run-fuse-partitions
+        depends: normalize-partition-a.Succeeded && normalize-partition-b.Succeeded && normalize-partition-c.Succeeded
+      - name: standardize-cross-domain-entities
+        template: run-standardize-cross-domain-entities
+        depends: fuse-partitions.Succeeded
+      - name: resolve-entity-conflicts
+        template: run-resolve-entity-conflicts
+        depends: standardize-cross-domain-entities.Succeeded
+      - name: score-operational-priority
+        template: run-score-operational-priority
+        depends: resolve-entity-conflicts.Succeeded
+      - name: publish-outputs
+        template: run-publish-outputs
+        depends: score-operational-priority.Succeeded
+  - name: run-ingest-source-batch
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_source_batch
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_ingest_source_batch.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-validate-source-contract
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: validate_source_contract
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_validate_source_contract.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-normalize-partition-a
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: normalize_partition_a
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_normalize_partition_a.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-normalize-partition-b
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: normalize_partition_b
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_normalize_partition_b.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-normalize-partition-c
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: normalize_partition_c
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_normalize_partition_c.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-fuse-partitions
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: fuse_partitions
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/06_fuse_partitions.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-standardize-cross-domain-entities
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: standardize_cross_domain_entities
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/07_standardize_cross_domain_entities.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-resolve-entity-conflicts
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: resolve_entity_conflicts
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/08_resolve_entity_conflicts.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-score-operational-priority
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: score_operational_priority
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/09_score_operational_priority.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-publish-outputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: publish_outputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/10_publish_outputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

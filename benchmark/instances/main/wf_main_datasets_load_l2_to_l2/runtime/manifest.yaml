@@ -1,0 +1,147 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: wf_main_datasets_load_l2_to_l2
+image: python:3.12-slim
+workflow_parameters:
+- name: l2-ready
+  default: true
+- name: run-label
+  default: batch-001
+tasks:
+- intent_id: wait_for_l2_full_load
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - wait_l2
+  - --l2-ready
+  - '{l2_ready}'
+  output_parameters:
+  - name: ready
+    path: /workspace/artifacts/l2_ready.txt
+- intent_id: get_load_id
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - load_id
+  - --run-label
+  - '{run_label}'
+  dependencies:
+  - wait_for_l2_full_load
+  when: '{{tasks.wait_for_l2_full_load.outputs.parameters.ready}} == true'
+  local_condition:
+    path: artifacts/l2_decision.json
+    json_path: ready
+    equals: true
+- intent_id: workflow_registration
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - register
+  dependencies:
+  - get_load_id
+  when: '{{tasks.wait_for_l2_full_load.outputs.parameters.ready}} == true'
+  local_condition:
+    path: artifacts/l2_decision.json
+    json_path: ready
+    equals: true
+- intent_id: wait_for_success_end
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - wait_success
+  dependencies:
+  - workflow_registration
+  when: '{{tasks.wait_for_l2_full_load.outputs.parameters.ready}} == true'
+  local_condition:
+    path: artifacts/l2_decision.json
+    json_path: ready
+    equals: true
+- intent_id: run_sys_kill_all_session_pg
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - kill
+  dependencies:
+  - wait_for_success_end
+  when: '{{tasks.wait_for_l2_full_load.outputs.parameters.ready}} == true'
+  local_condition:
+    path: artifacts/l2_decision.json
+    json_path: ready
+    equals: true
+- intent_id: run_wf_data_preparation_for_reports
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - dataprep
+  dependencies:
+  - run_sys_kill_all_session_pg
+  when: '{{tasks.wait_for_l2_full_load.outputs.parameters.ready}} == true'
+  local_condition:
+    path: artifacts/l2_decision.json
+    json_path: ready
+    equals: true
+- intent_id: load_ds_client_segmentation
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - segment
+  dependencies:
+  - run_sys_kill_all_session_pg
+  when: '{{tasks.wait_for_l2_full_load.outputs.parameters.ready}} == true'
+  local_condition:
+    path: artifacts/l2_decision.json
+    json_path: ready
+    equals: true
+- intent_id: send_flg_to_sap
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - flag
+  dependencies:
+  - load_ds_client_segmentation
+  when: '{{tasks.wait_for_l2_full_load.outputs.parameters.ready}} == true'
+  local_condition:
+    path: artifacts/l2_decision.json
+    json_path: ready
+    equals: true
+- intent_id: end
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - end
+  dependencies:
+  - run_wf_data_preparation_for_reports
+  - send_flg_to_sap
+  when: '{{tasks.wait_for_l2_full_load.outputs.parameters.ready}} == true'
+  local_condition:
+    path: artifacts/l2_decision.json
+    json_path: ready
+    equals: true
+scenarios:
+- name: l2_ready
+  parameters:
+    l2_ready: true
+    run_label: batch-001
+  fixture_root: fixtures/inputs
+- name: l2_not_ready
+  parameters:
+    l2_ready: false
+    run_label: batch-001
+  fixture_root: fixtures/inputs

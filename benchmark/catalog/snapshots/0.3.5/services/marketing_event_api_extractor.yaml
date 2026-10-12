@@ -1,0 +1,98 @@
+schema_version: 0.1.0
+service_id: marketing_event_api_extractor
+version: 1.0.0
+display_name: Marketing Event Api Extractor
+category: Extractor
+capability:
+  summary: Extracts one configured marketing event stream from an advertising API.
+  operations:
+  - Extracts one configured marketing event stream from an advertising API.
+  keywords:
+  - marketing
+  - event
+  - api
+  - extractor
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: ad_platform_api
+    description: Reviewed ad platform api value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: marketing_events
+    description: Reviewed marketing events value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: extraction_status
+    description: Reviewed extraction status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: event_type
+    description: Configuration for event type.
+    type: string
+    required: true
+  - name: lookback_days
+    description: Configuration for lookback days.
+    type: integer
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: marketing-event-api-extractor
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.2
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.marketing_event_api_extractor
+  implementation_ref: services/implementations/marketing_event_api_extractor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-03:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 03 descriptions; bindings retain inference confidence.

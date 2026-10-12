@@ -1,0 +1,39 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:medical_facility_accessibility_v1
+candidate_sets:
+- candidate_set_id: main_medical_facility_accessibility_v1_csv_to_structured_json_table_formatter_candidates
+  required_service_id: csv_to_structured_json_table_formatter
+  labels:
+    csv_to_structured_json_table_formatter: gold
+    csv_to_structured_json_standardizer: contract_mismatch
+    csv_tabular_schema_validating_loader: missing_required_output
+    customer_segment_csv_loader: target_mismatch
+    delimited_file_tabular_dataset_loader: format_mismatch
+    legacy_csv_schema_validator: deprecated_or_incompatible
+- candidate_set_id: main_medical_facility_accessibility_v1_tabular_address_geocoding_enricher_candidates
+  required_service_id: tabular_address_geocoding_enricher
+  labels:
+    tabular_address_geocoding_enricher: gold
+    tabular_entity_reconciliation_enricher: contract_mismatch
+    wikidata_entity_reconciliation_transformer: target_mismatch
+    http_json_request_extractor: missing_required_output
+    tabular_http_property_extension_enricher: contract_mismatch
+    open_network_http_json_requester: policy_incompatible
+- candidate_set_id: main_medical_facility_accessibility_v1_geospatial_nearest_distance_column_extender_candidates
+  required_service_id: geospatial_nearest_distance_column_extender
+  labels:
+    geospatial_nearest_distance_column_extender: gold
+    tabular_http_property_extension_enricher: contract_mismatch
+    coordinate_land_use_classification_enricher: target_mismatch
+    environmental_risk_score_column_calculator: semantic_mismatch
+    openmeteo_historical_weather_tabular_enricher: semantic_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_medical_facility_accessibility_v1_structured_json_to_csv_exporter_candidates
+  required_service_id: structured_json_to_csv_exporter
+  labels:
+    structured_json_to_csv_exporter: gold
+    tabular_query_result_csv_writer: format_mismatch
+    structured_json_batch_to_csv_exporter: contract_mismatch
+    csv_to_structured_json_standardizer: semantic_mismatch
+    validated_parquet_to_csv_report_exporter: format_mismatch
+    reviewed_domain_adapter: generic_escape_hatch

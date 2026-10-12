@@ -1,0 +1,66 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: extension:supply_chain_disruption_triage
+mappings:
+- intent_id: ingest_source_batch
+  inputs:
+    input_artifacts: source_bundle
+  outputs:
+    output_artifacts: ingest_source_batch_artifact
+    execution_report: ingest_source_batch_status
+- intent_id: validate_source_contract
+  inputs:
+    input_artifacts: ingest_source_batch_artifact
+  outputs:
+    output_artifacts: validate_source_contract_artifact
+    execution_report: validate_source_contract_status
+- intent_id: normalize_partition_a
+  inputs:
+    input_artifacts: validate_source_contract_artifact
+  outputs:
+    output_artifacts: normalize_partition_a_artifact
+    execution_report: normalize_partition_a_status
+- intent_id: normalize_partition_b
+  inputs:
+    input_artifacts: validate_source_contract_artifact
+  outputs:
+    output_artifacts: normalize_partition_b_artifact
+    execution_report: normalize_partition_b_status
+- intent_id: normalize_partition_c
+  inputs:
+    input_artifacts: validate_source_contract_artifact
+  outputs:
+    output_artifacts: normalize_partition_c_artifact
+    execution_report: normalize_partition_c_status
+- intent_id: fuse_partitions
+  inputs:
+    input_artifacts:
+    - normalize_partition_a_artifact
+    - normalize_partition_b_artifact
+    - normalize_partition_c_artifact
+  outputs:
+    output_artifacts: fuse_partitions_artifact
+    execution_report: fuse_partitions_status
+- intent_id: standardize_cross_domain_entities
+  inputs:
+    input_artifacts: fuse_partitions_artifact
+  outputs:
+    output_artifacts: standardize_cross_domain_entities_artifact
+    execution_report: standardize_cross_domain_entities_status
+- intent_id: resolve_entity_conflicts
+  inputs:
+    input_artifacts: standardize_cross_domain_entities_artifact
+  outputs:
+    output_artifacts: resolve_entity_conflicts_artifact
+    execution_report: resolve_entity_conflicts_status
+- intent_id: score_operational_priority
+  inputs:
+    input_artifacts: resolve_entity_conflicts_artifact
+  outputs:
+    output_artifacts: score_operational_priority_artifact
+    execution_report: score_operational_priority_status
+- intent_id: publish_outputs
+  inputs:
+    input_artifacts: score_operational_priority_artifact
+  outputs:
+    output_artifacts: publish_outputs_artifact
+    execution_report: publish_outputs_status

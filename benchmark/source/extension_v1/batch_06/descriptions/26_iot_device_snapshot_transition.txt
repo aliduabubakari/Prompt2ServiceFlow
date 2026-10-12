@@ -1,0 +1,83 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__iot_device_snapshot_transition.py
+- Name: IoT Device Snapshot Transition
+- Purpose: Apply a finite device-event batch to a previous snapshot and publish the new state.
+- Execution model: bounded batch
+- Extension track: event_checkpoint_windowed_batch
+- Topology pattern: fan_in
+- Complexity band: medium
+- Business domain: Environmental/Energy
+- Input modalities: jsonl, table
+- Output modalities: table, checkpoint_manifest
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- device event JSONL
+- device registry CSV
+- previous snapshot table
+
+External Systems:
+- IoT export bucket (fixture-backed; no production system is contacted)
+- device state archive (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_primary_source -> validate_source_contracts
+  - ingest_secondary_source -> validate_source_contracts
+  - ingest_reference_source -> validate_source_contracts
+  - validate_source_contracts -> normalize_sources
+  - normalize_sources -> fuse_sources
+  - fuse_sources -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_primary_source - Ingest Primary Source
+  - Objective: Ingest the primary source for IoT device snapshot transitions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. ingest_secondary_source - Ingest Secondary Source
+  - Objective: Ingest the secondary source for IoT device snapshot transitions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. ingest_reference_source - Ingest Reference Source
+  - Objective: Ingest reference data needed to interpret IoT device snapshot transitions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. validate_source_contracts - Validate Source Contracts
+  - Objective: Validate schemas, identities, and freshness constraints across all IoT device snapshot transitions sources.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. normalize_sources - Normalize Sources
+  - Objective: Normalize source-specific fields into a shared representation for IoT device snapshot transitions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. fuse_sources - Fuse Sources
+  - Objective: Fuse normalized sources into a coherent IoT device snapshot transitions artifact.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. publish_outputs - Publish Outputs
+  - Objective: Publish the prepared IoT device snapshot transitions outputs and completion status.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

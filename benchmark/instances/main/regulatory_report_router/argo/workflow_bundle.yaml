@@ -1,0 +1,303 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: regulatory-report-router-scripts
+  namespace: prompt2serviceflow
+data:
+  01_read_csv.py: "#!/usr/bin/env python3\n\"\"\"Read financial transactions CSV.\"\"\"\nfrom __future__\
+    \ import annotations\nimport argparse, csv, json, shutil\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); p.add_argument(\"\
+    --fixture\",type=Path,required=True)\n    a=p.parse_args(); art=a.workspace/\"artifacts\"; art.mkdir(parents=True,exist_ok=True)\n\
+    \    dest=art/\"transactions.csv\"; shutil.copyfile(a.fixture,dest)\n    with dest.open(encoding=\"\
+    utf-8\",newline=\"\") as f:\n        r=csv.DictReader(f); rows=list(r); cols=r.fieldnames or []\n\
+    \    ds={\"columns\":cols,\"rows\":rows}\n    (art/\"transaction_dataset.json\").write_text(json.dumps(ds,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\n    st={\"success\":True,\"errors\":[]}\n    (art/\"read_status.json\"\
+    ).write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  02_account_check.py: "#!/usr/bin/env python3\n\"\"\"Determine routing based on account type.\"\"\"\n\
+    from __future__ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n\
+    \    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n\
+    \    art=a.workspace/\"artifacts\"\n    ds=json.loads((art/\"transaction_dataset.json\").read_text(encoding=\"\
+    utf-8\"))\n    types={r.get(\"account_type\",\"\") for r in ds[\"rows\"]}\n    is_international=\"\
+    international\" in types\n    route=\"fatca\" if is_international else \"irs\"\n    dec={\"route\"\
+    :route,\"matched\":True,\"reason\":f\"account_types found: {sorted(types)}\"}\n    (art/\"routing_decision.json\"\
+    ).write_text(json.dumps(dec,indent=2)+\"\\n\",encoding=\"utf-8\")\n    (art/\"route.txt\").write_text(route,encoding=\"\
+    utf-8\")\nif __name__==\"__main__\": main()\n"
+  03_route_to_fatca.py: "#!/usr/bin/env python3\n\"\"\"Generate FATCA regulatory report.\"\"\"\nfrom __future__\
+    \ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"\n    ds=json.loads((art/\"transaction_dataset.json\").read_text(encoding=\"utf-8\"))\n\
+    \    intl=[r for r in ds[\"rows\"] if r.get(\"account_type\")==\"international\"]\n    content=f\"\
+    FATCA REPORT\\nTransactions: {len(intl)}\\n\"+\"\\n\".join(f\"  {r['transaction_id']}: {r['amount']}\
+    \ {r['currency']}\" for r in intl)\n    report={\"report_content\":content,\"report_profile\":\"fatca\"\
+    ,\"transaction_count\":len(intl)}\n    (art/\"fatca_report.txt\").write_text(content,encoding=\"utf-8\"\
+    )\n    (art/\"fatca_report.json\").write_text(json.dumps(report,indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    st={\"success\":True,\"errors\":[]}\n    (art/\"fatca_report_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  04_route_to_irs.py: "#!/usr/bin/env python3\n\"\"\"Generate IRS regulatory report.\"\"\"\nfrom __future__\
+    \ import annotations\nimport argparse, json\nfrom pathlib import Path\n\ndef main():\n    p=argparse.ArgumentParser();\
+    \ p.add_argument(\"--workspace\",type=Path,required=True); a=p.parse_args()\n    art=a.workspace/\"\
+    artifacts\"\n    ds=json.loads((art/\"transaction_dataset.json\").read_text(encoding=\"utf-8\"))\n\
+    \    dom=[r for r in ds[\"rows\"] if r.get(\"account_type\")==\"domestic\"]\n    content=f\"IRS FORM\
+    \ 1099 REPORT\\nTransactions: {len(dom)}\\n\"+\"\\n\".join(f\"  {r['transaction_id']}: {r['amount']}\
+    \ {r['currency']}\" for r in dom)\n    report={\"report_content\":content,\"report_profile\":\"irs_1099\"\
+    ,\"transaction_count\":len(dom)}\n    (art/\"irs_report.txt\").write_text(content,encoding=\"utf-8\"\
+    )\n    (art/\"irs_report.json\").write_text(json.dumps(report,indent=2)+\"\\n\",encoding=\"utf-8\"\
+    )\n    st={\"success\":True,\"errors\":[]}\n    (art/\"irs_report_status.json\").write_text(json.dumps(st,indent=2)+\"\
+    \\n\",encoding=\"utf-8\")\nif __name__==\"__main__\": main()\n"
+  05_archive_reports.py: "#!/usr/bin/env python3\n\"\"\"Archive regulatory reports to mock storage.\"\"\
+    \"\nfrom __future__ import annotations\nimport argparse, json, shutil\nfrom pathlib import Path\n\n\
+    def main():\n    p=argparse.ArgumentParser(); p.add_argument(\"--workspace\",type=Path,required=True);\
+    \ a=p.parse_args()\n    art=a.workspace/\"artifacts\"\n    archive=a.workspace/\"archive\"; archive.mkdir(parents=True,exist_ok=True)\n\
+    \    reports=[]\n    if (art/\"fatca_report.txt\").is_file():\n        shutil.copy(art/\"fatca_report.txt\"\
+    , archive/\"fatca_report.txt\"); reports.append(\"fatca\")\n    if (art/\"irs_report.txt\").is_file():\n\
+    \        shutil.copy(art/\"irs_report.txt\", archive/\"irs_report.txt\"); reports.append(\"irs\")\n\
+    \    (archive/\"archive.bin\").write_bytes(b\"MOCK_ARCHIVE_BINARY_CONTENT\\n\"*10)\n    (art/\"archive_input.bin\"\
+    ).write_bytes(b\"MOCK_ARCHIVE_INPUT\\n\"*5)\n    st={\"success\":True,\"errors\":[]}\n    (art/\"\
+    archive_status.json\").write_text(json.dumps(st,indent=2)+\"\\n\",encoding=\"utf-8\")\nif __name__==\"\
+    __main__\": main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: regulatory-report-router-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock","target":"workspace/archive"}'
+  fixture-0001: 'transaction_id,account_type,amount,currency
+
+    T101,domestic,5000.00,USD
+
+    T102,domestic,12000.00,USD
+
+    T103,domestic,750.00,USD
+
+    '
+  fixture-0002: 'transaction_id,account_type,amount,currency
+
+    T001,international,15000.00,USD
+
+    T002,international,8500.00,EUR
+
+    T003,international,22000.00,USD
+
+    '
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: regulatory-report-router-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: regulatory-report-router
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: international-fatca
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: fixture-file
+      value: transactions_international.csv
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: regulatory-report-router-scripts
+  - name: fixtures
+    configMap:
+      name: regulatory-report-router-fixtures
+      items:
+      - key: fixture-0000
+        path: archive_destination.json
+      - key: fixture-0001
+        path: transactions_domestic.csv
+      - key: fixture-0002
+        path: transactions_international.csv
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: read-csv
+        template: run-read-csv
+      - name: account-check
+        template: run-account-check
+        depends: read-csv.Succeeded
+      - name: route-to-fatca
+        template: run-route-to-fatca
+        depends: account-check.Succeeded
+        when: '{{tasks.account-check.outputs.parameters.route}} == fatca'
+      - name: route-to-irs
+        template: run-route-to-irs
+        depends: account-check.Succeeded
+        when: '{{tasks.account-check.outputs.parameters.route}} == irs'
+      - name: archive-reports
+        template: run-archive-reports
+        depends: (route-to-fatca.Succeeded || route-to-irs.Succeeded)
+  - name: run-read-csv
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: read_csv
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_read_csv.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-account-check
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: account_check
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_account_check.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    outputs:
+      parameters:
+      - name: route
+        valueFrom:
+          path: /workspace/artifacts/route.txt
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-route-to-fatca
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: route_to_fatca
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_route_to_fatca.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-route-to-irs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: route_to_irs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_route_to_irs.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError
+  - name: run-archive-reports
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: archive_reports
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_archive_reports.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '2'
+      retryPolicy: OnError

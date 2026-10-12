@@ -1,0 +1,83 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__environmental_sensor_anomaly_batch.py
+- Name: Environmental Sensor Anomaly Batch
+- Purpose: Detect anomalies from finite environmental sensor windows with station-aware thresholds.
+- Execution model: bounded batch
+- Extension track: time_series_sensor_window
+- Topology pattern: windowed_batch
+- Complexity band: medium
+- Business domain: Environmental/Energy
+- Input modalities: time_series, json, table
+- Output modalities: table, alert_digest
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- sensor telemetry JSONL
+- station metadata CSV
+- threshold policy JSON
+
+External Systems:
+- sensor data lake (fixture-backed; no production system is contacted)
+- alert digest bucket (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_bounded_events -> validate_checkpoint_inputs
+  - validate_checkpoint_inputs -> sort_and_deduplicate_records
+  - sort_and_deduplicate_records -> build_analysis_windows
+  - build_analysis_windows -> compute_window_metrics
+  - compute_window_metrics -> align_time_index
+  - align_time_index -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_bounded_events - Ingest Bounded Events
+  - Objective: Ingest a finite event, log, sensor, or snapshot batch for environmental sensor anomaly windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_checkpoint_inputs - Validate Checkpoint Inputs
+  - Objective: Validate batch boundaries, checkpoint references, and required identifiers for environmental sensor anomaly windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. sort_and_deduplicate_records - Sort And Deduplicate Records
+  - Objective: Sort and deduplicate records before window or checkpoint processing for environmental sensor anomaly windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. build_analysis_windows - Build Analysis Windows
+  - Objective: Build deterministic windows, sessions, or snapshot intervals for environmental sensor anomaly windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. compute_window_metrics - Compute Window Metrics
+  - Objective: Compute metrics, state transitions, or anomaly features for environmental sensor anomaly windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. align_time_index - Align Time Index
+  - Objective: Align timestamps, station/device identities, and calendar boundaries for environmental sensor anomaly windows.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. publish_outputs - Publish Outputs
+  - Objective: Publish the bounded-window environmental sensor anomaly windows outputs and checkpoint manifest.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

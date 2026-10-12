@@ -1,0 +1,195 @@
+schema_version: 0.1.0
+service_id: database_csv_snapshot_importer
+version: 1.0.0
+display_name: Database CSV Snapshot Importer
+category: Loader
+capability:
+  summary: Imports a CSV snapshot artifact into a configured target SQL database using
+    caller-supplied import rules and emits load status.
+  operations:
+  - Read and validate a CSV snapshot artifact.
+  - Resolve a bound target database resource.
+  - Apply caller-supplied import specification such as target table, schema mapping,
+    or restore mode.
+  - Load, replace, append, upsert, or restore snapshot data according to configured
+    mode.
+  keywords:
+  - database
+  - csv
+  - snapshot
+  - import
+  - environment copy
+  - loader
+  limitations:
+  - Does not implement fan-out, dependency edges, schedule, or retries.
+  - Does not infer target schema, table names, or database engine-specific bulk load
+    syntax.
+  - Idempotency depends on load mode and target constraints.
+  - Does not compare target environments after loading.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: csv_snapshot
+    description: CSV snapshot artifact exported from the source database.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://csv_file_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: target_database
+    description: SQL database resource receiving the imported snapshot.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: target_database_reference
+    description: Bounded logical reference to the target database and loaded objects.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://database_load_target_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: load_status
+    description: Observable load status containing success flag, mode, rows read/written
+      when available, and affected tables or target scope.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://database_csv_snapshot_import_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: import_spec
+    description: Structured import rules such as target table, column mapping, schema
+      mapping, truncate behavior, or engine-specific bulk load options.
+    type: object
+    required: true
+  - name: load_mode
+    description: Database write behavior for importing the CSV snapshot.
+    type: string
+    required: true
+    enum:
+    - append
+    - replace
+    - upsert
+    - truncate_then_load
+    - restore_snapshot
+  - name: target_label
+    description: Optional logical label for the target environment or database binding.
+    type: string
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  - name: has_header
+    description: Whether the input CSV contains a header row.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: database_csv_import_input_readable
+  type: precondition
+  applies_to: input
+  target: csv_snapshot
+  description: Input snapshot must be readable and parseable as CSV with configured
+    delimiter/header behavior.
+  expression: readable(csv_snapshot) and csv_parseable(csv_snapshot, delimiter, has_header)
+- contract_id: database_csv_import_spec_schema
+  type: json_schema
+  applies_to: parameter
+  target: import_spec
+  description: Import specification must define the target scope or table mapping
+    used by the loader.
+  schema_ref: schema://database_csv_import_spec/v1
+  expression: '{"type":"object","minProperties":1,"additionalProperties":true}'
+- contract_id: database_csv_import_status_schema
+  type: json_schema
+  applies_to: output
+  target: load_status
+  description: Load status exposes the database mutation effect for downstream validation.
+  schema_ref: schema://database_csv_snapshot_import_status/v1
+  expression: '{"type":"object","required":["success","load_mode","target_label","rows_read","rows_written"],"properties":{"success":{"type":"boolean"},"load_mode":{"type":"string"},"target_label":{"type":["string","null"]},"rows_read":{"type":["integer","null"],"minimum":0},"rows_written":{"type":["integer","null"],"minimum":0},"tables_loaded":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: database_csv_import_effect
+  type: effect
+  applies_to: service
+  target: database_csv_snapshot_importer
+  description: On success, CSV snapshot rows are written, replaced, upserted, or restored
+    into the configured target database scope and an observable status is emitted.
+  expression: load_status.success == true implies exists(target_database_reference)
+    and load_status.rows_written >= 0
+invocation:
+  type: argo_workflow_template
+  template_name: database-csv-snapshot-importer-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.database_csv_snapshot_importer
+  implementation_ref: services/implementations/database_csv_snapshot_importer
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - postgresql://*
+  - mysql://*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  - restricted
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit target database credentials or raw CSV row contents.
+  - Bind each invocation only to its intended target database resource.
+  - Status output is required so workflow validation can observe the loader effect
+    without inspecting the database.
+  idempotency_notes: Retry safety depends on load_mode and target constraints. replace,
+    truncate_then_load, restore_snapshot, or stable upsert keys can be retry-safe;
+    append mode may duplicate rows.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:database_replication_fanout#copy_dev
+  - main:database_replication_fanout#copy_qa
+  - main:database_replication_fanout#copy_staging
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing generic tabular database loader requires an ingested data
+    object and does not directly model importing a CSV snapshot artifact into an environment
+    database.'
+  - 'Evidence status: strongly_inferred.'

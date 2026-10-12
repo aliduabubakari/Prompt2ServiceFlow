@@ -1,0 +1,33 @@
+candidate_label_version: 0.1.0
+benchmark_id: validation:val_customer_profile_refresh
+candidate_sets:
+- candidate_set_id: validation_val_customer_profile_refresh_crm_api_record_extractor_candidates
+  required_service_id: crm_api_record_extractor
+  labels:
+    crm_api_record_extractor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    temporary_resource_cleanup: generic_escape_hatch
+- candidate_set_id: validation_val_customer_profile_refresh_customer_profile_field_normalizer_candidates
+  required_service_id: customer_profile_field_normalizer
+  labels:
+    customer_profile_field_normalizer: gold
+    temporary_resource_cleanup: semantic_mismatch
+    csv_to_structured_json_standardizer: generic_escape_hatch
+- candidate_set_id: validation_val_customer_profile_refresh_customer_profile_deduplicator_candidates
+  required_service_id: customer_profile_deduplicator
+  labels:
+    customer_profile_deduplicator: gold
+    csv_to_structured_json_standardizer: semantic_mismatch
+    tabular_dataset_database_loader: generic_escape_hatch
+- candidate_set_id: validation_val_customer_profile_refresh_customer_profile_table_loader_candidates
+  required_service_id: customer_profile_table_loader
+  labels:
+    customer_profile_table_loader: gold
+    tabular_dataset_database_loader: semantic_mismatch
+    http_json_request_extractor: generic_escape_hatch
+- candidate_set_id: validation_val_customer_profile_refresh_profile_refresh_summary_emitter_candidates
+  required_service_id: profile_refresh_summary_emitter
+  labels:
+    profile_refresh_summary_emitter: gold
+    http_json_request_extractor: semantic_mismatch
+    report_artifact_object_storage_archiver: generic_escape_hatch

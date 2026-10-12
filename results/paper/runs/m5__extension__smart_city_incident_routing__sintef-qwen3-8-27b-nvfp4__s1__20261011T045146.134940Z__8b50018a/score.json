@@ -1,0 +1,229 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-11T05:07:51.062801+00:00",
+  "instance": "benchmark/instances/extension/smart_city_incident_routing",
+  "workspace": "experiments/workspaces/extension/smart_city_incident_routing",
+  "submission": "results/paper/runs/m5__extension__smart_city_incident_routing__sintef-qwen3-8-27b-nvfp4__s1__20261011T045146.134940Z__8b50018a/agent_workspace/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G0",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": null,
+    "edge_f1": null,
+    "binding_top1_accuracy": null,
+    "binding_version_accuracy": null,
+    "wiring_f1": null,
+    "wiring_applicable": null,
+    "alignment_edit_distance": null,
+    "over_decomposition_rate": null,
+    "under_decomposition_rate": null,
+    "source_step_coverage": null,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-11T05:07:48.768293+00:00",
+    "workspace": "experiments/workspaces/extension/smart_city_incident_routing",
+    "submission": "results/paper/runs/m5__extension__smart_city_incident_routing__sintef-qwen3-8-27b-nvfp4__s1__20261011T045146.134940Z__8b50018a/agent_workspace/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G0",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "fail",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": [
+          {
+            "code": "G0_PARSE_ERROR",
+            "message": "serviceflow.yaml does not parse: while parsing a block collection\n  in \"<unicode string>\", line 34, column 4:\n       - system_id: municipal_service_queue\n       ^\nexpected <block end>, but found '<block mapping start>'\n  in \"<unicode string>\", line 35, column 5:\n        type: messaging\n        ^",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G1",
+        "status": "skipped",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "skipped",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": [
+          {
+            "code": "G2_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G3",
+        "status": "skipped",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "skipped",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": [
+          {
+            "code": "G4_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "smart-city-incident-routing-scripts",
+              "scenario": "base",
+              "data_size_bytes": 20165,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "smart-city-incident-routing-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 2848,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "smart-city-incident-routing-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 20165,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "smart-city-incident-routing-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 2848,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_source_batch",
+                "validate_source_contract",
+                "normalize_partition_a",
+                "normalize_partition_b",
+                "normalize_partition_c",
+                "fuse_partitions",
+                "standardize_cross_domain_entities",
+                "resolve_entity_conflicts",
+                "score_operational_priority",
+                "publish_outputs"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "status": "unscored",
+    "reason": "no parseable submission ServiceFlowIR"
+  },
+  "binding": {
+    "status": "unscored",
+    "reason": "no parseable submission ServiceFlowIR"
+  },
+  "wiring": {
+    "status": "unscored",
+    "reason": "no parseable submission ServiceFlowIR"
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "ingest_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-x2gxi4ru/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "validate_rejected_zero",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-x2gxi4ru/artifacts/validate_source_contract_status.json"
+          },
+          {
+            "assertion_id": "fuse_count",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-x2gxi4ru/artifacts/fuse_partitions_status.json"
+          },
+          {
+            "assertion_id": "has_auto_dispatch",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-x2gxi4ru/artifacts/score_operational_priority_status.json"
+          },
+          {
+            "assertion_id": "publish_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-x2gxi4ru/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "csv_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-x2gxi4ru/artifacts/dispatch_report.csv"
+          },
+          {
+            "assertion_id": "manifest_completed",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-x2gxi4ru/artifacts/audit_manifest.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 7,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

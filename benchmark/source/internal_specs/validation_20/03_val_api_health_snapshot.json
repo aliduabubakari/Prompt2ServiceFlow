@@ -1,0 +1,154 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_api_health_snapshot",
+  "pipeline_name": "API Health Snapshot Pipeline",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_api_health_snapshot.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Poll a partner API, normalize status payloads, and store a daily health snapshot.",
+    "business_domain": "Service Monitoring",
+    "execution_model": "Batch",
+    "topology_pattern": "Linear",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "poll_partner_api",
+        "to": "normalize_status_payload"
+      },
+      {
+        "from": "normalize_status_payload",
+        "to": "store_health_snapshot"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Partner HTTP API",
+      "identifier": "partner_http_api",
+      "details": [
+        "Validation external dependency: Partner HTTP API"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "SQLite metrics store",
+      "identifier": "sqlite_metrics_store",
+      "details": [
+        "Validation external dependency: SQLite metrics store"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "status_response_json",
+        "description": "Validation artifact: status_response_json"
+      },
+      {
+        "identifier": "normalized_status_rows",
+        "description": "Validation artifact: normalized_status_rows"
+      },
+      {
+        "identifier": "health_snapshot_table",
+        "description": "Validation artifact: health_snapshot_table"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "poll_partner_api",
+      "name": "poll_partner_api",
+      "objective": "Poll partner api",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "normalize_status_payload",
+      "name": "normalize_status_payload",
+      "objective": "Normalize status payload",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "store_health_snapshot",
+      "name": "store_health_snapshot",
+      "objective": "Store health snapshot",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

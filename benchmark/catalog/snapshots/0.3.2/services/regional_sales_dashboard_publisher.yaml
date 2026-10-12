@@ -1,0 +1,105 @@
+schema_version: 0.1.0
+service_id: regional_sales_dashboard_publisher
+version: 1.0.0
+display_name: Regional Sales Dashboard Publisher
+category: Publisher
+capability:
+  summary: Publishes regional sales aggregates to a configured dashboard service.
+  operations:
+  - Publishes regional sales aggregates to a configured dashboard service.
+  keywords:
+  - regional
+  - sales
+  - dashboard
+  - publisher
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: global_sales_extract
+    description: Reviewed global sales extract value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: dashboard_service
+    description: Reviewed dashboard service value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: dashboard_payload
+    description: Reviewed dashboard payload value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: publication_status
+    description: Reviewed publication status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: region
+    description: Configuration for region.
+    type: string
+    required: true
+  - name: aggregation_level
+    description: Configuration for aggregation level.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: regional-sales-dashboard-publisher
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.1
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.regional_sales_dashboard_publisher
+  implementation_ref: services/implementations/regional_sales_dashboard_publisher
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-02:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 02 descriptions; bindings retain inference confidence.

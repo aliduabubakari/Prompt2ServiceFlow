@@ -1,0 +1,106 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__scanned_claim_packet_extraction.py
+- Name: Scanned Claim Packet Extraction
+- Purpose: Extract structured fields and review evidence from scanned claim packets.
+- Execution model: bounded batch
+- Extension track: image_document_multimodal
+- Topology pattern: fan_out
+- Complexity band: complex
+- Business domain: Finance/Risk
+- Input modalities: pdf, image, table
+- Output modalities: json, table, review_packet
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- scanned claim PDF
+- claim image attachments
+- policyholder CSV
+
+External Systems:
+- claims document bucket (fixture-backed; no production system is contacted)
+- review queue (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_source_batch -> validate_source_contract
+  - validate_source_contract -> extract_branch_features
+  - extract_branch_features -> merge_branch_outputs
+  - validate_source_contract -> enrich_branch_context
+  - enrich_branch_context -> merge_branch_outputs
+  - validate_source_contract -> score_branch_quality
+  - score_branch_quality -> merge_branch_outputs
+  - merge_branch_outputs -> extract_visual_text_features
+  - extract_visual_text_features -> join_reference_metadata
+  - join_reference_metadata -> assess_multimodal_quality
+  - assess_multimodal_quality -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_source_batch - Ingest Source Batch
+  - Objective: Ingest the bounded input batch for scanned insurance claim packet.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_source_contract - Validate Source Contract
+  - Objective: Validate file/API contracts and required identifiers for scanned insurance claim packet.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. extract_branch_features - Extract Branch Features
+  - Objective: Extract core features or text fields for scanned insurance claim packet.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. enrich_branch_context - Enrich Branch Context
+  - Objective: Enrich scanned insurance claim packet with reference metadata.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. score_branch_quality - Score Branch Quality
+  - Objective: Score quality, risk, or confidence signals for scanned insurance claim packet.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. merge_branch_outputs - Merge Branch Outputs
+  - Objective: Merge parallel branch outputs for scanned insurance claim packet.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. extract_visual_text_features - Extract Visual Text Features
+  - Objective: Extract OCR text, visual metadata, or layout features from scanned insurance claim packet.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+8. join_reference_metadata - Join Reference Metadata
+  - Objective: Join scanned insurance claim packet features with reference metadata.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+9. assess_multimodal_quality - Assess Multimodal Quality
+  - Objective: Assess visual, document, and metadata quality for scanned insurance claim packet.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+10. publish_outputs - Publish Outputs
+  - Objective: Publish merged scanned insurance claim packet outputs and completion status.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

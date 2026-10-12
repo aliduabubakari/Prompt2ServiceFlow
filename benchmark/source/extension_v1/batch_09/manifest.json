@@ -1,0 +1,207 @@
+[
+  {
+    "pipeline_id": "pdf_policy_corpus_ingestion",
+    "name": "PDF Policy Corpus Ingestion",
+    "track": "ai_llm_nlp",
+    "domain": "Legal/Compliance",
+    "topology": "staged",
+    "complexity": "very_complex",
+    "subject": "PDF policy corpus vector index",
+    "input_modalities": [
+      "pdf",
+      "text",
+      "json"
+    ],
+    "output_modalities": [
+      "vector_index",
+      "manifest",
+      "quality_report"
+    ],
+    "primary_inputs": [
+      "policy PDF folder",
+      "policy metadata JSON",
+      "chunking configuration"
+    ],
+    "external_systems": [
+      "document corpus bucket",
+      "vector index staging"
+    ],
+    "scenario": "Load policy PDFs, extract text, chunk content, embed chunks, and publish an index manifest.",
+    "global_number": 41,
+    "batch": 9,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_09/descriptions/41_pdf_policy_corpus_ingestion.txt",
+    "spec_path": "batch_09/specs/41_pdf_policy_corpus_ingestion.json",
+    "step_count": 13,
+    "edge_count": 12,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "contract_clause_risk_extraction",
+    "name": "Contract Clause Risk Extraction",
+    "track": "ai_llm_nlp",
+    "domain": "Legal/Compliance",
+    "topology": "branch_gate",
+    "complexity": "very_complex",
+    "subject": "contract clause risk extraction",
+    "input_modalities": [
+      "pdf",
+      "text",
+      "json"
+    ],
+    "output_modalities": [
+      "json",
+      "review_packet",
+      "risk_report"
+    ],
+    "primary_inputs": [
+      "contract PDF bundle",
+      "clause taxonomy JSON",
+      "risk policy table"
+    ],
+    "external_systems": [
+      "contract archive",
+      "legal review queue"
+    ],
+    "scenario": "Extract contract clauses, classify risk, and route high-risk or low-confidence clauses for review.",
+    "global_number": 42,
+    "batch": 9,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_09/descriptions/42_contract_clause_risk_extraction.txt",
+    "spec_path": "batch_09/specs/42_contract_clause_risk_extraction.json",
+    "step_count": 13,
+    "edge_count": 13,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "clinical_note_deidentification_summary",
+    "name": "Clinical Note De-identification Summary",
+    "track": "ai_llm_nlp",
+    "domain": "Healthcare/Public Health",
+    "topology": "branch_gate",
+    "complexity": "very_complex",
+    "subject": "clinical note de-identification and summary",
+    "input_modalities": [
+      "text",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "redacted_text",
+      "summary",
+      "review_packet"
+    ],
+    "primary_inputs": [
+      "clinical note text",
+      "encounter metadata JSON",
+      "de-identification policy table"
+    ],
+    "external_systems": [
+      "secure note bucket",
+      "clinical reviewer queue"
+    ],
+    "scenario": "De-identify clinical notes, summarize safe content, and route uncertain PHI cases.",
+    "global_number": 43,
+    "batch": 9,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_09/descriptions/43_clinical_note_deidentification_summary.txt",
+    "spec_path": "batch_09/specs/43_clinical_note_deidentification_summary.json",
+    "step_count": 13,
+    "edge_count": 13,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  },
+  {
+    "pipeline_id": "scientific_literature_screening",
+    "name": "Scientific Literature Screening",
+    "track": "ai_llm_nlp",
+    "domain": "Science/Biotechnology",
+    "topology": "fan_out_fan_in",
+    "complexity": "complex",
+    "subject": "scientific literature screening packet",
+    "input_modalities": [
+      "pdf",
+      "text",
+      "json"
+    ],
+    "output_modalities": [
+      "table",
+      "review_packet",
+      "summary"
+    ],
+    "primary_inputs": [
+      "article PDF bundle",
+      "screening criteria JSON",
+      "reviewer roster table"
+    ],
+    "external_systems": [
+      "literature corpus bucket",
+      "review management queue"
+    ],
+    "scenario": "Screen article PDFs against eligibility criteria and create reviewer packets.",
+    "global_number": 44,
+    "batch": 9,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_09/descriptions/44_scientific_literature_screening.txt",
+    "spec_path": "batch_09/specs/44_scientific_literature_screening.json",
+    "step_count": 10,
+    "edge_count": 11,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "support_ticket_semantic_routing",
+    "name": "Support Ticket Semantic Routing",
+    "track": "ai_llm_nlp",
+    "domain": "Marketing/Customer Operations",
+    "topology": "branch_gate",
+    "complexity": "very_complex",
+    "subject": "support ticket semantic routing",
+    "input_modalities": [
+      "text",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "routing_decision",
+      "summary",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "ticket text export",
+      "customer metadata JSON",
+      "team routing table"
+    ],
+    "external_systems": [
+      "support ticket queue",
+      "knowledge-base index fixture"
+    ],
+    "scenario": "Embed support tickets, retrieve policy context, classify intent, and route tickets.",
+    "global_number": 45,
+    "batch": 9,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_09/descriptions/45_support_ticket_semantic_routing.txt",
+    "spec_path": "batch_09/specs/45_support_ticket_semantic_routing.json",
+    "step_count": 13,
+    "edge_count": 13,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  }
+]

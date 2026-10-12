@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: etl-import-mondo-already-current-scripts
+  namespace: prompt2serviceflow
+data:
+  01_run.py: "#!/usr/bin/env python3\n\"\"\"Deterministic Mondo release synchronization and publication\
+    \ mock.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom pathlib\
+    \ import Path\n\n\ndef boolean(value: str) -> bool:\n    return value.lower() in {\"1\", \"true\"\
+    , \"yes\"}\n\n\ndef write_json(path: Path, document: object) -> None:\n    path.write_text(json.dumps(document,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--step\"\
+    , required=True)\n    parser.add_argument(\"--new-release\", type=boolean, default=True)\n    args\
+    \ = parser.parse_args()\n    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True,\
+    \ exist_ok=True)\n\n    if args.step == \"validate\":\n        write_json(\n            artifacts\
+    \ / \"validation_decision.json\",\n            {\"valid\": True, \"success\": True, \"color\": \"\
+    blue\"},\n        )\n    elif args.step == \"download\":\n        (artifacts / \"mondo_asset.bin\"\
+    ).write_bytes(b\"format-version: 1.2\\n\")\n        write_json(\n            artifacts / \"mondo_asset_metadata.json\"\
+    ,\n            {\n                \"asset_name\": \"mondo-base.obo\",\n                \"version\"\
+    : \"v2026-01\",\n                \"object_uri\": \"s3://cqgc-app-datalake/raw/landing/mondo/mondo-base.obo\"\
+    ,\n            },\n        )\n        write_json(\n            artifacts / \"download_status.json\"\
+    ,\n            {\"success\": True, \"errors\": [], \"updated\": args.new_release},\n        )\n  \
+    \      (artifacts / \"mondo_asset_updated.txt\").write_text(\n            str(args.new_release).lower(),\
+    \ encoding=\"utf-8\"\n        )\n    elif args.step == \"normalize\":\n        dataset = artifacts\
+    \ / \"normalized_dataset\"\n        dataset.mkdir(parents=True, exist_ok=True)\n        write_json(\n\
+    \            dataset / \"manifest.json\",\n            {\"version\": \"v2026-01\", \"term_count\"\
+    : 2, \"excluded_roots\": [\"MONDO:0700096\"]},\n        )\n        write_json(\n            artifacts\
+    \ / \"normalize_status.json\",\n            {\"success\": True, \"errors\": [], \"term_count\": 2},\n\
+    \        )\n    elif args.step == \"index\":\n        write_json(\n            artifacts / \"mondo_index_reference.json\"\
+    ,\n            {\"index_name\": \"mondo-v2026-01\", \"document_count\": 2},\n        )\n        write_json(\n\
+    \            artifacts / \"load_status.json\",\n            {\"success\": True, \"errors\": [], \"\
+    documents_written\": 2},\n        )\n    elif args.step == \"publish\":\n        write_json(\n   \
+    \         artifacts / \"published_mondo_index.json\",\n            {\"index_name\": \"mondo-v2026-01\"\
+    , \"alias\": \"mondo\", \"version\": \"v2026-01\"},\n        )\n        write_json(\n            artifacts\
+    \ / \"publish_status.json\",\n            {\"success\": True, \"errors\": [], \"publication_mode\"\
+    : \"color_slot\"},\n        )\n    elif args.step == \"slack\":\n        write_json(\n           \
+    \ artifacts / \"slack_notification_status.json\",\n            {\"sent\": True, \"success\": True,\
+    \ \"channel\": \"#mondo-etl\"},\n        )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: etl-import-mondo-already-current-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: '{"driver":"filesystem-mock"}
+
+    '
+  fixture-0001: '{"driver":"filesystem-mock","cluster":"mondo"}
+
+    '
+  fixture-0002: '{"driver":"filesystem-mock"}
+
+    '
+  fixture-0003: '{"driver":"filesystem-mock","repository":"monarch-initiative/mondo"}
+
+    '
+  fixture-0004: '{"driver":"filesystem-mock"}'
+  fixture-0005: '{"index_patterns":["mondo-*"],"mappings":{"properties":{"id":{"type":"keyword"}}}}
+
+    '
+  fixture-0006: '{"driver":"filesystem-mock","bucket":"cqgc-app-datalake"}
+
+    '
+  fixture-0007: '{"version":"v1","format":"json"}'
+  fixture-0008: '{"driver":"filesystem-mock"}'
+  fixture-0009: '["s3://cqgc-app-datalake/raw/landing/mondo/mondo-base.obo"]
+
+    '
+  fixture-0010: '{"driver":"filesystem-mock","context":"ETL"}
+
+    '

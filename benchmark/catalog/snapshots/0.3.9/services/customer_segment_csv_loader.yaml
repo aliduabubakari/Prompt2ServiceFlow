@@ -1,0 +1,166 @@
+schema_version: 0.1.0
+service_id: customer_segment_csv_loader
+version: 1.0.0
+display_name: Customer Segment CSV Loader
+category: Extractor
+capability:
+  summary: Reads a customer segment CSV artifact, validates required contact and segmentation
+    columns, and emits a structured customer segment dataset plus load status.
+  operations:
+  - Read a CSV artifact from a bound filesystem or artifact input.
+  - Validate required columns such as customer_id, segment, email, phone, and device_token
+    according to caller configuration.
+  - Parse rows into a structured dataset while reporting row counts and schema diagnostics.
+  - Emit customer segment data and an observable load status.
+  keywords:
+  - csv
+  - customer segments
+  - marketing
+  - contact data
+  - pii
+  - segment loader
+  limitations:
+  - Does not send campaign messages.
+  - Does not decide campaign routing or fan-out.
+  - Does not enrich or deduplicate customers beyond configured validation rules.
+  - Assumes the input is a delimited file with a header row unless configured otherwise.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: customer_segment_csv
+    description: CSV file containing customer segment records and contact fields.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://customer_segment_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  outputs:
+  - name: customer_segments
+    description: Structured customer segment dataset containing parsed rows, columns,
+      row count, and source metadata.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://customer_segment_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: load_status
+    description: Observable load status including parse success, rows loaded, columns
+      present, and validation diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://customer_segment_load_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: required_columns
+    description: Columns that must be present in the CSV header.
+    type: array
+    required: false
+  - name: segment_column
+    description: Name of the column containing the segment label.
+    type: string
+    required: false
+  - name: has_header
+    description: Whether the CSV has a header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter to use when parsing.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  - name: fail_on_empty
+    description: Whether an empty CSV should fail the service invocation.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: customer_segment_csv_required_columns
+  type: precondition
+  applies_to: input
+  target: customer_segment_csv
+  description: Input CSV must be readable and contain configured required columns.
+  expression: readable(customer_segment_csv) and csv_parseable(customer_segment_csv,
+    delimiter, has_header) and all(c in columns(customer_segment_csv) for c in required_columns)
+- contract_id: customer_segment_dataset_schema
+  type: json_schema
+  applies_to: output
+  target: customer_segments
+  description: Customer segment dataset contains columns, rows, row_count, and source_uri.
+  schema_ref: schema://customer_segment_dataset/v1
+  expression: '{"type":"object","required":["columns","rows","row_count","source_uri"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0},"source_uri":{"type":"string"}}}'
+- contract_id: customer_segment_load_status_schema
+  type: json_schema
+  applies_to: output
+  target: load_status
+  description: Load status exposes CSV parse and validation outcome.
+  schema_ref: schema://customer_segment_load_status/v1
+  expression: '{"type":"object","required":["success","rows_loaded","columns","parse_success"],"properties":{"success":{"type":"boolean"},"rows_loaded":{"type":"integer","minimum":0},"columns":{"type":"array","items":{"type":"string"}},"parse_success":{"type":"boolean"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: customer_segment_loader_effect
+  type: effect
+  applies_to: service
+  target: customer_segment_csv_loader
+  description: On success, customer_segments exists and load_status.success is true.
+  expression: load_status.success == true implies exists(customer_segments)
+invocation:
+  type: argo_workflow_template
+  template_name: customer-segment-csv-loader-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.customer_segment_csv_loader
+  implementation_ref: services/implementations/customer_segment_csv_loader
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - pii
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw customer email addresses, phone numbers, or device tokens.
+  - Emit counts, column names, and bounded diagnostics only.
+  idempotency_notes: Same CSV artifact and parsing parameters produce the same structured
+    dataset and status.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:multi_channel_marketing_campaign#load_customer_segment_csv
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing CSV services either emit only metadata or are specialized
+    to financial/sales datasets; this service captures the PII customer-contact contract
+    required for downstream campaign delivery.'
+  - 'Evidence status: explicit.'

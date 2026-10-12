@@ -1,0 +1,464 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-01T22:29:57.602439+00:00",
+  "instance": "benchmark/instances/main/airflow_db_cleanup",
+  "workspace": "experiments/workspaces/main/airflow_db_cleanup",
+  "submission": "results/paper/runs/m5__main__airflow_db_cleanup__sintef-qwen3-8-27b-nvfp4__s1__20261001T221943.718963Z__d9420512/agent_workspace/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G1",
+    "g6_assert_status": "pass",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 0.9787234042553191,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 1,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": null
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-01T22:29:55.252465+00:00",
+    "workspace": "experiments/workspaces/main/airflow_db_cleanup",
+    "submission": "results/paper/runs/m5__main__airflow_db_cleanup__sintef-qwen3-8-27b-nvfp4__s1__20261001T221943.718963Z__d9420512/agent_workspace/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G1",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "fail",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'retention_config' names consumer 'cleanup_sessions', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'cleanup_dag_run_status' names consumer 'analyze_query', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'cleanup_task_instance_status' names consumer 'analyze_query', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'cleanup_log_status' names consumer 'analyze_query', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'cleanup_xcom_status' names consumer 'analyze_query', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'cleanup_sla_miss_status' names consumer 'analyze_query', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'cleanup_dag_model_status' names consumer 'analyze_query', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'cleanup_task_reschedule_status' names consumer 'analyze_query', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'cleanup_task_fail_status' names consumer 'analyze_query', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'cleanup_rendered_task_instance_fields_status' names consumer 'analyze_query', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'cleanup_import_error_status' names consumer 'analyze_query', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'cleanup_base_job_status' names consumer 'analyze_query', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          },
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'session_cleanup_status' names consumer 'analyze_query', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "cleanup_dag_run: input 'airflow_metadata_database' expects object, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "cleanup_task_instance: input 'airflow_metadata_database' expects object, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "cleanup_log: input 'airflow_metadata_database' expects object, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "cleanup_xcom: input 'airflow_metadata_database' expects object, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "cleanup_sla_miss: input 'airflow_metadata_database' expects object, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "cleanup_dag_model: input 'airflow_metadata_database' expects object, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "cleanup_task_reschedule: input 'airflow_metadata_database' expects object, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "cleanup_task_fail: input 'airflow_metadata_database' expects object, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "cleanup_rendered_task_instance_fields: input 'airflow_metadata_database' expects object, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "cleanup_import_error: input 'airflow_metadata_database' expects object, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "cleanup_base_job: input 'airflow_metadata_database' expects object, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "cleanup_sessions: input 'session_database' expects object, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "analyze_query: input 'database' expects object, got table"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "airflow-db-cleanup-scripts",
+              "scenario": "base",
+              "data_size_bytes": 29835,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "airflow-db-cleanup-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 369,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "airflow-db-cleanup-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 29835,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "airflow-db-cleanup-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 369,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "resolve_retention_config",
+                "cleanup_dag_run",
+                "cleanup_task_instance",
+                "cleanup_log",
+                "cleanup_xcom",
+                "cleanup_sla_miss",
+                "cleanup_dag_model",
+                "cleanup_task_reschedule",
+                "cleanup_task_fail",
+                "cleanup_rendered_task_instance_fields",
+                "cleanup_import_error",
+                "cleanup_base_job",
+                "cleanup_sessions",
+                "analyze_query"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 14,
+      "submission_intents": 14,
+      "gold_intents": 14,
+      "mapping": {
+        "analyze_query": "analyze_query",
+        "cleanup_base_job": "cleanup_base_job",
+        "cleanup_dag_model": "cleanup_dag_model",
+        "cleanup_dag_run": "cleanup_dag_run",
+        "cleanup_import_error": "cleanup_import_error",
+        "cleanup_log": "cleanup_log",
+        "cleanup_rendered_task_instance_fields": "cleanup_rendered_task_instance_fields",
+        "cleanup_sessions": "cleanup_sessions",
+        "cleanup_sla_miss": "cleanup_sla_miss",
+        "cleanup_task_fail": "cleanup_task_fail",
+        "cleanup_task_instance": "cleanup_task_instance",
+        "cleanup_task_reschedule": "cleanup_task_reschedule",
+        "cleanup_xcom": "cleanup_xcom",
+        "resolve_retention_config": "print_configuration"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 14
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 0.9583333333333334,
+      "f1": 0.9787234042553191,
+      "true_positives": 23,
+      "false_positives": 0,
+      "false_negatives": 1
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 1,
+    "source_step_coverage": {
+      "covered": 14,
+      "total": 14,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 14,
+    "correct": 14,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "analyze_query",
+        "gold_service": "database_statistics_analyzer",
+        "submission_intent": "analyze_query",
+        "submission_service": "database_statistics_analyzer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "cleanup_base_job",
+        "gold_service": "airflow_metadata_retention_cleaner",
+        "submission_intent": "cleanup_base_job",
+        "submission_service": "airflow_metadata_retention_cleaner",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "cleanup_dag_model",
+        "gold_service": "airflow_metadata_retention_cleaner",
+        "submission_intent": "cleanup_dag_model",
+        "submission_service": "airflow_metadata_retention_cleaner",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "cleanup_dag_run",
+        "gold_service": "airflow_metadata_retention_cleaner",
+        "submission_intent": "cleanup_dag_run",
+        "submission_service": "airflow_metadata_retention_cleaner",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "cleanup_import_error",
+        "gold_service": "airflow_metadata_retention_cleaner",
+        "submission_intent": "cleanup_import_error",
+        "submission_service": "airflow_metadata_retention_cleaner",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "cleanup_log",
+        "gold_service": "airflow_metadata_retention_cleaner",
+        "submission_intent": "cleanup_log",
+        "submission_service": "airflow_metadata_retention_cleaner",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "cleanup_rendered_task_instance_fields",
+        "gold_service": "airflow_metadata_retention_cleaner",
+        "submission_intent": "cleanup_rendered_task_instance_fields",
+        "submission_service": "airflow_metadata_retention_cleaner",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "cleanup_sessions",
+        "gold_service": "database_expired_session_cleanup",
+        "submission_intent": "cleanup_sessions",
+        "submission_service": "database_expired_session_cleanup",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "cleanup_sla_miss",
+        "gold_service": "airflow_metadata_retention_cleaner",
+        "submission_intent": "cleanup_sla_miss",
+        "submission_service": "airflow_metadata_retention_cleaner",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "cleanup_task_fail",
+        "gold_service": "airflow_metadata_retention_cleaner",
+        "submission_intent": "cleanup_task_fail",
+        "submission_service": "airflow_metadata_retention_cleaner",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "cleanup_task_instance",
+        "gold_service": "airflow_metadata_retention_cleaner",
+        "submission_intent": "cleanup_task_instance",
+        "submission_service": "airflow_metadata_retention_cleaner",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "cleanup_task_reschedule",
+        "gold_service": "airflow_metadata_retention_cleaner",
+        "submission_intent": "cleanup_task_reschedule",
+        "submission_service": "airflow_metadata_retention_cleaner",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "cleanup_xcom",
+        "gold_service": "airflow_metadata_retention_cleaner",
+        "submission_intent": "cleanup_xcom",
+        "submission_service": "airflow_metadata_retention_cleaner",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "print_configuration",
+        "gold_service": "retention_cutoff_config_resolver",
+        "submission_intent": "resolve_retention_config",
+        "submission_service": "retention_cutoff_config_resolver",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 11,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [],
+        "status": "pass"
+      }
+    ],
+    "assertions_total": 0,
+    "assertions_passed": 0,
+    "pass_rate": null,
+    "overall_status": "pass"
+  }
+}

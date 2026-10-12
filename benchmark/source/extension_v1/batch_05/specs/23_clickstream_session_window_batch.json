@@ -1,0 +1,270 @@
+{
+  "spec_version": "1.0",
+  "corpus": "Prompt2ServiceFlow Extension-50",
+  "corpus_version": "extension_v1",
+  "pipeline_id": "clickstream_session_window_batch",
+  "pipeline_name": "Clickstream Session Window Batch",
+  "source": {
+    "unique_key": null,
+    "repo": "prompt2serviceflow-extension-v1",
+    "file_path": "synthetic/clickstream_session_window_batch.py",
+    "repo_url": null,
+    "detected_airflow_version": "2.x",
+    "sampled_version": null,
+    "sampled_commit": null,
+    "sampled_time": null,
+    "source_fingerprint_sha256": null,
+    "source_type": "synthetic_provenance_marked"
+  },
+  "summary": {
+    "purpose": "Sessionize a finite clickstream export and produce a checkpointed batch output.",
+    "business_domain": "Retail/E-commerce",
+    "execution_model": "bounded_batch",
+    "topology_pattern": "windowed_batch",
+    "extension_track": "event_checkpoint_windowed_batch",
+    "complexity_band": "simple",
+    "input_modalities": [
+      "jsonl",
+      "table"
+    ],
+    "output_modalities": [
+      "table",
+      "checkpoint_manifest"
+    ],
+    "notes": "Synthetic Extension-50 source package. No hidden gold annotations are included."
+  },
+  "schedule": {
+    "schedule_type": "manual",
+    "schedule_expression": null,
+    "timezone": null,
+    "start_date": null,
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "ingest_bounded_events",
+        "to": "validate_checkpoint_inputs"
+      },
+      {
+        "from": "validate_checkpoint_inputs",
+        "to": "sort_and_deduplicate_records"
+      },
+      {
+        "from": "sort_and_deduplicate_records",
+        "to": "build_analysis_windows"
+      },
+      {
+        "from": "build_analysis_windows",
+        "to": "compute_window_metrics"
+      },
+      {
+        "from": "compute_window_metrics",
+        "to": "publish_outputs"
+      }
+    ],
+    "parallel_groups": [],
+    "branch_points": [],
+    "gates": [
+      {
+        "step_id": "validate_checkpoint_inputs",
+        "gate_type": "checkpoint_boundary"
+      }
+    ]
+  },
+  "external_systems": [
+    {
+      "type": "fixture_backed_system",
+      "name": "event export bucket",
+      "identifier": "synthetic://extension-v1/clickstream_session_window_batch/1",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    },
+    {
+      "type": "fixture_backed_system",
+      "name": "analytics staging bucket",
+      "identifier": "synthetic://extension-v1/clickstream_session_window_batch/2",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "source_bundle",
+        "description": "Fixture-backed source input bundle"
+      },
+      {
+        "identifier": "prepared_outputs",
+        "description": "Validated workflow output bundle"
+      },
+      {
+        "identifier": "audit_manifest",
+        "description": "Provenance, checksum, quality, and routing evidence"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": [],
+    "modalities": [
+      "jsonl",
+      "table"
+    ]
+  },
+  "steps": [
+    {
+      "step_id": "ingest_bounded_events",
+      "name": "Ingest Bounded Events",
+      "objective": "Ingest a finite event, log, sensor, or snapshot batch for clickstream session windows.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "validate_checkpoint_inputs",
+      "name": "Validate Checkpoint Inputs",
+      "objective": "Validate batch boundaries, checkpoint references, and required identifiers for clickstream session windows.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "sort_and_deduplicate_records",
+      "name": "Sort And Deduplicate Records",
+      "objective": "Sort and deduplicate records before window or checkpoint processing for clickstream session windows.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "build_analysis_windows",
+      "name": "Build Analysis Windows",
+      "objective": "Build deterministic windows, sessions, or snapshot intervals for clickstream session windows.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "compute_window_metrics",
+      "name": "Compute Window Metrics",
+      "objective": "Compute metrics, state transitions, or anomaly features for clickstream session windows.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "publish_outputs",
+      "name": "Publish Outputs",
+      "objective": "Publish the bounded-window clickstream session windows outputs and checkpoint manifest.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+schema_version: 0.1.0
+service_id: slack_notification_sender
+version: 1.0.0
+display_name: Slack Notification Sender
+category: Notifier
+capability:
+  summary: Sends a templated Slack message through a bound Slack service or webhook
+    resource and emits delivery status.
+  operations:
+  - Render a Slack message from parameters and optional context.
+  - Send the message to a configured channel or webhook using the bound Slack resource.
+  - Emit delivery status with sent flag, channel, and provider response metadata when
+    available.
+  keywords:
+  - slack
+  - notification
+  - completion message
+  - webhook
+  - delivery status
+  limitations:
+  - Does not implement workflow failure hooks or retry policy.
+  - Repeated invocations may send duplicate Slack messages.
+  - Requires caller to bind Slack service/webhook and message/channel configuration
+    for real delivery.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: slack_service
+    description: Slack API or webhook resource used for notification delivery.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://slack_service_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: message_context
+    description: Optional JSON context used to render the message template.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://notification_context/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: notification_status
+    description: Slack delivery status including sent flag, channel, and diagnostics.
+    channel: artifact
+    data_type: notification
+    media_type: application/json
+    schema_ref: schema://slack_notification_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: channel
+    description: Slack channel or destination identifier.
+    type: string
+    required: false
+  - name: message_template
+    description: Message body or template to send.
+    type: string
+    required: true
+  - name: username
+    description: Optional display username for the Slack message when supported.
+    type: string
+    required: false
+  secrets:
+  - name: slack_token_or_webhook
+    description: Slack token or webhook secret resolved by the bound Slack service
+      resource.
+    required: false
+contracts:
+- contract_id: slack_message_template_non_empty
+  type: precondition
+  applies_to: parameter
+  target: message_template
+  description: Message template must be non-empty.
+  expression: length(trim(message_template)) > 0
+- contract_id: slack_notification_status_schema
+  type: json_schema
+  applies_to: output
+  target: notification_status
+  description: Notification status exposes delivery attempt outcome.
+  schema_ref: schema://slack_notification_status/v1
+  expression: '{"type":"object","required":["sent","message_rendered"],"properties":{"sent":{"type":"boolean"},"message_rendered":{"type":"boolean"},"channel":{"type":["string","null"]},"provider_message_id":{"type":["string","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: slack_notification_effect
+  type: effect
+  applies_to: service
+  target: slack_notification_sender
+  description: On successful delivery, notification_status.sent is true and message_rendered
+    is true.
+  expression: notification_status.sent == true implies notification_status.message_rendered
+    == true
+invocation:
+  type: argo_workflow_template
+  template_name: slack-notification-sender-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.slack_notification_sender
+  implementation_ref: services/implementations/slack_notification_sender
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - https://hooks.slack.com/*
+  - https://slack.com/api/*
+  secret_access: optional
+  retry_safe: false
+  idempotency: non_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit Slack tokens or webhook URLs in status or logs.
+  - Notification status is required so workflow validation can observe the notifier
+    effect.
+  idempotency_notes: Retries may send duplicate Slack messages unless the Slack resource/provider
+    supplies idempotency behavior.
+  default_timeout_seconds: 60
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:etl_import_mondo#slack
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Reusable Slack notifier required because registry contains email-only
+    notification services.'
+  - 'Evidence status: explicit.'

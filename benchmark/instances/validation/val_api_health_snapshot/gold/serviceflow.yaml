@@ -1,0 +1,343 @@
+ir_version: 0.1.0
+composition_id: val_api_health_snapshot
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.0
+  sha256: 06ea151c94fc25937ea217f18ad8ef4add356fcdf26510e0f4241e17ccc14849
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_api_health_snapshot
+  split: validation
+  pipeline_id: val_api_health_snapshot
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/03_val_api_health_snapshot.txt
+  description_sha256: a8861f5bb174e2abb3496b9c256e912587786c2f31c21bbc2d7f79d7933a68b0
+  internal_spec_path: source/internal_specs/validation_20/03_val_api_health_snapshot.json
+  internal_spec_sha256: 3362cec98d7d691a25dc598a041a583a5c32bb4238037c89be95b8fc641f90f9
+requirement:
+  name: Val Api Health Snapshot
+  purpose: Poll a partner API, normalize its status response, and persist a health snapshot.
+  domain: validation_holdout
+  execution_model: batch
+  topology: linear
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: partner_api
+  type: http_api
+  name: Partner HTTP API
+  identifier: partner_api
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: metrics_store
+  type: database
+  name: SQLite metrics store
+  identifier: metrics_store
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: poll_partner_api
+  name: Poll Partner Api
+  category: Extractor
+  capability: Perform the reviewed poll partner api capability.
+  source_step_refs:
+  - poll_partner_api
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: poll_partner_api.'
+  inputs: []
+  outputs:
+  - status_response_json
+  - poll_status
+  external_system_refs:
+  - partner_api
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared status_response_json, poll_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: normalize_status_payload
+  name: Normalize Status Payload
+  category: Transformer
+  capability: Perform the reviewed normalize status payload capability.
+  source_step_refs:
+  - normalize_status_payload
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: normalize_status_payload.'
+  inputs:
+  - status_response_json
+  outputs:
+  - normalized_status_rows
+  - normalization_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared normalized_status_rows, normalization_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: store_health_snapshot
+  name: Store Health Snapshot
+  category: Loader
+  capability: Perform the reviewed store health snapshot capability.
+  source_step_refs:
+  - store_health_snapshot
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: store_health_snapshot.'
+  inputs:
+  - normalized_status_rows
+  - metrics_store_resource
+  outputs:
+  - health_snapshot_table
+  - snapshot_status
+  external_system_refs:
+  - metrics_store
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared health_snapshot_table, snapshot_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: poll_partner_api
+  disposition: service
+  intent_ids:
+  - poll_partner_api
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: normalize_status_payload
+  disposition: service
+  intent_ids:
+  - normalize_status_payload
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: store_health_snapshot
+  disposition: service
+  intent_ids:
+  - store_health_snapshot
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: poll_partner_api
+    to: normalize_status_payload
+  - from: normalize_status_payload
+    to: store_health_snapshot
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: metrics_store_resource
+  name: Metrics Store Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: metrics_store
+- artifact_id: status_response_json
+  name: Status Response Json
+  kind: artifact
+  data_type: json
+  role: intermediate
+  producer: poll_partner_api
+  consumers:
+  - normalize_status_payload
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: poll_status
+  name: Poll Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: poll_partner_api
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalized_status_rows
+  name: Normalized Status Rows
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: normalize_status_payload
+  consumers:
+  - store_health_snapshot
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalization_status
+  name: Normalization Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: normalize_status_payload
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: health_snapshot_table
+  name: Health Snapshot Table
+  kind: artifact
+  data_type: table
+  role: output
+  producer: store_health_snapshot
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: snapshot_status
+  name: Snapshot Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: store_health_snapshot
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: poll_partner_api
+  service_id: http_json_request_extractor
+  service_version: 1.0.0
+  input_bindings: []
+  output_bindings:
+  - port: response_json
+    artifact_id: status_response_json
+  - port: extraction_status
+    artifact_id: poll_status
+  parameter_bindings:
+    endpoint: https://partner.example.test/status
+    method: GET
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: normalize_status_payload
+  service_id: json_status_payload_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: response_json
+    artifact_id: status_response_json
+  output_bindings:
+  - port: normalized_status_rows
+    artifact_id: normalized_status_rows
+  - port: normalization_status
+    artifact_id: normalization_status
+  parameter_bindings:
+    status_mapping:
+      status: status
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: store_health_snapshot
+  service_id: sqlite_health_snapshot_loader
+  service_version: 1.0.0
+  input_bindings:
+  - port: normalized_status_rows
+    artifact_id: normalized_status_rows
+  - port: metrics_store
+    artifact_id: metrics_store_resource
+  output_bindings:
+  - port: health_snapshot_table
+    artifact_id: health_snapshot_table
+  - port: load_status
+    artifact_id: snapshot_status
+  parameter_bindings:
+    table_name: health_snapshot
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

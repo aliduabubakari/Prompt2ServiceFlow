@@ -1,0 +1,21 @@
+{
+  "policy_id": "supplier-compliance-v2",
+  "description": "Supplier compliance evidence review policy",
+  "effective_date": "2025-01-01",
+  "required_cert_types": ["ISO_9001", "ISO_14001", "ISO_27001"],
+  "expiry_grace_days": 30,
+  "sensitive_field_patterns": {
+    "tax_id": {"regex": "^TAX-", "redaction": "partial", "keep_chars": 4},
+    "bank_account": {"regex": "^IBAN-", "redaction": "full"}
+  },
+  "risk_tier_thresholds": {
+    "high": "auto_escalate",
+    "medium": "flag_for_review",
+    "low": "auto_approve"
+  },
+  "certificate_requirements": {
+    "min_active_certs": 1,
+    "allow_grace_period": true
+  },
+  "missing_supplier_policy": "flag_for_review"
+}

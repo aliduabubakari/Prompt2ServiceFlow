@@ -1,0 +1,23 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_file_arrival_ingest_gate
+mappings:
+- intent_id: wait_for_partner_file
+  inputs:
+    file_location_resource: partner_sftp_resource
+  outputs:
+    availability_decision: partner_file_available
+    check_status: availability_status
+- intent_id: validate_file_checksum
+  inputs:
+    partner_file: partner_file_csv
+    checksum_record: checksum_record
+  outputs:
+    verified_partner_file: verified_partner_file
+    checksum_status: checksum_status
+- intent_id: load_file_to_staging
+  inputs:
+    csv_snapshot: verified_partner_file
+    target_database: staging_database_resource
+  outputs:
+    target_database_reference: staging_table
+    load_status: staging_load_status

@@ -1,0 +1,166 @@
+schema_version: 0.1.0
+service_id: user_content_csv_scanner
+version: 1.0.0
+display_name: User Content CSV Scanner
+category: Extractor
+capability:
+  summary: Reads a CSV artifact containing user-generated content, validates configured
+    content/user columns, materializes scan records, and emits scan counts/status.
+  operations:
+  - Read and parse a delimited user-content CSV artifact.
+  - Validate configured content identifier, user identifier, and text/content columns
+    when supplied.
+  - Materialize rows and bounded metadata for downstream moderation scoring.
+  - Emit scan status including total item count, columns, parse success, and diagnostics.
+  keywords:
+  - csv
+  - user generated content
+  - content moderation
+  - scan
+  - extractor
+  - row count
+  limitations:
+  - Does not score toxicity or decide moderation routing.
+  - Does not publish, remove, or flag content.
+  - Does not send alerts or implement retries/scheduling.
+  - Does not log raw user content values in status outputs.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: content_csv_file
+    description: CSV file containing user-generated content records.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://user_content_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  outputs:
+  - name: content_scan_dataset
+    description: Structured table containing parsed content records and scan metadata
+      for downstream moderation checks.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://content_scan_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: scan_status
+    description: Observable scan status with parse success, total item count, source
+      URI, columns, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://content_csv_scan_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: content_column
+    description: Column containing user-generated content text or body.
+    type: string
+    required: true
+  - name: content_id_column
+    description: Optional column containing a stable content/item identifier.
+    type: string
+    required: false
+  - name: user_id_column
+    description: Optional column containing the submitting user/account identifier.
+    type: string
+    required: false
+  - name: has_header
+    description: Whether the CSV contains a header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  secrets: []
+contracts:
+- contract_id: user_content_csv_scanner_input_readable
+  type: precondition
+  applies_to: input
+  target: content_csv_file
+  description: Input must be readable and parseable as CSV using the configured delimiter/header
+    behavior.
+  expression: readable(content_csv_file) and csv_parseable(content_csv_file, delimiter,
+    has_header)
+- contract_id: user_content_csv_scanner_content_column
+  type: precondition
+  applies_to: parameter
+  target: content_column
+  description: Configured content column must be present in the parsed CSV header.
+  expression: content_column in columns(content_csv_file)
+- contract_id: content_scan_dataset_schema
+  type: json_schema
+  applies_to: output
+  target: content_scan_dataset
+  description: Scan dataset exposes parsed content rows and total item count.
+  schema_ref: schema://content_scan_dataset/v1
+  expression: '{"type":"object","required":["source_uri","columns","items","total_items"],"properties":{"source_uri":{"type":"string"},"columns":{"type":"array","items":{"type":"string"}},"items":{"type":"array","items":{"type":"object"}},"total_items":{"type":"integer","minimum":0}}}'
+- contract_id: content_csv_scan_status_schema
+  type: json_schema
+  applies_to: output
+  target: scan_status
+  description: Scan status exposes parse and count outcome.
+  schema_ref: schema://content_csv_scan_status/v1
+  expression: '{"type":"object","required":["success","parse_success","total_items","columns"],"properties":{"success":{"type":"boolean"},"parse_success":{"type":"boolean"},"total_items":{"type":"integer","minimum":0},"columns":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+invocation:
+  type: argo_workflow_template
+  template_name: user-content-csv-scanner-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.user_content_csv_scanner
+  implementation_ref: services/implementations/user_content_csv_scanner
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - pii
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Avoid emitting raw content text or user identifiers in logs/status beyond bounded
+    metadata.
+  idempotency_notes: Same CSV artifact and parsing parameters produce the same scan
+    dataset and status.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:content_moderation_pipeline#scan_csv
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No registry service both preserves content rows for moderation and
+    emits scan counts for this step.'
+  - 'Evidence status: explicit.'

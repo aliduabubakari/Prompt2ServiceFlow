@@ -1,0 +1,165 @@
+schema_version: 0.1.0
+service_id: airvisual_json_response_validator
+version: 1.0.0
+display_name: AirVisual JSON response validator
+category: QualityCheck
+capability:
+  summary: Reads an AirVisual nearest_city JSON artifact and validates the response
+    structure required for air-quality ETL, emitting both a validated observation
+    object and a validation result.
+  operations:
+  - Read a JSON artifact from the supplied input.
+  - Parse the artifact as JSON.
+  - Validate required AirVisual response fields for location, current pollution, and
+    current weather data.
+  - Optionally verify that the API status field denotes a successful response.
+  - Emit a normalized validated data object for downstream services.
+  - Emit a validation_result object containing pass/fail status, missing fields, and
+    parse errors.
+  keywords:
+  - airvisual
+  - json validation
+  - quality check
+  - air quality
+  - schema validation
+  - environmental monitoring
+  limitations:
+  - Validates syntactic and structural requirements only; it does not assert semantic
+    correctness of all AirVisual values.
+  - Does not call the AirVisual API.
+  - Does not load data into a database.
+  - Assumes the input is a single AirVisual nearest_city-style response rather than
+    a batch of unrelated records.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: response_json_file
+    description: Raw JSON file containing the AirVisual API response to validate.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://airvisual_nearest_city_response/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  outputs:
+  - name: validated_airvisual_observation
+    description: Validated JSON data structure extracted from the AirVisual response
+      and suitable for downstream transformation/loading.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://validated_airvisual_observation/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  - name: validation_result
+    description: Validation decision/status indicating whether the response passed
+      required structural checks and listing any parse or schema errors.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://json_validation_result/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: require_success_status
+    description: Whether the validator should require the top-level AirVisual status
+      field to indicate success.
+    type: boolean
+    required: false
+  - name: fail_on_missing_weather
+    description: Whether absence of current weather data should cause validation failure.
+    type: boolean
+    required: false
+  - name: fail_on_missing_pollution
+    description: Whether absence of current pollution data should cause validation
+      failure.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: airvisual_validator_input_json_contract
+  type: precondition
+  applies_to: input
+  target: response_json_file
+  description: Input artifact must be readable and parseable as a JSON object.
+  expression: readable(response_json_file) and json_type(response_json_file) == 'object'
+- contract_id: validated_airvisual_observation_schema
+  type: json_schema
+  applies_to: output
+  target: validated_airvisual_observation
+  description: Validated observation includes location identity, coordinates, current
+    pollution data, and current weather data.
+  schema_ref: schema://validated_airvisual_observation/v1
+  expression: '{"type":"object","required":["city","state","country","coordinates","pollution","weather"],"properties":{"city":{"type":"string"},"state":{"type":"string"},"country":{"type":"string"},"coordinates":{"type":"array","minItems":2,"maxItems":2,"items":{"type":"number"}},"pollution":{"type":"object","required":["ts"],"additionalProperties":true},"weather":{"type":"object","additionalProperties":true},"source_status":{"type":["string","null"]}}}'
+- contract_id: airvisual_validation_result_schema
+  type: json_schema
+  applies_to: output
+  target: validation_result
+  description: Validation result exposes a deterministic pass/fail decision and diagnostics
+    for workflow validation.
+  schema_ref: schema://json_validation_result/v1
+  expression: '{"type":"object","required":["valid","checked_schema","errors"],"properties":{"valid":{"type":"boolean"},"checked_schema":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}},"missing_fields":{"type":"array","items":{"type":"string"}},"record_count":{"type":"integer","minimum":0}}}'
+- contract_id: airvisual_validator_effect_contract
+  type: effect
+  applies_to: service
+  target: airvisual_json_response_validator
+  description: The service does not mutate external systems. It emits validation_result.valid=true
+    only when all configured required AirVisual fields are present and parseable.
+  expression: no_external_mutation and (validation_result.valid == true implies exists(validated_airvisual_observation))
+invocation:
+  type: argo_workflow_template
+  template_name: airvisual-json-response-validator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.airvisual_json_response_validator
+  implementation_ref: services/implementations/airvisual_json_response_validator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - public
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Validation diagnostics should not include secrets; the input artifact is expected
+    to be environmental observation data.
+  - The service is safe for local mock execution because it has no network or secret
+    dependency.
+  idempotency_notes: For the same input artifact and validation parameters, the validator
+    emits the same validation decision and validated observation.
+  default_timeout_seconds: 60
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:airvisual_pipeline_lat_long_v1#read_data_airvisual
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The pipeline includes a distinct read-and-validate step with a validated_data
+    artifact boundary. A reusable AirVisual response validator captures this quality
+    gate without embedding orchestration dependencies.'
+  - 'Evidence status: explicit.'

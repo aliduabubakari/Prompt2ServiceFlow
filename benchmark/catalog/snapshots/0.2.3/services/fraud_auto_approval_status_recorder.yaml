@@ -1,0 +1,149 @@
+schema_version: 0.1.0
+service_id: fraud_auto_approval_status_recorder
+version: 1.0.0
+display_name: Fraud Auto Approval Status Recorder
+category: Transformer
+capability:
+  summary: Creates an artifact-level auto-approval processing status for transactions
+    routed as low risk, exposing counts, route validation, and action status.
+  operations:
+  - Read routing decision and optional scored transaction dataset.
+  - Validate that the auto-approval route is selected when route validation is enabled.
+  - Select low-risk transaction references when row-level scores are supplied.
+  - Emit an auto-approval status artifact for downstream merge/notification validation.
+  keywords:
+  - fraud detection
+  - auto approval
+  - payment processing
+  - low risk transactions
+  - triage status
+  limitations:
+  - Does not submit transactions to a payment processor or external approval platform.
+  - Does not decide route selection.
+  - Does not perform workflow branching.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: routing_decision
+    description: Fraud routing decision selecting manual review or auto approval.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://fraud_transaction_routing_decision/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: scored_transactions
+    description: Optional scored transaction dataset used to include bounded low-risk
+      transaction references.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://fraud_scored_transaction_dataset/v1
+    required: false
+    cardinality: one
+    sensitivity: financial
+  outputs:
+  - name: auto_approval_status
+    description: Status of auto-approval branch processing, including whether auto
+      approval was recorded and item counts.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://fraud_auto_approval_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: validate_route_selected
+    description: Whether invocation should fail if the routing decision does not select
+      auto approval.
+    type: boolean
+    required: false
+  - name: transaction_id_field
+    description: Optional field containing transaction identifiers for bounded references.
+    type: string
+    required: false
+  - name: max_reference_count
+    description: Maximum number of bounded transaction references to include in the
+      status.
+    type: integer
+    required: false
+    minimum: 0.0
+  secrets: []
+contracts:
+- contract_id: auto_approval_route_precondition
+  type: precondition
+  applies_to: input
+  target: routing_decision
+  description: When route validation is enabled, routing_decision.auto_approve must
+    be true.
+  expression: validate_route_selected != true or routing_decision.auto_approve ==
+    true
+- contract_id: auto_approval_status_schema
+  type: json_schema
+  applies_to: output
+  target: auto_approval_status
+  description: Auto-approval status exposes branch processing effect.
+  schema_ref: schema://fraud_auto_approval_status/v1
+  expression: '{"type":"object","required":["success","route","auto_approval_recorded","transactions_auto_approved"],"properties":{"success":{"type":"boolean"},"route":{"type":"string"},"auto_approval_recorded":{"type":"boolean"},"transactions_auto_approved":{"type":"integer","minimum":0},"bounded_transaction_refs":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: auto_approval_status_effect
+  type: effect
+  applies_to: service
+  target: fraud_auto_approval_status_recorder
+  description: On success, an auto-approval status is emitted and auto_approval_recorded
+    reflects the routing decision.
+  expression: auto_approval_status.success == true implies auto_approval_status.auto_approval_recorded
+    == routing_decision.auto_approve
+invocation:
+  type: argo_workflow_template
+  template_name: fraud-auto-approval-status-recorder-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.fraud_auto_approval_status_recorder
+  implementation_ref: services/implementations/fraud_auto_approval_status_recorder
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - financial
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log raw transaction details; include only bounded references and counts.
+  - External payment-processing submission requires a separate explicit publisher/adapter
+    if later specified.
+  idempotency_notes: Same routing decision and scored transactions produce the same
+    status artifact.
+  default_timeout_seconds: 120
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:fraud_detection_triage#route_to_auto_approve
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing service records fraud auto-approval branch status while
+    preserving the no-external-system contract.'
+  - 'Evidence status: strongly_inferred.'

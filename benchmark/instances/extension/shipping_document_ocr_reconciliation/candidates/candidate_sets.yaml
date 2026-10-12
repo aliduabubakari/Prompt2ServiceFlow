@@ -1,0 +1,86 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:shipping_document_ocr_reconciliation
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.1
+candidate_sets:
+- candidate_set_id: extension_shipping_document_ocr_reconciliation_multimodal_primary_source_ingestor_candidates
+  source_step_refs:
+  - ingest_primary_source
+  service_ids:
+  - multimodal_primary_source_ingestor
+  - reviewed_domain_adapter
+  - document_feature_validation_quality_check
+  - image_cdn_batch_downloader
+- candidate_set_id: extension_shipping_document_ocr_reconciliation_multimodal_secondary_source_ingestor_candidates
+  source_step_refs:
+  - ingest_secondary_source
+  service_ids:
+  - multimodal_secondary_source_ingestor
+  - document_feature_validation_quality_check
+  - image_cdn_batch_downloader
+  - csv_to_structured_json_standardizer
+- candidate_set_id: extension_shipping_document_ocr_reconciliation_multimodal_reference_source_ingestor_candidates
+  source_step_refs:
+  - ingest_reference_source
+  service_ids:
+  - multimodal_reference_source_ingestor
+  - image_cdn_batch_downloader
+  - csv_to_structured_json_standardizer
+  - json_field_projection_transformer
+- candidate_set_id: extension_shipping_document_ocr_reconciliation_multimodal_multi_source_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contracts
+  service_ids:
+  - multimodal_multi_source_contract_validator
+  - csv_to_structured_json_standardizer
+  - json_field_projection_transformer
+  - dataset_quarantine_zone_writer
+- candidate_set_id: extension_shipping_document_ocr_reconciliation_multimodal_multi_source_normalizer_candidates
+  source_step_refs:
+  - normalize_sources
+  service_ids:
+  - multimodal_multi_source_normalizer
+  - json_field_projection_transformer
+  - dataset_quarantine_zone_writer
+  - reviewed_domain_adapter
+- candidate_set_id: extension_shipping_document_ocr_reconciliation_multimodal_source_fusion_reconciler_candidates
+  source_step_refs:
+  - fuse_sources
+  service_ids:
+  - multimodal_source_fusion_reconciler
+  - dataset_quarantine_zone_writer
+  - reviewed_domain_adapter
+  - document_feature_validation_quality_check
+- candidate_set_id: extension_shipping_document_ocr_reconciliation_visual_document_feature_extractor_candidates
+  source_step_refs:
+  - extract_visual_text_features
+  service_ids:
+  - visual_document_feature_extractor
+  - reviewed_domain_adapter
+  - document_feature_validation_quality_check
+  - image_cdn_batch_downloader
+- candidate_set_id: extension_shipping_document_ocr_reconciliation_multimodal_reference_metadata_joiner_candidates
+  source_step_refs:
+  - join_reference_metadata
+  service_ids:
+  - multimodal_reference_metadata_joiner
+  - document_feature_validation_quality_check
+  - image_cdn_batch_downloader
+  - csv_to_structured_json_standardizer
+- candidate_set_id: extension_shipping_document_ocr_reconciliation_multimodal_quality_assessor_candidates
+  source_step_refs:
+  - assess_multimodal_quality
+  service_ids:
+  - multimodal_quality_assessor
+  - image_cdn_batch_downloader
+  - csv_to_structured_json_standardizer
+  - json_field_projection_transformer
+- candidate_set_id: extension_shipping_document_ocr_reconciliation_multimodal_output_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - multimodal_output_bundle_publisher
+  - csv_to_structured_json_standardizer
+  - json_field_projection_transformer
+  - dataset_quarantine_zone_writer

@@ -1,0 +1,171 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: environmental-monitoring-network-v1-three-stations-scripts
+  namespace: prompt2serviceflow
+data:
+  01_load_and_modify_stations.py: "#!/usr/bin/env python3\n\"\"\"Ingest station CSV and produce structured\
+    \ tabular JSON with metadata.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport\
+    \ csv\nimport json\nimport shutil\nfrom pathlib import Path\n\n\ndef main() -> None:\n    parser =\
+    \ argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--fixture\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \n    artifacts = args.workspace / \"artifacts\"\n    artifacts.mkdir(parents=True, exist_ok=True)\n\
+    \    dest = artifacts / \"stations.csv\"\n    shutil.copyfile(args.fixture, dest)\n\n    with dest.open(encoding=\"\
+    utf-8\", newline=\"\") as handle:\n        reader = csv.DictReader(handle)\n        rows = list(reader)\n\
+    \        columns = reader.fieldnames or []\n\n    output = {\n        \"columns\": columns,\n    \
+    \    \"rows\": rows,\n        \"row_count\": len(rows),\n        \"dataset_id\": \"2\",\n        \"\
+    table_name\": \"JOT_\",\n        \"date_column\": \"installation_date\",\n    }\n    out_path = artifacts\
+    \ / \"formatted_stations_json.json\"\n    out_path.write_text(json.dumps(output, indent=2) + \"\\\
+    n\", encoding=\"utf-8\")\n\n    status = {\n        \"success\": True,\n        \"rows_read\": len(rows),\n\
+    \        \"rows_written\": len(rows),\n        \"output_uri\": str(out_path),\n        \"errors\"\
+    : [],\n    }\n    (artifacts / \"format_status.json\").write_text(\n        json.dumps(status, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  02_geocode_stations.py: "#!/usr/bin/env python3\n\"\"\"Mock geocoding: assign deterministic coordinates\
+    \ based on station name.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\n\
+    from pathlib import Path\n\nMOCK_COORDS = {\n    \"City Center Station\": (40.7128, -74.0060),\n \
+    \   \"Harbor Station\": (37.7749, -122.4194),\n    \"Mountain Station\": (39.7392, -104.9903),\n}\n\
+    \n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace / \"\
+    artifacts\"\n    source = json.loads((artifacts / \"formatted_stations_json.json\").read_text(encoding=\"\
+    utf-8\"))\n\n    enriched_rows = []\n    for row in source[\"rows\"]:\n        name = row.get(\"station_name\"\
+    , \"\")\n        lat, lon = MOCK_COORDS.get(name, (0.0, 0.0))\n        enriched_row = dict(row)\n\
+    \        enriched_row[\"latitude\"] = lat\n        enriched_row[\"longitude\"] = lon\n        enriched_rows.append(enriched_row)\n\
+    \n    columns = source[\"columns\"] + [\"latitude\", \"longitude\"]\n    output = {\n        \"columns\"\
+    : columns,\n        \"rows\": enriched_rows,\n        \"row_count\": len(enriched_rows),\n       \
+    \ \"geocoding\": {\n            \"provider_id\": \"geocodingHere\",\n            \"method\": \"fixture_mock\"\
+    ,\n        },\n    }\n    out_path = artifacts / \"geocoded_stations_json.json\"\n    out_path.write_text(json.dumps(output,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n\n    status = {\n        \"success\": True,\n       \
+    \ \"geocoder_id\": \"geocodingHere\",\n        \"rows_processed\": len(enriched_rows),\n        \"\
+    rows_geocoded\": len(enriched_rows),\n        \"rows_failed\": 0,\n        \"output_uri\": str(out_path),\n\
+    \        \"errors\": [],\n    }\n    (artifacts / \"geocoding_status.json\").write_text(\n       \
+    \ json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\"\
+    :\n    main()\n"
+  03_fetch_historical_weather.py: "#!/usr/bin/env python3\n\"\"\"Mock weather enrichment: append deterministic\
+    \ weather variables.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\n\
+    from pathlib import Path\n\nMOCK_WEATHER = {\n    \"City Center Station\": {\n        \"apparent_temperature_max\"\
+    : 28.5,\n        \"apparent_temperature_min\": 18.2,\n        \"precipitation_sum\": 12.4,\n     \
+    \   \"precipitation_hours\": 3.0,\n    },\n    \"Harbor Station\": {\n        \"apparent_temperature_max\"\
+    : 22.0,\n        \"apparent_temperature_min\": 14.5,\n        \"precipitation_sum\": 45.8,\n     \
+    \   \"precipitation_hours\": 8.0,\n    },\n    \"Mountain Station\": {\n        \"apparent_temperature_max\"\
+    : 15.3,\n        \"apparent_temperature_min\": 2.1,\n        \"precipitation_sum\": 78.9,\n      \
+    \  \"precipitation_hours\": 12.0,\n    },\n}\nVARIABLES = [\n    \"apparent_temperature_max\",\n \
+    \   \"apparent_temperature_min\",\n    \"precipitation_sum\",\n    \"precipitation_hours\",\n]\n\n\
+    \ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace / \"\
+    artifacts\"\n    source = json.loads((artifacts / \"geocoded_stations_json.json\").read_text(encoding=\"\
+    utf-8\"))\n\n    enriched_rows = []\n    for row in source[\"rows\"]:\n        name = row.get(\"station_name\"\
+    , \"\")\n        weather = MOCK_WEATHER.get(name, {v: 0 for v in VARIABLES})\n        enriched_row\
+    \ = dict(row)\n        enriched_row.update(weather)\n        enriched_rows.append(enriched_row)\n\n\
+    \    columns = source[\"columns\"] + VARIABLES\n    output = {\n        \"columns\": columns,\n  \
+    \      \"rows\": enriched_rows,\n        \"row_count\": len(enriched_rows),\n    }\n    out_path =\
+    \ artifacts / \"weather_enriched_json.json\"\n    out_path.write_text(json.dumps(output, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\")\n\n    status = {\n        \"success\": True,\n        \"rows_processed\"\
+    : len(enriched_rows),\n        \"rows_enriched\": len(enriched_rows),\n        \"variables_requested\"\
+    : VARIABLES,\n        \"output_uri\": str(out_path),\n        \"errors\": [],\n    }\n    (artifacts\
+    \ / \"weather_enrichment_status.json\").write_text(\n        json.dumps(status, indent=2) + \"\\n\"\
+    , encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  04_classify_land_use.py: "#!/usr/bin/env python3\n\"\"\"Mock land-use classification: assign type based\
+    \ on station name.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nfrom\
+    \ pathlib import Path\n\nMOCK_LAND_USE = {\n    \"City Center Station\": \"urban_high_density\",\n\
+    \    \"Harbor Station\": \"coastal_industrial\",\n    \"Mountain Station\": \"forested_rural\",\n\
+    }\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\"\
+    , type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace / \"\
+    artifacts\"\n    source = json.loads((artifacts / \"weather_enriched_json.json\").read_text(encoding=\"\
+    utf-8\"))\n\n    enriched_rows = []\n    for row in source[\"rows\"]:\n        name = row.get(\"station_name\"\
+    , \"\")\n        land_use = MOCK_LAND_USE.get(name, \"unknown\")\n        enriched_row = dict(row)\n\
+    \        enriched_row[\"land_use_type\"] = land_use\n        enriched_rows.append(enriched_row)\n\n\
+    \    columns = source[\"columns\"] + [\"land_use_type\"]\n    output = {\n        \"columns\": columns,\n\
+    \        \"rows\": enriched_rows,\n        \"row_count\": len(enriched_rows),\n    }\n    out_path\
+    \ = artifacts / \"land_use_enriched_json.json\"\n    out_path.write_text(json.dumps(output, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\")\n\n    status = {\n        \"success\": True,\n        \"rows_processed\"\
+    : len(enriched_rows),\n        \"rows_classified\": len(enriched_rows),\n        \"rows_failed\":\
+    \ 0,\n        \"output_uri\": str(out_path),\n        \"errors\": [],\n    }\n    (artifacts / \"\
+    land_use_classification_status.json\").write_text(\n        json.dumps(status, indent=2) + \"\\n\"\
+    , encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  05_fetch_population_density.py: "#!/usr/bin/env python3\n\"\"\"Mock population density enrichment: assign\
+    \ deterministic density values.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport\
+    \ json\nfrom pathlib import Path\n\nMOCK_DENSITY = {\n    \"City Center Station\": 8500,\n    \"Harbor\
+    \ Station\": 3200,\n    \"Mountain Station\": 450,\n}\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \n    artifacts = args.workspace / \"artifacts\"\n    source = json.loads((artifacts / \"land_use_enriched_json.json\"\
+    ).read_text(encoding=\"utf-8\"))\n\n    enriched_rows = []\n    for row in source[\"rows\"]:\n   \
+    \     name = row.get(\"station_name\", \"\")\n        density = MOCK_DENSITY.get(name, 0)\n      \
+    \  enriched_row = dict(row)\n        enriched_row[\"population_density\"] = density\n        enriched_rows.append(enriched_row)\n\
+    \n    columns = source[\"columns\"] + [\"population_density\"]\n    output = {\n        \"columns\"\
+    : columns,\n        \"rows\": enriched_rows,\n        \"row_count\": len(enriched_rows),\n    }\n\
+    \    out_path = artifacts / \"population_enriched_json.json\"\n    out_path.write_text(json.dumps(output,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\")\n\n    status = {\n        \"success\": True,\n       \
+    \ \"rows_processed\": len(enriched_rows),\n        \"rows_enriched\": len(enriched_rows),\n      \
+    \  \"rows_failed\": 0,\n        \"output_uri\": str(out_path),\n        \"errors\": [],\n    }\n \
+    \   (artifacts / \"population_enrichment_status.json\").write_text(\n        json.dumps(status, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  06_calculate_risk_score.py: "#!/usr/bin/env python3\n\"\"\"Compute composite environmental risk score\
+    \ from precipitation, density, and land use.\"\"\"\n\nfrom __future__ import annotations\n\nimport\
+    \ argparse\nimport json\nfrom pathlib import Path\n\nLAND_USE_RISK = {\n    \"urban_high_density\"\
+    : 0.8,\n    \"coastal_industrial\": 0.6,\n    \"forested_rural\": 0.3,\n    \"unknown\": 0.5,\n}\n\
+    \n\ndef compute_risk(rain: float, density: int, land_use: str) -> float:\n    precip_factor = min(rain\
+    \ / 100.0, 1.0) * 0.4\n    density_factor = min(density / 10000.0, 1.0) * 0.3\n    land_factor = LAND_USE_RISK.get(land_use,\
+    \ 0.5) * 0.3\n    return round(precip_factor + density_factor + land_factor, 4)\n\n\ndef main() ->\
+    \ None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\", type=Path,\
+    \ required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace / \"artifacts\"\
+    \n    source = json.loads((artifacts / \"population_enriched_json.json\").read_text(encoding=\"utf-8\"\
+    ))\n\n    enriched_rows = []\n    for row in source[\"rows\"]:\n        rain = float(row.get(\"precipitation_sum\"\
+    , 0))\n        density = int(row.get(\"population_density\", 0))\n        land_use = row.get(\"land_use_type\"\
+    , \"unknown\")\n        score = compute_risk(rain, density, land_use)\n        enriched_row = dict(row)\n\
+    \        enriched_row[\"risk_score\"] = score\n        enriched_rows.append(enriched_row)\n\n    columns\
+    \ = source[\"columns\"] + [\"risk_score\"]\n    output = {\n        \"columns\": columns,\n      \
+    \  \"rows\": enriched_rows,\n        \"row_count\": len(enriched_rows),\n    }\n    out_path = artifacts\
+    \ / \"risk_scored_json.json\"\n    out_path.write_text(json.dumps(output, indent=2) + \"\\n\", encoding=\"\
+    utf-8\")\n\n    status = {\n        \"success\": True,\n        \"rows_processed\": len(enriched_rows),\n\
+    \        \"rows_scored\": len(enriched_rows),\n        \"output_column\": \"risk_score\",\n      \
+    \  \"profile_id\": \"environmentalRiskCalculator\",\n        \"output_uri\": str(out_path),\n    \
+    \    \"errors\": [],\n    }\n    (artifacts / \"risk_scoring_status.json\").write_text(\n        json.dumps(status,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  07_save_environmental_dataset.py: "#!/usr/bin/env python3\n\"\"\"Export risk-scored tabular JSON to\
+    \ CSV.\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport csv\nimport json\nfrom\
+    \ pathlib import Path\n\n\ndef main() -> None:\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    args = parser.parse_args()\n\n    artifacts = args.workspace\
+    \ / \"artifacts\"\n    source = json.loads((artifacts / \"risk_scored_json.json\").read_text(encoding=\"\
+    utf-8\"))\n\n    columns = source[\"columns\"]\n    rows = source[\"rows\"]\n\n    out_path = artifacts\
+    \ / \"enriched_stations.csv\"\n    with out_path.open(\"w\", encoding=\"utf-8\", newline=\"\") as\
+    \ handle:\n        writer = csv.DictWriter(handle, fieldnames=columns)\n        writer.writeheader()\n\
+    \        writer.writerows(rows)\n\n    status = {\n        \"success\": True,\n        \"rows_read\"\
+    : len(rows),\n        \"rows_written\": len(rows),\n        \"columns_exported\": columns,\n     \
+    \   \"output_uri\": str(out_path),\n        \"errors\": [],\n    }\n    (artifacts / \"export_status.json\"\
+    ).write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__\
+    \ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: environmental-monitoring-network-v1-three-stations-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"pipeline_id\": \"environmental_monitoring_network_v1\",\n  \"inputs\": {\n   \
+    \ \"population_api\": \"population_api.json\",\n    \"weather_api\": \"weather_api.json\",\n    \"\
+    land_use_api\": \"land_use_api.json\",\n    \"stations\": \"stations.csv\",\n    \"geocoding_api\"\
+    : \"geocoding_api.json\"\n  },\n  \"input_modalities\": [\n    \"json\",\n    \"table\"\n  ],\n  \"\
+    systems\": [\n    \"system_a\",\n    \"system_b\"\n  ]\n}"
+  fixture-0001: "{\n  \"driver\": \"filesystem-mock\",\n  \"provider\": \"here-geocoding\",\n  \"target\"\
+    : \"artifacts/geocoded_stations_json.json\"\n}\n"
+  fixture-0002: "{\n  \"driver\": \"filesystem-mock\",\n  \"provider\": \"geoapify\",\n  \"target\": \"\
+    artifacts/land_use_enriched_json.json\"\n}\n"
+  fixture-0003: "{\n  \"driver\": \"filesystem-mock\",\n  \"provider\": \"worldpop\",\n  \"target\": \"\
+    artifacts/population_enriched_json.json\"\n}\n"
+  fixture-0004: 'station_id,station_name,location,installation_date
+
+    ST001,City Center Station,"123 Main St, Metropolis",20220101
+
+    ST002,Harbor Station,"456 Harbor Blvd, Port City",20220615
+
+    ST003,Mountain Station,"789 Summit Rd, Highland",20230321
+
+    '
+  fixture-0005: "{\n  \"driver\": \"filesystem-mock\",\n  \"provider\": \"openmeteo\",\n  \"target\":\
+    \ \"artifacts/weather_enriched_json.json\"\n}\n"

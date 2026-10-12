@@ -1,0 +1,46 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_region_sales_fanout
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: extract_global_sales
+  script: scripts/01_extract_global_sales.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: publish_na_sales
+  script: scripts/02_publish_na_sales.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - extract_global_sales
+- intent_id: publish_eu_sales
+  script: scripts/03_publish_eu_sales.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - extract_global_sales
+- intent_id: publish_apac_sales
+  script: scripts/04_publish_apac_sales.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - extract_global_sales
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

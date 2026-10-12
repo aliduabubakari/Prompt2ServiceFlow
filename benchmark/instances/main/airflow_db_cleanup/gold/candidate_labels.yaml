@@ -1,0 +1,35 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:airflow_db_cleanup
+candidate_sets:
+- candidate_set_id: main_airflow_db_cleanup_retention_cutoff_config_resolver_candidates
+  required_service_id: retention_cutoff_config_resolver
+  labels:
+    retention_cutoff_config_resolver: gold
+    runtime_parameter_allowed_values_validator: missing_required_output
+    execution_date_backup_strategy_decider: semantic_mismatch
+    temporary_resource_cleanup: contract_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_airflow_db_cleanup_airflow_metadata_retention_cleaner_candidates
+  required_service_id: airflow_metadata_retention_cleaner
+  labels:
+    airflow_metadata_retention_cleaner: gold
+    database_expired_session_cleanup: target_mismatch
+    postgres_parameterized_sql_executor: contract_mismatch
+    filesystem_retention_cleanup_with_lock: target_mismatch
+    database_statistics_analyzer: semantic_mismatch
+- candidate_set_id: main_airflow_db_cleanup_database_expired_session_cleanup_candidates
+  required_service_id: database_expired_session_cleanup
+  labels:
+    database_expired_session_cleanup: gold
+    airflow_metadata_retention_cleaner: contract_mismatch
+    postgres_parameterized_sql_executor: contract_mismatch
+    temporary_resource_cleanup: target_mismatch
+    database_statistics_analyzer: semantic_mismatch
+- candidate_set_id: main_airflow_db_cleanup_database_statistics_analyzer_candidates
+  required_service_id: database_statistics_analyzer
+  labels:
+    database_statistics_analyzer: gold
+    postgres_parameterized_sql_executor: contract_mismatch
+    airflow_metadata_retention_cleaner: semantic_mismatch
+    database_expired_session_cleanup: semantic_mismatch
+    sql_query_readiness_sensor: policy_incompatible

@@ -1,0 +1,46 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: database_partition_check_etl
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: wait_partition
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - wait
+- intent_id: extract_incremental
+  script: scripts/01_run.py
+  dependencies:
+  - wait_partition
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - extract
+- intent_id: transform
+  script: scripts/01_run.py
+  dependencies:
+  - extract_incremental
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - transform
+- intent_id: load
+  script: scripts/01_run.py
+  dependencies:
+  - transform
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - load
+scenarios:
+- name: etl
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

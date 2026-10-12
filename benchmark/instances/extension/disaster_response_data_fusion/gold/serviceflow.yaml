@@ -1,0 +1,1167 @@
+ir_version: 0.1.0
+composition_id: disaster_response_data_fusion
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.7
+  sha256: bca4eef4774e1e834ffe7ce1061d4027eeb904bd0a92db33a79b1b90a23b942b
+source:
+  dataset_id: prompt2serviceflow_extension_sources
+  dataset_version: extension_v1
+  benchmark_id: extension:disaster_response_data_fusion
+  split: extension
+  pipeline_id: disaster_response_data_fusion
+  description_path: source/extension_v1/batch_08/descriptions/36_disaster_response_data_fusion.txt
+  description_sha256: 3803d4833a39a740b4352d49db1c32e295990c8d4bef481acfe292c847048612
+  internal_spec_path: source/extension_v1/batch_08/specs/36_disaster_response_data_fusion.json
+  internal_spec_sha256: 91481f8c1de6376516f6a036bed48cd8e0fb1c01568276ad9268815a790cb781
+requirement:
+  name: Disaster Response Data Fusion
+  purpose: Fuse multimodal disaster-response evidence into an auditable operational picture.
+  domain: Public Sector/Geospatial
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: high
+  notes:
+  - Extension-50 Batch 01 synthetic source.
+  - Event and external-system behavior is represented as bounded fixture-backed batch execution.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: emergency_data_lake
+  type: object_storage
+  name: emergency data lake
+  identifier: synthetic://extension-v1/disaster_response_data_fusion/1
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+- system_id: operations_briefing_channel
+  type: object_storage
+  name: operations briefing channel
+  identifier: synthetic://extension-v1/disaster_response_data_fusion/2
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_source_batch
+  name: Ingest Source Batch
+  category: Extractor
+  capability: Ingest all bounded inputs for disaster response operational picture.
+  source_step_refs:
+  - ingest_source_batch
+  evidence:
+  - source: internal_spec
+    text: Ingest all bounded inputs for disaster response operational picture.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_source_batch_artifact
+  - ingest_source_batch_status
+  external_system_refs: &id001
+  - emergency_data_lake
+  - operations_briefing_channel
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_source_batch_artifact, ingest_source_batch_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: validate_source_contract
+  name: Validate Source Contract
+  category: QualityCheck
+  capability: Validate contracts, identifiers, and modality assumptions for disaster response operational
+    picture.
+  source_step_refs:
+  - validate_source_contract
+  evidence:
+  - source: internal_spec
+    text: Validate contracts, identifiers, and modality assumptions for disaster response operational
+      picture.
+  inputs:
+  - ingest_source_batch_artifact
+  outputs:
+  - validate_source_contract_artifact
+  - validate_source_contract_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces validate_source_contract_artifact, validate_source_contract_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_partition_a
+  name: Normalize Partition A
+  category: Transformer
+  capability: Normalize the first partition or modality for disaster response operational picture.
+  source_step_refs:
+  - normalize_partition_a
+  evidence:
+  - source: internal_spec
+    text: Normalize the first partition or modality for disaster response operational picture.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - normalize_partition_a_artifact
+  - normalize_partition_a_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_partition_a_artifact, normalize_partition_a_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_partition_b
+  name: Normalize Partition B
+  category: Transformer
+  capability: Normalize the second partition or modality for disaster response operational picture.
+  source_step_refs:
+  - normalize_partition_b
+  evidence:
+  - source: internal_spec
+    text: Normalize the second partition or modality for disaster response operational picture.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - normalize_partition_b_artifact
+  - normalize_partition_b_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_partition_b_artifact, normalize_partition_b_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: normalize_partition_c
+  name: Normalize Partition C
+  category: Transformer
+  capability: Normalize the third partition or modality for disaster response operational picture.
+  source_step_refs:
+  - normalize_partition_c
+  evidence:
+  - source: internal_spec
+    text: Normalize the third partition or modality for disaster response operational picture.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - normalize_partition_c_artifact
+  - normalize_partition_c_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces normalize_partition_c_artifact, normalize_partition_c_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: fuse_partitions
+  name: Fuse Partitions
+  category: Integrator
+  capability: Fuse normalized partitions into a unified disaster response operational picture representation.
+  source_step_refs:
+  - fuse_partitions
+  evidence:
+  - source: internal_spec
+    text: Fuse normalized partitions into a unified disaster response operational picture representation.
+  inputs:
+  - normalize_partition_a_artifact
+  - normalize_partition_b_artifact
+  - normalize_partition_c_artifact
+  outputs:
+  - fuse_partitions_artifact
+  - fuse_partitions_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces fuse_partitions_artifact, fuse_partitions_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: standardize_cross_domain_entities
+  name: Standardize Cross Domain Entities
+  category: Transformer
+  capability: Standardize cross-domain entities for disaster response operational picture.
+  source_step_refs:
+  - standardize_cross_domain_entities
+  evidence:
+  - source: internal_spec
+    text: Standardize cross-domain entities for disaster response operational picture.
+  inputs:
+  - fuse_partitions_artifact
+  outputs:
+  - standardize_cross_domain_entities_artifact
+  - standardize_cross_domain_entities_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces standardize_cross_domain_entities_artifact, standardize_cross_domain_entities_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: resolve_entity_conflicts
+  name: Resolve Entity Conflicts
+  category: Reconciler
+  capability: Resolve entity conflicts across modalities and systems for disaster response operational
+    picture.
+  source_step_refs:
+  - resolve_entity_conflicts
+  evidence:
+  - source: internal_spec
+    text: Resolve entity conflicts across modalities and systems for disaster response operational picture.
+  inputs:
+  - standardize_cross_domain_entities_artifact
+  outputs:
+  - resolve_entity_conflicts_artifact
+  - resolve_entity_conflicts_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces resolve_entity_conflicts_artifact, resolve_entity_conflicts_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: score_operational_priority
+  name: Score Operational Priority
+  category: ScoringService
+  capability: Score operational priority or risk for disaster response operational picture.
+  source_step_refs:
+  - score_operational_priority
+  evidence:
+  - source: internal_spec
+    text: Score operational priority or risk for disaster response operational picture.
+  inputs:
+  - resolve_entity_conflicts_artifact
+  outputs:
+  - score_operational_priority_artifact
+  - score_operational_priority_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces score_operational_priority_artifact, score_operational_priority_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: apply_publication_or_routing_gate
+  name: Apply Publication Or Routing Gate
+  category: DomainAdapter
+  capability: Apply publication, routing, or escalation gates for disaster response operational picture.
+  source_step_refs:
+  - apply_publication_or_routing_gate
+  evidence:
+  - source: internal_spec
+    text: Apply publication, routing, or escalation gates for disaster response operational picture.
+  inputs:
+  - score_operational_priority_artifact
+  outputs:
+  - apply_publication_or_routing_gate_artifact
+  - apply_publication_or_routing_gate_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces apply_publication_or_routing_gate_artifact, apply_publication_or_routing_gate_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: create_stakeholder_packet
+  name: Create Stakeholder Packet
+  category: Aggregator
+  capability: Create stakeholder packets for disaster response operational picture.
+  source_step_refs:
+  - create_stakeholder_packet
+  evidence:
+  - source: internal_spec
+    text: Create stakeholder packets for disaster response operational picture.
+  inputs:
+  - apply_publication_or_routing_gate_artifact
+  outputs:
+  - create_stakeholder_packet_artifact
+  - create_stakeholder_packet_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces create_stakeholder_packet_artifact, create_stakeholder_packet_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: publish_notifications
+  name: Publish Notifications
+  category: Publisher
+  capability: Publish notifications or work-order records for disaster response operational picture.
+  source_step_refs:
+  - publish_notifications
+  evidence:
+  - source: internal_spec
+    text: Publish notifications or work-order records for disaster response operational picture.
+  inputs:
+  - create_stakeholder_packet_artifact
+  outputs:
+  - publish_notifications_artifact
+  - publish_notifications_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces publish_notifications_artifact, publish_notifications_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: publish_outputs
+  name: Publish Outputs
+  category: Publisher
+  capability: Publish the fused disaster response operational picture outputs and completion status.
+  source_step_refs:
+  - publish_outputs
+  evidence:
+  - source: internal_spec
+    text: Publish the fused disaster response operational picture outputs and completion status.
+  inputs:
+  - publish_notifications_artifact
+  outputs:
+  - publish_outputs_artifact
+  - publish_outputs_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces publish_outputs_artifact, publish_outputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+source_step_accounting:
+- source_step_ref: ingest_source_batch
+  disposition: service
+  intent_ids:
+  - ingest_source_batch
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: validate_source_contract
+  disposition: service
+  intent_ids:
+  - validate_source_contract
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_partition_a
+  disposition: service
+  intent_ids:
+  - normalize_partition_a
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_partition_b
+  disposition: service
+  intent_ids:
+  - normalize_partition_b
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: normalize_partition_c
+  disposition: service
+  intent_ids:
+  - normalize_partition_c
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: fuse_partitions
+  disposition: service
+  intent_ids:
+  - fuse_partitions
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: standardize_cross_domain_entities
+  disposition: service
+  intent_ids:
+  - standardize_cross_domain_entities
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: resolve_entity_conflicts
+  disposition: service
+  intent_ids:
+  - resolve_entity_conflicts
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: score_operational_priority
+  disposition: service
+  intent_ids:
+  - score_operational_priority
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: apply_publication_or_routing_gate
+  disposition: service
+  intent_ids:
+  - apply_publication_or_routing_gate
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: create_stakeholder_packet
+  disposition: service
+  intent_ids:
+  - create_stakeholder_packet
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: publish_notifications
+  disposition: service
+  intent_ids:
+  - publish_notifications
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: publish_outputs
+  disposition: service
+  intent_ids:
+  - publish_outputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+control_flow:
+  edges:
+  - from: ingest_source_batch
+    to: validate_source_contract
+  - from: validate_source_contract
+    to: normalize_partition_a
+  - from: normalize_partition_a
+    to: fuse_partitions
+  - from: validate_source_contract
+    to: normalize_partition_b
+  - from: normalize_partition_b
+    to: fuse_partitions
+  - from: validate_source_contract
+    to: normalize_partition_c
+  - from: normalize_partition_c
+    to: fuse_partitions
+  - from: fuse_partitions
+    to: standardize_cross_domain_entities
+  - from: standardize_cross_domain_entities
+    to: resolve_entity_conflicts
+  - from: resolve_entity_conflicts
+    to: score_operational_priority
+  - from: score_operational_priority
+    to: apply_publication_or_routing_gate
+  - from: apply_publication_or_routing_gate
+    to: create_stakeholder_packet
+  - from: create_stakeholder_packet
+    to: publish_notifications
+  - from: publish_notifications
+    to: publish_outputs
+  parallel_groups:
+  - group_id: parallel_feature_branches
+    intent_ids:
+    - normalize_partition_a
+    - normalize_partition_b
+    - normalize_partition_c
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: source_bundle
+  name: Source Bundle
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - ingest_source_batch
+  sensitivity: internal
+  persistence: workflow
+  fixture_ref: fixtures/inputs/fixture.json
+- artifact_id: ingest_source_batch_artifact
+  name: Ingest Source Batch Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_source_batch
+  consumers:
+  - validate_source_contract
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_source_batch_status
+  name: Ingest Source Batch Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_source_batch
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: validate_source_contract_artifact
+  name: Validate Source Contract Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: validate_source_contract
+  consumers:
+  - normalize_partition_a
+  - normalize_partition_b
+  - normalize_partition_c
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validate_source_contract_status
+  name: Validate Source Contract Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: validate_source_contract
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_partition_a_artifact
+  name: Normalize Partition A Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_partition_a
+  consumers:
+  - fuse_partitions
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_partition_a_status
+  name: Normalize Partition A Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_partition_a
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_partition_b_artifact
+  name: Normalize Partition B Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_partition_b
+  consumers:
+  - fuse_partitions
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_partition_b_status
+  name: Normalize Partition B Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_partition_b
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: normalize_partition_c_artifact
+  name: Normalize Partition C Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: normalize_partition_c
+  consumers:
+  - fuse_partitions
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: normalize_partition_c_status
+  name: Normalize Partition C Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: normalize_partition_c
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: fuse_partitions_artifact
+  name: Fuse Partitions Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: fuse_partitions
+  consumers:
+  - standardize_cross_domain_entities
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: fuse_partitions_status
+  name: Fuse Partitions Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: fuse_partitions
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: standardize_cross_domain_entities_artifact
+  name: Standardize Cross Domain Entities Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: standardize_cross_domain_entities
+  consumers:
+  - resolve_entity_conflicts
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: standardize_cross_domain_entities_status
+  name: Standardize Cross Domain Entities Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: standardize_cross_domain_entities
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: resolve_entity_conflicts_artifact
+  name: Resolve Entity Conflicts Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: resolve_entity_conflicts
+  consumers:
+  - score_operational_priority
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: resolve_entity_conflicts_status
+  name: Resolve Entity Conflicts Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: resolve_entity_conflicts
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: score_operational_priority_artifact
+  name: Score Operational Priority Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: score_operational_priority
+  consumers:
+  - apply_publication_or_routing_gate
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: score_operational_priority_status
+  name: Score Operational Priority Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: score_operational_priority
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: apply_publication_or_routing_gate_artifact
+  name: Apply Publication Or Routing Gate Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: apply_publication_or_routing_gate
+  consumers:
+  - create_stakeholder_packet
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: apply_publication_or_routing_gate_status
+  name: Apply Publication Or Routing Gate Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: apply_publication_or_routing_gate
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: create_stakeholder_packet_artifact
+  name: Create Stakeholder Packet Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: create_stakeholder_packet
+  consumers:
+  - publish_notifications
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: create_stakeholder_packet_status
+  name: Create Stakeholder Packet Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: create_stakeholder_packet
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: publish_notifications_artifact
+  name: Publish Notifications Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: publish_notifications
+  consumers:
+  - publish_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publish_notifications_status
+  name: Publish Notifications Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_notifications
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: publish_outputs_artifact
+  name: Publish Outputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: output
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publish_outputs_status
+  name: Publish Outputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+bindings:
+- intent_id: ingest_source_batch
+  service_id: disaster_multimodal_batch_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_source_batch_artifact
+  - port: execution_report
+    artifact_id: ingest_source_batch_status
+  parameter_bindings:
+    operation_profile: ingest_source_batch
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: validate_source_contract
+  service_id: disaster_response_contract_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: ingest_source_batch_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: validate_source_contract_artifact
+  - port: execution_report
+    artifact_id: validate_source_contract_status
+  parameter_bindings:
+    operation_profile: validate_source_contract
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_partition_a
+  service_id: disaster_imagery_partition_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_partition_a_artifact
+  - port: execution_report
+    artifact_id: normalize_partition_a_status
+  parameter_bindings:
+    operation_profile: normalize_partition_a
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_partition_b
+  service_id: disaster_shelter_status_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_partition_b_artifact
+  - port: execution_report
+    artifact_id: normalize_partition_b_status
+  parameter_bindings:
+    operation_profile: normalize_partition_b
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: normalize_partition_c
+  service_id: disaster_road_incident_text_normalizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: normalize_partition_c_artifact
+  - port: execution_report
+    artifact_id: normalize_partition_c_status
+  parameter_bindings:
+    operation_profile: normalize_partition_c
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: fuse_partitions
+  service_id: disaster_operational_picture_fuser
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: normalize_partition_a_artifact
+  - port: input_artifacts
+    artifact_id: normalize_partition_b_artifact
+  - port: input_artifacts
+    artifact_id: normalize_partition_c_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: fuse_partitions_artifact
+  - port: execution_report
+    artifact_id: fuse_partitions_status
+  parameter_bindings:
+    operation_profile: fuse_partitions
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: standardize_cross_domain_entities
+  service_id: mixed_domain_entity_standardizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: fuse_partitions_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: standardize_cross_domain_entities_artifact
+  - port: execution_report
+    artifact_id: standardize_cross_domain_entities_status
+  parameter_bindings:
+    operation_profile: standardize_cross_domain_entities
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: resolve_entity_conflicts
+  service_id: cross_modal_entity_conflict_resolver
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: standardize_cross_domain_entities_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: resolve_entity_conflicts_artifact
+  - port: execution_report
+    artifact_id: resolve_entity_conflicts_status
+  parameter_bindings:
+    operation_profile: resolve_entity_conflicts
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: score_operational_priority
+  service_id: disaster_operational_priority_scorer
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: resolve_entity_conflicts_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: score_operational_priority_artifact
+  - port: execution_report
+    artifact_id: score_operational_priority_status
+  parameter_bindings:
+    operation_profile: score_operational_priority
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: apply_publication_or_routing_gate
+  service_id: disaster_routing_gate_evaluator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: score_operational_priority_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: apply_publication_or_routing_gate_artifact
+  - port: execution_report
+    artifact_id: apply_publication_or_routing_gate_status
+  parameter_bindings:
+    operation_profile: apply_publication_or_routing_gate
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: create_stakeholder_packet
+  service_id: disaster_briefing_packet_builder
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: apply_publication_or_routing_gate_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: create_stakeholder_packet_artifact
+  - port: execution_report
+    artifact_id: create_stakeholder_packet_status
+  parameter_bindings:
+    operation_profile: create_stakeholder_packet
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: publish_notifications
+  service_id: disaster_notification_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: create_stakeholder_packet_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: publish_notifications_artifact
+  - port: execution_report
+    artifact_id: publish_notifications_status
+  parameter_bindings:
+    operation_profile: publish_notifications
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: publish_outputs
+  service_id: disaster_response_bundle_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: publish_notifications_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: publish_outputs_artifact
+  - port: execution_report
+    artifact_id: publish_outputs_status
+  parameter_bindings:
+    operation_profile: publish_outputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - public
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Batch 01 mocks do not contact production image, document, or review systems.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 reviewed Batch 01 validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 reviewed Batch 01 validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 reviewed Batch 01 validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 reviewed Batch 01 validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 reviewed Batch 01 validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 reviewed Batch 01 validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 reviewed Batch 01 validation.

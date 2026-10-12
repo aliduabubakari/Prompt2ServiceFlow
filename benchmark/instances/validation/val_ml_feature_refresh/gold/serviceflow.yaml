@@ -1,0 +1,667 @@
+ir_version: 0.1.0
+composition_id: val_ml_feature_refresh
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.2
+  sha256: 68ddbc259a9fa94eb8ee32f5a2f18163ba2a9e1fe3178ecdf3db70fa9a368fbe
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_ml_feature_refresh
+  split: validation
+  pipeline_id: val_ml_feature_refresh
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/15_val_ml_feature_refresh.txt
+  description_sha256: 0d9275d6107517422652532f6003aab37881c3b336d5cb8298ed8cf72cb13609
+  internal_spec_path: source/internal_specs/validation_20/15_val_ml_feature_refresh.json
+  internal_spec_sha256: eff545666861d916bc5f15f55397503b1b50b3bb4481cc580bdaff94546c9841
+requirement:
+  name: Val Ml Feature Refresh
+  purpose: Refresh raw events, transform features, validate drift statistics, publish a feature table,
+    and notify the model team.
+  domain: validation_holdout
+  execution_model: batch
+  topology: staged_etl
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: event_lake
+  type: object_storage
+  name: Event lake
+  identifier: event_lake
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: feature_store
+  type: database
+  name: Feature store
+  identifier: feature_store
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: notification_service
+  type: http_api
+  name: Notification service
+  identifier: notification_service
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: extract_raw_events
+  name: Extract Raw Events
+  category: Extractor
+  capability: Perform the reviewed extract raw events capability.
+  source_step_refs:
+  - extract_raw_events
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: extract_raw_events.'
+  inputs:
+  - event_lake_resource
+  outputs:
+  - raw_events
+  - event_extract_status
+  external_system_refs:
+  - event_lake
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared raw_events, event_extract_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: clean_event_records
+  name: Clean Event Records
+  category: Transformer
+  capability: Perform the reviewed clean event records capability.
+  source_step_refs:
+  - clean_event_records
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: clean_event_records.'
+  inputs:
+  - raw_events
+  outputs:
+  - clean_events
+  - cleaning_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared clean_events, cleaning_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: aggregate_user_features
+  name: Aggregate User Features
+  category: Aggregator
+  capability: Perform the reviewed aggregate user features capability.
+  source_step_refs:
+  - aggregate_user_features
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: aggregate_user_features.'
+  inputs:
+  - clean_events
+  outputs:
+  - feature_table
+  - aggregation_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared feature_table, aggregation_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: compute_drift_statistics
+  name: Compute Drift Statistics
+  category: DataProfiler
+  capability: Perform the reviewed compute drift statistics capability.
+  source_step_refs:
+  - compute_drift_statistics
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: compute_drift_statistics.'
+  inputs:
+  - feature_table
+  outputs:
+  - drift_report
+  - drift_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared drift_report, drift_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: validate_feature_table
+  name: Validate Feature Table
+  category: QualityCheck
+  capability: Perform the reviewed validate feature table capability.
+  source_step_refs:
+  - validate_feature_table
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: validate_feature_table.'
+  inputs:
+  - feature_table
+  - drift_report
+  outputs:
+  - validated_feature_table
+  - feature_validation_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared validated_feature_table, feature_validation_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: publish_feature_table
+  name: Publish Feature Table
+  category: Publisher
+  capability: Perform the reviewed publish feature table capability.
+  source_step_refs:
+  - publish_feature_table
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: publish_feature_table.'
+  inputs:
+  - validated_feature_table
+  - feature_store_resource
+  outputs:
+  - feature_publication_status
+  external_system_refs:
+  - feature_store
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared feature_publication_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: notify_model_team
+  name: Notify Model Team
+  category: Notifier
+  capability: Perform the reviewed notify model team capability.
+  source_step_refs:
+  - notify_model_team
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: notify_model_team.'
+  inputs:
+  - feature_publication_status
+  - notification_service_resource
+  outputs:
+  - model_team_notification_status
+  external_system_refs:
+  - notification_service
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared model_team_notification_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: extract_raw_events
+  disposition: service
+  intent_ids:
+  - extract_raw_events
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: clean_event_records
+  disposition: service
+  intent_ids:
+  - clean_event_records
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: aggregate_user_features
+  disposition: service
+  intent_ids:
+  - aggregate_user_features
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: compute_drift_statistics
+  disposition: service
+  intent_ids:
+  - compute_drift_statistics
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: validate_feature_table
+  disposition: service
+  intent_ids:
+  - validate_feature_table
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: publish_feature_table
+  disposition: service
+  intent_ids:
+  - publish_feature_table
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: notify_model_team
+  disposition: service
+  intent_ids:
+  - notify_model_team
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: extract_raw_events
+    to: clean_event_records
+  - from: clean_event_records
+    to: aggregate_user_features
+  - from: aggregate_user_features
+    to: compute_drift_statistics
+  - from: compute_drift_statistics
+    to: validate_feature_table
+  - from: validate_feature_table
+    to: publish_feature_table
+  - from: publish_feature_table
+    to: notify_model_team
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: event_lake_resource
+  name: Event Lake Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: event_lake
+- artifact_id: feature_store_resource
+  name: Feature Store Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: feature_store
+- artifact_id: notification_service_resource
+  name: Notification Service Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: notification_service
+- artifact_id: raw_events
+  name: Raw Events
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: extract_raw_events
+  consumers:
+  - clean_event_records
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: event_extract_status
+  name: Event Extract Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: extract_raw_events
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: clean_events
+  name: Clean Events
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: clean_event_records
+  consumers:
+  - aggregate_user_features
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: cleaning_status
+  name: Cleaning Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: clean_event_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: feature_table
+  name: Feature Table
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: aggregate_user_features
+  consumers:
+  - compute_drift_statistics
+  - validate_feature_table
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: aggregation_status
+  name: Aggregation Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: aggregate_user_features
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: drift_report
+  name: Drift Report
+  kind: artifact
+  data_type: json
+  role: intermediate
+  producer: compute_drift_statistics
+  consumers:
+  - validate_feature_table
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: drift_status
+  name: Drift Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: compute_drift_statistics
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validated_feature_table
+  name: Validated Feature Table
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: validate_feature_table
+  consumers:
+  - publish_feature_table
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: feature_validation_status
+  name: Feature Validation Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: validate_feature_table
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: feature_publication_status
+  name: Feature Publication Status
+  kind: artifact
+  data_type: status
+  role: intermediate
+  producer: publish_feature_table
+  consumers:
+  - notify_model_team
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: model_team_notification_status
+  name: Model Team Notification Status
+  kind: artifact
+  data_type: notification
+  role: output
+  producer: notify_model_team
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: extract_raw_events
+  service_id: event_lake_raw_event_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: event_lake
+    artifact_id: event_lake_resource
+  output_bindings:
+  - port: raw_events
+    artifact_id: raw_events
+  - port: extraction_status
+    artifact_id: event_extract_status
+  parameter_bindings:
+    event_path: events/
+    lookback_hours: 24
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: clean_event_records
+  service_id: event_record_cleaner
+  service_version: 1.0.0
+  input_bindings:
+  - port: raw_events
+    artifact_id: raw_events
+  output_bindings:
+  - port: clean_events
+    artifact_id: clean_events
+  - port: cleaning_status
+    artifact_id: cleaning_status
+  parameter_bindings:
+    cleaning_rules:
+      drop_null_user_id: true
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: aggregate_user_features
+  service_id: user_feature_aggregator
+  service_version: 1.0.0
+  input_bindings:
+  - port: clean_events
+    artifact_id: clean_events
+  output_bindings:
+  - port: feature_table
+    artifact_id: feature_table
+  - port: aggregation_status
+    artifact_id: aggregation_status
+  parameter_bindings:
+    feature_spec:
+      windows:
+      - 1d
+      - 7d
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: compute_drift_statistics
+  service_id: feature_drift_statistics_computer
+  service_version: 1.0.0
+  input_bindings:
+  - port: feature_table
+    artifact_id: feature_table
+  output_bindings:
+  - port: drift_report
+    artifact_id: drift_report
+  - port: drift_status
+    artifact_id: drift_status
+  parameter_bindings:
+    baseline_window: 30d
+    drift_metrics:
+    - psi
+    - mean_shift
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: validate_feature_table
+  service_id: feature_table_drift_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: feature_table
+    artifact_id: feature_table
+  - port: drift_report
+    artifact_id: drift_report
+  output_bindings:
+  - port: validated_feature_table
+    artifact_id: validated_feature_table
+  - port: validation_status
+    artifact_id: feature_validation_status
+  parameter_bindings:
+    drift_thresholds:
+      psi: 0.2
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: publish_feature_table
+  service_id: feature_store_table_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: validated_feature_table
+    artifact_id: validated_feature_table
+  - port: feature_store
+    artifact_id: feature_store_resource
+  output_bindings:
+  - port: feature_publication_status
+    artifact_id: feature_publication_status
+  parameter_bindings:
+    feature_table_name: user_features_daily
+    write_mode: replace
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: notify_model_team
+  service_id: model_team_notification_sender
+  service_version: 1.0.0
+  input_bindings:
+  - port: feature_publication_status
+    artifact_id: feature_publication_status
+  - port: notification_service
+    artifact_id: notification_service_resource
+  output_bindings:
+  - port: model_team_notification_status
+    artifact_id: model_team_notification_status
+  parameter_bindings:
+    recipient_group: model_team
+    message_template: feature_refresh_complete
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

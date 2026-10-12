@@ -1,0 +1,90 @@
+schema_version: 0.1.0
+service_id: manual_claim_adjudication_recorder
+version: 1.0.0
+display_name: Manual Claim Adjudication Recorder
+category: DomainAdapter
+capability:
+  summary: Records high-risk claims for manual adjudication review.
+  operations:
+  - Records high-risk claims for manual adjudication review.
+  keywords:
+  - manual
+  - claim
+  - adjudication
+  - recorder
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: risk_scores
+    description: Reviewed risk scores value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: manual_adjudication_records
+    description: Reviewed manual adjudication records value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: manual_status
+    description: Reviewed manual status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: queue_name
+    description: Configuration for queue name.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: manual-claim-adjudication-recorder
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.2
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.manual_claim_adjudication_recorder
+  implementation_ref: services/implementations/manual_claim_adjudication_recorder
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-03:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 03 descriptions; bindings retain inference confidence.

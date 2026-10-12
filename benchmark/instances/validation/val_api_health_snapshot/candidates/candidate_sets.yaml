@@ -1,0 +1,27 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_api_health_snapshot
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.0
+candidate_sets:
+- candidate_set_id: validation_val_api_health_snapshot_http_json_request_extractor_candidates
+  source_step_refs:
+  - poll_partner_api
+  service_ids:
+  - http_json_request_extractor
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_api_health_snapshot_json_status_payload_normalizer_candidates
+  source_step_refs:
+  - normalize_status_payload
+  service_ids:
+  - json_status_payload_normalizer
+  - temporary_resource_cleanup
+  - csv_to_structured_json_standardizer
+- candidate_set_id: validation_val_api_health_snapshot_sqlite_health_snapshot_loader_candidates
+  source_step_refs:
+  - store_health_snapshot
+  service_ids:
+  - sqlite_health_snapshot_loader
+  - csv_to_structured_json_standardizer
+  - tabular_dataset_database_loader

@@ -1,0 +1,206 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: medical-facility-accessibility-v1-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: medical-facility-accessibility-v1
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: three-facilities
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: fixture-file
+      value: facilities.csv
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: medical-facility-accessibility-v1-scripts
+  - name: fixtures
+    configMap:
+      name: medical-facility-accessibility-v1-fixtures
+      items:
+      - key: fixture-0000
+        path: facilities.csv
+      - key: fixture-0001
+        path: fixture.json
+      - key: fixture-0002
+        path: geocoding_api.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: load-and-modify-facilities
+        template: run-load-and-modify-facilities
+      - name: geocode-facilities
+        template: run-geocode-facilities
+        depends: load-and-modify-facilities.Succeeded
+      - name: calc-distance-public-transport
+        template: run-calc-distance-public-transport
+        depends: geocode-facilities.Succeeded
+      - name: calc-distance-residential
+        template: run-calc-distance-residential
+        depends: calc-distance-public-transport.Succeeded
+      - name: save-accessibility-data
+        template: run-save-accessibility-data
+        depends: calc-distance-residential.Succeeded
+  - name: run-load-and-modify-facilities
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: load_and_modify_facilities
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_load_and_modify_facilities.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/{{workflow.parameters.fixture-file}}
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-geocode-facilities
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: geocode_facilities
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_geocode_facilities.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-calc-distance-public-transport
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: calc_distance_public_transport
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_calc_distance_public_transport.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-calc-distance-residential
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: calc_distance_residential
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_calc_distance_residential.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError
+  - name: run-save-accessibility-data
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: save_accessibility_data
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_save_accessibility_data.py
+      - --workspace
+      - /workspace
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    retryStrategy:
+      limit: '1'
+      retryPolicy: OnError

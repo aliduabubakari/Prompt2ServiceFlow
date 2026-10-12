@@ -1,0 +1,366 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-09T21:53:04.403475+00:00",
+  "instance": "benchmark/instances/extension/contract_clause_risk_extraction",
+  "workspace": "experiments/workspaces/extension/contract_clause_risk_extraction",
+  "submission": "results/paper/runs/m4__extension__contract_clause_risk_extraction__deepinfra-deepseek-v4-1-flash__s2__20261009T214857.970033Z__dd850e4d/submission",
+  "summary": {
+    "public_gates_status": "pass",
+    "first_failing_gate": null,
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-09T21:53:01.609866+00:00",
+    "workspace": "experiments/workspaces/extension/contract_clause_risk_extraction",
+    "submission": "results/paper/runs/m4__extension__contract_clause_risk_extraction__deepinfra-deepseek-v4-1-flash__s2__20261009T214857.970033Z__dd850e4d/submission",
+    "overall_status": "pass",
+    "first_failing_gate": null,
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "pass",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": []
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "pass",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": []
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "contract-clause-risk-extraction-scripts",
+              "scenario": "base",
+              "data_size_bytes": 28034,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "contract-clause-risk-extraction-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 3053,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "contract-clause-risk-extraction-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 28034,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "contract-clause-risk-extraction-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 3053,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_source_batch",
+                "validate_source_contract",
+                "extract_or_parse_text",
+                "chunk_documents",
+                "generate_embeddings",
+                "write_vector_index",
+                "retrieve_grounding_context",
+                "run_structured_extraction",
+                "evaluate_policy_or_risk",
+                "route_approved_records",
+                "route_exception_records",
+                "merge_route_outcomes",
+                "publish_outputs"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 13,
+      "submission_intents": 13,
+      "gold_intents": 13,
+      "mapping": {
+        "chunk_documents": "chunk_documents",
+        "evaluate_policy_or_risk": "evaluate_policy_or_risk",
+        "extract_or_parse_text": "extract_or_parse_text",
+        "generate_embeddings": "generate_embeddings",
+        "ingest_source_batch": "ingest_source_batch",
+        "merge_route_outcomes": "merge_route_outcomes",
+        "publish_outputs": "publish_outputs",
+        "retrieve_grounding_context": "retrieve_grounding_context",
+        "route_approved_records": "route_approved_records",
+        "route_exception_records": "route_exception_records",
+        "run_structured_extraction": "run_structured_extraction",
+        "validate_source_contract": "validate_source_contract",
+        "write_vector_index": "write_vector_index"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 13
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 13,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 13,
+      "total": 13,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 13,
+    "correct": 13,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "chunk_documents",
+        "gold_service": "semantic_document_chunker",
+        "submission_intent": "chunk_documents",
+        "submission_service": "semantic_document_chunker",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "evaluate_policy_or_risk",
+        "gold_service": "contract_clause_risk_decider",
+        "submission_intent": "evaluate_policy_or_risk",
+        "submission_service": "contract_clause_risk_decider",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "extract_or_parse_text",
+        "gold_service": "pdf_text_extraction_parser",
+        "submission_intent": "extract_or_parse_text",
+        "submission_service": "pdf_text_extraction_parser",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "generate_embeddings",
+        "gold_service": "deterministic_text_embedding_generator",
+        "submission_intent": "generate_embeddings",
+        "submission_service": "deterministic_text_embedding_generator",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_source_batch",
+        "gold_service": "contract_pdf_bundle_ingestor",
+        "submission_intent": "ingest_source_batch",
+        "submission_service": "contract_pdf_bundle_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "merge_route_outcomes",
+        "gold_service": "ai_route_outcome_merger",
+        "submission_intent": "merge_route_outcomes",
+        "submission_service": "ai_route_outcome_merger",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_outputs",
+        "gold_service": "ai_completion_bundle_publisher",
+        "submission_intent": "publish_outputs",
+        "submission_service": "ai_completion_bundle_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "retrieve_grounding_context",
+        "gold_service": "grounding_context_retriever",
+        "submission_intent": "retrieve_grounding_context",
+        "submission_service": "grounding_context_retriever",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "route_approved_records",
+        "gold_service": "contract_clause_low_risk_router",
+        "submission_intent": "route_approved_records",
+        "submission_service": "contract_clause_low_risk_router",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "route_exception_records",
+        "gold_service": "contract_clause_legal_review_router",
+        "submission_intent": "route_exception_records",
+        "submission_service": "contract_clause_legal_review_router",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "run_structured_extraction",
+        "gold_service": "contract_clause_structured_extractor",
+        "submission_intent": "run_structured_extraction",
+        "submission_service": "contract_clause_structured_extractor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "validate_source_contract",
+        "gold_service": "contract_clause_contract_validator",
+        "submission_intent": "validate_source_contract",
+        "submission_service": "contract_clause_contract_validator",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "write_vector_index",
+        "gold_service": "fixture_vector_index_writer",
+        "submission_intent": "write_vector_index",
+        "submission_service": "fixture_vector_index_writer",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 13,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "source_fixture_loaded",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-brcxqdw6/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "source_files_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-brcxqdw6/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "source_records_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-brcxqdw6/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-brcxqdw6/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "final_artifact_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-brcxqdw6/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "upstream_evidence_propagated",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-brcxqdw6/artifacts/publish_outputs_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 6,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

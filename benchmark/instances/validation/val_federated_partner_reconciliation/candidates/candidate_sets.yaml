@@ -1,0 +1,64 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_federated_partner_reconciliation
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.3
+candidate_sets:
+- candidate_set_id: validation_val_federated_partner_reconciliation_multi_resource_readiness_sensor_candidates
+  source_step_refs:
+  - wait_for_partner_extracts
+  service_ids:
+  - multi_resource_readiness_sensor
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_federated_partner_reconciliation_partner_feed_extractor_candidates
+  source_step_refs:
+  - ingest_partner_a
+  - ingest_partner_b
+  - ingest_partner_c
+  service_ids:
+  - partner_feed_extractor
+  - temporary_resource_cleanup
+  - http_json_request_extractor
+- candidate_set_id: validation_val_federated_partner_reconciliation_partner_record_standardizer_candidates
+  source_step_refs:
+  - standardize_records
+  service_ids:
+  - partner_record_standardizer
+  - http_json_request_extractor
+  - tabular_dataset_database_loader
+- candidate_set_id: validation_val_federated_partner_reconciliation_federated_entity_matcher_candidates
+  source_step_refs:
+  - match_entities
+  service_ids:
+  - federated_entity_matcher
+  - tabular_dataset_database_loader
+  - bi_dashboard_refresh_trigger
+- candidate_set_id: validation_val_federated_partner_reconciliation_discrepancy_route_decider_candidates
+  source_step_refs:
+  - route_discrepancies
+  service_ids:
+  - discrepancy_route_decider
+  - bi_dashboard_refresh_trigger
+  - parquet_tabular_data_profiler
+- candidate_set_id: validation_val_federated_partner_reconciliation_clean_partner_record_publisher_candidates
+  source_step_refs:
+  - publish_clean_records
+  service_ids:
+  - clean_partner_record_publisher
+  - parquet_tabular_data_profiler
+  - bulk_email_campaign_sender
+- candidate_set_id: validation_val_federated_partner_reconciliation_review_case_opener_candidates
+  source_step_refs:
+  - open_review_cases
+  service_ids:
+  - review_case_opener
+  - bulk_email_campaign_sender
+  - file_location_availability_sensor
+- candidate_set_id: validation_val_federated_partner_reconciliation_audit_summary_writer_candidates
+  source_step_refs:
+  - write_reconciliation_audit
+  service_ids:
+  - audit_summary_writer
+  - file_location_availability_sensor
+  - reviewed_domain_adapter

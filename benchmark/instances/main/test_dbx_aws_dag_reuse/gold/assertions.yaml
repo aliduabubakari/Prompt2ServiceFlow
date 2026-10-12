@@ -1,0 +1,15 @@
+assertions_version: 0.1.0
+pipeline_id: test_dbx_aws_dag_reuse
+scenarios:
+- scenario: dbx_run
+  assertions:
+  - assertion_id: started
+    type: json_path_equals
+    path: artifacts/gen_status.json
+    json_path: success
+    expected: true
+  - assertion_id: completed
+    type: json_path_equals
+    path: artifacts/cleanup_status.json
+    json_path: success
+    expected: true

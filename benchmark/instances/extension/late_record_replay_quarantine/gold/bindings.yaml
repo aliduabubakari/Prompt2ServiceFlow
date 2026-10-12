@@ -1,0 +1,33 @@
+binding_gold_version: 0.1.0
+benchmark_id: extension:late_record_replay_quarantine
+bindings:
+- intent_id: ingest_source_batch
+  service_id: late_record_replay_batch_ingestor
+  service_version: 1.0.0
+- intent_id: validate_source_contract
+  service_id: retention_policy_contract_validator
+  service_version: 1.0.0
+- intent_id: load_previous_checkpoint
+  service_id: checkpoint_manifest_loader
+  service_version: 1.0.0
+- intent_id: apply_batch_to_checkpoint
+  service_id: checkpoint_state_transition_applier
+  service_version: 1.0.0
+- intent_id: quarantine_late_or_invalid_records
+  service_id: late_event_quarantine_writer
+  service_version: 1.0.0
+- intent_id: evaluate_policy_or_risk
+  service_id: retention_policy_risk_decider
+  service_version: 1.0.0
+- intent_id: route_approved_records
+  service_id: compliance_approved_record_router
+  service_version: 1.0.0
+- intent_id: route_exception_records
+  service_id: compliance_exception_review_router
+  service_version: 1.0.0
+- intent_id: merge_route_outcomes
+  service_id: checkpoint_route_outcome_merger
+  service_version: 1.0.0
+- intent_id: publish_outputs
+  service_id: checkpoint_output_bundle_publisher
+  service_version: 1.0.0

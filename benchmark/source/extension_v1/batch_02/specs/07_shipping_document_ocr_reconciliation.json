@@ -1,0 +1,395 @@
+{
+  "spec_version": "1.0",
+  "corpus": "Prompt2ServiceFlow Extension-50",
+  "corpus_version": "extension_v1",
+  "pipeline_id": "shipping_document_ocr_reconciliation",
+  "pipeline_name": "Shipping Document OCR Reconciliation",
+  "source": {
+    "unique_key": null,
+    "repo": "prompt2serviceflow-extension-v1",
+    "file_path": "synthetic/shipping_document_ocr_reconciliation.py",
+    "repo_url": null,
+    "detected_airflow_version": "2.x",
+    "sampled_version": null,
+    "sampled_commit": null,
+    "sampled_time": null,
+    "source_fingerprint_sha256": null,
+    "source_type": "synthetic_provenance_marked"
+  },
+  "summary": {
+    "purpose": "Reconcile OCR-derived shipping details with manifests and carrier snapshots.",
+    "business_domain": "Supply Chain/Manufacturing",
+    "execution_model": "bounded_batch",
+    "topology_pattern": "fan_in",
+    "extension_track": "image_document_multimodal",
+    "complexity_band": "complex",
+    "input_modalities": [
+      "pdf",
+      "image",
+      "table",
+      "json"
+    ],
+    "output_modalities": [
+      "table",
+      "json",
+      "exception_report"
+    ],
+    "notes": "Synthetic Extension-50 source package. No hidden gold annotations are included."
+  },
+  "schedule": {
+    "schedule_type": "manual",
+    "schedule_expression": null,
+    "timezone": null,
+    "start_date": null,
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "ingest_primary_source",
+        "to": "validate_source_contracts"
+      },
+      {
+        "from": "ingest_secondary_source",
+        "to": "validate_source_contracts"
+      },
+      {
+        "from": "ingest_reference_source",
+        "to": "validate_source_contracts"
+      },
+      {
+        "from": "validate_source_contracts",
+        "to": "normalize_sources"
+      },
+      {
+        "from": "normalize_sources",
+        "to": "fuse_sources"
+      },
+      {
+        "from": "fuse_sources",
+        "to": "extract_visual_text_features"
+      },
+      {
+        "from": "extract_visual_text_features",
+        "to": "join_reference_metadata"
+      },
+      {
+        "from": "join_reference_metadata",
+        "to": "assess_multimodal_quality"
+      },
+      {
+        "from": "assess_multimodal_quality",
+        "to": "publish_outputs"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "group_id": "source_fanin",
+        "steps": [
+          "ingest_primary_source",
+          "ingest_secondary_source",
+          "ingest_reference_source"
+        ]
+      }
+    ],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "fixture_backed_system",
+      "name": "logistics document store",
+      "identifier": "synthetic://extension-v1/shipping_document_ocr_reconciliation/1",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    },
+    {
+      "type": "fixture_backed_system",
+      "name": "exception management queue",
+      "identifier": "synthetic://extension-v1/shipping_document_ocr_reconciliation/2",
+      "details": [
+        "No production system is contacted."
+      ],
+      "auth": []
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "source_bundle",
+        "description": "Fixture-backed source input bundle"
+      },
+      {
+        "identifier": "prepared_outputs",
+        "description": "Validated workflow output bundle"
+      },
+      {
+        "identifier": "audit_manifest",
+        "description": "Provenance, checksum, quality, and routing evidence"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": [],
+    "modalities": [
+      "pdf",
+      "image",
+      "table",
+      "json"
+    ]
+  },
+  "steps": [
+    {
+      "step_id": "ingest_primary_source",
+      "name": "Ingest Primary Source",
+      "objective": "Ingest the primary source for shipping document OCR evidence.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "ingest_secondary_source",
+      "name": "Ingest Secondary Source",
+      "objective": "Ingest the secondary source for shipping document OCR evidence.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "ingest_reference_source",
+      "name": "Ingest Reference Source",
+      "objective": "Ingest reference data needed to interpret shipping document OCR evidence.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "validate_source_contracts",
+      "name": "Validate Source Contracts",
+      "objective": "Validate schemas, identities, and freshness constraints across all shipping document OCR evidence sources.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "normalize_sources",
+      "name": "Normalize Sources",
+      "objective": "Normalize source-specific fields into a shared representation for shipping document OCR evidence.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "fuse_sources",
+      "name": "Fuse Sources",
+      "objective": "Fuse normalized sources into a coherent shipping document OCR evidence artifact.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "extract_visual_text_features",
+      "name": "Extract Visual Text Features",
+      "objective": "Extract OCR text, visual metadata, or layout features from shipping document OCR evidence.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "join_reference_metadata",
+      "name": "Join Reference Metadata",
+      "objective": "Join shipping document OCR evidence features with reference metadata.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "assess_multimodal_quality",
+      "name": "Assess Multimodal Quality",
+      "objective": "Assess visual, document, and metadata quality for shipping document OCR evidence.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    },
+    {
+      "step_id": "publish_outputs",
+      "name": "Publish Outputs",
+      "objective": "Publish the prepared shipping document OCR evidence outputs and completion status.",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "PT5M",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": [
+          "deterministic fixture-backed batch input"
+        ]
+      }
+    }
+  ]
+}

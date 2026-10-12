@@ -1,0 +1,69 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:climate_data_fusion_pipeline
+mappings:
+- intent_id: download_noaa
+  inputs: {}
+  outputs:
+    raw_station_csv: noaa_csv
+    extraction_status: noaa_dl_status
+- intent_id: normalize_noaa
+  inputs:
+    raw_station_csv: noaa_csv
+  outputs:
+    normalized_station_csv: norm_noaa_csv
+    normalization_status: norm_noaa_status
+- intent_id: download_ecmwf
+  inputs: {}
+  outputs:
+    raw_station_csv: ecmwf_csv
+    extraction_status: ecmwf_dl_status
+- intent_id: normalize_ecmwf
+  inputs:
+    raw_station_csv: ecmwf_csv
+  outputs:
+    normalized_station_csv: norm_ecmwf_csv
+    normalization_status: norm_ecmwf_status
+- intent_id: download_jma
+  inputs: {}
+  outputs:
+    raw_station_csv: jma_csv
+    extraction_status: jma_dl_status
+- intent_id: normalize_jma
+  inputs:
+    raw_station_csv: jma_csv
+  outputs:
+    normalized_station_csv: norm_jma_csv
+    normalization_status: norm_jma_status
+- intent_id: download_metoffice
+  inputs: {}
+  outputs:
+    raw_station_csv: metoffice_csv
+    extraction_status: metoffice_dl_status
+- intent_id: normalize_metoffice
+  inputs:
+    raw_station_csv: metoffice_csv
+  outputs:
+    normalized_station_csv: norm_metoffice_csv
+    normalization_status: norm_metoffice_status
+- intent_id: download_bom
+  inputs: {}
+  outputs:
+    raw_station_csv: bom_csv
+    extraction_status: bom_dl_status
+- intent_id: normalize_bom
+  inputs:
+    raw_station_csv: bom_csv
+  outputs:
+    normalized_station_csv: norm_bom_csv
+    normalization_status: norm_bom_status
+- intent_id: merge_climate_data
+  inputs:
+    normalized_station_csvs:
+    - norm_noaa_csv
+    - norm_ecmwf_csv
+    - norm_jma_csv
+    - norm_metoffice_csv
+    - norm_bom_csv
+  outputs:
+    unified_climate_dataset: merged_dataset
+    fusion_status: merge_status

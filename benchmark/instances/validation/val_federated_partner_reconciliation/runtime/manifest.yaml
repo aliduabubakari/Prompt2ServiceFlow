@@ -1,0 +1,103 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_federated_partner_reconciliation
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: wait_for_partner_extracts
+  script: scripts/01_wait_for_partner_extracts.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: ingest_partner_a
+  script: scripts/02_ingest_partner_a.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - wait_for_partner_extracts
+- intent_id: ingest_partner_b
+  script: scripts/03_ingest_partner_b.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - wait_for_partner_extracts
+- intent_id: ingest_partner_c
+  script: scripts/04_ingest_partner_c.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - wait_for_partner_extracts
+- intent_id: standardize_records
+  script: scripts/05_standardize_records.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - ingest_partner_a
+  - ingest_partner_b
+  - ingest_partner_c
+- intent_id: match_entities
+  script: scripts/06_match_entities.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - standardize_records
+- intent_id: route_discrepancies
+  script: scripts/07_route_discrepancies.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - match_entities
+- intent_id: publish_clean_records
+  script: scripts/08_publish_clean_records.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_discrepancies
+- intent_id: open_review_cases
+  script: scripts/09_open_review_cases.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_discrepancies
+- intent_id: write_reconciliation_audit
+  script: scripts/10_write_reconciliation_audit.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - publish_clean_records
+  - open_review_cases
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

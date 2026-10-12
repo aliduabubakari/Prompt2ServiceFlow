@@ -1,0 +1,697 @@
+ir_version: 0.1.0
+composition_id: crop_disease_image_triage
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.1
+  sha256: a8497f3589304d2ff9cb5a734a99b5188d558fa6fdb55f153419458c117b302f
+source:
+  dataset_id: prompt2serviceflow_extension_sources
+  dataset_version: extension_v1
+  benchmark_id: extension:crop_disease_image_triage
+  split: extension
+  pipeline_id: crop_disease_image_triage
+  description_path: source/extension_v1/batch_02/descriptions/09_crop_disease_image_triage.txt
+  description_sha256: 68e9c60988e92b9087cc7672bf984760d1bafae358131625cf92afd083a9d0ea
+  internal_spec_path: source/extension_v1/batch_02/specs/09_crop_disease_image_triage.json
+  internal_spec_sha256: 55a088b2ae8c9a2d08648218354948bea98a14f953e8733f5958596534b5efd0
+requirement:
+  name: Crop Disease Image Triage
+  purpose: Prepare crop image evidence and route likely disease cases for expert review.
+  domain: Environmental/Energy
+  execution_model: batch
+  topology: branch_merge
+  information_sufficiency: high
+  notes:
+  - Extension-50 Batch 01 synthetic source.
+  - Event and external-system behavior is represented as bounded fixture-backed batch execution.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: agronomy_intake_bucket
+  type: object_storage
+  name: agronomy intake bucket
+  identifier: synthetic://extension-v1/crop_disease_image_triage/1
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+- system_id: extension_officer_notification_endpoint
+  type: object_storage
+  name: extension officer notification endpoint
+  identifier: synthetic://extension-v1/crop_disease_image_triage/2
+  access_mode: read_write
+  authentication: none
+  mock_strategy: fixture
+service_intents:
+- intent_id: ingest_source_batch
+  name: Ingest Source Batch
+  category: Extractor
+  capability: Ingest the bounded input batch for crop disease image triage.
+  source_step_refs:
+  - ingest_source_batch
+  evidence:
+  - source: internal_spec
+    text: Ingest the bounded input batch for crop disease image triage.
+  inputs:
+  - source_bundle
+  outputs:
+  - ingest_source_batch_artifact
+  - ingest_source_batch_status
+  external_system_refs: &id001
+  - agronomy_intake_bucket
+  - extension_officer_notification_endpoint
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces ingest_source_batch_artifact, ingest_source_batch_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: validate_source_contract
+  name: Validate Source Contract
+  category: QualityCheck
+  capability: Validate required fields, identities, and policy inputs for crop disease image triage.
+  source_step_refs:
+  - validate_source_contract
+  evidence:
+  - source: internal_spec
+    text: Validate required fields, identities, and policy inputs for crop disease image triage.
+  inputs:
+  - ingest_source_batch_artifact
+  outputs:
+  - validate_source_contract_artifact
+  - validate_source_contract_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces validate_source_contract_artifact, validate_source_contract_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: evaluate_policy_or_risk
+  name: Evaluate Policy Or Risk
+  category: DomainAdapter
+  capability: Evaluate quality, policy, risk, or confidence rules for crop disease image triage.
+  source_step_refs:
+  - evaluate_policy_or_risk
+  evidence:
+  - source: internal_spec
+    text: Evaluate quality, policy, risk, or confidence rules for crop disease image triage.
+  inputs:
+  - validate_source_contract_artifact
+  outputs:
+  - evaluate_policy_or_risk_artifact
+  - evaluate_policy_or_risk_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces evaluate_policy_or_risk_artifact, evaluate_policy_or_risk_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: route_approved_records
+  name: Route Approved Records
+  category: Publisher
+  capability: Route approved or low-risk crop disease image triage records.
+  source_step_refs:
+  - route_approved_records
+  evidence:
+  - source: internal_spec
+    text: Route approved or low-risk crop disease image triage records.
+  inputs:
+  - evaluate_policy_or_risk_artifact
+  outputs:
+  - route_approved_records_artifact
+  - route_approved_records_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces route_approved_records_artifact, route_approved_records_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: route_exception_records
+  name: Route Exception Records
+  category: Publisher
+  capability: Route exception, high-risk, or low-confidence crop disease image triage records.
+  source_step_refs:
+  - route_exception_records
+  evidence:
+  - source: internal_spec
+    text: Route exception, high-risk, or low-confidence crop disease image triage records.
+  inputs:
+  - evaluate_policy_or_risk_artifact
+  outputs:
+  - route_exception_records_artifact
+  - route_exception_records_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces route_exception_records_artifact, route_exception_records_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: merge_route_outcomes
+  name: Merge Route Outcomes
+  category: Aggregator
+  capability: Merge routed outcomes into a complete crop disease image triage disposition artifact.
+  source_step_refs:
+  - merge_route_outcomes
+  evidence:
+  - source: internal_spec
+    text: Merge routed outcomes into a complete crop disease image triage disposition artifact.
+  inputs:
+  - route_approved_records_artifact
+  - route_exception_records_artifact
+  outputs:
+  - merge_route_outcomes_artifact
+  - merge_route_outcomes_status
+  external_system_refs: []
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces merge_route_outcomes_artifact, merge_route_outcomes_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+- intent_id: publish_outputs
+  name: Publish Outputs
+  category: Publisher
+  capability: Publish crop disease image triage outputs, review status, and completion metadata.
+  source_step_refs:
+  - publish_outputs
+  evidence:
+  - source: internal_spec
+    text: Publish crop disease image triage outputs, review status, and completion metadata.
+  inputs:
+  - merge_route_outcomes_artifact
+  outputs:
+  - publish_outputs_artifact
+  - publish_outputs_status
+  external_system_refs: *id001
+  preconditions:
+  - The bounded fixture-backed source artifacts are available.
+  effects:
+  - Produces publish_outputs_artifact, publish_outputs_status.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one reviewed multimodal catalogue service.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - Synthetic source specification provides explicit bounded-batch step semantics.
+source_step_accounting:
+- source_step_ref: ingest_source_batch
+  disposition: service
+  intent_ids:
+  - ingest_source_batch
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: validate_source_contract
+  disposition: service
+  intent_ids:
+  - validate_source_contract
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: evaluate_policy_or_risk
+  disposition: service
+  intent_ids:
+  - evaluate_policy_or_risk
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: route_approved_records
+  disposition: service
+  intent_ids:
+  - route_approved_records
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: route_exception_records
+  disposition: service
+  intent_ids:
+  - route_exception_records
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: merge_route_outcomes
+  disposition: service
+  intent_ids:
+  - merge_route_outcomes
+  rationale: The source step maps to one reviewed multimodal service intent.
+- source_step_ref: publish_outputs
+  disposition: service
+  intent_ids:
+  - publish_outputs
+  rationale: The source step maps to one reviewed multimodal service intent.
+control_flow:
+  edges:
+  - from: ingest_source_batch
+    to: validate_source_contract
+  - from: validate_source_contract
+    to: evaluate_policy_or_risk
+  - from: evaluate_policy_or_risk
+    to: route_approved_records
+  - from: evaluate_policy_or_risk
+    to: route_exception_records
+  - from: route_approved_records
+    to: merge_route_outcomes
+  - from: route_exception_records
+    to: merge_route_outcomes
+  - from: merge_route_outcomes
+    to: publish_outputs
+  parallel_groups: []
+  branches:
+  - branch_id: evaluate_policy_or_risk_branch
+    decision_intent: evaluate_policy_or_risk
+    cases:
+    - case_id: approved
+      condition: decision.approved == true
+      next_intents:
+      - route_approved_records
+    - case_id: exception
+      condition: decision.exception == true
+      next_intents:
+      - route_exception_records
+    merge_intent: merge_route_outcomes
+  gates:
+  - gate_id: evaluate_policy_or_risk_gate
+    sensor_intent: evaluate_policy_or_risk
+    condition: policy, risk, confidence, or quality decision
+    gated_intents:
+    - route_approved_records
+    - route_exception_records
+artifacts:
+- artifact_id: source_bundle
+  name: Source Bundle
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: input
+  producer: null
+  consumers:
+  - ingest_source_batch
+  sensitivity: internal
+  persistence: workflow
+  fixture_ref: fixtures/inputs/fixture.json
+- artifact_id: ingest_source_batch_artifact
+  name: Ingest Source Batch Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: ingest_source_batch
+  consumers:
+  - validate_source_contract
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: ingest_source_batch_status
+  name: Ingest Source Batch Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: ingest_source_batch
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: validate_source_contract_artifact
+  name: Validate Source Contract Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: validate_source_contract
+  consumers:
+  - evaluate_policy_or_risk
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: validate_source_contract_status
+  name: Validate Source Contract Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: validate_source_contract
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: evaluate_policy_or_risk_artifact
+  name: Evaluate Policy Or Risk Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: evaluate_policy_or_risk
+  consumers:
+  - route_approved_records
+  - route_exception_records
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: evaluate_policy_or_risk_status
+  name: Evaluate Policy Or Risk Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: evaluate_policy_or_risk
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: route_approved_records_artifact
+  name: Route Approved Records Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: route_approved_records
+  consumers:
+  - merge_route_outcomes
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: route_approved_records_status
+  name: Route Approved Records Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: route_approved_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: route_exception_records_artifact
+  name: Route Exception Records Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: route_exception_records
+  consumers:
+  - merge_route_outcomes
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: route_exception_records_status
+  name: Route Exception Records Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: route_exception_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: merge_route_outcomes_artifact
+  name: Merge Route Outcomes Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: intermediate
+  producer: merge_route_outcomes
+  consumers:
+  - publish_outputs
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: merge_route_outcomes_status
+  name: Merge Route Outcomes Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: merge_route_outcomes
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+- artifact_id: publish_outputs_artifact
+  name: Publish Outputs Artifact
+  kind: artifact
+  data_type: any
+  media_type: application/json
+  role: output
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: publish_outputs_status
+  name: Publish Outputs Status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  role: status
+  producer: publish_outputs
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+  schema_ref: contracts/artifacts/status.schema.json
+bindings:
+- intent_id: ingest_source_batch
+  service_id: multimodal_source_bundle_ingestor
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: source_bundle
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: ingest_source_batch_artifact
+  - port: execution_report
+    artifact_id: ingest_source_batch_status
+  parameter_bindings:
+    operation_profile: ingest_source_batch
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: validate_source_contract
+  service_id: multimodal_source_contract_validator
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: ingest_source_batch_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: validate_source_contract_artifact
+  - port: execution_report
+    artifact_id: validate_source_contract_status
+  parameter_bindings:
+    operation_profile: validate_source_contract
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: evaluate_policy_or_risk
+  service_id: multimodal_policy_risk_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: validate_source_contract_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: evaluate_policy_or_risk_artifact
+  - port: execution_report
+    artifact_id: evaluate_policy_or_risk_status
+  parameter_bindings:
+    operation_profile: evaluate_policy_or_risk
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: route_approved_records
+  service_id: approved_multimodal_record_router
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: evaluate_policy_or_risk_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: route_approved_records_artifact
+  - port: execution_report
+    artifact_id: route_approved_records_status
+  parameter_bindings:
+    operation_profile: route_approved_records
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: route_exception_records
+  service_id: exception_multimodal_review_router
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: evaluate_policy_or_risk_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: route_exception_records_artifact
+  - port: execution_report
+    artifact_id: route_exception_records_status
+  parameter_bindings:
+    operation_profile: route_exception_records
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: merge_route_outcomes
+  service_id: multimodal_route_outcome_merger
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: route_approved_records_artifact
+  - port: input_artifacts
+    artifact_id: route_exception_records_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: merge_route_outcomes_artifact
+  - port: execution_report
+    artifact_id: merge_route_outcomes_status
+  parameter_bindings:
+    operation_profile: merge_route_outcomes
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+- intent_id: publish_outputs
+  service_id: multimodal_output_bundle_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: input_artifacts
+    artifact_id: merge_route_outcomes_artifact
+  output_bindings:
+  - port: output_artifacts
+    artifact_id: publish_outputs_artifact
+  - port: execution_report
+    artifact_id: publish_outputs_status
+  parameter_bindings:
+    operation_profile: publish_outputs
+    modality_policy:
+      batch: extension_50_batch_01
+      true_streaming: false
+  secret_bindings: []
+  rationale: The curated multimodal descriptor matches the bounded batch source step contract.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - public
+    - internal
+    - confidential
+    - pii
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - Batch 01 mocks do not contact production image, document, or review systems.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 reviewed Batch 01 validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 reviewed Batch 01 validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 reviewed Batch 01 validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 reviewed Batch 01 validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 reviewed Batch 01 validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 reviewed Batch 01 validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 reviewed Batch 01 validation.

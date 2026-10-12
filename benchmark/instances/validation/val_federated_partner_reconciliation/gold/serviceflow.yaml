@@ -1,0 +1,938 @@
+ir_version: 0.1.0
+composition_id: val_federated_partner_reconciliation
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.3
+  sha256: 0807f68e6a990b9818c6f954c7089ae99a57b570a33b9f9ce5e6e32ffda8a150
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_federated_partner_reconciliation
+  split: validation
+  pipeline_id: val_federated_partner_reconciliation
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/16_val_federated_partner_reconciliation.txt
+  description_sha256: c60bfcaef6b0eaf87db1456410d6623421127c731377b67aefb31f543a7b91dd
+  internal_spec_path: source/internal_specs/validation_20/16_val_federated_partner_reconciliation.json
+  internal_spec_sha256: a9dc7dda7979dc89fe2f2aa809f04421daa4c43a18e03e50be00baa9147d4696
+requirement:
+  name: Val Federated Partner Reconciliation
+  purpose: Wait for partner extracts, ingest three feeds in parallel, reconcile discrepancies, route unresolved
+    records to review, and publish consolidated outputs.
+  domain: validation_holdout
+  execution_model: batch
+  topology: mixed
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: partner_resources
+  type: other
+  name: Federated partner extract resources
+  identifier: partner_resources
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: review_case_system
+  type: http_api
+  name: Review case system
+  identifier: review_case_system
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: wait_for_partner_extracts
+  name: Wait For Partner Extracts
+  category: Sensor
+  capability: Perform the reviewed wait for partner extracts capability.
+  source_step_refs:
+  - wait_for_partner_extracts
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: wait_for_partner_extracts.'
+  inputs:
+  - partner_resources
+  outputs:
+  - partner_ready
+  - partner_ready_status
+  external_system_refs:
+  - partner_resources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared partner_ready, partner_ready_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: ingest_partner_a
+  name: Ingest Partner A
+  category: Extractor
+  capability: Perform the reviewed ingest partner a capability.
+  source_step_refs:
+  - ingest_partner_a
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: ingest_partner_a.'
+  inputs:
+  - partner_resources
+  outputs:
+  - partner_a_extract
+  - partner_a_status
+  external_system_refs:
+  - partner_resources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared partner_a_extract, partner_a_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: ingest_partner_b
+  name: Ingest Partner B
+  category: Extractor
+  capability: Perform the reviewed ingest partner b capability.
+  source_step_refs:
+  - ingest_partner_b
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: ingest_partner_b.'
+  inputs:
+  - partner_resources
+  outputs:
+  - partner_b_extract
+  - partner_b_status
+  external_system_refs:
+  - partner_resources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared partner_b_extract, partner_b_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: ingest_partner_c
+  name: Ingest Partner C
+  category: Extractor
+  capability: Perform the reviewed ingest partner c capability.
+  source_step_refs:
+  - ingest_partner_c
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: ingest_partner_c.'
+  inputs:
+  - partner_resources
+  outputs:
+  - partner_c_extract
+  - partner_c_status
+  external_system_refs:
+  - partner_resources
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared partner_c_extract, partner_c_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: standardize_records
+  name: Standardize Records
+  category: Transformer
+  capability: Perform the reviewed standardize records capability.
+  source_step_refs:
+  - standardize_records
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: standardize_records.'
+  inputs:
+  - partner_a_extract
+  - partner_b_extract
+  - partner_c_extract
+  outputs:
+  - standardized_records
+  - standardization_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared standardized_records, standardization_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: match_entities
+  name: Match Entities
+  category: Reconciler
+  capability: Perform the reviewed match entities capability.
+  source_step_refs:
+  - match_entities
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: match_entities.'
+  inputs:
+  - standardized_records
+  outputs:
+  - clean_records
+  - discrepancy_records
+  - match_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared clean_records, discrepancy_records, match_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: route_discrepancies
+  name: Route Discrepancies
+  category: DomainAdapter
+  capability: Perform the reviewed route discrepancies capability.
+  source_step_refs:
+  - route_discrepancies
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: route_discrepancies.'
+  inputs:
+  - clean_records
+  - discrepancy_records
+  outputs:
+  - discrepancy_route
+  - discrepancy_routing_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared discrepancy_route, discrepancy_routing_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: publish_clean_records
+  name: Publish Clean Records
+  category: Publisher
+  capability: Perform the reviewed publish clean records capability.
+  source_step_refs:
+  - publish_clean_records
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: publish_clean_records.'
+  inputs:
+  - clean_records
+  outputs:
+  - clean_publication_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared clean_publication_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: open_review_cases
+  name: Open Review Cases
+  category: Publisher
+  capability: Perform the reviewed open review cases capability.
+  source_step_refs:
+  - open_review_cases
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: open_review_cases.'
+  inputs:
+  - discrepancy_records
+  - review_case_system
+  outputs:
+  - review_cases
+  - review_case_status
+  external_system_refs:
+  - review_case_system
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared review_cases, review_case_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: write_reconciliation_audit
+  name: Write Reconciliation Audit
+  category: ReportGenerator
+  capability: Perform the reviewed write reconciliation audit capability.
+  source_step_refs:
+  - write_reconciliation_audit
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: write_reconciliation_audit.'
+  inputs:
+  - clean_publication_status
+  - review_case_status
+  outputs:
+  - audit_report
+  - audit_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared audit_report, audit_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: wait_for_partner_extracts
+  disposition: service
+  intent_ids:
+  - wait_for_partner_extracts
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: ingest_partner_a
+  disposition: service
+  intent_ids:
+  - ingest_partner_a
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: ingest_partner_b
+  disposition: service
+  intent_ids:
+  - ingest_partner_b
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: ingest_partner_c
+  disposition: service
+  intent_ids:
+  - ingest_partner_c
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: standardize_records
+  disposition: service
+  intent_ids:
+  - standardize_records
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: match_entities
+  disposition: service
+  intent_ids:
+  - match_entities
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: route_discrepancies
+  disposition: service
+  intent_ids:
+  - route_discrepancies
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: publish_clean_records
+  disposition: service
+  intent_ids:
+  - publish_clean_records
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: open_review_cases
+  disposition: service
+  intent_ids:
+  - open_review_cases
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: write_reconciliation_audit
+  disposition: service
+  intent_ids:
+  - write_reconciliation_audit
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: wait_for_partner_extracts
+    to: ingest_partner_a
+  - from: wait_for_partner_extracts
+    to: ingest_partner_b
+  - from: wait_for_partner_extracts
+    to: ingest_partner_c
+  - from: ingest_partner_a
+    to: standardize_records
+  - from: ingest_partner_b
+    to: standardize_records
+  - from: ingest_partner_c
+    to: standardize_records
+  - from: standardize_records
+    to: match_entities
+  - from: match_entities
+    to: route_discrepancies
+  - from: route_discrepancies
+    to: publish_clean_records
+  - from: route_discrepancies
+    to: open_review_cases
+  - from: publish_clean_records
+    to: write_reconciliation_audit
+  - from: open_review_cases
+    to: write_reconciliation_audit
+  parallel_groups:
+  - group_id: partner_ingestion
+    intent_ids:
+    - ingest_partner_a
+    - ingest_partner_b
+    - ingest_partner_c
+  branches:
+  - branch_id: discrepancy_route
+    decision_intent: route_discrepancies
+    decision_artifact: discrepancy_route
+    cases:
+    - case_id: matched
+      condition: discrepancy_route.route == publish_clean_records
+      next_intents:
+      - publish_clean_records
+    - case_id: unresolved
+      condition: discrepancy_route.route == open_review_cases
+      next_intents:
+      - open_review_cases
+    merge_intent: write_reconciliation_audit
+  gates:
+  - gate_id: partner_extract_gate
+    sensor_intent: wait_for_partner_extracts
+    condition: all_partner_files_arrived == true
+    gated_intents:
+    - ingest_partner_a
+    - ingest_partner_b
+    - ingest_partner_c
+    - standardize_records
+    - match_entities
+artifacts:
+- artifact_id: partner_resources
+  name: Partner Resources
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: partner_resources
+- artifact_id: review_case_system
+  name: Review Case System
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: review_case_system
+- artifact_id: partner_ready
+  name: Partner Ready
+  kind: artifact
+  data_type: json
+  role: output
+  producer: wait_for_partner_extracts
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: partner_ready_status
+  name: Partner Ready Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: wait_for_partner_extracts
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: partner_a_extract
+  name: Partner A Extract
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: ingest_partner_a
+  consumers:
+  - standardize_records
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: partner_a_status
+  name: Partner A Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: ingest_partner_a
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: partner_b_extract
+  name: Partner B Extract
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: ingest_partner_b
+  consumers:
+  - standardize_records
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: partner_b_status
+  name: Partner B Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: ingest_partner_b
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: partner_c_extract
+  name: Partner C Extract
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: ingest_partner_c
+  consumers:
+  - standardize_records
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: partner_c_status
+  name: Partner C Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: ingest_partner_c
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: standardized_records
+  name: Standardized Records
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: standardize_records
+  consumers:
+  - match_entities
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: standardization_status
+  name: Standardization Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: standardize_records
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: clean_records
+  name: Clean Records
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: match_entities
+  consumers:
+  - route_discrepancies
+  - publish_clean_records
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: discrepancy_records
+  name: Discrepancy Records
+  kind: artifact
+  data_type: table
+  role: intermediate
+  producer: match_entities
+  consumers:
+  - route_discrepancies
+  - open_review_cases
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: match_status
+  name: Match Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: match_entities
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: discrepancy_route
+  name: Discrepancy Route
+  kind: artifact
+  data_type: json
+  role: output
+  producer: route_discrepancies
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: discrepancy_routing_status
+  name: Discrepancy Routing Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: route_discrepancies
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: clean_publication_status
+  name: Clean Publication Status
+  kind: artifact
+  data_type: status
+  role: intermediate
+  producer: publish_clean_records
+  consumers:
+  - write_reconciliation_audit
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: review_cases
+  name: Review Cases
+  kind: artifact
+  data_type: json
+  role: output
+  producer: open_review_cases
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: review_case_status
+  name: Review Case Status
+  kind: artifact
+  data_type: status
+  role: intermediate
+  producer: open_review_cases
+  consumers:
+  - write_reconciliation_audit
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: audit_report
+  name: Audit Report
+  kind: artifact
+  data_type: json
+  role: output
+  producer: write_reconciliation_audit
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: audit_status
+  name: Audit Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: write_reconciliation_audit
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: wait_for_partner_extracts
+  service_id: multi_resource_readiness_sensor
+  service_version: 1.0.0
+  input_bindings:
+  - port: resource_group
+    artifact_id: partner_resources
+  output_bindings:
+  - port: readiness_decision
+    artifact_id: partner_ready
+  - port: readiness_status
+    artifact_id: partner_ready_status
+  parameter_bindings:
+    readiness_condition: all_partner_files_arrived
+    minimum_ready_count: 3
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: ingest_partner_a
+  service_id: partner_feed_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: partner_source
+    artifact_id: partner_resources
+  output_bindings:
+  - port: partner_extract
+    artifact_id: partner_a_extract
+  - port: extraction_status
+    artifact_id: partner_a_status
+  parameter_bindings:
+    partner_name: partner_a
+    source_kind: sftp
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: ingest_partner_b
+  service_id: partner_feed_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: partner_source
+    artifact_id: partner_resources
+  output_bindings:
+  - port: partner_extract
+    artifact_id: partner_b_extract
+  - port: extraction_status
+    artifact_id: partner_b_status
+  parameter_bindings:
+    partner_name: partner_b
+    source_kind: api
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: ingest_partner_c
+  service_id: partner_feed_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: partner_source
+    artifact_id: partner_resources
+  output_bindings:
+  - port: partner_extract
+    artifact_id: partner_c_extract
+  - port: extraction_status
+    artifact_id: partner_c_status
+  parameter_bindings:
+    partner_name: partner_c
+    source_kind: bucket
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: standardize_records
+  service_id: partner_record_standardizer
+  service_version: 1.0.0
+  input_bindings:
+  - port: partner_a_extract
+    artifact_id: partner_a_extract
+  - port: partner_b_extract
+    artifact_id: partner_b_extract
+  - port: partner_c_extract
+    artifact_id: partner_c_extract
+  output_bindings:
+  - port: standardized_records
+    artifact_id: standardized_records
+  - port: standardization_status
+    artifact_id: standardization_status
+  parameter_bindings:
+    schema_profile:
+      entity: partner
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: match_entities
+  service_id: federated_entity_matcher
+  service_version: 1.0.0
+  input_bindings:
+  - port: standardized_records
+    artifact_id: standardized_records
+  output_bindings:
+  - port: clean_records
+    artifact_id: clean_records
+  - port: discrepancy_records
+    artifact_id: discrepancy_records
+  - port: match_status
+    artifact_id: match_status
+  parameter_bindings:
+    match_keys:
+    - partner_id
+    matching_policy: deterministic
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: route_discrepancies
+  service_id: discrepancy_route_decider
+  service_version: 1.0.0
+  input_bindings:
+  - port: clean_records
+    artifact_id: clean_records
+  - port: discrepancy_records
+    artifact_id: discrepancy_records
+  output_bindings:
+  - port: route_decision
+    artifact_id: discrepancy_route
+  - port: routing_status
+    artifact_id: discrepancy_routing_status
+  parameter_bindings:
+    matched_route: publish_clean_records
+    unresolved_route: open_review_cases
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: publish_clean_records
+  service_id: clean_partner_record_publisher
+  service_version: 1.0.0
+  input_bindings:
+  - port: clean_records
+    artifact_id: clean_records
+  output_bindings:
+  - port: publication_status
+    artifact_id: clean_publication_status
+  parameter_bindings:
+    destination_name: consolidated_partner_records
+    write_mode: replace
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: open_review_cases
+  service_id: review_case_opener
+  service_version: 1.0.0
+  input_bindings:
+  - port: review_records
+    artifact_id: discrepancy_records
+  - port: case_system
+    artifact_id: review_case_system
+  output_bindings:
+  - port: review_cases
+    artifact_id: review_cases
+  - port: case_status
+    artifact_id: review_case_status
+  parameter_bindings:
+    case_type: partner_discrepancy
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: write_reconciliation_audit
+  service_id: audit_summary_writer
+  service_version: 1.0.0
+  input_bindings:
+  - port: primary_status
+    artifact_id: clean_publication_status
+  - port: secondary_status
+    artifact_id: review_case_status
+  output_bindings:
+  - port: audit_report
+    artifact_id: audit_report
+  - port: audit_status
+    artifact_id: audit_status
+  parameter_bindings:
+    audit_name: partner_reconciliation
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

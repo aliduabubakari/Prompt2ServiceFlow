@@ -1,0 +1,437 @@
+ir_version: 0.1.0
+composition_id: val_parallel_thumbnail_generation
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.1
+  sha256: 1b343511eb11bdaac318a5be39f384dda55f001773a7b37f2dc2572c9ff6b4e5
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: validation:val_parallel_thumbnail_generation
+  split: validation
+  pipeline_id: val_parallel_thumbnail_generation
+  description_path: source/zenodo_v1_0_0/descriptions/validation_20/07_val_parallel_thumbnail_generation.txt
+  description_sha256: 5fd47c6c9d91b597042d81869cbc729720ddfbb6ecb7e51ea4a2fba08768b939
+  internal_spec_path: source/internal_specs/validation_20/07_val_parallel_thumbnail_generation.json
+  internal_spec_sha256: 8bff88a4d558c72c741c6cdea420bbcfe35a790f054861eb1222f4c53c46558b
+requirement:
+  name: Val Parallel Thumbnail Generation
+  purpose: Download new product images and generate small, medium, and large thumbnail bundles in parallel.
+  domain: validation_holdout
+  execution_model: batch
+  topology: fan_out
+  information_sufficiency: low
+  notes:
+  - Validation-20 source is sparse; all bindings are strongly inferred and must not be used to tune a
+    system evaluated on this split.
+schedule:
+  type: cron
+  expression: 0 0 * * *
+  timezone: UTC
+  start_date: null
+  catchup: false
+external_systems:
+- system_id: image_cdn
+  type: http_api
+  name: Image CDN
+  identifier: image_cdn
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+- system_id: object_storage
+  type: object_storage
+  name: Object storage
+  identifier: object_storage
+  access_mode: read_write
+  authentication: unknown
+  mock_strategy: fixture
+service_intents:
+- intent_id: download_new_images
+  name: Download New Images
+  category: Extractor
+  capability: Perform the reviewed download new images capability.
+  source_step_refs:
+  - download_new_images
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: download_new_images.'
+  inputs:
+  - image_cdn_resource
+  outputs:
+  - raw_product_images
+  - download_status
+  external_system_refs:
+  - image_cdn
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared raw_product_images, download_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: required
+    secret_access: optional
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: generate_small_thumbnail
+  name: Generate Small Thumbnail
+  category: Transformer
+  capability: Perform the reviewed generate small thumbnail capability.
+  source_step_refs:
+  - generate_small_thumbnail
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: generate_small_thumbnail.'
+  inputs:
+  - raw_product_images
+  outputs:
+  - small_thumbnail
+  - small_render_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared small_thumbnail, small_render_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: generate_medium_thumbnail
+  name: Generate Medium Thumbnail
+  category: Transformer
+  capability: Perform the reviewed generate medium thumbnail capability.
+  source_step_refs:
+  - generate_medium_thumbnail
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: generate_medium_thumbnail.'
+  inputs:
+  - raw_product_images
+  outputs:
+  - medium_thumbnail
+  - medium_render_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared medium_thumbnail, medium_render_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+- intent_id: generate_large_thumbnail
+  name: Generate Large Thumbnail
+  category: Transformer
+  capability: Perform the reviewed generate large thumbnail capability.
+  source_step_refs:
+  - generate_large_thumbnail
+  evidence:
+  - source: internal_spec
+    text: 'Validation source step: generate_large_thumbnail.'
+  inputs:
+  - raw_product_images
+  outputs:
+  - large_thumbnail
+  - large_render_status
+  external_system_refs: []
+  preconditions:
+  - The explicitly bound inputs and configuration are available.
+  effects:
+  - The declared large_thumbnail, large_render_status artifact(s) are produced.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: preferred
+    data_sensitivity:
+    - internal
+  decomposition_rationale: One source step is represented by one observable, contract-bound service intent.
+  confidence: strongly_inferred
+  ambiguity:
+    status: resolved
+    notes:
+    - The source description omits implementation details; curated defaults are isolated in fixture and
+      parameter bindings.
+source_step_accounting:
+- source_step_ref: download_new_images
+  disposition: service
+  intent_ids:
+  - download_new_images
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: generate_small_thumbnail
+  disposition: service
+  intent_ids:
+  - generate_small_thumbnail
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: generate_medium_thumbnail
+  disposition: service
+  intent_ids:
+  - generate_medium_thumbnail
+  rationale: The source specification declares this executable data-processing step.
+- source_step_ref: generate_large_thumbnail
+  disposition: service
+  intent_ids:
+  - generate_large_thumbnail
+  rationale: The source specification declares this executable data-processing step.
+control_flow:
+  edges:
+  - from: download_new_images
+    to: generate_small_thumbnail
+  - from: download_new_images
+    to: generate_medium_thumbnail
+  - from: download_new_images
+    to: generate_large_thumbnail
+  parallel_groups:
+  - group_id: thumbnail_fanout
+    intent_ids:
+    - generate_small_thumbnail
+    - generate_medium_thumbnail
+    - generate_large_thumbnail
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: image_cdn_resource
+  name: Image Cdn Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: image_cdn
+- artifact_id: object_storage_resource
+  name: Object Storage Resource
+  kind: external_resource
+  data_type: object
+  role: input
+  producer: null
+  consumers: []
+  sensitivity: internal
+  persistence: external
+  external_system_ref: object_storage
+- artifact_id: raw_product_images
+  name: Raw Product Images
+  kind: artifact
+  data_type: array
+  role: intermediate
+  producer: download_new_images
+  consumers:
+  - generate_small_thumbnail
+  - generate_medium_thumbnail
+  - generate_large_thumbnail
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: download_status
+  name: Download Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: download_new_images
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: small_thumbnail
+  name: Small Thumbnail
+  kind: artifact
+  data_type: binary
+  role: output
+  producer: generate_small_thumbnail
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: small_render_status
+  name: Small Render Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: generate_small_thumbnail
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: medium_thumbnail
+  name: Medium Thumbnail
+  kind: artifact
+  data_type: binary
+  role: output
+  producer: generate_medium_thumbnail
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: medium_render_status
+  name: Medium Render Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: generate_medium_thumbnail
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: large_thumbnail
+  name: Large Thumbnail
+  kind: artifact
+  data_type: binary
+  role: output
+  producer: generate_large_thumbnail
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: large_render_status
+  name: Large Render Status
+  kind: artifact
+  data_type: status
+  role: output
+  producer: generate_large_thumbnail
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+bindings:
+- intent_id: download_new_images
+  service_id: image_cdn_batch_downloader
+  service_version: 1.0.0
+  input_bindings:
+  - port: image_cdn
+    artifact_id: image_cdn_resource
+  output_bindings:
+  - port: raw_product_images
+    artifact_id: raw_product_images
+  - port: download_status
+    artifact_id: download_status
+  parameter_bindings:
+    prefix: /products/new
+    max_images: 50
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: generate_small_thumbnail
+  service_id: image_thumbnail_renderer
+  service_version: 1.0.0
+  input_bindings:
+  - port: raw_product_images
+    artifact_id: raw_product_images
+  output_bindings:
+  - port: thumbnail_bundle
+    artifact_id: small_thumbnail
+  - port: render_status
+    artifact_id: small_render_status
+  parameter_bindings:
+    size_label: small
+    width: 160
+    height: 160
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: generate_medium_thumbnail
+  service_id: image_thumbnail_renderer
+  service_version: 1.0.0
+  input_bindings:
+  - port: raw_product_images
+    artifact_id: raw_product_images
+  output_bindings:
+  - port: thumbnail_bundle
+    artifact_id: medium_thumbnail
+  - port: render_status
+    artifact_id: medium_render_status
+  parameter_bindings:
+    size_label: medium
+    width: 512
+    height: 512
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+- intent_id: generate_large_thumbnail
+  service_id: image_thumbnail_renderer
+  service_version: 1.0.0
+  input_bindings:
+  - port: raw_product_images
+    artifact_id: raw_product_images
+  output_bindings:
+  - port: thumbnail_bundle
+    artifact_id: large_thumbnail
+  - port: render_status
+    artifact_id: large_render_status
+  parameter_bindings:
+    size_label: large
+    width: 1024
+    height: 1024
+  secret_bindings: []
+  rationale: The descriptor exposes the required inputs, outputs, and side effect without assuming omitted
+    source details.
+  confidence: strongly_inferred
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 10
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: optional
+    secret_placeholders_only: true
+    notes:
+    - Mock fixtures contain no credentials or production records.
+runtime:
+  target: argo-workflows
+  version: 4.0.5
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - G0 deterministic reviewed validation.
+- gate: G1
+  expected_status: pass
+  checks:
+  - G1 deterministic reviewed validation.
+- gate: G2
+  expected_status: pass
+  checks:
+  - G2 deterministic reviewed validation.
+- gate: G3
+  expected_status: pass
+  checks:
+  - G3 deterministic reviewed validation.
+- gate: G4
+  expected_status: pass
+  checks:
+  - G4 deterministic reviewed validation.
+- gate: G5
+  expected_status: pass
+  checks:
+  - G5 deterministic reviewed validation.
+- gate: G6
+  expected_status: pass
+  checks:
+  - G6 deterministic reviewed validation.

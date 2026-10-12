@@ -1,0 +1,66 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:environmental_monitoring_network_v1
+candidate_sets:
+- candidate_set_id: main_environmental_monitoring_network_v1_csv_to_structured_json_table_formatter_candidates
+  required_service_id: csv_to_structured_json_table_formatter
+  labels:
+    csv_to_structured_json_table_formatter: gold
+    csv_to_structured_json_standardizer: contract_mismatch
+    csv_tabular_schema_validating_loader: missing_required_output
+    customer_segment_csv_loader: target_mismatch
+    delimited_file_tabular_dataset_loader: format_mismatch
+    legacy_csv_schema_validator: deprecated_or_incompatible
+- candidate_set_id: main_environmental_monitoring_network_v1_tabular_address_geocoding_enricher_candidates
+  required_service_id: tabular_address_geocoding_enricher
+  labels:
+    tabular_address_geocoding_enricher: gold
+    tabular_entity_reconciliation_enricher: semantic_mismatch
+    wikidata_entity_reconciliation_transformer: target_mismatch
+    coordinate_land_use_classification_enricher: contract_mismatch
+    http_json_request_extractor: missing_required_output
+    open_network_http_json_requester: policy_incompatible
+- candidate_set_id: main_environmental_monitoring_network_v1_openmeteo_historical_weather_tabular_enricher_candidates
+  required_service_id: openmeteo_historical_weather_tabular_enricher
+  labels:
+    openmeteo_historical_weather_tabular_enricher: gold
+    tabular_http_property_extension_enricher: contract_mismatch
+    airvisual_nearest_city_json_extractor: target_mismatch
+    coordinate_land_use_classification_enricher: semantic_mismatch
+    worldpop_population_density_tabular_enricher: semantic_mismatch
+    legacy_http_json_extractor: deprecated_or_incompatible
+- candidate_set_id: main_environmental_monitoring_network_v1_coordinate_land_use_classification_enricher_candidates
+  required_service_id: coordinate_land_use_classification_enricher
+  labels:
+    coordinate_land_use_classification_enricher: gold
+    tabular_http_property_extension_enricher: contract_mismatch
+    openmeteo_historical_weather_tabular_enricher: semantic_mismatch
+    worldpop_population_density_tabular_enricher: semantic_mismatch
+    geospatial_nearest_distance_column_extender: missing_required_output
+    open_network_http_json_requester: policy_incompatible
+- candidate_set_id: main_environmental_monitoring_network_v1_worldpop_population_density_tabular_enricher_candidates
+  required_service_id: worldpop_population_density_tabular_enricher
+  labels:
+    worldpop_population_density_tabular_enricher: gold
+    openmeteo_historical_weather_tabular_enricher: semantic_mismatch
+    coordinate_land_use_classification_enricher: semantic_mismatch
+    tabular_http_property_extension_enricher: contract_mismatch
+    http_json_request_extractor: missing_required_output
+    legacy_http_json_extractor: deprecated_or_incompatible
+- candidate_set_id: main_environmental_monitoring_network_v1_environmental_risk_score_column_calculator_candidates
+  required_service_id: environmental_risk_score_column_calculator
+  labels:
+    environmental_risk_score_column_calculator: gold
+    tabular_dataset_declarative_transformer: contract_mismatch
+    tabular_http_property_extension_enricher: policy_incompatible
+    coordinate_land_use_classification_enricher: semantic_mismatch
+    parquet_customer_quality_score_calculator: format_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_environmental_monitoring_network_v1_structured_json_to_csv_exporter_candidates
+  required_service_id: structured_json_to_csv_exporter
+  labels:
+    structured_json_to_csv_exporter: gold
+    structured_json_batch_to_csv_exporter: format_mismatch
+    tabular_query_result_csv_writer: format_mismatch
+    csv_to_structured_json_table_formatter: semantic_mismatch
+    validated_parquet_to_csv_report_exporter: format_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch

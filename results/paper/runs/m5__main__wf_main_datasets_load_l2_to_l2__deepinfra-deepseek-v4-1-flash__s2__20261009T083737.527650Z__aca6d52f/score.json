@@ -1,0 +1,300 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-09T08:44:18.953297+00:00",
+  "instance": "benchmark/instances/main/wf_main_datasets_load_l2_to_l2",
+  "workspace": "experiments/workspaces/main/wf_main_datasets_load_l2_to_l2",
+  "submission": "results/paper/runs/m5__main__wf_main_datasets_load_l2_to_l2__deepinfra-deepseek-v4-1-flash__s2__20261009T083737.527650Z__aca6d52f/agent_workspace/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G3",
+    "g6_assert_status": "pass",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": null
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-09T08:44:17.468330+00:00",
+    "workspace": "experiments/workspaces/main/wf_main_datasets_load_l2_to_l2",
+    "submission": "results/paper/runs/m5__main__wf_main_datasets_load_l2_to_l2__deepinfra-deepseek-v4-1-flash__s2__20261009T083737.527650Z__aca6d52f/agent_workspace/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G3",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "pass",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": []
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_INPUT_ARTIFACT_MISMATCH",
+            "message": "wait_l2_full_load: bound input artifacts do not exactly match the intent inputs"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "wf-main-datasets-load-l2-to-l2-scripts",
+              "scenario": "base",
+              "data_size_bytes": 19790,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "wf-main-datasets-load-l2-to-l2-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 617,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "wf-main-datasets-load-l2-to-l2-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 19790,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "wf-main-datasets-load-l2-to-l2-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 617,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "wait_l2_full_load",
+                "generate_load_id",
+                "register_workflow_session",
+                "wait_prior_success",
+                "trigger_session_cleanup",
+                "trigger_data_preparation_reports",
+                "trigger_client_segmentation_load",
+                "publish_sap_completion_flag",
+                "finalize_workflow_session"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 9,
+      "submission_intents": 9,
+      "gold_intents": 9,
+      "mapping": {
+        "finalize_workflow_session": "end",
+        "generate_load_id": "get_load_id",
+        "publish_sap_completion_flag": "send_flg_to_sap",
+        "register_workflow_session": "workflow_registration",
+        "trigger_client_segmentation_load": "load_ds_client_segmentation",
+        "trigger_data_preparation_reports": "run_wf_data_preparation_for_reports",
+        "trigger_session_cleanup": "run_sys_kill_all_session_pg",
+        "wait_l2_full_load": "wait_for_l2_full_load",
+        "wait_prior_success": "wait_for_success_end"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 9
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 9,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 10,
+      "total": 10,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 9,
+    "correct": 9,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "end",
+        "gold_service": "workflow_session_metadata_recorder",
+        "submission_intent": "finalize_workflow_session",
+        "submission_service": "workflow_session_metadata_recorder",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "get_load_id",
+        "gold_service": "workflow_load_id_generator",
+        "submission_intent": "generate_load_id",
+        "submission_service": "workflow_load_id_generator",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "load_ds_client_segmentation",
+        "gold_service": "external_workflow_run_trigger",
+        "submission_intent": "trigger_client_segmentation_load",
+        "submission_service": "external_workflow_run_trigger",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "run_sys_kill_all_session_pg",
+        "gold_service": "external_workflow_run_trigger",
+        "submission_intent": "trigger_session_cleanup",
+        "submission_service": "external_workflow_run_trigger",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "run_wf_data_preparation_for_reports",
+        "gold_service": "external_workflow_run_trigger",
+        "submission_intent": "trigger_data_preparation_reports",
+        "submission_service": "external_workflow_run_trigger",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "send_flg_to_sap",
+        "gold_service": "database_table_http_flag_publisher",
+        "submission_intent": "publish_sap_completion_flag",
+        "submission_service": "database_table_http_flag_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "wait_for_l2_full_load",
+        "gold_service": "sql_query_readiness_sensor",
+        "submission_intent": "wait_l2_full_load",
+        "submission_service": "sql_query_readiness_sensor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "wait_for_success_end",
+        "gold_service": "external_workflow_task_completion_sensor",
+        "submission_intent": "wait_prior_success",
+        "submission_service": "external_workflow_task_completion_sensor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "workflow_registration",
+        "gold_service": "workflow_session_metadata_recorder",
+        "submission_intent": "register_workflow_session",
+        "submission_service": "workflow_session_metadata_recorder",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 2,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [],
+        "status": "pass"
+      }
+    ],
+    "assertions_total": 0,
+    "assertions_passed": 0,
+    "pass_rate": null,
+    "overall_status": "pass"
+  }
+}

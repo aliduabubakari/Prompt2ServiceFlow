@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["backup_mode", "output_uri", "artifact_created"],
+  "properties": {
+    "backup_mode": {"enum": ["full", "incremental"]},
+    "database_engine": {"type": "string"},
+    "output_uri": {"type": "string"},
+    "artifact_created": {"type": "boolean"},
+    "checksum_sha256": {"type": ["string", "null"]},
+    "size_bytes": {"type": ["integer", "null"], "minimum": 0},
+    "checkpoint_reference": {"type": ["string", "null"]}
+  }
+}

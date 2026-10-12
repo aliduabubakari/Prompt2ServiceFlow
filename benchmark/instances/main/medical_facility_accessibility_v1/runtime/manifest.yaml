@@ -1,0 +1,52 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: medical_facility_accessibility_v1
+image: python:3.12-slim
+workflow_parameters:
+- name: fixture-file
+  default: facilities.csv
+tasks:
+- intent_id: load_and_modify_facilities
+  script: scripts/01_load_and_modify_facilities.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{fixture-file}'
+  retries: 1
+- intent_id: geocode_facilities
+  script: scripts/02_geocode_facilities.py
+  dependencies:
+  - load_and_modify_facilities
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: calc_distance_public_transport
+  script: scripts/03_calc_distance_public_transport.py
+  dependencies:
+  - geocode_facilities
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: calc_distance_residential
+  script: scripts/04_calc_distance_residential.py
+  dependencies:
+  - calc_distance_public_transport
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: save_accessibility_data
+  script: scripts/05_save_accessibility_data.py
+  dependencies:
+  - calc_distance_residential
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+scenarios:
+- name: three_facilities
+  parameters:
+    fixture-file: facilities.csv
+  fixture_root: fixtures/scenarios/nominal

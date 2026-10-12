@@ -1,0 +1,259 @@
+schema_version: 0.1.0
+service_id: air_quality_dimensional_postgres_loader
+version: 1.0.0
+display_name: Air-quality dimensional PostgreSQL loader
+category: Loader
+capability:
+  summary: Transforms a validated or raw AirVisual-style air-quality observation using
+    mapping configuration files and loads/upserts it into a PostgreSQL dimensional
+    model with date/time, location, main-pollution, and fact measurement tables.
+  operations:
+  - Read an AirVisual-style JSON observation artifact.
+  - Read pollution-code and weather-code mapping configuration JSON artifacts.
+  - Derive date/time dimension values from the observation timestamp.
+  - Derive location dimension values from city, state, country, and coordinate fields.
+  - Map main pollution and weather codes according to supplied configuration files.
+  - Upsert dimension rows into PostgreSQL using conflict-safe semantics.
+  - Insert or upsert the fact air-quality measurement row while avoiding duplicates.
+  - Emit a load status object with affected logical tables, inserted/upserted/skipped
+    counts, and duplicate-handling outcome.
+  keywords:
+  - air quality
+  - postgresql
+  - dimensional model
+  - fact table
+  - dimension table
+  - etl loader
+  - upsert
+  - environmental monitoring
+  limitations:
+  - Targets PostgreSQL-compatible databases only.
+  - Assumes an AirVisual-style observation structure containing location, pollution,
+    weather, and timestamp fields.
+  - Assumes caller provides mapping files for pollution and weather code interpretation.
+  - Does not create or migrate arbitrary database schemas beyond the configured table
+    contract unless explicitly enabled by service parameters.
+  - Does not send alerts or notifications.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: airvisual_observation_json
+    description: AirVisual-style JSON observation file to transform and load. This
+      may be the raw response file or a structurally validated equivalent.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://airvisual_nearest_city_response/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  - name: pollution_mapping_config
+    description: JSON mapping configuration for main pollution codes. In the source
+      pipeline this corresponds to /opt/airflow/config/mapping_main_pollution.json.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://code_mapping_config/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: weather_mapping_config
+    description: JSON mapping configuration for weather codes. In the source pipeline
+      this corresponds to /opt/airflow/config/mapping_weather_code.json.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://code_mapping_config/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: postgres_database
+    description: PostgreSQL database resource used as the dimensional load target.
+    channel: external_resource
+    data_type: object
+    schema_ref: schema://postgres_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: loaded_tables
+    description: Logical references to PostgreSQL tables affected by the load, including
+      the fact table and configured dimension tables.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://loaded_table_references/v1
+    required: true
+    cardinality: many
+    sensitivity: internal
+  - name: load_status
+    description: Observable loader status containing success flag, table names, rows
+      inserted/upserted/skipped, duplicate outcome, and any error diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://air_quality_dimensional_load_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: fact_table
+    description: Name of the fact table for air-quality measurements, for example
+      factairvisualtable.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: datetime_dimension_table
+    description: Name of the date/time dimension table, for example dimDateTimeTable.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: location_dimension_table
+    description: Name of the location dimension table, for example dimLocationTable.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: main_pollution_dimension_table
+    description: Name of the main-pollution dimension table, for example dimMainPollutionTable.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+  - name: load_mode
+    description: Database write behavior for dimensions and fact records.
+    type: string
+    required: false
+    enum:
+    - upsert
+    - insert_ignore_duplicates
+  - name: create_tables_if_missing
+    description: Whether the loader may create the configured tables if they are absent.
+      Default behavior should be false unless explicitly enabled by the workflow.
+    type: boolean
+    required: false
+  - name: duplicate_key_fields
+    description: List or object describing the logical observation fields used to
+      detect an already-loaded fact record, typically timestamp plus location identifiers.
+    type: object
+    required: false
+  secrets:
+  - name: postgres_credentials
+    description: Credentials required to connect to the configured PostgreSQL target
+      when not fully encapsulated in the external resource binding.
+    required: true
+contracts:
+- contract_id: air_quality_loader_input_observation_contract
+  type: precondition
+  applies_to: input
+  target: airvisual_observation_json
+  description: Input observation must be a readable JSON artifact containing AirVisual-style
+    city, state, country, coordinates, current.pollution, and current.weather fields.
+  schema_ref: schema://airvisual_nearest_city_response/v1
+  expression: json_has(airvisual_observation_json, '$.data.current.pollution') and
+    json_has(airvisual_observation_json, '$.data.current.weather') and json_has(airvisual_observation_json,
+    '$.data.location.coordinates')
+- contract_id: air_quality_loader_mapping_contract
+  type: json_schema
+  applies_to: service
+  target: air_quality_dimensional_postgres_loader
+  description: Mapping configuration artifacts must be JSON objects or arrays usable
+    to map source codes to canonical labels/descriptions.
+  schema_ref: schema://code_mapping_config/v1
+  expression: '{"oneOf":[{"type":"object","additionalProperties":true},{"type":"array","items":{"type":"object"}}]}'
+- contract_id: air_quality_loader_table_name_contract
+  type: precondition
+  applies_to: service
+  target: air_quality_dimensional_postgres_loader
+  description: Configured PostgreSQL table names must be non-empty SQL identifier-like
+    names.
+  expression: all(table_name matches '^[A-Za-z_][A-Za-z0-9_]*$' for table_name in
+    [fact_table, datetime_dimension_table, location_dimension_table, main_pollution_dimension_table])
+- contract_id: air_quality_loaded_table_references_schema
+  type: json_schema
+  applies_to: output
+  target: loaded_tables
+  description: Loaded table references enumerate the target tables and their logical
+    role in the dimensional model.
+  schema_ref: schema://loaded_table_references/v1
+  expression: '{"type":"array","minItems":4,"items":{"type":"object","required":["table_name","role"],"properties":{"table_name":{"type":"string"},"role":{"type":"string","enum":["fact","datetime_dimension","location_dimension","main_pollution_dimension","other_dimension"]},"database_resource":{"type":["string","null"]}}}}'
+- contract_id: air_quality_dimensional_load_status_schema
+  type: json_schema
+  applies_to: output
+  target: load_status
+  description: Load status must expose the effect of the loader for downstream workflow
+    validation.
+  schema_ref: schema://air_quality_dimensional_load_status/v1
+  expression: '{"type":"object","required":["success","fact_table","dimension_tables","rows_inserted","rows_upserted","rows_skipped","duplicate_detected"],"properties":{"success":{"type":"boolean"},"fact_table":{"type":"string"},"dimension_tables":{"type":"array","items":{"type":"string"}},"rows_inserted":{"type":"integer","minimum":0},"rows_upserted":{"type":"integer","minimum":0},"rows_skipped":{"type":"integer","minimum":0},"duplicate_detected":{"type":"boolean"},"load_mode":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: air_quality_loader_effect_contract
+  type: effect
+  applies_to: service
+  target: air_quality_dimensional_postgres_loader
+  description: On success, the service writes or confirms the relevant dimension rows
+    and fact row in PostgreSQL using duplicate-safe semantics and emits load_status.success=true.
+    It must emit a status even when all candidate rows are skipped as duplicates.
+  expression: load_status.success == true implies loaded_tables contains fact_table
+    and loaded_tables contains datetime_dimension_table and loaded_tables contains
+    location_dimension_table and loaded_tables contains main_pollution_dimension_table
+invocation:
+  type: argo_workflow_template
+  template_name: air-quality-dimensional-postgres-loader-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.air_quality_dimensional_postgres_loader
+  implementation_ref: services/implementations/air_quality_dimensional_postgres_loader
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - postgresql://*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - public
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Database credentials are confidential and must not be emitted in status or logs.
+  - The loader mutates a PostgreSQL database and should run only against explicitly
+    bound target resources.
+  - Mapping configuration files are treated as internal configuration artifacts.
+  - Status output is required so that downstream workflow validation can observe the
+    loader effect without inspecting the database directly.
+  idempotency_notes: The source behavior uses checks for existing records and ON CONFLICT
+    DO NOTHING-style upserts. Idempotency is conditional on stable duplicate key configuration
+    and database constraints matching the logical observation identity.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:airvisual_pipeline_lat_long_v1#load_data_airvisual_to_postgresql
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The source step combines transformation of AirVisual JSON and PostgreSQL
+    loading into a dimensional model. A reusable loader with explicit table-name,
+    mapping-file, and upsert contracts preserves the material database effects while
+    remaining configurable for other AirVisual-style air-quality pipelines.'
+  - 'Evidence status: explicit.'
+  - Contract air_quality_loader_mapping_contract target 'pollution_mapping_config_weather_mapping_config'
+    was normalized to service scope.
+  - Contract air_quality_loader_table_name_contract target 'table_names' was normalized
+    to service scope.

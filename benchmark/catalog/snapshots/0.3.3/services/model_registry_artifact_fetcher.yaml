@@ -1,0 +1,98 @@
+schema_version: 0.1.0
+service_id: model_registry_artifact_fetcher
+version: 1.0.0
+display_name: Model Registry Artifact Fetcher
+category: Extractor
+capability:
+  summary: Fetches a versioned model artifact from a bound model registry.
+  operations:
+  - Fetches a versioned model artifact from a bound model registry.
+  keywords:
+  - model
+  - registry
+  - artifact
+  - fetcher
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: model_registry
+    description: Reviewed model registry value.
+    channel: external_resource
+    data_type: object
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: model_artifact
+    description: Reviewed model artifact value.
+    channel: artifact
+    data_type: model
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: fetch_status
+    description: Reviewed fetch status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: model_name
+    description: Configuration for model name.
+    type: string
+    required: true
+  - name: model_version
+    description: Configuration for model version.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: model-registry-artifact-fetcher
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.model_registry_artifact_fetcher
+  implementation_ref: services/implementations/model_registry_artifact_fetcher
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - database://*
+  - https://*
+  - sftp://*
+  - object://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-24T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-01:curated-extension
+  notes:
+  - Curated from sparse Validation-20 descriptions; bindings retain inference confidence.

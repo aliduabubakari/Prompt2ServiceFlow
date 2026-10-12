@@ -1,0 +1,30 @@
+binding_gold_version: 0.1.0
+benchmark_id: main:WF_MAIN_DATASETS_LOAD_L2_TO_L2
+bindings:
+- intent_id: wait_for_l2_full_load
+  service_id: sql_query_readiness_sensor
+  service_version: 1.0.0
+- intent_id: get_load_id
+  service_id: workflow_load_id_generator
+  service_version: 1.0.0
+- intent_id: workflow_registration
+  service_id: workflow_session_metadata_recorder
+  service_version: 1.0.0
+- intent_id: wait_for_success_end
+  service_id: external_workflow_task_completion_sensor
+  service_version: 1.0.0
+- intent_id: run_sys_kill_all_session_pg
+  service_id: external_workflow_run_trigger
+  service_version: 1.0.0
+- intent_id: run_wf_data_preparation_for_reports
+  service_id: external_workflow_run_trigger
+  service_version: 1.0.0
+- intent_id: load_ds_client_segmentation
+  service_id: external_workflow_run_trigger
+  service_version: 1.0.0
+- intent_id: send_flg_to_sap
+  service_id: database_table_http_flag_publisher
+  service_version: 1.0.0
+- intent_id: end
+  service_id: workflow_session_metadata_recorder
+  service_version: 1.0.0

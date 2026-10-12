@@ -1,0 +1,318 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-06T17:29:36.993862+00:00",
+  "instance": "benchmark/instances/validation/val_iot_sensor_fusion",
+  "workspace": "experiments/workspaces/validation/val_iot_sensor_fusion",
+  "submission": "results/paper/runs/m4__validation__val_iot_sensor_fusion__sintef-qwen3-8-27b-nvfp4__s0__20261006T171630.593364Z__be044dd2/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G0",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 0.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 1.0,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-06T17:29:35.056868+00:00",
+    "workspace": "experiments/workspaces/validation/val_iot_sensor_fusion",
+    "submission": "results/paper/runs/m4__validation__val_iot_sensor_fusion__sintef-qwen3-8-27b-nvfp4__s0__20261006T171630.593364Z__be044dd2/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G0",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "fail",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": [
+          {
+            "code": "G0_SCHEMA_ERROR",
+            "message": "$.source.description_sha256: 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e6f7081920a3b4c5d6e7' does not match '^[a-f0-9]{64}$'",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G1",
+        "status": "skipped",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "skipped",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": [
+          {
+            "code": "G2_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G3",
+        "status": "skipped",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "skipped",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": [
+          {
+            "code": "G4_SKIPPED",
+            "message": "G0 did not produce a valid ServiceFlowIR document"
+          }
+        ]
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "val-iot-sensor-fusion-scripts",
+              "scenario": "base",
+              "data_size_bytes": 12044,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-iot-sensor-fusion-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 283,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-iot-sensor-fusion-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 12044,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "val-iot-sensor-fusion-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 283,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "collect_temperature_feed",
+                "collect_vibration_feed",
+                "collect_pressure_feed",
+                "align_sensor_windows",
+                "compute_anomaly_features",
+                "write_fused_dataset"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 6,
+      "submission_intents": 6,
+      "gold_intents": 6,
+      "mapping": {
+        "align_sensor_windows": "align_sensor_windows",
+        "collect_pressure_feed": "collect_pressure_feed",
+        "collect_temperature_feed": "collect_temperature_feed",
+        "collect_vibration_feed": "collect_vibration_feed",
+        "compute_anomaly_features": "compute_anomaly_features",
+        "write_fused_dataset": "write_fused_dataset"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 6
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 5,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 6,
+      "total": 6,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 0.0,
+    "aligned_accuracy": 0.0,
+    "version_accuracy_given_correct_service": null,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 6,
+    "correct": 0,
+    "confusion_by_label": {
+      "invented_service": 6
+    },
+    "rates": {
+      "invented_service": 1.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "align_sensor_windows",
+        "gold_service": "sensor_window_alignment_fuser",
+        "submission_intent": "align_sensor_windows",
+        "submission_service": "window_aligner",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "collect_pressure_feed",
+        "gold_service": "iot_broker_sensor_feed_collector",
+        "submission_intent": "collect_pressure_feed",
+        "submission_service": "sensor_collector",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "collect_temperature_feed",
+        "gold_service": "iot_broker_sensor_feed_collector",
+        "submission_intent": "collect_temperature_feed",
+        "submission_service": "sensor_collector",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "collect_vibration_feed",
+        "gold_service": "iot_broker_sensor_feed_collector",
+        "submission_intent": "collect_vibration_feed",
+        "submission_service": "sensor_collector",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "compute_anomaly_features",
+        "gold_service": "iot_anomaly_feature_calculator",
+        "submission_intent": "compute_anomaly_features",
+        "submission_service": "feature_computer",
+        "outcome": "invented_service"
+      },
+      {
+        "gold_intent": "write_fused_dataset",
+        "gold_service": "timeseries_fused_dataset_writer",
+        "submission_intent": "write_fused_dataset",
+        "submission_service": "dataset_loader",
+        "outcome": "invented_service"
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "applicable": true,
+    "true_positives": 5,
+    "false_positives": 0,
+    "false_negatives": 0
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "source_fixture_loaded",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-8uqf25gv/artifacts/temperature_collection_status.json"
+          },
+          {
+            "assertion_id": "source_files_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-8uqf25gv/artifacts/temperature_collection_status.json"
+          },
+          {
+            "assertion_id": "source_records_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-8uqf25gv/artifacts/temperature_collection_status.json"
+          },
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-8uqf25gv/artifacts/fused_write_status.json"
+          },
+          {
+            "assertion_id": "final_artifact_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-8uqf25gv/artifacts/fused_write_status.json"
+          },
+          {
+            "assertion_id": "upstream_evidence_propagated",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-8uqf25gv/artifacts/fused_write_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 6,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

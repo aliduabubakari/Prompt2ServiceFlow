@@ -1,0 +1,93 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: etl_import_mondo
+image: python:3.12-slim
+workflow_parameters:
+- name: new-release
+  default: true
+tasks:
+- intent_id: params_validate
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - validate
+- intent_id: download_mondo_terms
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - download
+  - --new-release
+  - '{new_release}'
+  dependencies:
+  - params_validate
+  output_parameters:
+  - name: updated
+    path: /workspace/artifacts/mondo_asset_updated.txt
+- intent_id: normalized_mondo_terms
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - normalize
+  dependencies:
+  - download_mondo_terms
+  when: '{{tasks.download_mondo_terms.outputs.parameters.updated}} == true'
+  local_condition:
+    path: artifacts/download_status.json
+    json_path: updated
+    equals: true
+- intent_id: index_mondo_terms
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - index
+  dependencies:
+  - normalized_mondo_terms
+  when: '{{tasks.download_mondo_terms.outputs.parameters.updated}} == true'
+  local_condition:
+    path: artifacts/download_status.json
+    json_path: updated
+    equals: true
+- intent_id: publish_mondo
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - publish
+  dependencies:
+  - index_mondo_terms
+  when: '{{tasks.download_mondo_terms.outputs.parameters.updated}} == true'
+  local_condition:
+    path: artifacts/download_status.json
+    json_path: updated
+    equals: true
+- intent_id: slack
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - slack
+  dependencies:
+  - publish_mondo
+  when: '{{tasks.download_mondo_terms.outputs.parameters.updated}} == true'
+  local_condition:
+    path: artifacts/download_status.json
+    json_path: updated
+    equals: true
+scenarios:
+- name: new_release
+  parameters:
+    new_release: true
+  fixture_root: fixtures/inputs
+- name: already_current
+  parameters:
+    new_release: false
+  fixture_root: fixtures/inputs

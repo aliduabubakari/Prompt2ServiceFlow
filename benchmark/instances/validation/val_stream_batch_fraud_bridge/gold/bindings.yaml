@@ -1,0 +1,33 @@
+binding_gold_version: 0.1.0
+benchmark_id: validation:val_stream_batch_fraud_bridge
+bindings:
+- intent_id: wait_for_stream_checkpoint
+  service_id: multi_resource_readiness_sensor
+  service_version: 1.0.0
+- intent_id: load_stream_events
+  service_id: fraud_source_loader
+  service_version: 1.0.0
+- intent_id: load_batch_settlements
+  service_id: fraud_source_loader
+  service_version: 1.0.0
+- intent_id: load_account_history
+  service_id: fraud_source_loader
+  service_version: 1.0.0
+- intent_id: join_transaction_context
+  service_id: transaction_context_joiner
+  service_version: 1.0.0
+- intent_id: score_fraud_risk
+  service_id: transaction_fraud_risk_scorer
+  service_version: 1.0.0
+- intent_id: route_risk_action
+  service_id: fraud_risk_action_router
+  service_version: 1.0.0
+- intent_id: update_monitoring_table
+  service_id: fraud_monitoring_table_updater
+  service_version: 1.0.0
+- intent_id: open_investigation_case
+  service_id: review_case_opener
+  service_version: 1.0.0
+- intent_id: publish_risk_metrics
+  service_id: risk_metric_publisher
+  service_version: 1.0.0

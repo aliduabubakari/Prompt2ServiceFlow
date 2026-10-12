@@ -1,0 +1,65 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: extension:financial_transaction_escalation_review
+mappings:
+- intent_id: ingest_source_batch
+  inputs:
+    input_artifacts: source_bundle
+  outputs:
+    output_artifacts: ingest_source_batch_artifact
+    execution_report: ingest_source_batch_status
+- intent_id: validate_source_contract
+  inputs:
+    input_artifacts: ingest_source_batch_artifact
+  outputs:
+    output_artifacts: validate_source_contract_artifact
+    execution_report: validate_source_contract_status
+- intent_id: detect_sensitive_fields
+  inputs:
+    input_artifacts: validate_source_contract_artifact
+  outputs:
+    output_artifacts: detect_sensitive_fields_artifact
+    execution_report: detect_sensitive_fields_status
+- intent_id: apply_redaction_or_suppression
+  inputs:
+    input_artifacts: detect_sensitive_fields_artifact
+  outputs:
+    output_artifacts: apply_redaction_or_suppression_artifact
+    execution_report: apply_redaction_or_suppression_status
+- intent_id: create_human_review_packet
+  inputs:
+    input_artifacts: apply_redaction_or_suppression_artifact
+  outputs:
+    output_artifacts: create_human_review_packet_artifact
+    execution_report: create_human_review_packet_status
+- intent_id: evaluate_policy_or_risk
+  inputs:
+    input_artifacts: create_human_review_packet_artifact
+  outputs:
+    output_artifacts: evaluate_policy_or_risk_artifact
+    execution_report: evaluate_policy_or_risk_status
+- intent_id: route_approved_records
+  inputs:
+    input_artifacts: evaluate_policy_or_risk_artifact
+  outputs:
+    output_artifacts: route_approved_records_artifact
+    execution_report: route_approved_records_status
+- intent_id: route_exception_records
+  inputs:
+    input_artifacts: evaluate_policy_or_risk_artifact
+  outputs:
+    output_artifacts: route_exception_records_artifact
+    execution_report: route_exception_records_status
+- intent_id: merge_route_outcomes
+  inputs:
+    input_artifacts:
+    - route_approved_records_artifact
+    - route_exception_records_artifact
+  outputs:
+    output_artifacts: merge_route_outcomes_artifact
+    execution_report: merge_route_outcomes_status
+- intent_id: publish_outputs
+  inputs:
+    input_artifacts: merge_route_outcomes_artifact
+  outputs:
+    output_artifacts: publish_outputs_artifact
+    execution_report: publish_outputs_status

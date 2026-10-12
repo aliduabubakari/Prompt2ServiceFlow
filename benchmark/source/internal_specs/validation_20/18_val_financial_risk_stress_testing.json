@@ -1,0 +1,438 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_financial_risk_stress_testing",
+  "pipeline_name": "Financial Risk Stress Testing",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_financial_risk_stress_testing.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Load market scenarios, run multiple portfolio stress calculations in parallel, branch failed validations to remediation, and produce a regulatory report.",
+    "business_domain": "Financial Risk",
+    "execution_model": "Batch",
+    "topology_pattern": "Mixed",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "load_market_scenarios",
+        "to": "run_credit_stress"
+      },
+      {
+        "from": "load_market_scenarios",
+        "to": "run_liquidity_stress"
+      },
+      {
+        "from": "load_market_scenarios",
+        "to": "run_market_stress"
+      },
+      {
+        "from": "load_portfolio_positions",
+        "to": "run_credit_stress"
+      },
+      {
+        "from": "load_portfolio_positions",
+        "to": "run_liquidity_stress"
+      },
+      {
+        "from": "load_portfolio_positions",
+        "to": "run_market_stress"
+      },
+      {
+        "from": "run_credit_stress",
+        "to": "aggregate_stress_results"
+      },
+      {
+        "from": "run_liquidity_stress",
+        "to": "aggregate_stress_results"
+      },
+      {
+        "from": "run_market_stress",
+        "to": "aggregate_stress_results"
+      },
+      {
+        "from": "aggregate_stress_results",
+        "to": "validate_capital_thresholds"
+      },
+      {
+        "from": "validate_capital_thresholds",
+        "to": "route_validation_status"
+      },
+      {
+        "from": "route_validation_status",
+        "to": "write_regulatory_report"
+      },
+      {
+        "from": "route_validation_status",
+        "to": "open_remediation_ticket"
+      },
+      {
+        "from": "write_regulatory_report",
+        "to": "archive_model_inputs"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "steps": [
+          "run_credit_stress",
+          "run_liquidity_stress",
+          "run_market_stress"
+        ]
+      }
+    ],
+    "branch_points": [
+      {
+        "step": "route_validation_status",
+        "conditions": [
+          "within_threshold",
+          "breach_detected"
+        ],
+        "merge_step": null
+      }
+    ],
+    "gates": [
+      {
+        "step": "validate_capital_thresholds",
+        "condition": "all_stress_results_available"
+      }
+    ]
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "Market data API",
+      "identifier": "market_data_api",
+      "details": [
+        "Validation external dependency: Market data API"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Portfolio warehouse",
+      "identifier": "portfolio_warehouse",
+      "details": [
+        "Validation external dependency: Portfolio warehouse"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Risk engine",
+      "identifier": "risk_engine",
+      "details": [
+        "Validation external dependency: Risk engine"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Regulatory archive",
+      "identifier": "regulatory_archive",
+      "details": [
+        "Validation external dependency: Regulatory archive"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "market_scenarios",
+        "description": "Validation artifact: market_scenarios"
+      },
+      {
+        "identifier": "portfolio_positions",
+        "description": "Validation artifact: portfolio_positions"
+      },
+      {
+        "identifier": "stress_results",
+        "description": "Validation artifact: stress_results"
+      },
+      {
+        "identifier": "regulatory_report",
+        "description": "Validation artifact: regulatory_report"
+      },
+      {
+        "identifier": "remediation_ticket",
+        "description": "Validation artifact: remediation_ticket"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "load_market_scenarios",
+      "name": "load_market_scenarios",
+      "objective": "Load market scenarios",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "load_portfolio_positions",
+      "name": "load_portfolio_positions",
+      "objective": "Load portfolio positions",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "run_credit_stress",
+      "name": "run_credit_stress",
+      "objective": "Run credit stress",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "run_liquidity_stress",
+      "name": "run_liquidity_stress",
+      "objective": "Run liquidity stress",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "run_market_stress",
+      "name": "run_market_stress",
+      "objective": "Run market stress",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "aggregate_stress_results",
+      "name": "aggregate_stress_results",
+      "objective": "Aggregate stress results",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "validate_capital_thresholds",
+      "name": "validate_capital_thresholds",
+      "objective": "Validate capital thresholds",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "route_validation_status",
+      "name": "route_validation_status",
+      "objective": "Route validation status",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "write_regulatory_report",
+      "name": "write_regulatory_report",
+      "objective": "Write regulatory report",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "open_remediation_ticket",
+      "name": "open_remediation_ticket",
+      "objective": "Open remediation ticket",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "archive_model_inputs",
+      "name": "archive_model_inputs",
+      "objective": "Archive model inputs",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

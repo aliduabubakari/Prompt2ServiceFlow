@@ -1,0 +1,331 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: pcd_etl
+image: python:3.12-slim
+workflow_parameters:
+- name: pcd-data-available
+  default: true
+tasks:
+- intent_id: check_pcd_sftp_folder
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - check_pcd_sftp_folder
+  - --available
+  - '{pcd_data_available}'
+- intent_id: check_pcd_shared_folder
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - check_pcd_shared_folder
+  - --available
+  - '{pcd_data_available}'
+  dependencies:
+  - check_pcd_sftp_folder
+  output_parameters:
+  - name: available
+    path: /workspace/artifacts/pcd_data_available.txt
+- intent_id: financial_expense
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - financial_expense
+  dependencies:
+  - check_pcd_shared_folder
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: upcc_financial_reporting
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - upcc_financial_reporting
+  dependencies:
+  - check_pcd_shared_folder
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: chc_financial_reporting
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - chc_financial_reporting
+  dependencies:
+  - check_pcd_shared_folder
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: pcn_financial_reporting
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - pcn_financial_reporting
+  dependencies:
+  - check_pcd_shared_folder
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: nppcc_financial_reporting
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - nppcc_financial_reporting
+  dependencies:
+  - check_pcd_shared_folder
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: fiscal_year_reporting_dates
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - fiscal_year_reporting_dates
+  dependencies:
+  - check_pcd_shared_folder
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: upcc_primary_care_patient_services
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - upcc_primary_care_patient_services
+  dependencies:
+  - check_pcd_shared_folder
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: chc_primary_care_patient_services
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - chc_primary_care_patient_services
+  dependencies:
+  - check_pcd_shared_folder
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: practitioner_role_mapping
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - practitioner_role_mapping
+  dependencies:
+  - check_pcd_shared_folder
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: status_tracker
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - status_tracker
+  dependencies:
+  - check_pcd_shared_folder
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: hr_records
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - hr_records
+  dependencies: &id001
+  - status_tracker
+  - financial_expense
+  - upcc_financial_reporting
+  - chc_financial_reporting
+  - pcn_financial_reporting
+  - nppcc_financial_reporting
+  - fiscal_year_reporting_dates
+  - upcc_primary_care_patient_services
+  - chc_primary_care_patient_services
+  - practitioner_role_mapping
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: provincial_risk_tracking
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - provincial_risk_tracking
+  dependencies: *id001
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: decision_log
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - decision_log
+  dependencies: *id001
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: ha_hierarchy
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - ha_hierarchy
+  dependencies: *id001
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: uppc_budget
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - uppc_budget
+  dependencies: *id001
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: chc_budget
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - chc_budget
+  dependencies: *id001
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: pcn_budget
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - pcn_budget
+  dependencies: *id001
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: nppcc_budget
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - nppcc_budget
+  dependencies: *id001
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: pcd_file_upload
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - pcd_file_upload
+  dependencies:
+  - provincial_risk_tracking
+  - decision_log
+  - ha_hierarchy
+  - hr_records
+  - uppc_budget
+  - chc_budget
+  - pcn_budget
+  - nppcc_budget
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+- intent_id: etl_notification
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - etl_notification
+  dependencies:
+  - pcd_file_upload
+  when: '{{tasks.check_pcd_shared_folder.outputs.parameters.available}} == true'
+  local_condition:
+    path: artifacts/check_pcd_shared_folder_decision.json
+    json_path: available
+    equals: true
+scenarios:
+- name: pcd_data_available
+  parameters:
+    pcd_data_available: true
+  fixture_root: fixtures/inputs
+- name: pcd_data_missing
+  parameters:
+    pcd_data_available: false
+  fixture_root: fixtures/inputs
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

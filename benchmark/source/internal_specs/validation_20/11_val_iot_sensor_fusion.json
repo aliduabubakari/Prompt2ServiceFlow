@@ -1,0 +1,243 @@
+{
+  "spec_version": "1.0-validation",
+  "pipeline_id": "val_iot_sensor_fusion",
+  "pipeline_name": "IoT Sensor Fusion Pipeline",
+  "source": {
+    "repo": "validation-synthetic-corpus",
+    "file_path": "validation/val_iot_sensor_fusion.py",
+    "repo_url": null,
+    "source_fingerprint_sha256": null
+  },
+  "summary": {
+    "purpose": "Collect temperature, vibration, and pressure sensor feeds in parallel, align them by timestamp, and produce a fused anomaly dataset.",
+    "business_domain": "Industrial IoT",
+    "execution_model": "Batch",
+    "topology_pattern": "Fan-out/fan-in",
+    "notes": "Prospective validation pipeline; not used in model-development corpus."
+  },
+  "schedule": {
+    "schedule_type": "cron",
+    "schedule_expression": "@daily",
+    "timezone": "UTC",
+    "start_date": "2026-01-01",
+    "catchup_backfill": false
+  },
+  "control_flow": {
+    "edges": [
+      {
+        "from": "collect_temperature_feed",
+        "to": "align_sensor_windows"
+      },
+      {
+        "from": "collect_vibration_feed",
+        "to": "align_sensor_windows"
+      },
+      {
+        "from": "collect_pressure_feed",
+        "to": "align_sensor_windows"
+      },
+      {
+        "from": "align_sensor_windows",
+        "to": "compute_anomaly_features"
+      },
+      {
+        "from": "compute_anomaly_features",
+        "to": "write_fused_dataset"
+      }
+    ],
+    "parallel_groups": [
+      {
+        "steps": [
+          "collect_temperature_feed",
+          "collect_vibration_feed",
+          "collect_pressure_feed"
+        ]
+      }
+    ],
+    "branch_points": [],
+    "gates": []
+  },
+  "external_systems": [
+    {
+      "type": "external_service",
+      "name": "IoT broker",
+      "identifier": "iot_broker",
+      "details": [
+        "Validation external dependency: IoT broker"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    },
+    {
+      "type": "external_service",
+      "name": "Time-series database",
+      "identifier": "time-series_database",
+      "details": [
+        "Validation external dependency: Time-series database"
+      ],
+      "auth": [
+        "Use placeholder connection or mocked credential in generated workflow."
+      ]
+    }
+  ],
+  "data_artifacts": {
+    "files": [
+      {
+        "identifier": "temperature_feed",
+        "description": "Validation artifact: temperature_feed"
+      },
+      {
+        "identifier": "vibration_feed",
+        "description": "Validation artifact: vibration_feed"
+      },
+      {
+        "identifier": "pressure_feed",
+        "description": "Validation artifact: pressure_feed"
+      }
+    ],
+    "tables": [],
+    "buckets": [],
+    "topics": []
+  },
+  "steps": [
+    {
+      "step_id": "collect_temperature_feed",
+      "name": "collect_temperature_feed",
+      "objective": "Collect temperature feed",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "collect_vibration_feed",
+      "name": "collect_vibration_feed",
+      "objective": "Collect vibration feed",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "collect_pressure_feed",
+      "name": "collect_pressure_feed",
+      "objective": "Collect pressure feed",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "align_sensor_windows",
+      "name": "align_sensor_windows",
+      "objective": "Align sensor windows",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "compute_anomaly_features",
+      "name": "compute_anomaly_features",
+      "objective": "Compute anomaly features",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    },
+    {
+      "step_id": "write_fused_dataset",
+      "name": "write_fused_dataset",
+      "objective": "Write fused dataset",
+      "mechanism": "python_callable",
+      "inputs": [],
+      "outputs": [],
+      "external_system_refs": [],
+      "parameters": [],
+      "env_infra": {
+        "env_vars": [],
+        "mounts": [],
+        "network": null,
+        "other": []
+      },
+      "failure_handling": {
+        "retries": 2,
+        "retry_delay": "5 minutes",
+        "timeout": null,
+        "alerts": [],
+        "idempotency": []
+      }
+    }
+  ]
+}

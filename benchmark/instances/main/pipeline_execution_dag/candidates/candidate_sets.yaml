@@ -1,0 +1,56 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:pipeline_execution_dag
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_pipeline_execution_dag_csv_to_structured_json_table_formatter_candidates
+  source_step_refs:
+  - load_and_modify
+  service_ids:
+  - csv_to_structured_json_table_formatter
+  - csv_to_structured_json_standardizer
+  - csv_tabular_schema_validating_loader
+  - delimited_file_tabular_dataset_loader
+  - customer_segment_csv_loader
+  - legacy_csv_schema_validator
+- candidate_set_id: main_pipeline_execution_dag_tabular_entity_reconciliation_enricher_candidates
+  source_step_refs:
+  - reconciliation
+  service_ids:
+  - tabular_entity_reconciliation_enricher
+  - wikidata_entity_reconciliation_transformer
+  - tabular_http_property_extension_enricher
+  - tabular_address_geocoding_enricher
+  - http_json_request_extractor
+  - open_network_http_json_requester
+- candidate_set_id: main_pipeline_execution_dag_openmeteo_historical_weather_tabular_enricher_candidates
+  source_step_refs:
+  - openmeteo_extension
+  service_ids:
+  - openmeteo_historical_weather_tabular_enricher
+  - tabular_http_property_extension_enricher
+  - airvisual_nearest_city_json_extractor
+  - coordinate_land_use_classification_enricher
+  - worldpop_population_density_tabular_enricher
+  - legacy_http_json_extractor
+- candidate_set_id: main_pipeline_execution_dag_environmental_risk_score_column_calculator_candidates
+  source_step_refs:
+  - column_extension
+  service_ids:
+  - environmental_risk_score_column_calculator
+  - tabular_dataset_declarative_transformer
+  - tabular_http_property_extension_enricher
+  - coordinate_land_use_classification_enricher
+  - parquet_customer_quality_score_calculator
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_pipeline_execution_dag_structured_json_to_csv_exporter_candidates
+  source_step_refs:
+  - save
+  service_ids:
+  - structured_json_to_csv_exporter
+  - structured_json_batch_to_csv_exporter
+  - tabular_query_result_csv_writer
+  - csv_to_structured_json_table_formatter
+  - validated_parquet_to_csv_report_exporter
+  - reviewed_python_udf_transformer

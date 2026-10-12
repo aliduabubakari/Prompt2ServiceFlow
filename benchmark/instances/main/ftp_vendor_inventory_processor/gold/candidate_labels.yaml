@@ -1,0 +1,39 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:ftp_vendor_inventory_processor
+candidate_sets:
+- candidate_set_id: main_ftp_vendor_inventory_processor_file_location_availability_sensor_candidates
+  required_service_id: file_location_availability_sensor
+  labels:
+    file_location_availability_sensor: gold
+    ftp_file_artifact_downloader: missing_required_output
+    sql_query_readiness_sensor: target_mismatch
+    external_workflow_completion_sensor: target_mismatch
+    filesystem_retention_cleanup_with_lock: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_ftp_vendor_inventory_processor_ftp_file_artifact_downloader_candidates
+  required_service_id: ftp_file_artifact_downloader
+  labels:
+    ftp_file_artifact_downloader: gold
+    file_location_availability_sensor: missing_required_output
+    checksum_manifest_object_storage_file_sync: contract_mismatch
+    http_api_request_artifact_extractor: target_mismatch
+    warehouse_inventory_csv_extractor: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_ftp_vendor_inventory_processor_tabular_null_value_cleanser_candidates
+  required_service_id: tabular_null_value_cleanser
+  labels:
+    tabular_null_value_cleanser: gold
+    csv_artifact_profile_ingestor: missing_required_output
+    csv_tabular_schema_validating_loader: semantic_mismatch
+    tabular_dataset_declarative_transformer: contract_mismatch
+    inventory_sku_csv_normalizer: semantic_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_ftp_vendor_inventory_processor_tabular_dataset_database_loader_candidates
+  required_service_id: tabular_dataset_database_loader
+  labels:
+    tabular_dataset_database_loader: gold
+    database_csv_snapshot_importer: format_mismatch
+    postgres_parameterized_sql_executor: contract_mismatch
+    air_quality_dimensional_postgres_loader: semantic_mismatch
+    multi_table_analytics_warehouse_loader: contract_mismatch
+    legacy_database_table_loader: deprecated_or_incompatible

@@ -1,0 +1,56 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_data_quality_quarantine_gate
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: profile_customer_extract
+  script: scripts/01_profile_customer_extract.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: evaluate_quality_rules
+  script: scripts/02_evaluate_quality_rules.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - profile_customer_extract
+- intent_id: load_valid_records
+  script: scripts/03_load_valid_records.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - evaluate_quality_rules
+- intent_id: quarantine_invalid_records
+  script: scripts/04_quarantine_invalid_records.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - evaluate_quality_rules
+- intent_id: write_quality_audit
+  script: scripts/05_write_quality_audit.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - load_valid_records
+  - quarantine_invalid_records
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

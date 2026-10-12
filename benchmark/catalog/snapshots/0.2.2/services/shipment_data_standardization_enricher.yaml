@@ -1,0 +1,207 @@
+schema_version: 0.1.0
+service_id: shipment_data_standardization_enricher
+version: 1.0.0
+display_name: Shipment Data Standardization Enricher
+category: Transformer
+capability:
+  summary: Combines one or more vendor shipment data objects, applies configured shipment
+    cleansing, SKU normalization, date validation, and location enrichment rules,
+    and emits a cleansed shipment data object plus validation/status artifacts.
+  operations:
+  - Read multiple vendor shipment data-object or validated-dataset artifacts.
+  - Apply configured vendor column mappings into a canonical shipment schema.
+  - Normalize SKU values using deterministic rules such as trimming, case normalization,
+    prefix mapping, or alias mapping.
+  - Validate shipment date fields according to configured formats and allowed date
+    rules, reporting invalid rows according to policy parameters rather than workflow
+    branching.
+  keywords:
+  - shipment data
+  - supply chain
+  - sku normalization
+  - date validation
+  - location enrichment
+  - multi vendor csv
+  - data cleansing
+  limitations:
+  - Does not fetch vendor files; upstream ingestors must provide data objects.
+  - Does not load a database or send notifications.
+  - Location enrichment uses supplied reference data or declarative rules; no external
+    geocoding service is assumed.
+  - Exact canonical schema and validation rules must be supplied by workflow binding
+    for deterministic behavior.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: vendor_data_objects
+    description: One or more vendor shipment data objects or validated tabular datasets
+      produced by upstream CSV ingestion steps.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://tabular_ingest_metadata_collection/v1
+    required: true
+    cardinality: many
+    sensitivity: internal
+  - name: location_reference_data
+    description: Optional reference data used to enrich locations, lanes, warehouses,
+      regions, or other configured location attributes.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://location_reference_dataset/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: cleansed_shipment_dataset
+    description: Canonical cleansed shipment rows with normalized SKU/date/location
+      fields.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://cleansed_shipment_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: cleansed_data_object
+    description: Dataset reference and metadata suitable for downstream database loading.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://tabular_ingest_metadata/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: transform_status
+    description: Observable status containing input counts, rows read/written, invalid-date
+      counts, SKU normalization counts, enrichment counts, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://shipment_standardization_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: vendor_column_mappings
+    description: Mapping from each vendor input schema to canonical shipment columns.
+    type: object
+    required: true
+  - name: canonical_required_columns
+    description: Canonical columns that must be present after mapping, such as shipment_id,
+      sku, ship_date, quantity, origin, and destination when required by binding.
+    type: array
+    required: true
+  - name: sku_normalization_rules
+    description: Declarative SKU normalization rules or named profile.
+    type: object
+    required: true
+  - name: date_validation_rules
+    description: Allowed date formats, date columns, invalid-row policy, and range
+      constraints.
+    type: object
+    required: true
+  - name: location_enrichment_rules
+    description: Rules for deriving or joining location attributes from source fields
+      and optional reference data.
+    type: object
+    required: false
+  - name: output_path
+    description: Deterministic output artifact path or name for the cleansed shipment
+      dataset.
+    type: string
+    required: true
+  secrets: []
+contracts:
+- contract_id: shipment_standardizer_inputs_present
+  type: precondition
+  applies_to: input
+  target: vendor_data_objects
+  description: At least one vendor data object must be supplied and each must reference
+    a readable tabular dataset or CSV-derived artifact.
+  expression: length(vendor_data_objects) > 0 and all(exists(v.source_uri) or exists(v.validated_dataset_uri)
+    for v in vendor_data_objects)
+- contract_id: shipment_standardizer_required_rules
+  type: precondition
+  applies_to: parameter
+  target: shipment_data_standardization_enricher
+  description: Column mappings, required canonical columns, SKU rules, and date rules
+    must be supplied for deterministic transformation.
+  expression: vendor_column_mappings != null and length(canonical_required_columns)
+    > 0 and sku_normalization_rules != null and date_validation_rules != null
+- contract_id: cleansed_shipment_dataset_schema
+  type: json_schema
+  applies_to: output
+  target: cleansed_shipment_dataset
+  description: Output dataset exposes columns, rows, row_count, and validation/enrichment
+    metadata.
+  schema_ref: schema://cleansed_shipment_dataset/v1
+  expression: '{"type":"object","required":["columns","rows","row_count"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0},"normalization_metadata":{"type":"object"},"enrichment_metadata":{"type":"object"}}}'
+- contract_id: shipment_standardization_status_schema
+  type: json_schema
+  applies_to: output
+  target: transform_status
+  description: Status exposes cleansing, validation, normalization, and enrichment
+    outcomes.
+  schema_ref: schema://shipment_standardization_status/v1
+  expression: '{"type":"object","required":["success","inputs_processed","rows_read","rows_written","invalid_date_rows","sku_values_normalized","rows_location_enriched","output_uri"],"properties":{"success":{"type":"boolean"},"inputs_processed":{"type":"integer","minimum":1},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"invalid_date_rows":{"type":"integer","minimum":0},"sku_values_normalized":{"type":"integer","minimum":0},"rows_location_enriched":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: shipment_standardization_effect
+  type: effect
+  applies_to: service
+  target: shipment_data_standardization_enricher
+  description: On success, a cleansed dataset and loadable data object exist and transform_status.success
+    is true.
+  expression: transform_status.success == true implies exists(cleansed_shipment_dataset)
+    and exists(cleansed_data_object)
+invocation:
+  type: argo_workflow_template
+  template_name: shipment-data-standardization-enricher-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.shipment_data_standardization_enricher
+  implementation_ref: services/implementations/shipment_data_standardization_enricher
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full shipment rows; emit counts, columns, and bounded diagnostics only.
+  - Workflow fan-in and retry policy remain orchestration-level concerns.
+  idempotency_notes: Same vendor inputs, reference data, and rule parameters produce
+    the same cleansed shipment dataset.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:supply_chain_shipment_etl#cleanse_data
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The source transform step has a reusable supply-chain data cleansing
+    contract not covered by existing generic null-cleaning or one-input declarative
+    transformation services.'
+  - 'Evidence status: strongly_inferred.'

@@ -1,0 +1,100 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: val_stream_batch_fraud_bridge
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: wait_for_stream_checkpoint
+  script: scripts/01_wait_for_stream_checkpoint.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: load_stream_events
+  script: scripts/02_load_stream_events.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - wait_for_stream_checkpoint
+- intent_id: load_batch_settlements
+  script: scripts/03_load_batch_settlements.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - wait_for_stream_checkpoint
+- intent_id: load_account_history
+  script: scripts/04_load_account_history.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+- intent_id: join_transaction_context
+  script: scripts/05_join_transaction_context.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - load_stream_events
+  - load_batch_settlements
+  - load_account_history
+- intent_id: score_fraud_risk
+  script: scripts/06_score_fraud_risk.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - join_transaction_context
+- intent_id: route_risk_action
+  script: scripts/07_route_risk_action.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - score_fraud_risk
+- intent_id: update_monitoring_table
+  script: scripts/08_update_monitoring_table.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_risk_action
+- intent_id: open_investigation_case
+  script: scripts/09_open_investigation_case.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - route_risk_action
+- intent_id: publish_risk_metrics
+  script: scripts/10_publish_risk_metrics.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/fixture.json'
+  dependencies:
+  - update_monitoring_table
+scenarios:
+- name: nominal
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
+cron:
+  schedule: 0 0 * * *
+  timezone: UTC

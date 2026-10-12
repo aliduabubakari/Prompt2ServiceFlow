@@ -1,0 +1,173 @@
+schema_version: 0.1.0
+service_id: google_dataform_compilation_result_creator
+version: 1.0.0
+display_name: Google Dataform Compilation Result Creator
+category: ExternalWorkflowAdapter
+capability:
+  summary: Creates a Google Cloud Dataform compilation result in a configured repository
+    from a supplied compilation configuration and emits the compilation result reference
+    plus status.
+  operations:
+  - Resolve a bound Google Cloud Dataform repository resource.
+  - Submit a create-compilation-result request using the supplied compilation configuration.
+  - Parse the created compilation result name/reference from the API response.
+  - Emit an observable creation status.
+  keywords:
+  - google dataform
+  - compilation result
+  - gcp
+  - external workflow
+  - repository
+  - cloud service
+  limitations:
+  - Targets Google Cloud Dataform-compatible repositories only.
+  - Does not create or manage repositories.
+  - Does not infer compilation configuration; caller must supply it.
+  - Does not manage workflow retries or scheduling.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: dataform_repository
+    description: Google Cloud Dataform repository resource, including project, region,
+      repository identity, and authentication binding.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://google_dataform_repository_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: compilation_config
+    description: Dataform compilation-result request configuration produced by an
+      upstream builder or supplied by the workflow.
+    channel: parameter
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://dataform_compilation_config/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: compilation_result_reference
+    description: Reference to the created Dataform compilation result, including the
+      resource name.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://dataform_compilation_result_reference/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: creation_status
+    description: Observable status for the compilation result creation request.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://dataform_compilation_creation_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: project_id
+    description: Google Cloud project identifier containing the Dataform repository.
+    type: string
+    required: true
+  - name: region
+    description: Google Cloud region for the Dataform repository, for example europe-west3.
+    type: string
+    required: true
+  - name: repository_id
+    description: Dataform repository identifier.
+    type: string
+    required: true
+  secrets: []
+contracts:
+- contract_id: dataform_repository_identity_contract
+  type: precondition
+  applies_to: service
+  target: google_dataform_compilation_result_creator
+  description: Project, region, and repository identifiers must be non-empty.
+  expression: length(trim(project_id)) > 0 and length(trim(region)) > 0 and length(trim(repository_id))
+    > 0
+- contract_id: dataform_compilation_creation_input_schema
+  type: json_schema
+  applies_to: input
+  target: compilation_config
+  description: Input compilation config must contain a non-empty git commitish.
+  schema_ref: schema://dataform_compilation_config/v1
+  expression: '{"type":"object","required":["git_commitish"],"properties":{"git_commitish":{"type":"string","minLength":1},"code_compilation_config":{"type":"object"}},"additionalProperties":true}'
+- contract_id: dataform_compilation_result_reference_schema
+  type: json_schema
+  applies_to: output
+  target: compilation_result_reference
+  description: Compilation result reference exposes the created Dataform resource
+    name.
+  schema_ref: schema://dataform_compilation_result_reference/v1
+  expression: '{"type":"object","required":["name","project_id","region","repository_id"],"properties":{"name":{"type":"string","minLength":1},"project_id":{"type":"string"},"region":{"type":"string"},"repository_id":{"type":"string"},"git_commitish":{"type":["string","null"]}}}'
+- contract_id: dataform_compilation_creation_status_schema
+  type: json_schema
+  applies_to: output
+  target: creation_status
+  description: Status exposes API request outcome for downstream validation.
+  schema_ref: schema://dataform_compilation_creation_status/v1
+  expression: '{"type":"object","required":["success","project_id","region","repository_id","compilation_result_name"],"properties":{"success":{"type":"boolean"},"project_id":{"type":"string"},"region":{"type":"string"},"repository_id":{"type":"string"},"compilation_result_name":{"type":["string","null"]},"api_status_code":{"type":["integer","null"]},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: dataform_compilation_creation_effect
+  type: effect
+  applies_to: service
+  target: google_dataform_compilation_result_creator
+  description: On success, a Dataform compilation result reference exists and status.success
+    is true.
+  expression: creation_status.success == true implies exists(compilation_result_reference.name)
+invocation:
+  type: argo_workflow_template
+  template_name: google-dataform-compilation-result-creator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.google_dataform_compilation_result_creator
+  implementation_ref: services/implementations/google_dataform_compilation_result_creator
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - https://dataform.googleapis.com/*
+  secret_access: required
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit GCP credentials in outputs or logs.
+  - Bind only approved Dataform repository resources.
+  idempotency_notes: Creation may produce a new compilation result resource per invocation;
+    retry safety depends on Dataform API semantics and caller handling of duplicate
+    created resources.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:data-transformation-pipeline#create_compilation_result
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No registry service supports Google Cloud Dataform compilation result
+    creation.'
+  - 'Evidence status: explicit.'

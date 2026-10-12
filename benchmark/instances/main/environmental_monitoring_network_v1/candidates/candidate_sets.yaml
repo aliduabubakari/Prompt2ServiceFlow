@@ -1,0 +1,76 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:environmental_monitoring_network_v1
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_environmental_monitoring_network_v1_csv_to_structured_json_table_formatter_candidates
+  source_step_refs:
+  - load_and_modify_stations
+  service_ids:
+  - csv_to_structured_json_table_formatter
+  - csv_to_structured_json_standardizer
+  - csv_tabular_schema_validating_loader
+  - customer_segment_csv_loader
+  - delimited_file_tabular_dataset_loader
+  - legacy_csv_schema_validator
+- candidate_set_id: main_environmental_monitoring_network_v1_tabular_address_geocoding_enricher_candidates
+  source_step_refs:
+  - geocode_stations
+  service_ids:
+  - tabular_address_geocoding_enricher
+  - tabular_entity_reconciliation_enricher
+  - wikidata_entity_reconciliation_transformer
+  - coordinate_land_use_classification_enricher
+  - http_json_request_extractor
+  - open_network_http_json_requester
+- candidate_set_id: main_environmental_monitoring_network_v1_openmeteo_historical_weather_tabular_enricher_candidates
+  source_step_refs:
+  - fetch_historical_weather
+  service_ids:
+  - openmeteo_historical_weather_tabular_enricher
+  - tabular_http_property_extension_enricher
+  - airvisual_nearest_city_json_extractor
+  - coordinate_land_use_classification_enricher
+  - worldpop_population_density_tabular_enricher
+  - legacy_http_json_extractor
+- candidate_set_id: main_environmental_monitoring_network_v1_coordinate_land_use_classification_enricher_candidates
+  source_step_refs:
+  - classify_land_use
+  service_ids:
+  - coordinate_land_use_classification_enricher
+  - tabular_http_property_extension_enricher
+  - openmeteo_historical_weather_tabular_enricher
+  - worldpop_population_density_tabular_enricher
+  - geospatial_nearest_distance_column_extender
+  - open_network_http_json_requester
+- candidate_set_id: main_environmental_monitoring_network_v1_worldpop_population_density_tabular_enricher_candidates
+  source_step_refs:
+  - fetch_population_density
+  service_ids:
+  - worldpop_population_density_tabular_enricher
+  - openmeteo_historical_weather_tabular_enricher
+  - coordinate_land_use_classification_enricher
+  - tabular_http_property_extension_enricher
+  - http_json_request_extractor
+  - legacy_http_json_extractor
+- candidate_set_id: main_environmental_monitoring_network_v1_environmental_risk_score_column_calculator_candidates
+  source_step_refs:
+  - calculate_risk_score
+  service_ids:
+  - environmental_risk_score_column_calculator
+  - tabular_dataset_declarative_transformer
+  - tabular_http_property_extension_enricher
+  - coordinate_land_use_classification_enricher
+  - parquet_customer_quality_score_calculator
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_environmental_monitoring_network_v1_structured_json_to_csv_exporter_candidates
+  source_step_refs:
+  - save_environmental_dataset
+  service_ids:
+  - structured_json_to_csv_exporter
+  - structured_json_batch_to_csv_exporter
+  - tabular_query_result_csv_writer
+  - csv_to_structured_json_table_formatter
+  - validated_parquet_to_csv_report_exporter
+  - reviewed_python_udf_transformer

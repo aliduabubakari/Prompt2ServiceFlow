@@ -1,0 +1,270 @@
+{
+  "report_version": "0.1.0",
+  "pipeline_id": "main:fraud_detection_triage",
+  "generated_at": "2026-07-21T09:37:13.283086+00:00",
+  "overall_status": "pass",
+  "gates": [
+    {
+      "gate": "G0",
+      "status": "pass",
+      "checks": [
+        "Parse, schema, required files, and checksums"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G1",
+      "status": "pass",
+      "checks": [
+        "Graph integrity and complete source-step accounting"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G2",
+      "status": "pass",
+      "checks": [
+        "Catalog service/version/lifecycle resolution"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G3",
+      "status": "pass",
+      "checks": [
+        "Interface, parameter, secret, artifact, and policy closure"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G4",
+      "status": "pass",
+      "checks": [
+        "Exact gold-to-runtime task identities, dependency edges, and script syntax"
+      ],
+      "errors": []
+    },
+    {
+      "gate": "G5",
+      "status": "pass",
+      "checks": [
+        "Deterministic Argo projection, deployable bundles, ConfigMap-size checks, and structural lint"
+      ],
+      "errors": [],
+      "details": {
+        "configmap_payloads": [
+          {
+            "name": "fraud-detection-triage-scripts",
+            "data_size_bytes": 8232,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "fraud-detection-triage-fixtures",
+            "data_size_bytes": 1470,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "fraud-detection-triage-high-risk-manual-review-scripts",
+            "scenario": "high_risk_manual_review",
+            "data_size_bytes": 8232,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "fraud-detection-triage-high-risk-manual-review-fixtures",
+            "scenario": "high_risk_manual_review",
+            "data_size_bytes": 1470,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "fraud-detection-triage-low-risk-auto-approve-scripts",
+            "scenario": "low_risk_auto_approve",
+            "data_size_bytes": 8232,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          },
+          {
+            "name": "fraud-detection-triage-low-risk-auto-approve-fixtures",
+            "scenario": "low_risk_auto_approve",
+            "data_size_bytes": 1470,
+            "limit_bytes": 1048576,
+            "within_limit": true
+          }
+        ]
+      }
+    },
+    {
+      "gate": "G6",
+      "status": "pass",
+      "checks": [
+        "Execute every declared scenario and evaluate reviewed semantic assertions and artifact schemas"
+      ],
+      "errors": []
+    }
+  ],
+  "scenario_results": [
+    {
+      "scenario": "high_risk_manual_review",
+      "status": "pass",
+      "executed_tasks": [
+        "analyze_transactions",
+        "route_transaction",
+        "route_to_manual_review",
+        "send_notification"
+      ],
+      "skipped_tasks": [
+        "route_to_auto_approve"
+      ],
+      "assertions": [
+        {
+          "assertion_id": "scoring_succeeded",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "high_risk_score",
+          "status": "pass",
+          "message": "value=0.9, minimum=0.8"
+        },
+        {
+          "assertion_id": "manual_review_route_selected",
+          "status": "pass",
+          "message": "value='manual_review', expected='manual_review'"
+        },
+        {
+          "assertion_id": "manual_review_requested",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "three_transactions_marked",
+          "status": "pass",
+          "message": "value=3, expected=3"
+        },
+        {
+          "assertion_id": "auto_approval_not_written",
+          "status": "pass",
+          "message": "auto_approval_status.json is absent"
+        },
+        {
+          "assertion_id": "notification_sent",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "schema_risk_score",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_scored_transactions",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_scoring_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_routing_decision",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_manual_review_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_notification_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        }
+      ]
+    },
+    {
+      "scenario": "low_risk_auto_approve",
+      "status": "pass",
+      "executed_tasks": [
+        "analyze_transactions",
+        "route_transaction",
+        "route_to_auto_approve",
+        "send_notification"
+      ],
+      "skipped_tasks": [
+        "route_to_manual_review"
+      ],
+      "assertions": [
+        {
+          "assertion_id": "scoring_succeeded",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "low_risk_score_below_threshold",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "auto_approve_route_selected",
+          "status": "pass",
+          "message": "value='auto_approve', expected='auto_approve'"
+        },
+        {
+          "assertion_id": "auto_approval_recorded",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "three_transactions_approved",
+          "status": "pass",
+          "message": "value=3, expected=3"
+        },
+        {
+          "assertion_id": "manual_review_not_written",
+          "status": "pass",
+          "message": "manual_review_status.json is absent"
+        },
+        {
+          "assertion_id": "notification_sent",
+          "status": "pass",
+          "message": "value=True, expected=True"
+        },
+        {
+          "assertion_id": "schema_risk_score",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_scored_transactions",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_scoring_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_routing_decision",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_auto_approval_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        },
+        {
+          "assertion_id": "schema_notification_status",
+          "status": "pass",
+          "message": "artifact conforms to its reviewed JSON Schema"
+        }
+      ]
+    }
+  ]
+}

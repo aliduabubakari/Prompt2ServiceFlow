@@ -1,0 +1,467 @@
+{
+  "report_version": "0.3.0",
+  "tool": {
+    "name": "score_submission",
+    "version": "1.2.0"
+  },
+  "generated_at": "2026-10-11T09:58:43.671734+00:00",
+  "instance": "benchmark/instances/extension/fraud_event_replay_checkpoint",
+  "workspace": "experiments/workspaces/extension/fraud_event_replay_checkpoint",
+  "submission": "results/paper/runs/m4__extension__fraud_event_replay_checkpoint__deepinfra-qwen3-coder-480b-turbo__s1__20261011T095544.279367Z__951707e1/submission",
+  "summary": {
+    "public_gates_status": "fail",
+    "first_failing_gate": "G1",
+    "g6_assert_status": "fail",
+    "full_pass_g0_g6": false,
+    "node_f1": 1.0,
+    "edge_f1": 1.0,
+    "binding_top1_accuracy": 1.0,
+    "binding_version_accuracy": null,
+    "wiring_f1": 0.3,
+    "wiring_applicable": true,
+    "alignment_edit_distance": 0,
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "source_step_coverage": 1.0,
+    "g6_assert_pass_rate": 0.0
+  },
+  "public_gates": {
+    "report_version": "0.2.0",
+    "tool": {
+      "name": "validate_submission",
+      "version": "2.0.0"
+    },
+    "generated_at": "2026-10-11T09:58:41.769979+00:00",
+    "workspace": "experiments/workspaces/extension/fraud_event_replay_checkpoint",
+    "submission": "results/paper/runs/m4__extension__fraud_event_replay_checkpoint__deepinfra-qwen3-coder-480b-turbo__s1__20261011T095544.279367Z__951707e1/submission",
+    "overall_status": "fail",
+    "first_failing_gate": "G1",
+    "gates": [
+      {
+        "gate": "G0",
+        "status": "pass",
+        "description": "Parse/schema validity of the submission package",
+        "diagnostics": []
+      },
+      {
+        "gate": "G1",
+        "status": "fail",
+        "description": "Service-graph validity and IR/manifest graph consistency",
+        "diagnostics": [
+          {
+            "code": "G1_REFERENCE_ERROR",
+            "message": "artifact 'exception_report' names consumer 'evaluate_policy_or_risk_intent', but the consumer does not list it as an input",
+            "path": "submission/serviceflow.yaml"
+          }
+        ]
+      },
+      {
+        "gate": "G2",
+        "status": "pass",
+        "description": "Catalog grounding of bound services",
+        "diagnostics": []
+      },
+      {
+        "gate": "G3",
+        "status": "fail",
+        "description": "Binding compatibility with service interfaces and contracts",
+        "diagnostics": [
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "ingest_source_batch_intent: output 'output_artifacts' expects any, got json"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "ingest_source_batch_intent: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "validate_source_contract_intent: input 'input_artifacts' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "validate_source_contract_intent: output 'output_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "validate_source_contract_intent: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "load_previous_checkpoint_intent: output 'output_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "load_previous_checkpoint_intent: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "apply_batch_to_checkpoint_intent: input 'input_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "apply_batch_to_checkpoint_intent: input 'input_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "apply_batch_to_checkpoint_intent: output 'output_artifacts' expects any, got json"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "apply_batch_to_checkpoint_intent: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "quarantine_late_or_invalid_records_intent: input 'input_artifacts' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "quarantine_late_or_invalid_records_intent: output 'output_artifacts' expects any, got json"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "quarantine_late_or_invalid_records_intent: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "evaluate_policy_or_risk_intent: input 'input_artifacts' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "evaluate_policy_or_risk_intent: output 'output_artifacts' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "evaluate_policy_or_risk_intent: output 'output_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "evaluate_policy_or_risk_intent: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "route_approved_records_intent: input 'input_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "route_approved_records_intent: output 'output_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "route_approved_records_intent: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "route_exception_records_intent: input 'input_artifacts' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "route_exception_records_intent: output 'output_artifacts' expects any, got json"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "route_exception_records_intent: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "merge_route_outcomes_intent: input 'input_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "merge_route_outcomes_intent: input 'input_artifacts' expects any, got json"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "merge_route_outcomes_intent: output 'output_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "merge_route_outcomes_intent: required output port 'execution_report' is not bound"
+          },
+          {
+            "code": "G3_INPUT_TYPE_MISMATCH",
+            "message": "publish_outputs_intent: input 'input_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_OUTPUT_TYPE_MISMATCH",
+            "message": "publish_outputs_intent: output 'output_artifacts' expects any, got table"
+          },
+          {
+            "code": "G3_REQUIRED_OUTPUT_UNBOUND",
+            "message": "publish_outputs_intent: required output port 'execution_report' is not bound"
+          }
+        ]
+      },
+      {
+        "gate": "G4",
+        "status": "pass",
+        "description": "Policy compliance (secrets, network access)",
+        "diagnostics": []
+      },
+      {
+        "gate": "G5",
+        "status": "pass",
+        "description": "Deterministic orchestration compilation and structural Argo validity",
+        "diagnostics": [],
+        "details": {
+          "configmap_payloads": [
+            {
+              "name": "extension-v1-fraud-event-replay-checkpoint-scripts",
+              "scenario": "base",
+              "data_size_bytes": 20225,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-fraud-event-replay-checkpoint-fixtures",
+              "scenario": "base",
+              "data_size_bytes": 2065,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-fraud-event-replay-checkpoint-nominal-scripts",
+              "scenario": "nominal",
+              "data_size_bytes": 20225,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            },
+            {
+              "name": "extension-v1-fraud-event-replay-checkpoint-nominal-fixtures",
+              "scenario": "nominal",
+              "data_size_bytes": 2065,
+              "limit_bytes": 1048576,
+              "within_limit": true
+            }
+          ],
+          "argo_lint": {
+            "status": "pass"
+          }
+        }
+      },
+      {
+        "gate": "G6-Exec",
+        "status": "pass",
+        "description": "Scenario execution on public fixtures and artifact schema conformance",
+        "diagnostics": [],
+        "details": {
+          "scenarios": [
+            {
+              "scenario": "nominal",
+              "status": "pass",
+              "executed_tasks": [
+                "ingest_source_batch_intent",
+                "validate_source_contract_intent",
+                "load_previous_checkpoint_intent",
+                "apply_batch_to_checkpoint_intent",
+                "quarantine_late_or_invalid_records_intent",
+                "evaluate_policy_or_risk_intent",
+                "route_approved_records_intent",
+                "route_exception_records_intent",
+                "merge_route_outcomes_intent",
+                "publish_outputs_intent"
+              ],
+              "skipped_tasks": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "graph": {
+    "alignment": {
+      "method": "greedy(service=0.45, source_steps=0.35, category=0.10, io=0.10), threshold=0.2",
+      "matched": 10,
+      "submission_intents": 10,
+      "gold_intents": 10,
+      "mapping": {
+        "apply_batch_to_checkpoint_intent": "apply_batch_to_checkpoint",
+        "evaluate_policy_or_risk_intent": "evaluate_policy_or_risk",
+        "ingest_source_batch_intent": "ingest_source_batch",
+        "load_previous_checkpoint_intent": "load_previous_checkpoint",
+        "merge_route_outcomes_intent": "merge_route_outcomes",
+        "publish_outputs_intent": "publish_outputs",
+        "quarantine_late_or_invalid_records_intent": "quarantine_late_or_invalid_records",
+        "route_approved_records_intent": "route_approved_records",
+        "route_exception_records_intent": "route_exception_records",
+        "validate_source_contract_intent": "validate_source_contract"
+      }
+    },
+    "node": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "matched": 10
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 10,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "over_decomposition_rate": 0.0,
+    "under_decomposition_rate": 0.0,
+    "alignment_edit_distance": 0,
+    "source_step_coverage": {
+      "covered": 10,
+      "total": 10,
+      "rate": 1.0,
+      "missing": [],
+      "unknown_refs": []
+    }
+  },
+  "binding": {
+    "top1_accuracy": 1.0,
+    "aligned_accuracy": 1.0,
+    "version_accuracy_given_correct_service": 1.0,
+    "mean_reciprocal_rank": null,
+    "mrr_note": "ranked candidate outputs are not part of the submission contract",
+    "evaluated_gold_bindings": 10,
+    "correct": 10,
+    "confusion_by_label": {},
+    "rates": {
+      "invented_service": 0.0,
+      "generic_escape_hatch": 0.0,
+      "deprecated_incompatible": 0.0
+    },
+    "per_intent": [
+      {
+        "gold_intent": "apply_batch_to_checkpoint",
+        "gold_service": "checkpoint_state_transition_applier",
+        "submission_intent": "apply_batch_to_checkpoint_intent",
+        "submission_service": "checkpoint_state_transition_applier",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "evaluate_policy_or_risk",
+        "gold_service": "checkpoint_event_policy_risk_decider",
+        "submission_intent": "evaluate_policy_or_risk_intent",
+        "submission_service": "checkpoint_event_policy_risk_decider",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "ingest_source_batch",
+        "gold_service": "checkpoint_event_batch_ingestor",
+        "submission_intent": "ingest_source_batch_intent",
+        "submission_service": "checkpoint_event_batch_ingestor",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "load_previous_checkpoint",
+        "gold_service": "checkpoint_manifest_loader",
+        "submission_intent": "load_previous_checkpoint_intent",
+        "submission_service": "checkpoint_manifest_loader",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "merge_route_outcomes",
+        "gold_service": "checkpoint_route_outcome_merger",
+        "submission_intent": "merge_route_outcomes_intent",
+        "submission_service": "checkpoint_route_outcome_merger",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "publish_outputs",
+        "gold_service": "checkpoint_output_bundle_publisher",
+        "submission_intent": "publish_outputs_intent",
+        "submission_service": "checkpoint_output_bundle_publisher",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "quarantine_late_or_invalid_records",
+        "gold_service": "late_event_quarantine_writer",
+        "submission_intent": "quarantine_late_or_invalid_records_intent",
+        "submission_service": "late_event_quarantine_writer",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "route_approved_records",
+        "gold_service": "checkpoint_approved_record_router",
+        "submission_intent": "route_approved_records_intent",
+        "submission_service": "checkpoint_approved_record_router",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "route_exception_records",
+        "gold_service": "checkpoint_exception_review_router",
+        "submission_intent": "route_exception_records_intent",
+        "submission_service": "checkpoint_exception_review_router",
+        "outcome": "correct",
+        "version_correct": true
+      },
+      {
+        "gold_intent": "validate_source_contract",
+        "gold_service": "checkpoint_event_contract_validator",
+        "submission_intent": "validate_source_contract_intent",
+        "submission_service": "checkpoint_event_contract_validator",
+        "outcome": "correct",
+        "version_correct": true
+      }
+    ]
+  },
+  "wiring": {
+    "precision": 0.3,
+    "recall": 0.3,
+    "f1": 0.3,
+    "applicable": true,
+    "true_positives": 3,
+    "false_positives": 7,
+    "false_negatives": 7
+  },
+  "g6_assert": {
+    "scenarios": [
+      {
+        "scenario": "nominal",
+        "execution_status": "pass",
+        "execution_errors": [],
+        "assertions": [
+          {
+            "assertion_id": "source_fixture_loaded",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-p1dy3tdr/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "source_files_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-p1dy3tdr/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "source_records_present",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-p1dy3tdr/artifacts/ingest_source_batch_status.json"
+          },
+          {
+            "assertion_id": "final_status_succeeds",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-p1dy3tdr/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "final_artifact_exists",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-p1dy3tdr/artifacts/publish_outputs_status.json"
+          },
+          {
+            "assertion_id": "upstream_evidence_propagated",
+            "status": "fail",
+            "message": "missing /var/folders/tj/464jl5ls75l9zfnpxmsx2lrh0000gn/T/p2sf-assert-nominal-p1dy3tdr/artifacts/publish_outputs_status.json"
+          }
+        ],
+        "status": "fail"
+      }
+    ],
+    "assertions_total": 6,
+    "assertions_passed": 0,
+    "pass_rate": 0.0,
+    "overall_status": "fail"
+  }
+}

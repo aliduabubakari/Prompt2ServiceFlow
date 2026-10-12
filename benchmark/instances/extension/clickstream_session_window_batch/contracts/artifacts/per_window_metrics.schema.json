@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Per-Window Metrics Output",
+  "description": "Schema for the per-window metrics produced by compute_window_metrics.",
+  "type": "object",
+  "required": ["per_window_metrics", "summary"],
+  "properties": {
+    "per_window_metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["session_id", "user_id", "event_count", "window_start", "window_end"],
+        "properties": {
+          "session_id": {"type": "string"},
+          "window_index": {"type": "integer"},
+          "user_id": {"type": "string"},
+          "event_count": {"type": "integer", "minimum": 1},
+          "unique_pages": {"type": "integer", "minimum": 0},
+          "devices_used": {"type": "array", "items": {"type": "string"}},
+          "event_types_seen": {"type": "array", "items": {"type": "string"}},
+          "duration_seconds": {"type": "number", "minimum": 0},
+          "has_conversion_signal": {"type": "boolean"},
+          "window_start": {"type": "string", "format": "date-time"},
+          "window_end": {"type": "string", "format": "date-time"}
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total_windows", "total_events"],
+      "properties": {
+        "total_windows": {"type": "integer", "minimum": 0},
+        "total_events": {"type": "integer", "minimum": 0},
+        "conversion_windows": {"type": "integer"},
+        "conversion_rate": {"type": "number"},
+        "avg_events_per_window": {"type": "number"},
+        "unique_users": {"type": "integer"}
+      }
+    }
+  }
+}

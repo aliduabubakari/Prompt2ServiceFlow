@@ -1,0 +1,73 @@
+candidate_label_version: 0.1.0
+benchmark_id: extension:scanned_claim_packet_extraction
+candidate_sets:
+- candidate_set_id: extension_scanned_claim_packet_extraction_multimodal_source_bundle_ingestor_candidates
+  required_service_id: multimodal_source_bundle_ingestor
+  labels:
+    multimodal_source_bundle_ingestor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    document_feature_validation_quality_check: contract_mismatch
+    image_cdn_batch_downloader: format_mismatch
+- candidate_set_id: extension_scanned_claim_packet_extraction_multimodal_source_contract_validator_candidates
+  required_service_id: multimodal_source_contract_validator
+  labels:
+    multimodal_source_contract_validator: gold
+    document_feature_validation_quality_check: semantic_mismatch
+    image_cdn_batch_downloader: contract_mismatch
+    csv_to_structured_json_standardizer: format_mismatch
+- candidate_set_id: extension_scanned_claim_packet_extraction_multimodal_branch_feature_extractor_candidates
+  required_service_id: multimodal_branch_feature_extractor
+  labels:
+    multimodal_branch_feature_extractor: gold
+    image_cdn_batch_downloader: semantic_mismatch
+    csv_to_structured_json_standardizer: contract_mismatch
+    json_field_projection_transformer: format_mismatch
+- candidate_set_id: extension_scanned_claim_packet_extraction_multimodal_context_enricher_candidates
+  required_service_id: multimodal_context_enricher
+  labels:
+    multimodal_context_enricher: gold
+    csv_to_structured_json_standardizer: semantic_mismatch
+    json_field_projection_transformer: contract_mismatch
+    dataset_quarantine_zone_writer: format_mismatch
+- candidate_set_id: extension_scanned_claim_packet_extraction_multimodal_branch_quality_scorer_candidates
+  required_service_id: multimodal_branch_quality_scorer
+  labels:
+    multimodal_branch_quality_scorer: gold
+    json_field_projection_transformer: semantic_mismatch
+    dataset_quarantine_zone_writer: contract_mismatch
+    reviewed_domain_adapter: format_mismatch
+- candidate_set_id: extension_scanned_claim_packet_extraction_multimodal_branch_output_merger_candidates
+  required_service_id: multimodal_branch_output_merger
+  labels:
+    multimodal_branch_output_merger: gold
+    dataset_quarantine_zone_writer: semantic_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+    document_feature_validation_quality_check: format_mismatch
+- candidate_set_id: extension_scanned_claim_packet_extraction_visual_document_feature_extractor_candidates
+  required_service_id: visual_document_feature_extractor
+  labels:
+    visual_document_feature_extractor: gold
+    reviewed_domain_adapter: semantic_mismatch
+    document_feature_validation_quality_check: contract_mismatch
+    image_cdn_batch_downloader: format_mismatch
+- candidate_set_id: extension_scanned_claim_packet_extraction_multimodal_reference_metadata_joiner_candidates
+  required_service_id: multimodal_reference_metadata_joiner
+  labels:
+    multimodal_reference_metadata_joiner: gold
+    document_feature_validation_quality_check: semantic_mismatch
+    image_cdn_batch_downloader: contract_mismatch
+    csv_to_structured_json_standardizer: format_mismatch
+- candidate_set_id: extension_scanned_claim_packet_extraction_multimodal_quality_assessor_candidates
+  required_service_id: multimodal_quality_assessor
+  labels:
+    multimodal_quality_assessor: gold
+    image_cdn_batch_downloader: semantic_mismatch
+    csv_to_structured_json_standardizer: contract_mismatch
+    json_field_projection_transformer: format_mismatch
+- candidate_set_id: extension_scanned_claim_packet_extraction_multimodal_output_bundle_publisher_candidates
+  required_service_id: multimodal_output_bundle_publisher
+  labels:
+    multimodal_output_bundle_publisher: gold
+    csv_to_structured_json_standardizer: semantic_mismatch
+    json_field_projection_transformer: contract_mismatch
+    dataset_quarantine_zone_writer: format_mismatch

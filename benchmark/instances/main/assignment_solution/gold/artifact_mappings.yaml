@@ -1,0 +1,27 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:assignment_solution
+mappings:
+- intent_id: get_user
+  inputs: {}
+  outputs:
+    response_json: user_response
+    extraction_status: user_status
+- intent_id: process_user
+  inputs:
+    source_dataset: user_result
+  outputs:
+    transformed_dataset: processed_data
+    transformed_data_object: processed_obj
+    transform_status: process_status
+- intent_id: create_table
+  inputs:
+    postgres_database: db_resource
+  outputs:
+    affected_tables: create_result
+    execution_status: create_tbl_status
+- intent_id: insert_data
+  inputs:
+    postgres_database: db_resource
+  outputs:
+    affected_tables: insert_result
+    execution_status: insert_status

@@ -1,0 +1,62 @@
+candidate_set_version: 0.1.0
+benchmark_id: extension:crop_disease_image_triage
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.3.1
+candidate_sets:
+- candidate_set_id: extension_crop_disease_image_triage_multimodal_source_bundle_ingestor_candidates
+  source_step_refs:
+  - ingest_source_batch
+  service_ids:
+  - multimodal_source_bundle_ingestor
+  - reviewed_domain_adapter
+  - document_feature_validation_quality_check
+  - image_cdn_batch_downloader
+- candidate_set_id: extension_crop_disease_image_triage_multimodal_source_contract_validator_candidates
+  source_step_refs:
+  - validate_source_contract
+  service_ids:
+  - multimodal_source_contract_validator
+  - document_feature_validation_quality_check
+  - image_cdn_batch_downloader
+  - csv_to_structured_json_standardizer
+- candidate_set_id: extension_crop_disease_image_triage_multimodal_policy_risk_decider_candidates
+  source_step_refs:
+  - evaluate_policy_or_risk
+  service_ids:
+  - multimodal_policy_risk_decider
+  - image_cdn_batch_downloader
+  - csv_to_structured_json_standardizer
+  - json_field_projection_transformer
+- candidate_set_id: extension_crop_disease_image_triage_approved_multimodal_record_router_candidates
+  source_step_refs:
+  - route_approved_records
+  service_ids:
+  - approved_multimodal_record_router
+  - csv_to_structured_json_standardizer
+  - json_field_projection_transformer
+  - dataset_quarantine_zone_writer
+- candidate_set_id: extension_crop_disease_image_triage_exception_multimodal_review_router_candidates
+  source_step_refs:
+  - route_exception_records
+  service_ids:
+  - exception_multimodal_review_router
+  - json_field_projection_transformer
+  - dataset_quarantine_zone_writer
+  - reviewed_domain_adapter
+- candidate_set_id: extension_crop_disease_image_triage_multimodal_route_outcome_merger_candidates
+  source_step_refs:
+  - merge_route_outcomes
+  service_ids:
+  - multimodal_route_outcome_merger
+  - dataset_quarantine_zone_writer
+  - reviewed_domain_adapter
+  - document_feature_validation_quality_check
+- candidate_set_id: extension_crop_disease_image_triage_multimodal_output_bundle_publisher_candidates
+  source_step_refs:
+  - publish_outputs
+  service_ids:
+  - multimodal_output_bundle_publisher
+  - reviewed_domain_adapter
+  - document_feature_validation_quality_check
+  - image_cdn_batch_downloader

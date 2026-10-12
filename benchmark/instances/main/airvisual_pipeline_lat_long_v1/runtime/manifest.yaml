@@ -1,0 +1,38 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: airvisual_pipeline_lat_long_v1
+image: python:3.12-slim
+workflow_parameters:
+- name: fixture-file
+  default: airvisual_response.json
+tasks:
+- intent_id: fetch_airvisual_data
+  script: scripts/01_fetch_airvisual_data.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{fixture-file}'
+  retries: 2
+- intent_id: validate_airvisual_response
+  script: scripts/02_validate_airvisual_response.py
+  dependencies:
+  - fetch_airvisual_data
+  arguments:
+  - --workspace
+  - '{workspace}'
+- intent_id: load_airvisual_dimensional_model
+  script: scripts/03_load_airvisual_dimensional_model.py
+  dependencies:
+  - validate_airvisual_response
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --pollution-mapping
+  - '{fixtures}/pollution_mapping.json'
+  - --weather-mapping
+  - '{fixtures}/weather_mapping.json'
+scenarios:
+- name: nominal_observation
+  parameters:
+    fixture-file: airvisual_response.json
+  fixture_root: fixtures/scenarios/nominal

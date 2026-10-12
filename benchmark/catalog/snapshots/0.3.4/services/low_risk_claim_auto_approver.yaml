@@ -1,0 +1,91 @@
+schema_version: 0.1.0
+service_id: low_risk_claim_auto_approver
+version: 1.0.0
+display_name: Low Risk Claim Auto Approver
+category: DomainAdapter
+capability:
+  summary: Auto-approves low-risk claims under a configured adjudication threshold.
+  operations:
+  - Auto-approves low-risk claims under a configured adjudication threshold.
+  keywords:
+  - low
+  - risk
+  - claim
+  - auto
+  - approver
+  limitations:
+  - Does not infer omitted domain policy, credentials, or target configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: risk_scores
+    description: Reviewed risk scores value.
+    channel: artifact
+    data_type: table
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: auto_approval_records
+    description: Reviewed auto approval records value.
+    channel: artifact
+    data_type: json
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: approval_status
+    description: Reviewed approval status value.
+    channel: artifact
+    data_type: status
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: approval_policy
+    description: Configuration for approval policy.
+    type: string
+    required: true
+  secrets: []
+contracts: []
+invocation:
+  type: argo_workflow_template
+  template_name: low-risk-claim-auto-approver
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.2.2
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.low_risk_claim_auto_approver
+  implementation_ref: services/implementations/low_risk_claim_auto_approver
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-25T00:00:00+00:00'
+  review_status: reviewed
+  source_refs:
+  - validation-batch-03:curated-extension
+  notes:
+  - Curated from sparse Validation-20 batch 03 descriptions; bindings retain inference confidence.

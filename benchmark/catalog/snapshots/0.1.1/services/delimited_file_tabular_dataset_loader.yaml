@@ -1,0 +1,176 @@
+schema_version: 0.1.0
+service_id: delimited_file_tabular_dataset_loader
+version: 1.0.0
+display_name: Delimited File Tabular Dataset Loader
+category: Extractor
+capability:
+  summary: Reads a CSV or delimited text artifact, validates caller-supplied required
+    columns/schema, materializes rows as a tabular dataset, and emits load status.
+  operations:
+  - Read a delimited file artifact from workflow storage.
+  - Parse header and rows using configured delimiter/header behavior.
+  - Validate required columns and optional expected schema/type rules.
+  - Emit a tabular dataset with rows, columns, row count, source URI, and parse/validation
+    status.
+  keywords:
+  - csv
+  - delimited file
+  - tabular extraction
+  - schema validation
+  - pii
+  - phi
+  limitations:
+  - Does not perform domain-specific joins, anonymization, scoring, or database loading.
+  - Does not fetch files from remote systems; the input artifact must already be bound.
+  - Does not log raw PHI/PII rows.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: delimited_file
+    description: CSV or delimited text file artifact to parse.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://delimited_file_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: phi
+  outputs:
+  - name: tabular_dataset
+    description: Parsed tabular dataset containing columns, rows, row_count, source_uri,
+      and validation flag.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://validated_tabular_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: phi
+  - name: load_status
+    description: Observable parse and validation status with row count, columns, schema_valid,
+      and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://delimited_tabular_load_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: required_columns
+    description: Columns that must be present in the parsed file header.
+    type: array
+    required: true
+  - name: expected_schema
+    description: Optional schema object defining column types and nullable fields.
+    type: object
+    required: false
+  - name: has_header
+    description: Whether the input file has a header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: Delimiter used to parse the file.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  - name: fail_on_empty
+    description: Whether zero parsed rows should fail the invocation.
+    type: boolean
+    required: false
+  secrets: []
+contracts:
+- contract_id: delimited_loader_input_readable
+  type: precondition
+  applies_to: input
+  target: delimited_file
+  description: Input file must be readable and parseable using configured delimiter/header
+    parameters.
+  expression: readable(delimited_file) and delimited_parseable(delimited_file, delimiter,
+    has_header)
+- contract_id: delimited_loader_required_columns
+  type: precondition
+  applies_to: parameter
+  target: required_columns
+  description: Every configured required column must be present in the parsed header.
+  expression: all(c in columns(delimited_file) for c in required_columns)
+- contract_id: validated_tabular_dataset_schema
+  type: json_schema
+  applies_to: output
+  target: tabular_dataset
+  description: Output dataset includes columns, rows, row_count, source_uri, and valid
+    flag.
+  schema_ref: schema://validated_tabular_dataset/v1
+  expression: '{"type":"object","required":["columns","rows","row_count","source_uri","valid"],"properties":{"columns":{"type":"array","items":{"type":"string"}},"rows":{"type":"array","items":{"type":"object"}},"row_count":{"type":"integer","minimum":0},"source_uri":{"type":"string"},"valid":{"type":"boolean"}}}'
+- contract_id: delimited_loader_status_schema
+  type: json_schema
+  applies_to: output
+  target: load_status
+  description: Status exposes parse/schema validation outcome.
+  schema_ref: schema://delimited_tabular_load_status/v1
+  expression: '{"type":"object","required":["success","parse_success","schema_valid","rows_read","columns"],"properties":{"success":{"type":"boolean"},"parse_success":{"type":"boolean"},"schema_valid":{"type":"boolean"},"rows_read":{"type":"integer","minimum":0},"columns":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: delimited_loader_effect
+  type: effect
+  applies_to: service
+  target: delimited_file_tabular_dataset_loader
+  description: On success, a valid tabular dataset exists and raw external systems
+    are not mutated.
+  expression: load_status.success == true implies exists(tabular_dataset) and tabular_dataset.valid
+    == true and no_external_mutation
+invocation:
+  type: argo_workflow_template
+  template_name: delimited-file-tabular-dataset-loader-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.delimited_file_tabular_dataset_loader
+  implementation_ref: services/implementations/delimited_file_tabular_dataset_loader
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  - pii
+  - phi
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit raw PHI/PII row values in status or logs.
+  - Use schema parameters to bind claims or provider file contracts deterministically.
+  idempotency_notes: Same input file and parsing/schema parameters produce the same
+    dataset and status.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:healthcare_claims_etl#extract_claims
+  - main:healthcare_claims_etl#extract_providers
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: A generic PHI/PII-aware delimited loader covers both claims.csv and
+    providers.csv without tying the service to this pipeline.'
+  - 'Evidence status: explicit.'

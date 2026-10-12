@@ -1,0 +1,80 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: validation:val_financial_risk_stress_testing
+mappings:
+- intent_id: load_market_scenarios
+  inputs:
+    financial_source: market_data_api
+  outputs:
+    financial_dataset: market_scenarios
+    extraction_status: scenario_load_status
+- intent_id: load_portfolio_positions
+  inputs:
+    financial_source: portfolio_warehouse
+  outputs:
+    financial_dataset: portfolio_positions
+    extraction_status: position_load_status
+- intent_id: run_credit_stress
+  inputs:
+    market_scenarios: market_scenarios
+    portfolio_positions: portfolio_positions
+    risk_engine: risk_engine
+  outputs:
+    stress_result: credit_stress_result
+    stress_status: credit_stress_status
+- intent_id: run_liquidity_stress
+  inputs:
+    market_scenarios: market_scenarios
+    portfolio_positions: portfolio_positions
+    risk_engine: risk_engine
+  outputs:
+    stress_result: liquidity_stress_result
+    stress_status: liquidity_stress_status
+- intent_id: run_market_stress
+  inputs:
+    market_scenarios: market_scenarios
+    portfolio_positions: portfolio_positions
+    risk_engine: risk_engine
+  outputs:
+    stress_result: market_stress_result
+    stress_status: market_stress_status
+- intent_id: aggregate_stress_results
+  inputs:
+    credit_result: credit_stress_result
+    liquidity_result: liquidity_stress_result
+    market_result: market_stress_result
+  outputs:
+    stress_results: stress_results
+    aggregation_status: stress_aggregation_status
+- intent_id: validate_capital_thresholds
+  inputs:
+    stress_results: stress_results
+  outputs:
+    capital_validation: capital_validation
+    validation_status: capital_validation_status
+- intent_id: route_validation_status
+  inputs:
+    capital_validation: capital_validation
+  outputs:
+    validation_route: validation_route
+    routing_status: validation_route_status
+- intent_id: write_regulatory_report
+  inputs:
+    stress_results: stress_results
+    capital_validation: capital_validation
+  outputs:
+    regulatory_report: regulatory_report
+    report_status: report_status
+- intent_id: open_remediation_ticket
+  inputs:
+    review_records: stress_results
+    case_system: review_case_system
+  outputs:
+    review_cases: remediation_ticket
+    case_status: remediation_status
+- intent_id: archive_model_inputs
+  inputs:
+    market_scenarios: market_scenarios
+    portfolio_positions: portfolio_positions
+    regulatory_archive: regulatory_archive
+  outputs:
+    archive_status: archive_status

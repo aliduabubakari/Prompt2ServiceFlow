@@ -1,0 +1,30 @@
+artifact_mapping_version: 0.1.0
+benchmark_id: main:database_replication_fanout
+mappings:
+- intent_id: dump_prod_csv
+  inputs:
+    source_database: prod_db_resource
+  outputs:
+    csv_snapshot: csv_snapshot
+    export_status: export_status
+- intent_id: copy_dev
+  inputs:
+    csv_snapshot: csv_snapshot
+    target_database: dev_db_resource
+  outputs:
+    target_database_reference: dev_ref
+    load_status: dev_load_status
+- intent_id: copy_staging
+  inputs:
+    csv_snapshot: csv_snapshot
+    target_database: staging_db_resource
+  outputs:
+    target_database_reference: staging_ref
+    load_status: staging_load_status
+- intent_id: copy_qa
+  inputs:
+    csv_snapshot: csv_snapshot
+    target_database: qa_db_resource
+  outputs:
+    target_database_reference: qa_ref
+    load_status: qa_load_status

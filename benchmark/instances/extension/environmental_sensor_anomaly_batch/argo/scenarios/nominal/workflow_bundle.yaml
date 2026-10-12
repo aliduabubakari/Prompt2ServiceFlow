@@ -1,0 +1,599 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prompt2serviceflow-runner
+  namespace: prompt2serviceflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: environmental-sensor-anomaly-batch-nominal-scripts
+  namespace: prompt2serviceflow
+data:
+  01_ingest_bounded_events.py: "#!/usr/bin/env python3\n\"\"\"Ingest bounded environmental sensor telemetry,\
+    \ station metadata, and anomaly threshold policy.\"\"\"\nfrom __future__ import annotations\nimport\
+    \ argparse, csv, json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\"\
+    , type=Path, required=True)\n    parser.add_argument(\"--execution-time\", type=str, default=None)\n\
+    \    args = parser.parse_args()\n    root = args.workspace\n    artifacts = root / \"artifacts\"\n\
+    \    artifacts.mkdir(parents=True, exist_ok=True)\n\n    fixture = json.loads(args.fixture.read_text(encoding=\"\
+    utf-8\"))\n    fixtures_dir = args.fixture.parent\n    execution_time = args.execution_time or fixture.get(\"\
+    batch_window_end\", \"2026-07-20T09:00:00Z\")\n\n    # Read sensor telemetry JSONL\n    telemetry_path\
+    \ = fixtures_dir / fixture[\"inputs\"][\"telemetry\"]\n    events = []\n    parse_errors = []\n  \
+    \  with telemetry_path.open(encoding=\"utf-8\") as f:\n        for i, line in enumerate(f, 1):\n \
+    \           line = line.strip()\n            if not line:\n                continue\n            try:\n\
+    \                evt = json.loads(line)\n                evt[\"_line\"] = i\n                events.append(evt)\n\
+    \            except json.JSONDecodeError as e:\n                parse_errors.append({\"line\": i,\
+    \ \"message\": str(e)})\n\n    # Read station metadata CSV\n    stations_path = fixtures_dir / fixture[\"\
+    inputs\"][\"stations\"]\n    stations = {}\n    with stations_path.open(encoding=\"utf-8\", newline=\"\
+    \") as f:\n        reader = csv.DictReader(f)\n        for row in reader:\n            sid = row[\"\
+    station_id\"]\n            if sid not in stations:\n                stations[sid] = {\"station_name\"\
+    : row[\"station_name\"], \"thresholds\": {}}\n            stations[sid][\"thresholds\"][row[\"metric\"\
+    ]] = {\n                \"warning_threshold\": float(row[\"warning_threshold\"]),\n              \
+    \  \"critical_threshold\": float(row[\"critical_threshold\"]),\n            }\n\n    # Read threshold\
+    \ policy\n    policy_path = fixtures_dir / fixture[\"inputs\"][\"policy\"]\n    threshold_policy =\
+    \ json.loads(policy_path.read_text(encoding=\"utf-8\"))\n\n    result = {\n        \"events\": events,\n\
+    \        \"stations\": stations,\n        \"threshold_policy\": threshold_policy,\n        \"total_events_read\"\
+    : len(events),\n        \"parse_errors\": parse_errors,\n        \"ingested_at\": execution_time,\n\
+    \    }\n    (artifacts / \"ingest_bounded_events_artifact.json\").write_text(\n        json.dumps(result,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\n        \"success\": len(parse_errors)\
+    \ == 0,\n        \"events_ingested\": len(events),\n        \"stations_loaded\": len(stations),\n\
+    \        \"errors\": parse_errors,\n    }\n    (artifacts / \"ingest_bounded_events_status.json\"\
+    ).write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__\
+    \ == \"__main__\":\n    main()\n"
+  02_validate_checkpoint_inputs.py: "#!/usr/bin/env python3\n\"\"\"Validate checkpoint inputs: batch window,\
+    \ required fields, station existence, metric validity.\"\"\"\nfrom __future__ import annotations\n\
+    import argparse, json\nfrom datetime import datetime\nfrom pathlib import Path\n\nREQUIRED_EVENT_FIELDS\
+    \ = {\"sensor_id\", \"station_id\", \"timestamp\", \"metric\", \"value\", \"unit\"}\n\n\ndef parse_ts(ts:\
+    \ str) -> datetime:\n    return datetime.fromisoformat(ts.replace(\"Z\", \"+00:00\"))\n\n\ndef main():\n\
+    \    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--fixture\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \    root = args.workspace\n    artifacts = root / \"artifacts\"\n\n    ingested = json.loads(\n \
+    \       (artifacts / \"ingest_bounded_events_artifact.json\").read_text(encoding=\"utf-8\")\n    )\n\
+    \    events = ingested[\"events\"]\n    stations = ingested[\"stations\"]\n    threshold_policy =\
+    \ ingested[\"threshold_policy\"]\n\n    fixture = json.loads(args.fixture.read_text(encoding=\"utf-8\"\
+    ))\n    batch_start = parse_ts(fixture[\"batch_window_start\"])\n    batch_end = parse_ts(fixture[\"\
+    batch_window_end\"])\n    required_metrics = set(threshold_policy.get(\"required_metrics\", []))\n\
+    \    unknown_policy = threshold_policy.get(\"unknown_station_policy\", \"reject\")\n\n    errors =\
+    \ []\n    valid_events = []\n    for evt in events:\n        issues = []\n        # Required fields\n\
+    \        missing = REQUIRED_EVENT_FIELDS - set(evt.keys())\n        if missing:\n            issues.append(f\"\
+    missing_fields: {', '.join(missing)}\")\n\n        # Timestamp within batch window\n        try:\n\
+    \            ts = parse_ts(evt.get(\"timestamp\", \"\"))\n            if ts < batch_start or ts >\
+    \ batch_end:\n                issues.append(f\"timestamp_out_of_batch_window: {evt['timestamp']}\"\
+    )\n        except (KeyError, ValueError) as e:\n            issues.append(f\"invalid_timestamp: {e}\"\
+    )\n\n        # Station must exist in metadata\n        sid = evt.get(\"station_id\", \"\")\n     \
+    \   if sid and sid not in stations and unknown_policy == \"reject\":\n            issues.append(f\"\
+    unknown_station: {sid}\")\n\n        # Metric must be in required list\n        metric = evt.get(\"\
+    metric\", \"\")\n        if required_metrics and metric not in required_metrics:\n            issues.append(f\"\
+    unrecognized_metric: {metric}\")\n\n        if issues:\n            errors.append({\n            \
+    \    \"message\": \"Validation failed\",\n                \"event_id\": evt.get(\"sensor_id\", \"\
+    ?\"),\n                \"line\": evt.get(\"_line\", None),\n                \"issues\": issues,\n\
+    \            })\n        else:\n            valid_events.append(evt)\n\n    result = {\n        \"\
+    valid_events\": valid_events,\n        \"total_events\": len(events),\n        \"valid_count\": len(valid_events),\n\
+    \        \"rejected_count\": len(errors),\n        \"validation_errors\": errors,\n        \"batch_window\"\
+    : {\"start\": fixture[\"batch_window_start\"], \"end\": fixture[\"batch_window_end\"]},\n    }\n \
+    \   (artifacts / \"validate_checkpoint_inputs_artifact.json\").write_text(\n        json.dumps(result,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\n        \"success\": True,\n   \
+    \     \"valid\": len(valid_events),\n        \"rejected\": len(errors),\n        \"errors\": errors,\n\
+    \    }\n    (artifacts / \"validate_checkpoint_inputs_status.json\").write_text(\n        json.dumps(status,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  03_sort_and_deduplicate_records.py: "#!/usr/bin/env python3\n\"\"\"Sort sensor events by timestamp and\
+    \ deduplicate by sensor_id.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom\
+    \ pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    args = parser.parse_args()\n    root = args.workspace\n    artifacts = root / \"artifacts\"\n\
+    \n    validated = json.loads(\n        (artifacts / \"validate_checkpoint_inputs_artifact.json\").read_text(encoding=\"\
+    utf-8\")\n    )\n    events = validated[\"valid_events\"]\n\n    # Sort by timestamp, then sensor_id\n\
+    \    events.sort(key=lambda e: (e.get(\"timestamp\", \"\"), e.get(\"sensor_id\", \"\")))\n\n    #\
+    \ Deduplicate by sensor_id\n    seen = set()\n    deduped = []\n    dups = []\n    for evt in events:\n\
+    \        sid = evt.get(\"sensor_id\", \"\")\n        if sid in seen:\n            dups.append({\"\
+    sensor_id\": sid, \"line\": evt.get(\"_line\", \"?\")})\n        else:\n            seen.add(sid)\n\
+    \            deduped.append(evt)\n\n    result = {\n        \"events\": deduped,\n        \"total_before_dedup\"\
+    : len(events),\n        \"total_after_dedup\": len(deduped),\n        \"duplicates_removed\": len(dups),\n\
+    \        \"duplicate_details\": dups,\n    }\n    (artifacts / \"sort_and_deduplicate_records_artifact.json\"\
+    ).write_text(\n        json.dumps(result, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status\
+    \ = {\n        \"success\": True,\n        \"sorted_and_deduped\": len(deduped),\n        \"duplicates_removed\"\
+    : len(dups),\n        \"errors\": [],\n    }\n    (artifacts / \"sort_and_deduplicate_records_status.json\"\
+    ).write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__\
+    \ == \"__main__\":\n    main()\n"
+  04_build_analysis_windows.py: "#!/usr/bin/env python3\n\"\"\"Build analysis windows: group sensor events\
+    \ into fixed-size windows by station.\"\"\"\nfrom __future__ import annotations\nimport argparse,\
+    \ json\nfrom datetime import datetime, timedelta\nfrom pathlib import Path\n\n\ndef parse_ts(ts: str)\
+    \ -> datetime:\n    return datetime.fromisoformat(ts.replace(\"Z\", \"+00:00\"))\n\n\ndef main():\n\
+    \    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--fixture\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \    root = args.workspace\n    artifacts = root / \"artifacts\"\n\n    fixture = json.loads(args.fixture.read_text(encoding=\"\
+    utf-8\"))\n    window_minutes = fixture.get(\"window_size_minutes\", 15)\n\n    sorted_data = json.loads(\n\
+    \        (artifacts / \"sort_and_deduplicate_records_artifact.json\").read_text(encoding=\"utf-8\"\
+    )\n    )\n    events = sorted_data[\"events\"]\n\n    # Group events by station_id\n    station_events:\
+    \ dict[str, list[dict]] = {}\n    for evt in events:\n        sid = evt.get(\"station_id\", \"unknown\"\
+    )\n        if sid not in station_events:\n            station_events[sid] = []\n        station_events[sid].append(evt)\n\
+    \n    # Build fixed-size windows per station\n    windows = []\n    batch_start = parse_ts(fixture[\"\
+    batch_window_start\"])\n    batch_end = parse_ts(fixture[\"batch_window_end\"])\n\n    for sid, sevents\
+    \ in station_events.items():\n        sevents.sort(key=lambda e: parse_ts(e.get(\"timestamp\", \"\
+    1970-01-01T00:00:00Z\")))\n        # Build windows of window_minutes from batch_start\n        window_start\
+    \ = batch_start\n        window_index = 0\n        while window_start < batch_end:\n            window_end\
+    \ = window_start + timedelta(minutes=window_minutes)\n            win_events = [\n               \
+    \ e for e in sevents\n                if window_start <= parse_ts(e[\"timestamp\"]) < window_end\n\
+    \            ]\n            if win_events:\n                windows.append({\n                   \
+    \ \"station_id\": sid,\n                    \"window_index\": window_index,\n                    \"\
+    window_start\": window_start.isoformat().replace(\"+00:00\", \"Z\"),\n                    \"window_end\"\
+    : window_end.isoformat().replace(\"+00:00\", \"Z\"),\n                    \"events\": win_events,\n\
+    \                    \"event_count\": len(win_events),\n                })\n            window_start\
+    \ = window_end\n            window_index += 1\n\n    result = {\n        \"windows\": windows,\n \
+    \       \"total_windows\": len(windows),\n        \"total_stations\": len(station_events),\n     \
+    \   \"window_size_minutes\": window_minutes,\n    }\n    (artifacts / \"build_analysis_windows_artifact.json\"\
+    ).write_text(\n        json.dumps(result, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status\
+    \ = {\n        \"success\": True,\n        \"windows_built\": len(windows),\n        \"stations_processed\"\
+    : len(station_events),\n        \"errors\": [],\n    }\n    (artifacts / \"build_analysis_windows_status.json\"\
+    ).write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__\
+    \ == \"__main__\":\n    main()\n"
+  05_compute_window_metrics.py: "#!/usr/bin/env python3\n\"\"\"Compute per-window metrics with station-aware\
+    \ anomaly detection.\"\"\"\nfrom __future__ import annotations\nimport argparse, json\nfrom pathlib\
+    \ import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"\
+    --workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\", type=Path, required=True)\n\
+    \    args = parser.parse_args()\n    root = args.workspace\n    artifacts = root / \"artifacts\"\n\
+    \n    windows_data = json.loads(\n        (artifacts / \"build_analysis_windows_artifact.json\").read_text(encoding=\"\
+    utf-8\")\n    )\n    ingested = json.loads(\n        (artifacts / \"ingest_bounded_events_artifact.json\"\
+    ).read_text(encoding=\"utf-8\")\n    )\n    stations = ingested[\"stations\"]\n    windows = windows_data[\"\
+    windows\"]\n\n    metrics = []\n    for w in windows:\n        win_events = w[\"events\"]\n      \
+    \  station = stations.get(w[\"station_id\"], {})\n        thresholds = station.get(\"thresholds\"\
+    , {})\n        metrics_seen = set(e.get(\"metric\", \"\") for e in win_events)\n        values = [e.get(\"\
+    value\", 0) for e in win_events]\n\n        # Determine max severity per metric against station thresholds\n\
+    \        anomaly_flags = []\n        for e in win_events:\n            metric = e.get(\"metric\",\
+    \ \"\")\n            value = e.get(\"value\", 0)\n            t = thresholds.get(metric, {})\n   \
+    \         critical = t.get(\"critical_threshold\")\n            warning = t.get(\"warning_threshold\"\
+    )\n            if critical is not None and value > critical:\n                anomaly_flags.append(\"\
+    critical\")\n            elif warning is not None and value > warning:\n                anomaly_flags.append(\"\
+    warning\")\n\n        max_severity = \"normal\"\n        if \"critical\" in anomaly_flags:\n     \
+    \       max_severity = \"critical\"\n        elif \"warning\" in anomaly_flags:\n            max_severity\
+    \ = \"warning\"\n\n        metrics.append({\n            \"station_id\": w[\"station_id\"],\n    \
+    \        \"window_index\": w[\"window_index\"],\n            \"window_start\": w[\"window_start\"\
+    ],\n            \"window_end\": w[\"window_end\"],\n            \"event_count\": len(win_events),\n\
+    \            \"metrics_observed\": sorted(metrics_seen),\n            \"min_value\": round(min(values),\
+    \ 2) if values else None,\n            \"max_value\": round(max(values), 2) if values else None,\n\
+    \            \"avg_value\": round(sum(values) / len(values), 2) if values else None,\n           \
+    \ \"anomaly_severity\": max_severity,\n            \"anomaly_count\": len(anomaly_flags),\n      \
+    \  })\n\n    total_windows = len(metrics)\n    warning_windows = sum(1 for m in metrics if m[\"anomaly_severity\"\
+    ] == \"warning\")\n    critical_windows = sum(1 for m in metrics if m[\"anomaly_severity\"] == \"\
+    critical\")\n\n    result = {\n        \"per_window_metrics\": metrics,\n        \"summary\": {\n\
+    \            \"total_windows\": total_windows,\n            \"total_events\": sum(m[\"event_count\"\
+    ] for m in metrics),\n            \"warning_windows\": warning_windows,\n            \"critical_windows\"\
+    : critical_windows,\n            \"normal_windows\": total_windows - warning_windows - critical_windows,\n\
+    \            \"unique_stations\": len(set(m[\"station_id\"] for m in metrics)),\n        },\n    }\n\
+    \    (artifacts / \"compute_window_metrics_artifact.json\").write_text(\n        json.dumps(result,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\n        \"success\": True,\n   \
+    \     \"windows_analyzed\": total_windows,\n        \"errors\": [],\n    }\n    (artifacts / \"compute_window_metrics_status.json\"\
+    ).write_text(\n        json.dumps(status, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__\
+    \ == \"__main__\":\n    main()\n"
+  06_align_time_index.py: "#!/usr/bin/env python3\n\"\"\"Align time index: round timestamps to window\
+    \ boundaries, fill gaps, ensure consistent indexing.\"\"\"\nfrom __future__ import annotations\nimport\
+    \ argparse, json\nfrom datetime import datetime, timedelta\nfrom pathlib import Path\n\n\ndef parse_ts(ts:\
+    \ str) -> datetime:\n    return datetime.fromisoformat(ts.replace(\"Z\", \"+00:00\"))\n\n\ndef main():\n\
+    \    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--workspace\", type=Path, required=True)\n\
+    \    parser.add_argument(\"--fixture\", type=Path, required=True)\n    args = parser.parse_args()\n\
+    \    root = args.workspace\n    artifacts = root / \"artifacts\"\n\n    fixture = json.loads(args.fixture.read_text(encoding=\"\
+    utf-8\"))\n    window_minutes = fixture.get(\"window_size_minutes\", 15)\n    batch_start = parse_ts(fixture[\"\
+    batch_window_start\"])\n    batch_end = parse_ts(fixture[\"batch_window_end\"])\n\n    metrics_data\
+    \ = json.loads(\n        (artifacts / \"compute_window_metrics_artifact.json\").read_text(encoding=\"\
+    utf-8\")\n    )\n\n    # Align each window's time boundaries to fixed grid\n    aligned = []\n   \
+    \ for m in metrics_data[\"per_window_metrics\"]:\n        ws = parse_ts(m[\"window_start\"])\n   \
+    \     we = parse_ts(m[\"window_end\"])\n        # Snap to fixed grid: round window_start down to nearest\
+    \ window boundary\n        offset_minutes = int((ws - batch_start).total_seconds() / 60)\n       \
+    \ grid_index = offset_minutes // window_minutes\n        aligned_start = batch_start + timedelta(minutes=grid_index\
+    \ * window_minutes)\n        aligned_end = aligned_start + timedelta(minutes=window_minutes)\n\n \
+    \       aligned.append({\n            **m,\n            \"aligned_window_start\": aligned_start.isoformat().replace(\"\
+    +00:00\", \"Z\"),\n            \"aligned_window_end\": aligned_end.isoformat().replace(\"+00:00\"\
+    , \"Z\"),\n            \"grid_index\": grid_index,\n            \"is_aligned\": aligned_start.isoformat()\
+    \ == ws.isoformat(),\n        })\n\n    # Detect gaps in time grid per station\n    station_windows:\
+    \ dict[str, list[dict]] = {}\n    for a in aligned:\n        station_windows.setdefault(a[\"station_id\"\
+    ], []).append(a)\n\n    gaps = []\n    for sid, wins in station_windows.items():\n        wins.sort(key=lambda\
+    \ w: w[\"grid_index\"])\n        for i in range(len(wins) - 1):\n            expected_next = wins[i][\"\
+    grid_index\"] + 1\n            actual_next = wins[i + 1][\"grid_index\"]\n            if actual_next\
+    \ > expected_next:\n                gaps.append({\n                    \"station_id\": sid,\n    \
+    \                \"gap_after_grid\": wins[i][\"grid_index\"],\n                    \"expected_next_grid\"\
+    : expected_next,\n                    \"actual_next_grid\": actual_next,\n                    \"missing_windows\"\
+    : actual_next - expected_next,\n                })\n\n    result = {\n        \"aligned_metrics\"\
+    : aligned,\n        \"time_grid\": {\n            \"batch_start\": fixture[\"batch_window_start\"\
+    ],\n            \"batch_end\": fixture[\"batch_window_end\"],\n            \"window_minutes\": window_minutes,\n\
+    \            \"total_grid_slots\": int((batch_end - batch_start).total_seconds() / 60 / window_minutes),\n\
+    \        },\n        \"gaps_detected\": gaps,\n        \"total_gaps\": len(gaps),\n    }\n    (artifacts\
+    \ / \"align_time_index_artifact.json\").write_text(\n        json.dumps(result, indent=2) + \"\\n\"\
+    , encoding=\"utf-8\"\n    )\n    status = {\n        \"success\": True,\n        \"windows_aligned\"\
+    : len(aligned),\n        \"gaps_detected\": len(gaps),\n        \"errors\": [],\n    }\n    (artifacts\
+    \ / \"align_time_index_status.json\").write_text(\n        json.dumps(status, indent=2) + \"\\n\"\
+    , encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  07_publish_outputs.py: "#!/usr/bin/env python3\n\"\"\"Publish outputs: generate CSV of aligned metrics,\
+    \ anomaly alert digest, and checkpoint manifest.\"\"\"\nfrom __future__ import annotations\nimport\
+    \ argparse, csv, json\nfrom pathlib import Path\n\n\ndef main():\n    parser = argparse.ArgumentParser()\n\
+    \    parser.add_argument(\"--workspace\", type=Path, required=True)\n    parser.add_argument(\"--fixture\"\
+    , type=Path, required=True)\n    parser.add_argument(\"--execution-time\", type=str, default=None)\n\
+    \    args = parser.parse_args()\n    root = args.workspace\n    artifacts = root / \"artifacts\"\n\
+    \n    fixture = json.loads(args.fixture.read_text(encoding=\"utf-8\"))\n    execution_time = args.execution_time\
+    \ or fixture.get(\"batch_window_end\", \"2026-07-20T09:00:00Z\")\n\n    aligned_data = json.loads(\n\
+    \        (artifacts / \"align_time_index_artifact.json\").read_text(encoding=\"utf-8\")\n    )\n \
+    \   metrics_data = json.loads(\n        (artifacts / \"compute_window_metrics_artifact.json\").read_text(encoding=\"\
+    utf-8\")\n    )\n\n    # Build checkpoint manifest\n    manifest = {\n        \"checkpoint_id\": f\"\
+    ckpt_env_sensor_{execution_time[:10].replace('-', '_')}\",\n        \"checkpoint_time\": execution_time,\n\
+    \        \"batch_window\": {\n            \"start\": fixture[\"batch_window_start\"],\n          \
+    \  \"end\": fixture[\"batch_window_end\"],\n        },\n        \"pipeline_id\": fixture[\"pipeline_id\"\
+    ],\n        \"execution_summary\": metrics_data[\"summary\"],\n        \"time_alignment\": {\n   \
+    \         \"windows_aligned\": aligned_data[\"total_gaps\"] == 0,\n            \"gaps_detected\":\
+    \ aligned_data[\"total_gaps\"],\n        },\n        \"output_files\": [\"aligned_metrics.csv\", \"\
+    alert_digest.json\", \"checkpoint_manifest.json\"],\n        \"status\": \"completed\",\n    }\n \
+    \   (artifacts / \"checkpoint_manifest.json\").write_text(\n        json.dumps(manifest, indent=2)\
+    \ + \"\\n\", encoding=\"utf-8\"\n    )\n\n    # Export aligned metrics CSV\n    csv_rel = \"aligned_metrics.csv\"\
+    \n    csv_path = artifacts / csv_rel\n    fieldnames = [\n        \"station_id\", \"window_index\"\
+    , \"aligned_window_start\", \"aligned_window_end\",\n        \"event_count\", \"min_value\", \"max_value\"\
+    , \"avg_value\",\n        \"anomaly_severity\", \"anomaly_count\",\n    ]\n    with csv_path.open(\"\
+    w\", encoding=\"utf-8\", newline=\"\") as f:\n        writer = csv.DictWriter(f, fieldnames=fieldnames,\
+    \ extrasaction=\"ignore\")\n        writer.writeheader()\n        for m in aligned_data[\"aligned_metrics\"\
+    ]:\n            writer.writerow(m)\n\n    # Build alert digest for anomalous windows\n    alerts =\
+    \ [\n        {\n            \"station_id\": m[\"station_id\"],\n            \"window_start\": m[\"\
+    aligned_window_start\"],\n            \"severity\": m[\"anomaly_severity\"],\n            \"anomaly_count\"\
+    : m[\"anomaly_count\"],\n        }\n        for m in aligned_data[\"aligned_metrics\"]\n        if\
+    \ m[\"anomaly_severity\"] != \"normal\"\n    ]\n    alert_digest = {\n        \"generated_at\": execution_time,\n\
+    \        \"total_alerts\": len(alerts),\n        \"alerts\": alerts,\n    }\n    (artifacts / \"alert_digest.json\"\
+    ).write_text(\n        json.dumps(alert_digest, indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\
+    \    publish_result = {\n        \"checkpoint_manifest\": manifest,\n        \"metrics_csv\": csv_rel,\n\
+    \        \"alert_digest\": \"alert_digest.json\",\n        \"output_summary\": metrics_data[\"summary\"\
+    ],\n    }\n    (artifacts / \"publish_outputs_artifact.json\").write_text(\n        json.dumps(publish_result,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n    status = {\n        \"success\": True,\n   \
+    \     \"csv_exported\": csv_rel,\n        \"alerts_generated\": len(alerts),\n        \"errors\":\
+    \ [],\n    }\n    (artifacts / \"publish_outputs_status.json\").write_text(\n        json.dumps(status,\
+    \ indent=2) + \"\\n\", encoding=\"utf-8\"\n    )\n\n\nif __name__ == \"__main__\":\n    main()\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: environmental-sensor-anomaly-batch-nominal-fixtures
+  namespace: prompt2serviceflow
+data:
+  fixture-0000: "{\n  \"pipeline_id\": \"environmental_sensor_anomaly_batch\",\n  \"inputs\": {\n    \"\
+    telemetry\": \"sensor_telemetry.jsonl\",\n    \"stations\": \"station_metadata.csv\",\n    \"policy\"\
+    : \"threshold_policy.json\"\n  },\n  \"input_modalities\": [\"time_series\", \"json\", \"table\"],\n\
+    \  \"systems\": [\n    \"sensor data lake\",\n    \"alert digest bucket\"\n  ],\n  \"window_size_minutes\"\
+    : 15,\n  \"batch_window_start\": \"2026-07-20T08:00:00Z\",\n  \"batch_window_end\": \"2026-07-20T09:00:00Z\"\
+    \n}\n"
+  fixture-0001: '{"sensor_id": "S001", "station_id": "STN_ALPHA", "timestamp": "2026-07-20T08:00:00Z",
+    "metric": "temperature", "value": 22.5, "unit": "celsius"}
+
+    {"sensor_id": "S002", "station_id": "STN_ALPHA", "timestamp": "2026-07-20T08:05:00Z", "metric": "humidity",
+    "value": 55.0, "unit": "percent"}
+
+    {"sensor_id": "S003", "station_id": "STN_ALPHA", "timestamp": "2026-07-20T08:10:00Z", "metric": "temperature",
+    "value": 23.1, "unit": "celsius"}
+
+    {"sensor_id": "S004", "station_id": "STN_ALPHA", "timestamp": "2026-07-20T08:15:00Z", "metric": "pressure",
+    "value": 1013.2, "unit": "hPa"}
+
+    {"sensor_id": "S005", "station_id": "STN_ALPHA", "timestamp": "2026-07-20T08:20:00Z", "metric": "temperature",
+    "value": 35.8, "unit": "celsius"}
+
+    {"sensor_id": "S006", "station_id": "STN_BETA", "timestamp": "2026-07-20T08:00:00Z", "metric": "temperature",
+    "value": 19.2, "unit": "celsius"}
+
+    {"sensor_id": "S007", "station_id": "STN_BETA", "timestamp": "2026-07-20T08:05:00Z", "metric": "humidity",
+    "value": 72.0, "unit": "percent"}
+
+    {"sensor_id": "S008", "station_id": "STN_BETA", "timestamp": "2026-07-20T08:10:00Z", "metric": "temperature",
+    "value": 19.8, "unit": "celsius"}
+
+    {"sensor_id": "S008", "station_id": "STN_BETA", "timestamp": "2026-07-20T08:10:00Z", "metric": "temperature",
+    "value": 19.8, "unit": "celsius"}
+
+    {"sensor_id": "S009", "station_id": "STN_GAMMA", "timestamp": "2026-07-20T08:00:00Z", "metric": "temperature",
+    "value": 28.0, "unit": "celsius"}
+
+    {"sensor_id": "S010", "station_id": "STN_GAMMA", "timestamp": "2026-07-20T08:05:00Z", "metric": "pressure",
+    "value": 1005.1, "unit": "hPa"}
+
+    {"sensor_id": "S011", "station_id": "STN_GAMMA", "timestamp": "2026-07-20T08:10:00Z", "metric": "temperature",
+    "value": 29.5, "unit": "celsius"}
+
+    {"sensor_id": "S012", "station_id": "STN_GAMMA", "timestamp": "2026-07-20T08:15:00Z", "metric": "humidity",
+    "value": 40.0, "unit": "percent"}
+
+    {"sensor_id": "S013", "station_id": "STN_DELTA", "timestamp": "2026-07-20T08:00:00Z", "metric": "temperature",
+    "value": 15.0, "unit": "celsius"}
+
+    {"sensor_id": "S014", "station_id": "STN_DELTA", "timestamp": "2026-07-20T08:05:00Z", "metric": "temperature",
+    "value": 44.0, "unit": "celsius"}
+
+    '
+  fixture-0002: 'station_id,station_name,latitude,longitude,elevation_m,metric,warning_threshold,critical_threshold
+
+    STN_ALPHA,Alpha Ridge,45.5,-122.6,120,temperature,30.0,40.0
+
+    STN_ALPHA,Alpha Ridge,45.5,-122.6,120,humidity,80.0,95.0
+
+    STN_ALPHA,Alpha Ridge,45.5,-122.6,120,pressure,1020.0,1030.0
+
+    STN_BETA,Beta Valley,46.2,-122.1,350,temperature,28.0,38.0
+
+    STN_BETA,Beta Valley,46.2,-122.1,350,humidity,85.0,98.0
+
+    STN_BETA,Beta Valley,46.2,-122.1,350,pressure,1015.0,1025.0
+
+    STN_GAMMA,Gamma Peak,44.8,-121.9,850,temperature,25.0,35.0
+
+    STN_GAMMA,Gamma Peak,44.8,-121.9,850,humidity,70.0,90.0
+
+    STN_GAMMA,Gamma Peak,44.8,-121.9,850,pressure,1010.0,1020.0
+
+    '
+  fixture-0003: "{\n  \"policy_id\": \"env-anomaly-v1\",\n  \"description\": \"Station-aware threshold-based\
+    \ anomaly detection for environmental sensors\",\n  \"batch_window_start\": \"2026-07-20T08:00:00Z\"\
+    ,\n  \"batch_window_end\": \"2026-07-20T09:00:00Z\",\n  \"window_size_minutes\": 15,\n  \"anomaly_rules\"\
+    : {\n    \"warning\": \"value exceeds station-specific warning_threshold for the matching metric\"\
+    ,\n    \"critical\": \"value exceeds station-specific critical_threshold for the matching metric\"\
+    \n  },\n  \"required_metrics\": [\"temperature\", \"humidity\", \"pressure\"],\n  \"unknown_station_policy\"\
+    : \"reject\"\n}\n"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: environmental-sensor-anomaly-batch-nominal-
+  namespace: prompt2serviceflow
+  labels:
+    prompt2serviceflow/pipeline: environmental-sensor-anomaly-batch-nominal
+    prompt2serviceflow/profile: mock
+    prompt2serviceflow/scenario: nominal
+spec:
+  entrypoint: pipeline
+  serviceAccountName: prompt2serviceflow-runner
+  arguments:
+    parameters:
+    - name: execution-time
+      value: '2026-07-20T09:00:00Z'
+  podGC:
+    strategy: OnWorkflowCompletion
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  volumes:
+  - name: scripts
+    configMap:
+      name: environmental-sensor-anomaly-batch-nominal-scripts
+  - name: fixtures
+    configMap:
+      name: environmental-sensor-anomaly-batch-nominal-fixtures
+      items:
+      - key: fixture-0000
+        path: fixture.json
+      - key: fixture-0001
+        path: sensor_telemetry.jsonl
+      - key: fixture-0002
+        path: station_metadata.csv
+      - key: fixture-0003
+        path: threshold_policy.json
+  templates:
+  - name: pipeline
+    dag:
+      tasks:
+      - name: ingest-bounded-events
+        template: run-ingest-bounded-events
+      - name: validate-checkpoint-inputs
+        template: run-validate-checkpoint-inputs
+        depends: ingest-bounded-events.Succeeded
+      - name: sort-and-deduplicate-records
+        template: run-sort-and-deduplicate-records
+        depends: validate-checkpoint-inputs.Succeeded
+      - name: build-analysis-windows
+        template: run-build-analysis-windows
+        depends: sort-and-deduplicate-records.Succeeded
+      - name: compute-window-metrics
+        template: run-compute-window-metrics
+        depends: build-analysis-windows.Succeeded
+      - name: align-time-index
+        template: run-align-time-index
+        depends: compute-window-metrics.Succeeded
+      - name: publish-outputs
+        template: run-publish-outputs
+        depends: align-time-index.Succeeded
+  - name: run-ingest-bounded-events
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: ingest_bounded_events
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/01_ingest_bounded_events.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-validate-checkpoint-inputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: validate_checkpoint_inputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/02_validate_checkpoint_inputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-sort-and-deduplicate-records
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: sort_and_deduplicate_records
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/03_sort_and_deduplicate_records.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-build-analysis-windows
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: build_analysis_windows
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/04_build_analysis_windows.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-compute-window-metrics
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: compute_window_metrics
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/05_compute_window_metrics.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-align-time-index
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: align_time_index
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/06_align_time_index.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+  - name: run-publish-outputs
+    metadata:
+      annotations:
+        prompt2serviceflow/intent-id: publish_outputs
+    container:
+      image: python:3.12-slim
+      command:
+      - python
+      args:
+      - /opt/p2sf/scripts/07_publish_outputs.py
+      - --workspace
+      - /workspace
+      - --fixture
+      - /opt/p2sf/fixtures/fixture.json
+      - --execution-time
+      - '{{workflow.parameters.execution-time}}'
+      volumeMounts:
+      - name: scripts
+        mountPath: /opt/p2sf/scripts
+      - name: fixtures
+        mountPath: /opt/p2sf/fixtures
+      - name: workspace
+        mountPath: /workspace
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

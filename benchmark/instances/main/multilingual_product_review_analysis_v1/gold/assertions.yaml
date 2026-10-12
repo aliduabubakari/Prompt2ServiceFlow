@@ -1,0 +1,10 @@
+assertions_version: 0.1.0
+pipeline_id: multilingual_product_review_analysis_v1
+scenarios:
+  - scenario: three_reviews
+    assertions:
+      - {assertion_id: loaded, type: json_path_equals, path: artifacts/format_status.json, json_path: success, expected: true}
+      - {assertion_id: lang_detected, type: json_path_equals, path: artifacts/lang_detection_status.json, json_path: success, expected: true}
+      - {assertion_id: sentiment_scored, type: json_path_equals, path: artifacts/sentiment_status.json, json_path: success, expected: true}
+      - {assertion_id: features_extracted, type: json_path_equals, path: artifacts/feature_extraction_status.json, json_path: success, expected: true}
+      - {assertion_id: exported, type: json_path_equals, path: artifacts/export_status.json, json_path: success, expected: true}

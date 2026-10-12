@@ -1,0 +1,125 @@
+Pipeline Summary:
+- Pipeline ID: extension-v1__meeting_transcript_action_extraction.py
+- Name: Meeting Transcript Action Extraction
+- Purpose: Segment meeting transcripts, extract decisions and actions, assign owners, and publish follow-up records.
+- Execution model: bounded batch
+- Extension track: ai_llm_nlp
+- Topology pattern: staged
+- Complexity band: very_complex
+- Business domain: Education/Research
+- Input modalities: text, json, table
+- Output modalities: action_register, summary, notification
+- Notes: Synthetic Extension-50 source; use only as benchmark input and not as hidden gold evidence.
+
+Primary Inputs:
+- meeting transcript text
+- participant roster CSV
+- project metadata JSON
+
+External Systems:
+- collaboration archive (fixture-backed; no production system is contacted)
+- task notification staging (fixture-backed; no production system is contacted)
+
+Control Flow:
+- Dependencies (directed edges):
+  - ingest_source_batch -> validate_source_contract
+  - validate_source_contract -> stage_raw_artifacts
+  - stage_raw_artifacts -> normalize_records
+  - normalize_records -> extract_or_parse_text
+  - extract_or_parse_text -> chunk_documents
+  - chunk_documents -> generate_embeddings
+  - generate_embeddings -> write_vector_index
+  - write_vector_index -> retrieve_grounding_context
+  - retrieve_grounding_context -> run_structured_extraction
+  - run_structured_extraction -> score_confidence_and_policy
+  - score_confidence_and_policy -> create_human_review_packet
+  - create_human_review_packet -> publish_outputs
+
+Data Artifacts / I-O Identifiers:
+- source_bundle: fixture-backed source input bundle
+- prepared_outputs: validated workflow output bundle
+- audit_manifest: provenance, checksum, quality, and routing evidence
+
+Pipeline Steps:
+1. ingest_source_batch - Ingest Source Batch
+  - Objective: Ingest all bounded inputs for meeting transcript decisions and actions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+2. validate_source_contract - Validate Source Contract
+  - Objective: Validate required schemas, identifiers, and modality assumptions for meeting transcript decisions and actions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+3. stage_raw_artifacts - Stage Raw Artifacts
+  - Objective: Stage validated raw artifacts for auditable meeting transcript decisions and actions processing.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+4. normalize_records - Normalize Records
+  - Objective: Normalize staged records and derived fields for meeting transcript decisions and actions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+5. extract_or_parse_text - Extract Or Parse Text
+  - Objective: Extract, parse, or transcribe text for meeting transcript decisions and actions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+6. chunk_documents - Chunk Documents
+  - Objective: Chunk documents or transcript segments for meeting transcript decisions and actions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+7. generate_embeddings - Generate Embeddings
+  - Objective: Generate embeddings for chunks or text spans in meeting transcript decisions and actions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+8. write_vector_index - Write Vector Index
+  - Objective: Write or update a fixture-backed vector index for meeting transcript decisions and actions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+9. retrieve_grounding_context - Retrieve Grounding Context
+  - Objective: Retrieve grounding context for meeting transcript decisions and actions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+10. run_structured_extraction - Run Structured Extraction
+  - Objective: Run structured extraction, classification, or summarization for meeting transcript decisions and actions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+11. score_confidence_and_policy - Score Confidence And Policy
+  - Objective: Score confidence, grounding, and policy constraints for meeting transcript decisions and actions.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+12. create_human_review_packet - Create Human Review Packet
+  - Objective: Create review packets for low-confidence or high-risk meeting transcript decisions and actions outputs.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+13. publish_outputs - Publish Outputs
+  - Objective: Publish prepared meeting transcript decisions and actions outputs and completion status.
+  - Mechanism: python_callable
+  - Failure handling:
+    - retries: 2
+    - retry delay: PT5M
+
+Scheduling:
+- Schedule type: manual
+- Catchup/backfill: False

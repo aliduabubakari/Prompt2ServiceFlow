@@ -1,0 +1,68 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: environmental_monitoring_network_v1
+image: python:3.12-slim
+workflow_parameters:
+- name: fixture-file
+  default: stations.csv
+tasks:
+- intent_id: load_and_modify_stations
+  script: scripts/01_load_and_modify_stations.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --fixture
+  - '{fixtures}/{fixture-file}'
+  retries: 1
+- intent_id: geocode_stations
+  script: scripts/02_geocode_stations.py
+  dependencies:
+  - load_and_modify_stations
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: fetch_historical_weather
+  script: scripts/03_fetch_historical_weather.py
+  dependencies:
+  - geocode_stations
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: classify_land_use
+  script: scripts/04_classify_land_use.py
+  dependencies:
+  - fetch_historical_weather
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: fetch_population_density
+  script: scripts/05_fetch_population_density.py
+  dependencies:
+  - classify_land_use
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: calculate_risk_score
+  script: scripts/06_calculate_risk_score.py
+  dependencies:
+  - fetch_population_density
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+- intent_id: save_environmental_dataset
+  script: scripts/07_save_environmental_dataset.py
+  dependencies:
+  - calculate_risk_score
+  arguments:
+  - --workspace
+  - '{workspace}'
+  retries: 1
+scenarios:
+- name: three_stations
+  parameters:
+    fixture-file: stations.csv
+  fixture_root: fixtures/scenarios/nominal

@@ -1,0 +1,249 @@
+schema_version: 0.1.0
+service_id: airvisual_nearest_city_json_extractor
+version: 1.0.0
+display_name: AirVisual nearest-city JSON extractor
+category: Extractor
+capability:
+  summary: Fetches the nearest-city air-quality and weather observation from an AirVisual-compatible
+    nearest_city HTTP endpoint for a configured location and writes the raw JSON response
+    to an artifact, with optional database-backed duplicate detection exposed in a
+    status output.
+  operations:
+  - Read API authentication material from a supplied configuration artifact or configured
+    secret source.
+  - Build an AirVisual nearest_city request using latitude, longitude, city, state,
+    and country parameters as supplied.
+  - Optionally query a configured PostgreSQL resource to decide whether the observation
+    is already present before issuing the API request.
+  - Perform an HTTP GET request to the configured AirVisual nearest_city endpoint.
+  - Persist the HTTP JSON response to the configured output artifact path.
+  - Emit an extraction status object containing request target, duplicate-check outcome,
+    HTTP status, output artifact reference, and action taken.
+  keywords:
+  - airvisual
+  - air quality
+  - nearest city
+  - http json extraction
+  - environmental monitoring
+  - api response to file
+  - duplicate check
+  limitations:
+  - Only models the AirVisual nearest_city-style response contract; it is not a generic
+    arbitrary REST API client.
+  - Does not schedule polling or retries; workflow retry policy remains orchestration.
+  - Duplicate detection requires a caller-supplied database resource and lookup configuration;
+    without those inputs the service only performs extraction.
+  - Does not transform the AirVisual response into a relational schema.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: api_key_config
+    description: Configuration file containing the AirVisual API key or the information
+      needed by the extractor to obtain it. In the source pipeline this corresponds
+      to config/config.conf.
+    channel: artifact
+    data_type: text
+    media_type: text/plain
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: duplicate_check_database
+    description: Optional PostgreSQL database resource used to check whether the target
+      observation has already been loaded before fetching. Required only when duplicate_check_enabled
+      is true.
+    channel: external_resource
+    data_type: object
+    schema_ref: schema://postgres_connection_resource/v1
+    required: false
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: response_json_file
+    description: Raw JSON artifact written from the AirVisual nearest_city API response.
+      For a fetched observation, the file contains the response object returned by
+      the endpoint.
+    channel: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: schema://airvisual_nearest_city_response/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  - name: extraction_status
+    description: Observable status for workflow validation, including action, duplicate-check
+      result, endpoint URL, location parameters, HTTP status code when a request is
+      made, output artifact URI, and error details when applicable.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://airvisual_extraction_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: endpoint_url
+    description: AirVisual nearest_city HTTP endpoint URL, for example http://api.airvisual.com/v2/nearest_city.
+    type: string
+    required: true
+    pattern: ^https?://.+
+  - name: city
+    description: City name associated with the requested observation, for example
+      Salaya.
+    type: string
+    required: false
+  - name: state
+    description: State, province, or administrative area associated with the requested
+      observation, for example Nakhon Pathom.
+    type: string
+    required: false
+  - name: country
+    description: Country associated with the requested observation, for example Thailand.
+    type: string
+    required: false
+  - name: latitude
+    description: Latitude for the nearest-city lookup in decimal degrees.
+    type: number
+    required: true
+    minimum: -90.0
+    maximum: 90.0
+  - name: longitude
+    description: Longitude for the nearest-city lookup in decimal degrees.
+    type: number
+    required: true
+    minimum: -180.0
+    maximum: 180.0
+  - name: output_path
+    description: Desired path or artifact name for the raw JSON response, for example
+      /opt/airflow/data/tmp_airvisual.json.
+    type: string
+    required: true
+  - name: duplicate_check_enabled
+    description: Whether to perform a database-backed duplicate check before calling
+      the external API.
+    type: boolean
+    required: false
+  - name: duplicate_check_config
+    description: Configuration object describing the table, timestamp/location fields,
+      and match criteria used to decide whether an observation is already present.
+    type: object
+    required: false
+  secrets:
+  - name: airvisual_api_key
+    description: AirVisual API key when supplied by the execution environment rather
+      than by the api_key_config artifact.
+    required: false
+  - name: postgres_credentials
+    description: Database credentials for duplicate checking when duplicate_check_enabled
+      is true and the database resource requires secret-backed authentication.
+    required: false
+contracts:
+- contract_id: airvisual_extractor_endpoint_contract
+  type: precondition
+  applies_to: parameter
+  target: endpoint_url
+  description: The endpoint_url parameter must identify an HTTP or HTTPS AirVisual
+    nearest_city-compatible endpoint.
+  expression: endpoint_url matches '^https?://.+'
+- contract_id: airvisual_extractor_location_contract
+  type: precondition
+  applies_to: service
+  target: airvisual_nearest_city_json_extractor
+  description: Latitude and longitude must be valid decimal-degree coordinates.
+  expression: -90 <= latitude <= 90 and -180 <= longitude <= 180
+- contract_id: airvisual_extractor_auth_contract
+  type: precondition
+  applies_to: input
+  target: api_key_config
+  description: The API-key configuration artifact must be readable by the service
+    and contain or resolve a usable API key before an external request is attempted.
+  expression: readable(api_key_config) and resolves_auth_material(api_key_config,
+    'airvisual_api_key')
+- contract_id: airvisual_nearest_city_response_schema
+  type: json_schema
+  applies_to: output
+  target: response_json_file
+  description: The response JSON is expected to contain an AirVisual-style object
+    with status, data.city, data.state, data.country, data.location.coordinates, data.current.pollution,
+    and data.current.weather fields when action is fetched.
+  schema_ref: schema://airvisual_nearest_city_response/v1
+  expression: '{"type":"object","required":["status","data"],"properties":{"status":{"type":"string"},"data":{"type":"object","required":["city","state","country","location","current"],"properties":{"city":{"type":"string"},"state":{"type":"string"},"country":{"type":"string"},"location":{"type":"object","required":["type","coordinates"],"properties":{"type":{"type":"string"},"coordinates":{"type":"array","minItems":2,"items":{"type":"number"}}}},"current":{"type":"object","required":["pollution","weather"],"properties":{"pollution":{"type":"object"},"weather":{"type":"object"}}}}}}}'
+- contract_id: airvisual_extraction_status_schema
+  type: json_schema
+  applies_to: output
+  target: extraction_status
+  description: Status output must make the extraction effect observable to downstream
+    validation.
+  schema_ref: schema://airvisual_extraction_status/v1
+  expression: '{"type":"object","required":["action","endpoint_url","latitude","longitude","output_path","success"],"properties":{"action":{"type":"string","enum":["fetched","skipped_duplicate","failed"]},"success":{"type":"boolean"},"duplicate_check_enabled":{"type":"boolean"},"duplicate_found":{"type":["boolean","null"]},"endpoint_url":{"type":"string"},"http_status_code":{"type":["integer","null"]},"latitude":{"type":"number"},"longitude":{"type":"number"},"city":{"type":["string","null"]},"state":{"type":["string","null"]},"country":{"type":["string","null"]},"output_path":{"type":"string"},"error":{"type":["string","null"]}}}'
+- contract_id: airvisual_extractor_effect_contract
+  type: effect
+  applies_to: service
+  target: airvisual_nearest_city_json_extractor
+  description: On successful fetch, the service writes exactly one JSON response artifact
+    to output_path and emits extraction_status.action='fetched'. If duplicate checking
+    is enabled and a duplicate is found before the request, the service emits extraction_status.action='skipped_duplicate'
+    and must not insert or mutate database records.
+  expression: success and action == 'fetched' implies exists(response_json_file);
+    action == 'skipped_duplicate' implies no_database_mutation
+invocation:
+  type: argo_workflow_template
+  template_name: airvisual-nearest-city-json-extractor-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.airvisual_nearest_city_json_extractor
+  implementation_ref: services/implementations/airvisual_nearest_city_json_extractor
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - http://api.airvisual.com/v2/nearest_city
+  - postgresql://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - public
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - API-key material is confidential and should not be emitted in logs or status artifacts.
+  - The raw air-quality observation is treated as public environmental data, while
+    operational status and database connection details are internal or confidential.
+  - External API use must comply with the configured API provider terms and rate limits;
+    retry behavior remains orchestration-level.
+  idempotency_notes: Repeated requests can overwrite the same output artifact. End-to-end
+    duplicate avoidance is conditional on the configured database lookup and does
+    not depend on workflow retries.
+  default_timeout_seconds: 120
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:airvisual_pipeline_lat_long_v1#get_airvisual_data_hourly
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The source pipeline needs a reusable AirVisual nearest-city extraction
+    capability with a concrete JSON artifact boundary and observable status. A fully
+    generic HTTP client would lose the AirVisual response and location-parameter contract
+    needed by the downstream validator and loader.'
+  - 'Evidence status: strongly_inferred.'
+  - Contract airvisual_extractor_location_contract target 'latitude_longitude' was
+    normalized to service scope.

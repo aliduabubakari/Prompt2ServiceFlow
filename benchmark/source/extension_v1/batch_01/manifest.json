@@ -1,0 +1,207 @@
+[
+  {
+    "pipeline_id": "medical_image_metadata_quality_check",
+    "name": "Medical Image Metadata Quality Check",
+    "track": "image_document_multimodal",
+    "domain": "Healthcare/Public Health",
+    "topology": "linear",
+    "complexity": "simple",
+    "subject": "medical image study metadata",
+    "input_modalities": [
+      "image",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "json",
+      "table",
+      "status"
+    ],
+    "primary_inputs": [
+      "DICOM image folder",
+      "study manifest JSON",
+      "patient scheduling CSV"
+    ],
+    "external_systems": [
+      "imaging object store",
+      "metadata registry"
+    ],
+    "scenario": "Prepare fixture-backed radiology image metadata for downstream quality monitoring without contacting a production PACS.",
+    "global_number": 1,
+    "batch": 1,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_01/descriptions/01_medical_image_metadata_quality_check.txt",
+    "spec_path": "batch_01/specs/01_medical_image_metadata_quality_check.json",
+    "step_count": 5,
+    "edge_count": 4,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "satellite_change_report_assembler",
+    "name": "Satellite Change Report Assembler",
+    "track": "image_document_multimodal",
+    "domain": "Environmental/Energy",
+    "topology": "staged",
+    "complexity": "medium",
+    "subject": "satellite image change evidence",
+    "input_modalities": [
+      "image",
+      "geojson",
+      "table"
+    ],
+    "output_modalities": [
+      "pdf",
+      "geojson",
+      "table"
+    ],
+    "primary_inputs": [
+      "before imagery tiles",
+      "after imagery tiles",
+      "region boundary GeoJSON",
+      "inspection registry CSV"
+    ],
+    "external_systems": [
+      "geospatial object store",
+      "inspection report archive"
+    ],
+    "scenario": "Build a bounded batch change report from paired satellite images and region metadata.",
+    "global_number": 2,
+    "batch": 1,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_01/descriptions/02_satellite_change_report_assembler.txt",
+    "spec_path": "batch_01/specs/02_satellite_change_report_assembler.json",
+    "step_count": 7,
+    "edge_count": 6,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "scanned_claim_packet_extraction",
+    "name": "Scanned Claim Packet Extraction",
+    "track": "image_document_multimodal",
+    "domain": "Finance/Risk",
+    "topology": "fan_out",
+    "complexity": "complex",
+    "subject": "scanned insurance claim packet",
+    "input_modalities": [
+      "pdf",
+      "image",
+      "table"
+    ],
+    "output_modalities": [
+      "json",
+      "table",
+      "review_packet"
+    ],
+    "primary_inputs": [
+      "scanned claim PDF",
+      "claim image attachments",
+      "policyholder CSV"
+    ],
+    "external_systems": [
+      "claims document bucket",
+      "review queue"
+    ],
+    "scenario": "Extract structured fields and review evidence from scanned claim packets.",
+    "global_number": 3,
+    "batch": 1,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_01/descriptions/03_scanned_claim_packet_extraction.txt",
+    "spec_path": "batch_01/specs/03_scanned_claim_packet_extraction.json",
+    "step_count": 10,
+    "edge_count": 11,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "product_image_listing_enrichment",
+    "name": "Product Image Listing Enrichment",
+    "track": "image_document_multimodal",
+    "domain": "Retail/E-commerce",
+    "topology": "fan_out",
+    "complexity": "medium",
+    "subject": "product image and listing metadata",
+    "input_modalities": [
+      "image",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "json",
+      "table"
+    ],
+    "primary_inputs": [
+      "product image folder",
+      "listing JSON export",
+      "category taxonomy CSV"
+    ],
+    "external_systems": [
+      "catalog object store",
+      "marketplace staging API"
+    ],
+    "scenario": "Enrich product listings with image-derived quality and attribute signals.",
+    "global_number": 4,
+    "batch": 1,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_01/descriptions/04_product_image_listing_enrichment.txt",
+    "spec_path": "batch_01/specs/04_product_image_listing_enrichment.json",
+    "step_count": 7,
+    "edge_count": 8,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "identity_document_redaction",
+    "name": "Identity Document Redaction",
+    "track": "image_document_multimodal",
+    "domain": "Legal/Compliance",
+    "topology": "branch_gate",
+    "complexity": "complex",
+    "subject": "identity document evidence",
+    "input_modalities": [
+      "image",
+      "pdf",
+      "json"
+    ],
+    "output_modalities": [
+      "redacted_pdf",
+      "json",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "identity document scan",
+      "case metadata JSON",
+      "redaction policy JSON"
+    ],
+    "external_systems": [
+      "secure evidence bucket",
+      "manual review queue"
+    ],
+    "scenario": "Detect sensitive fields in identity evidence, redact approved copies, and route uncertain cases.",
+    "global_number": 5,
+    "batch": 1,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_01/descriptions/05_identity_document_redaction.txt",
+    "spec_path": "batch_01/specs/05_identity_document_redaction.json",
+    "step_count": 10,
+    "edge_count": 10,
+    "parallel_group_count": 0,
+    "branch_point_count": 1,
+    "gate_count": 1
+  }
+]

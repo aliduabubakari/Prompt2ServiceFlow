@@ -1,0 +1,168 @@
+schema_version: 0.1.0
+service_id: portfolio_rebalancing_trade_calculator
+version: 1.0.0
+display_name: Portfolio Rebalancing Trade Calculator
+category: Aggregator
+capability:
+  summary: Combines multiple portfolio analyses and computes rebalancing trades required
+    to reach configured target allocations.
+  operations:
+  - Read a collection of account-level portfolio analysis artifacts.
+  - Aggregate current exposure and total value across portfolios.
+  - Compare current allocations with configured target allocations and tolerance rules.
+  - Generate buy/sell trade recommendations with symbols, actions, and amounts.
+  keywords:
+  - portfolio
+  - rebalance
+  - target allocation
+  - trade calculation
+  - finance
+  - aggregation
+  limitations:
+  - Does not fetch holdings or calculate account-level metrics.
+  - Target allocations and trade sizing rules must be supplied by workflow binding.
+  - Does not submit orders to a broker; it only produces proposed trade-order data.
+  - Does not implement fan-in orchestration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: portfolio_analyses
+    description: Collection of portfolio analysis artifacts from one or more brokerage
+      accounts.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://portfolio_analysis_collection/v1
+    required: true
+    cardinality: many
+    sensitivity: financial
+  outputs:
+  - name: rebalancing_trades
+    description: Calculated trade recommendations with symbol, action, amount, and
+      optional quantity fields.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://rebalancing_trades/v1
+    required: true
+    cardinality: one
+    sensitivity: financial
+  - name: rebalance_status
+    description: Observable rebalance calculation status with portfolio count and
+      trade count.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://portfolio_rebalance_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: target_allocations
+    description: Target allocation weights by asset class, symbol, or configured grouping.
+    type: object
+    required: true
+  - name: rebalance_rules
+    description: Declarative rules for tolerances, minimum trade size, rounding, and
+      cash handling.
+    type: object
+    required: false
+  - name: cash_handling_mode
+    description: How residual cash is handled in trade calculation.
+    type: string
+    required: false
+    enum:
+    - ignore
+    - allocate_pro_rata
+    - hold_cash
+  secrets: []
+contracts:
+- contract_id: rebalance_target_allocations_contract
+  type: precondition
+  applies_to: parameter
+  target: target_allocations
+  description: Target allocations must be non-empty and numeric weights should sum
+    approximately to 1.0 when interpreted as fractions.
+  expression: length(keys(target_allocations)) > 0 and all(is_number(v) and v >= 0
+    for v in values(target_allocations))
+- contract_id: portfolio_analysis_collection_contract
+  type: json_schema
+  applies_to: input
+  target: portfolio_analyses
+  description: At least one portfolio analysis must be supplied.
+  schema_ref: schema://portfolio_analysis_collection/v1
+  expression: '{"type":"array","minItems":1,"items":{"type":"object","required":["brokerage_id","total_value","allocations","risk_score"]}}'
+- contract_id: rebalancing_trades_schema
+  type: json_schema
+  applies_to: output
+  target: rebalancing_trades
+  description: Trade recommendations contain action, symbol, and amount fields.
+  schema_ref: schema://rebalancing_trades/v1
+  expression: '{"type":"object","required":["trades"],"properties":{"trades":{"type":"array","items":{"type":"object","required":["symbol","action","amount"],"properties":{"symbol":{"type":"string"},"action":{"type":"string","enum":["buy","sell","hold"]},"amount":{"type":"number"},"quantity":{"type":["number","null"]},"reason":{"type":["string","null"]}}}},"total_trade_count":{"type":"integer","minimum":0}}}'
+- contract_id: portfolio_rebalance_status_schema
+  type: json_schema
+  applies_to: output
+  target: rebalance_status
+  description: Status exposes rebalance effect for workflow validation.
+  schema_ref: schema://portfolio_rebalance_status/v1
+  expression: '{"type":"object","required":["success","portfolio_count","trades_generated"],"properties":{"success":{"type":"boolean"},"portfolio_count":{"type":"integer","minimum":1},"trades_generated":{"type":"integer","minimum":0},"target_allocation_keys":{"type":"array","items":{"type":"string"}},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: portfolio_rebalance_effect
+  type: effect
+  applies_to: service
+  target: portfolio_rebalancing_trade_calculator
+  description: On success, trade recommendations exist and status trade count matches
+    emitted trades.
+  expression: rebalance_status.success == true implies exists(rebalancing_trades)
+    and rebalance_status.trades_generated == length(rebalancing_trades.trades)
+invocation:
+  type: argo_workflow_template
+  template_name: portfolio-rebalancing-trade-calculator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.portfolio_rebalancing_trade_calculator
+  implementation_ref: services/implementations/portfolio_rebalancing_trade_calculator
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - financial
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Generated trades are recommendations, not broker-submitted orders.
+  - Do not log raw account holdings or sensitive financial positions.
+  - Fan-in of parallel analyses remains workflow orchestration.
+  idempotency_notes: Same portfolio analyses, target allocations, and rebalance rules
+    produce the same trade recommendations.
+  default_timeout_seconds: 180
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:portfolio_rebalancing_dag#aggregate_and_rebalance
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No registry service aggregates portfolio analyses and computes target-allocation
+    rebalancing trades.'
+  - 'Evidence status: strongly_inferred.'

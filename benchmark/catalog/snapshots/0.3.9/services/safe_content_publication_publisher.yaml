@@ -1,0 +1,181 @@
+schema_version: 0.1.0
+service_id: safe_content_publication_publisher
+version: 1.0.0
+display_name: Safe Content Publication Publisher
+category: Publisher
+capability:
+  summary: Publishes or records publication of content deemed safe by a moderation
+    decision and emits publication status for downstream validation.
+  operations:
+  - Read toxicity-scored content and routing decision.
+  - Select content records allowed for publication.
+  - Optionally submit selected records to a bound content platform resource.
+  - Emit publication results with attempted, published, skipped, and failed counts.
+  keywords:
+  - content moderation
+  - publish content
+  - safe content
+  - publisher
+  - status
+  limitations:
+  - Concrete target platform endpoint is not specified by the source pipeline and
+    must be supplied by workflow binding for real publication.
+  - Does not compute toxicity scores or perform branch routing.
+  - Repeated platform publication may duplicate content unless platform idempotency
+    keys are used.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: scored_content_dataset
+    description: Toxicity-scored content records.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://toxicity_scored_content_dataset/v1
+    required: true
+    cardinality: one
+    sensitivity: pii
+  - name: routing_decision
+    description: Routing decision indicating content is safe for publication.
+    channel: artifact
+    data_type: decision
+    media_type: application/json
+    schema_ref: schema://content_toxicity_routing_decision/v1
+    required: false
+    cardinality: one
+    sensitivity: internal
+  - name: content_platform_resource
+    description: Optional external content platform or publication sink for real publication.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://content_platform_resource/v1
+    required: false
+    cardinality: one
+    sensitivity: confidential
+  outputs:
+  - name: publication_results
+    description: Bounded publication result object for selected safe content.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://safe_content_publication_results/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: publication_status
+    description: Observable publication status including attempted, published, skipped,
+      and failed counts.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://safe_content_publication_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: publication_mode
+    description: Whether to emit an artifact-only publication record or publish to
+      a bound platform.
+    type: string
+    required: true
+    enum:
+    - artifact_only
+    - platform_publish
+  - name: content_id_field
+    description: Field containing content identifier.
+    type: string
+    required: false
+  - name: idempotency_key_field
+    description: Optional field used as publication idempotency key for platform mode.
+    type: string
+    required: false
+  - name: endpoint
+    description: Publication endpoint/path when publication_mode is platform_publish.
+    type: string
+    required: false
+  secrets: []
+contracts:
+- contract_id: safe_content_publication_mode_contract
+  type: precondition
+  applies_to: parameter
+  target: publication_mode
+  description: Publication mode must be supported.
+  expression: publication_mode in ['artifact_only','platform_publish']
+- contract_id: safe_content_platform_required_for_publish
+  type: precondition
+  applies_to: service
+  target: safe_content_publication_publisher
+  description: A platform resource must be bound when real platform publication is
+    requested.
+  expression: publication_mode != 'platform_publish' or exists(content_platform_resource)
+- contract_id: safe_content_publication_status_schema
+  type: json_schema
+  applies_to: output
+  target: publication_status
+  description: Publication status exposes publisher effect.
+  schema_ref: schema://safe_content_publication_status/v1
+  expression: '{"type":"object","required":["success","publication_mode","content_selected","publish_attempted","content_published","content_skipped","content_failed"],"properties":{"success":{"type":"boolean"},"publication_mode":{"type":"string"},"content_selected":{"type":"integer","minimum":0},"publish_attempted":{"type":"boolean"},"content_published":{"type":"integer","minimum":0},"content_skipped":{"type":"integer","minimum":0},"content_failed":{"type":"integer","minimum":0},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: safe_content_publication_effect
+  type: effect
+  applies_to: service
+  target: safe_content_publication_publisher
+  description: On success, selected safe content is either published or explicitly
+    recorded/skipped and status is emitted.
+  expression: publication_status.success == true implies publication_status.content_selected
+    >= publication_status.content_published
+invocation:
+  type: argo_workflow_template
+  template_name: safe-content-publication-publisher-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.safe_content_publication_publisher
+  implementation_ref: services/implementations/safe_content_publication_publisher
+  mock_supported: true
+policies:
+  network_access: optional
+  allowed_network_targets:
+  - content-platform://*
+  - https://*
+  secret_access: optional
+  retry_safe: false
+  idempotency: conditionally_idempotent
+  data_sensitivity:
+  - pii
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit platform credentials or raw content bodies in outputs/logs.
+  - Status output is required so workflow validation can observe publication effect.
+  idempotency_notes: Artifact-only mode is idempotent for stable inputs. Platform
+    publication is retry-safe only with stable idempotency keys and platform support.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:content_moderation_pipeline#publish_content
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: Existing registry lacks safe-content publication semantics; target
+    platform is not specified, so interface allows artifact-only mock execution or
+    bound platform publication.'
+  - 'Evidence status: weakly_inferred.'

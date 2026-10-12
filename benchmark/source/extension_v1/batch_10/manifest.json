@@ -1,0 +1,211 @@
+[
+  {
+    "pipeline_id": "multimodal_product_listing_ai_enrichment",
+    "name": "Multimodal Product Listing AI Enrichment",
+    "track": "ai_llm_nlp",
+    "domain": "Retail/E-commerce",
+    "topology": "fan_out_fan_in",
+    "complexity": "complex",
+    "subject": "multimodal product listing AI enrichment",
+    "input_modalities": [
+      "image",
+      "text",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "listing_summary",
+      "json",
+      "quality_report"
+    ],
+    "primary_inputs": [
+      "product images",
+      "seller description text",
+      "category taxonomy JSON",
+      "attribute table"
+    ],
+    "external_systems": [
+      "catalog media bucket",
+      "listing enrichment staging"
+    ],
+    "scenario": "Combine product images and text to extract attributes and generate listing summaries.",
+    "global_number": 46,
+    "batch": 10,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 1,
+    "description_path": "batch_10/descriptions/46_multimodal_product_listing_ai_enrichment.txt",
+    "spec_path": "batch_10/specs/46_multimodal_product_listing_ai_enrichment.json",
+    "step_count": 10,
+    "edge_count": 11,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "invoice_pdf_extraction_reconciliation",
+    "name": "Invoice PDF Extraction Reconciliation",
+    "track": "ai_llm_nlp",
+    "domain": "Finance/Risk",
+    "topology": "fan_in",
+    "complexity": "complex",
+    "subject": "invoice PDF extraction and reconciliation",
+    "input_modalities": [
+      "pdf",
+      "table",
+      "json"
+    ],
+    "output_modalities": [
+      "table",
+      "exception_report",
+      "audit_log"
+    ],
+    "primary_inputs": [
+      "invoice PDF bundle",
+      "purchase order CSV",
+      "vendor registry JSON"
+    ],
+    "external_systems": [
+      "invoice document store",
+      "accounts payable review queue"
+    ],
+    "scenario": "Extract invoice fields from PDFs and reconcile them with purchase orders.",
+    "global_number": 47,
+    "batch": 10,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 2,
+    "description_path": "batch_10/descriptions/47_invoice_pdf_extraction_reconciliation.txt",
+    "spec_path": "batch_10/specs/47_invoice_pdf_extraction_reconciliation.json",
+    "step_count": 10,
+    "edge_count": 9,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "rag_answer_pack_builder",
+    "name": "RAG Answer Pack Builder",
+    "track": "ai_llm_nlp",
+    "domain": "AI Platform Operations",
+    "topology": "fan_out_fan_in",
+    "complexity": "very_complex",
+    "subject": "retrieval augmented answer pack",
+    "input_modalities": [
+      "pdf",
+      "text",
+      "json"
+    ],
+    "output_modalities": [
+      "vector_index",
+      "answer_pack",
+      "evaluation_report"
+    ],
+    "primary_inputs": [
+      "source document folder",
+      "test question JSON",
+      "retrieval configuration"
+    ],
+    "external_systems": [
+      "document corpus bucket",
+      "vector index fixture",
+      "answer evaluation store"
+    ],
+    "scenario": "Build a small RAG index, run retrieval test queries, and generate grounded answer packs.",
+    "global_number": 48,
+    "batch": 10,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 3,
+    "description_path": "batch_10/descriptions/48_rag_answer_pack_builder.txt",
+    "spec_path": "batch_10/specs/48_rag_answer_pack_builder.json",
+    "step_count": 13,
+    "edge_count": 14,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "compliance_evidence_summarizer",
+    "name": "Compliance Evidence Summarizer",
+    "track": "ai_llm_nlp",
+    "domain": "Legal/Compliance",
+    "topology": "fan_in",
+    "complexity": "very_complex",
+    "subject": "compliance evidence summary",
+    "input_modalities": [
+      "pdf",
+      "text",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "summary",
+      "control_mapping",
+      "review_packet"
+    ],
+    "primary_inputs": [
+      "evidence document bundle",
+      "control framework JSON",
+      "audit request table"
+    ],
+    "external_systems": [
+      "audit evidence store",
+      "compliance review queue"
+    ],
+    "scenario": "Retrieve relevant evidence, map it to controls, summarize findings, and route gaps.",
+    "global_number": 49,
+    "batch": 10,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 4,
+    "description_path": "batch_10/descriptions/49_compliance_evidence_summarizer.txt",
+    "spec_path": "batch_10/specs/49_compliance_evidence_summarizer.json",
+    "step_count": 13,
+    "edge_count": 12,
+    "parallel_group_count": 1,
+    "branch_point_count": 0,
+    "gate_count": 0
+  },
+  {
+    "pipeline_id": "meeting_transcript_action_extraction",
+    "name": "Meeting Transcript Action Extraction",
+    "track": "ai_llm_nlp",
+    "domain": "Education/Research",
+    "topology": "staged",
+    "complexity": "very_complex",
+    "subject": "meeting transcript decisions and actions",
+    "input_modalities": [
+      "text",
+      "json",
+      "table"
+    ],
+    "output_modalities": [
+      "action_register",
+      "summary",
+      "notification"
+    ],
+    "primary_inputs": [
+      "meeting transcript text",
+      "participant roster CSV",
+      "project metadata JSON"
+    ],
+    "external_systems": [
+      "collaboration archive",
+      "task notification staging"
+    ],
+    "scenario": "Segment meeting transcripts, extract decisions and actions, assign owners, and publish follow-up records.",
+    "global_number": 50,
+    "batch": 10,
+    "source_type": "SyntheticExtension",
+    "source_family": "Prompt2ServiceFlow Extension v1",
+    "batch_number": 5,
+    "description_path": "batch_10/descriptions/50_meeting_transcript_action_extraction.txt",
+    "spec_path": "batch_10/specs/50_meeting_transcript_action_extraction.json",
+    "step_count": 13,
+    "edge_count": 12,
+    "parallel_group_count": 0,
+    "branch_point_count": 0,
+    "gate_count": 0
+  }
+]

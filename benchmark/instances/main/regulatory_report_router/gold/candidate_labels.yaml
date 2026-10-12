@@ -1,0 +1,39 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:regulatory_report_router
+candidate_sets:
+- candidate_set_id: main_regulatory_report_router_delimited_file_tabular_dataset_loader_candidates
+  required_service_id: delimited_file_tabular_dataset_loader
+  labels:
+    delimited_file_tabular_dataset_loader: gold
+    csv_tabular_schema_validating_loader: policy_incompatible
+    csv_artifact_profile_ingestor: missing_required_output
+    customer_segment_csv_loader: target_mismatch
+    csv_to_structured_json_standardizer: format_mismatch
+    legacy_csv_schema_validator: deprecated_or_incompatible
+- candidate_set_id: main_regulatory_report_router_financial_account_type_regulatory_route_decider_candidates
+  required_service_id: financial_account_type_regulatory_route_decider
+  labels:
+    financial_account_type_regulatory_route_decider: gold
+    content_toxicity_route_decider: target_mismatch
+    fraud_risk_threshold_route_decider: semantic_mismatch
+    execution_date_backup_strategy_decider: target_mismatch
+    tabular_quality_score_gate: semantic_mismatch
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_regulatory_report_router_financial_transaction_regulatory_report_generator_candidates
+  required_service_id: financial_transaction_regulatory_report_generator
+  labels:
+    financial_transaction_regulatory_report_generator: gold
+    csv_chart_pdf_report_generator: format_mismatch
+    tabular_dashboard_report_generator: format_mismatch
+    trade_order_csv_report_generator: target_mismatch
+    inventory_reconciliation_pdf_report_generator: target_mismatch
+    reviewed_domain_adapter: generic_escape_hatch
+- candidate_set_id: main_regulatory_report_router_report_artifact_object_storage_archiver_candidates
+  required_service_id: report_artifact_object_storage_archiver
+  labels:
+    report_artifact_object_storage_archiver: gold
+    checksum_manifest_object_storage_file_sync: contract_mismatch
+    github_release_asset_object_storage_sync: target_mismatch
+    dataset_quarantine_zone_writer: missing_required_output
+    email_attachment_notification_sender: target_mismatch
+    legacy_database_table_loader: deprecated_or_incompatible

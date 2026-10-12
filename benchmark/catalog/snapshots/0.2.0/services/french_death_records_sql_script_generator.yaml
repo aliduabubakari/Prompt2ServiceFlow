@@ -1,0 +1,161 @@
+schema_version: 0.1.0
+service_id: french_death_records_sql_script_generator
+version: 1.0.0
+display_name: French Death Records SQL Script Generator
+category: Transformer
+capability:
+  summary: Reads raw French death records from Redis and city geographic lookup CSV,
+    cleans/enriches records, and writes a PostgreSQL insert SQL script artifact.
+  operations:
+  - Read raw death-record data from a configured Redis key.
+  - Read city geographic lookup CSV.
+  - Parse fixed-width or configured-layout death records.
+  - Join/enrich records with location/date fields from lookup data where possible
+    and render PostgreSQL insert statements.
+  keywords:
+  - French death records
+  - government data
+  - redis
+  - city lookup
+  - sql generation
+  - postgresql
+  limitations:
+  - Targets the French death-record text layout configured by the caller.
+  - Does not execute generated SQL.
+  - Does not create PostgreSQL tables.
+  - Exact parsing rules must be supplied or bound by implementation configuration.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: redis_resource
+    description: Redis resource containing raw death records.
+    channel: external_resource
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://redis_connection_resource/v1
+    required: true
+    cardinality: one
+    sensitivity: confidential
+  - name: city_geo_csv
+    description: City geographic lookup CSV used to enrich death records.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://city_geographic_lookup_csv/v1
+    required: true
+    cardinality: one
+    sensitivity: public
+  outputs:
+  - name: death_insert_sql_file
+    description: Generated PostgreSQL insert SQL script for death records.
+    channel: artifact
+    data_type: text
+    media_type: text/plain
+    schema_ref: schema://sql_script_file/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: generation_status
+    description: Observable status with records read, records rendered, output URI,
+      and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://death_sql_generation_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: raw_records_key
+    description: Redis key containing raw death records.
+    type: string
+    required: true
+  - name: target_table
+    description: Target PostgreSQL table name for generated insert statements.
+    type: string
+    required: true
+    pattern: ^[A-Za-z_][A-Za-z0-9_\.]*$
+  - name: output_path
+    description: Deterministic SQL script output path or name.
+    type: string
+    required: true
+  - name: parse_rules
+    description: Structured field layout and cleaning rules for raw death records.
+    type: object
+    required: false
+  secrets: []
+contracts:
+- contract_id: death_sql_generator_inputs
+  type: precondition
+  applies_to: service
+  target: french_death_records_sql_script_generator
+  description: Redis key and city lookup CSV must be available before generation.
+  expression: length(trim(raw_records_key)) > 0 and readable(city_geo_csv)
+- contract_id: death_sql_generation_status_schema
+  type: json_schema
+  applies_to: output
+  target: generation_status
+  description: Status exposes SQL generation outcome.
+  schema_ref: schema://death_sql_generation_status/v1
+  expression: '{"type":"object","required":["success","records_read","statements_rendered","output_uri"],"properties":{"success":{"type":"boolean"},"records_read":{"type":"integer","minimum":0},"statements_rendered":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: death_sql_generation_effect
+  type: effect
+  applies_to: service
+  target: french_death_records_sql_script_generator
+  description: On success, a SQL script file exists; it may be empty when no valid
+    death records are available.
+  expression: generation_status.success == true implies exists(death_insert_sql_file)
+invocation:
+  type: argo_workflow_template
+  template_name: french-death-records-sql-script-generator-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.french_death_records_sql_script_generator
+  implementation_ref: services/implementations/french_death_records_sql_script_generator
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+  - redis://*
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - public
+  - internal
+  - confidential
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not emit raw death records or Redis credentials in status outputs.
+  - Generated SQL may contain personal data and should be treated as internal/restricted
+    if source records include identifiable information.
+  idempotency_notes: For the same Redis key contents, lookup CSV, and parse rules,
+    the same SQL script is generated.
+  default_timeout_seconds: 600
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:global_dag#staging_pipeline.cleanse_death_data
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: No existing transformer covers Redis-backed French death-record parsing,
+    enrichment with city lookup, and SQL script generation.'
+  - 'Evidence status: strongly_inferred.'

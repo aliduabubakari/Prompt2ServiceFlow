@@ -1,0 +1,1056 @@
+ir_version: 0.1.0
+composition_id: portfolio_rebalancing_dag
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+  sha256: 63d07e926aeec225afd19db687e36b630a39fab5d7950a747b37ef46d2bed446
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:portfolio_rebalancing_dag
+  split: main
+  pipeline_id: portfolio_rebalancing_dag
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/34_portfolio_rebalancing_dag.txt
+  description_sha256: 98d254693d90d32ad49a38b7553c7c1b68afc8f8562861cf6574db6fdf0a6c90
+  internal_spec_path: source/internal_specs/main_40/34_portfolio_rebalancing_dag.json
+  internal_spec_sha256: 383e7dd1e96782d05fd20cb7cb9fbf47a94dd70dbcc655fe6c27c246cc4f639a
+requirement:
+  name: Portfolio Rebalancing DAG
+  purpose: Fetch holdings from 5 brokerage accounts in parallel, analyze each portfolio, aggregate into
+    rebalancing trades, and generate trade order CSV.
+  domain: finance
+  execution_model: batch
+  topology: fan_out_fan_in
+  information_sufficiency: high
+  notes:
+  - 'Two parallel phases: fetch and analyze, then aggregate and export.'
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: '2024-01-01'
+  catchup: false
+external_systems:
+- system_id: brokerage_api
+  type: http_api
+  name: Brokerage API
+  identifier: brokerage
+  access_mode: read
+  authentication: secret
+  mock_strategy: fixture
+service_intents:
+- intent_id: fetch_brokerage_holdings_1
+  name: Fetch holdings BROKERAGE_001
+  category: Extractor
+  capability: Retrieve holdings from brokerage account BROKERAGE_001.
+  source_step_refs:
+  - fetch_brokerage_holdings_1
+  evidence:
+  - source: description
+    text: Fetch holdings from brokerage account BROKERAGE_001.
+  inputs:
+  - brokerage_api_resource
+  outputs:
+  - holdings_dataset_1
+  - extraction_status_1
+  external_system_refs:
+  - brokerage_api
+  preconditions:
+  - Brokerage API available.
+  effects:
+  - Holdings dataset and status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step fetches holdings from one brokerage account.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: fetch_brokerage_holdings_2
+  name: Fetch holdings BROKERAGE_002
+  category: Extractor
+  capability: Retrieve holdings from brokerage account BROKERAGE_002.
+  source_step_refs:
+  - fetch_brokerage_holdings_2
+  evidence:
+  - source: description
+    text: Fetch holdings from brokerage account BROKERAGE_002.
+  inputs:
+  - brokerage_api_resource
+  outputs:
+  - holdings_dataset_2
+  - extraction_status_2
+  external_system_refs:
+  - brokerage_api
+  preconditions:
+  - Brokerage API available.
+  effects:
+  - Holdings dataset and status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step fetches holdings from one brokerage account.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: fetch_brokerage_holdings_3
+  name: Fetch holdings BROKERAGE_003
+  category: Extractor
+  capability: Retrieve holdings from brokerage account BROKERAGE_003.
+  source_step_refs:
+  - fetch_brokerage_holdings_3
+  evidence:
+  - source: description
+    text: Fetch holdings from brokerage account BROKERAGE_003.
+  inputs:
+  - brokerage_api_resource
+  outputs:
+  - holdings_dataset_3
+  - extraction_status_3
+  external_system_refs:
+  - brokerage_api
+  preconditions:
+  - Brokerage API available.
+  effects:
+  - Holdings dataset and status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step fetches holdings from one brokerage account.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: fetch_brokerage_holdings_4
+  name: Fetch holdings BROKERAGE_004
+  category: Extractor
+  capability: Retrieve holdings from brokerage account BROKERAGE_004.
+  source_step_refs:
+  - fetch_brokerage_holdings_4
+  evidence:
+  - source: description
+    text: Fetch holdings from brokerage account BROKERAGE_004.
+  inputs:
+  - brokerage_api_resource
+  outputs:
+  - holdings_dataset_4
+  - extraction_status_4
+  external_system_refs:
+  - brokerage_api
+  preconditions:
+  - Brokerage API available.
+  effects:
+  - Holdings dataset and status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step fetches holdings from one brokerage account.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: fetch_brokerage_holdings_5
+  name: Fetch holdings BROKERAGE_005
+  category: Extractor
+  capability: Retrieve holdings from brokerage account BROKERAGE_005.
+  source_step_refs:
+  - fetch_brokerage_holdings_5
+  evidence:
+  - source: description
+    text: Fetch holdings from brokerage account BROKERAGE_005.
+  inputs:
+  - brokerage_api_resource
+  outputs:
+  - holdings_dataset_5
+  - extraction_status_5
+  external_system_refs:
+  - brokerage_api
+  preconditions:
+  - Brokerage API available.
+  effects:
+  - Holdings dataset and status emitted.
+  required_policy_properties:
+    network_access: required
+    secret_access: required
+    idempotency: preferred
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step fetches holdings from one brokerage account.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: analyze_portfolio_1
+  name: Analyze portfolio BROKERAGE_001
+  category: ScoringService
+  capability: Calculate portfolio metrics for BROKERAGE_001 holdings.
+  source_step_refs:
+  - analyze_portfolio_1
+  evidence:
+  - source: description
+    text: Calculate portfolio metrics for BROKERAGE_001.
+  inputs:
+  - holdings_dataset_1
+  outputs:
+  - portfolio_analysis_1
+  - analysis_status_1
+  external_system_refs: []
+  preconditions:
+  - Holdings dataset available.
+  effects:
+  - Portfolio analysis and status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step analyzes one portfolio.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: analyze_portfolio_2
+  name: Analyze portfolio BROKERAGE_002
+  category: ScoringService
+  capability: Calculate portfolio metrics for BROKERAGE_002 holdings.
+  source_step_refs:
+  - analyze_portfolio_2
+  evidence:
+  - source: description
+    text: Calculate portfolio metrics for BROKERAGE_002.
+  inputs:
+  - holdings_dataset_2
+  outputs:
+  - portfolio_analysis_2
+  - analysis_status_2
+  external_system_refs: []
+  preconditions:
+  - Holdings dataset available.
+  effects:
+  - Portfolio analysis and status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step analyzes one portfolio.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: analyze_portfolio_3
+  name: Analyze portfolio BROKERAGE_003
+  category: ScoringService
+  capability: Calculate portfolio metrics for BROKERAGE_003 holdings.
+  source_step_refs:
+  - analyze_portfolio_3
+  evidence:
+  - source: description
+    text: Calculate portfolio metrics for BROKERAGE_003.
+  inputs:
+  - holdings_dataset_3
+  outputs:
+  - portfolio_analysis_3
+  - analysis_status_3
+  external_system_refs: []
+  preconditions:
+  - Holdings dataset available.
+  effects:
+  - Portfolio analysis and status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step analyzes one portfolio.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: analyze_portfolio_4
+  name: Analyze portfolio BROKERAGE_004
+  category: ScoringService
+  capability: Calculate portfolio metrics for BROKERAGE_004 holdings.
+  source_step_refs:
+  - analyze_portfolio_4
+  evidence:
+  - source: description
+    text: Calculate portfolio metrics for BROKERAGE_004.
+  inputs:
+  - holdings_dataset_4
+  outputs:
+  - portfolio_analysis_4
+  - analysis_status_4
+  external_system_refs: []
+  preconditions:
+  - Holdings dataset available.
+  effects:
+  - Portfolio analysis and status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step analyzes one portfolio.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: analyze_portfolio_5
+  name: Analyze portfolio BROKERAGE_005
+  category: ScoringService
+  capability: Calculate portfolio metrics for BROKERAGE_005 holdings.
+  source_step_refs:
+  - analyze_portfolio_5
+  evidence:
+  - source: description
+    text: Calculate portfolio metrics for BROKERAGE_005.
+  inputs:
+  - holdings_dataset_5
+  outputs:
+  - portfolio_analysis_5
+  - analysis_status_5
+  external_system_refs: []
+  preconditions:
+  - Holdings dataset available.
+  effects:
+  - Portfolio analysis and status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step analyzes one portfolio.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: aggregate_and_rebalance
+  name: Aggregate and rebalance
+  category: Aggregator
+  capability: Combine all 5 portfolio analyses and calculate rebalancing trades.
+  source_step_refs:
+  - aggregate_and_rebalance
+  evidence:
+  - source: description
+    text: Combine all portfolio analyses and calculate rebalancing trades.
+  inputs:
+  - portfolio_analysis_1
+  outputs:
+  - rebalancing_trades
+  - rebalance_status
+  external_system_refs: []
+  preconditions:
+  - All portfolio analyses available.
+  effects:
+  - Rebalancing trades and status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step aggregates analyses into rebalancing trades.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+- intent_id: generate_trade_orders
+  name: Generate trade orders CSV
+  category: ReportGenerator
+  capability: Export rebalancing trades to a trade orders CSV file.
+  source_step_refs:
+  - generate_trade_orders
+  evidence:
+  - source: description
+    text: Create final trade orders CSV file.
+  inputs:
+  - rebalancing_trades
+  outputs:
+  - trade_orders_csv
+  - export_status
+  external_system_refs: []
+  preconditions:
+  - Rebalancing trades available.
+  effects:
+  - Trade orders CSV and export status emitted.
+  required_policy_properties:
+    network_access: forbidden
+    secret_access: forbidden
+    idempotency: required
+    data_sensitivity:
+    - confidential
+  decomposition_rationale: Source step exports rebalancing trades to CSV.
+  confidence: explicit
+  ambiguity:
+    status: none
+    notes: []
+control_flow:
+  edges:
+  - from: fetch_brokerage_holdings_1
+    to: analyze_portfolio_1
+  - from: fetch_brokerage_holdings_2
+    to: analyze_portfolio_2
+  - from: fetch_brokerage_holdings_3
+    to: analyze_portfolio_3
+  - from: fetch_brokerage_holdings_4
+    to: analyze_portfolio_4
+  - from: fetch_brokerage_holdings_5
+    to: analyze_portfolio_5
+  - from: analyze_portfolio_1
+    to: aggregate_and_rebalance
+  - from: analyze_portfolio_2
+    to: aggregate_and_rebalance
+  - from: analyze_portfolio_3
+    to: aggregate_and_rebalance
+  - from: analyze_portfolio_4
+    to: aggregate_and_rebalance
+  - from: analyze_portfolio_5
+    to: aggregate_and_rebalance
+  - from: aggregate_and_rebalance
+    to: generate_trade_orders
+  parallel_groups:
+  - group_id: fetch_phase
+    intent_ids:
+    - fetch_brokerage_holdings_1
+    - fetch_brokerage_holdings_2
+    - fetch_brokerage_holdings_3
+    - fetch_brokerage_holdings_4
+    - fetch_brokerage_holdings_5
+  - group_id: analysis_phase
+    intent_ids:
+    - analyze_portfolio_1
+    - analyze_portfolio_2
+    - analyze_portfolio_3
+    - analyze_portfolio_4
+    - analyze_portfolio_5
+  branches: []
+  gates: []
+artifacts:
+- artifact_id: brokerage_api_resource
+  name: Brokerage API resource
+  kind: external_resource
+  data_type: object
+  media_type: application/json
+  role: config
+  producer: null
+  consumers:
+  - fetch_brokerage_holdings_1
+  - fetch_brokerage_holdings_2
+  - fetch_brokerage_holdings_3
+  - fetch_brokerage_holdings_4
+  - fetch_brokerage_holdings_5
+  sensitivity: confidential
+  persistence: external
+  fixture_ref: fixtures/inputs/brokerage_api.json
+  external_system_ref: brokerage_api
+- artifact_id: holdings_dataset_1
+  name: Holdings dataset 1
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/tabular.schema.json
+  role: intermediate
+  producer: fetch_brokerage_holdings_1
+  consumers:
+  - analyze_portfolio_1
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: extraction_status_1
+  name: Extraction status 1
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: fetch_brokerage_holdings_1
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: holdings_dataset_2
+  name: Holdings dataset 2
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/tabular.schema.json
+  role: intermediate
+  producer: fetch_brokerage_holdings_2
+  consumers:
+  - analyze_portfolio_2
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: extraction_status_2
+  name: Extraction status 2
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: fetch_brokerage_holdings_2
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: holdings_dataset_3
+  name: Holdings dataset 3
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/tabular.schema.json
+  role: intermediate
+  producer: fetch_brokerage_holdings_3
+  consumers:
+  - analyze_portfolio_3
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: extraction_status_3
+  name: Extraction status 3
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: fetch_brokerage_holdings_3
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: holdings_dataset_4
+  name: Holdings dataset 4
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/tabular.schema.json
+  role: intermediate
+  producer: fetch_brokerage_holdings_4
+  consumers:
+  - analyze_portfolio_4
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: extraction_status_4
+  name: Extraction status 4
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: fetch_brokerage_holdings_4
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: holdings_dataset_5
+  name: Holdings dataset 5
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/tabular.schema.json
+  role: intermediate
+  producer: fetch_brokerage_holdings_5
+  consumers:
+  - analyze_portfolio_5
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: extraction_status_5
+  name: Extraction status 5
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: fetch_brokerage_holdings_5
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: portfolio_analysis_1
+  name: Portfolio analysis 1
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/portfolio_analysis.schema.json
+  role: intermediate
+  producer: analyze_portfolio_1
+  consumers: []
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: analysis_status_1
+  name: Analysis status 1
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: analyze_portfolio_1
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: portfolio_analysis_2
+  name: Portfolio analysis 2
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/portfolio_analysis.schema.json
+  role: intermediate
+  producer: analyze_portfolio_2
+  consumers: []
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: analysis_status_2
+  name: Analysis status 2
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: analyze_portfolio_2
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: portfolio_analysis_3
+  name: Portfolio analysis 3
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/portfolio_analysis.schema.json
+  role: intermediate
+  producer: analyze_portfolio_3
+  consumers: []
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: analysis_status_3
+  name: Analysis status 3
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: analyze_portfolio_3
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: portfolio_analysis_4
+  name: Portfolio analysis 4
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/portfolio_analysis.schema.json
+  role: intermediate
+  producer: analyze_portfolio_4
+  consumers: []
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: analysis_status_4
+  name: Analysis status 4
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: analyze_portfolio_4
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: portfolio_analysis_5
+  name: Portfolio analysis 5
+  kind: artifact
+  data_type: object
+  media_type: application/json
+  schema_ref: contracts/artifacts/portfolio_analysis.schema.json
+  role: intermediate
+  producer: analyze_portfolio_5
+  consumers: []
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: analysis_status_5
+  name: Analysis status 5
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: analyze_portfolio_5
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: rebalancing_trades
+  name: Rebalancing trades
+  kind: artifact
+  data_type: table
+  media_type: application/json
+  schema_ref: contracts/artifacts/tabular.schema.json
+  role: intermediate
+  producer: aggregate_and_rebalance
+  consumers:
+  - generate_trade_orders
+  sensitivity: confidential
+  persistence: workflow
+- artifact_id: rebalance_status
+  name: Rebalance status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: aggregate_and_rebalance
+  consumers: []
+  sensitivity: internal
+  persistence: workflow
+- artifact_id: trade_orders_csv
+  name: Trade orders CSV
+  kind: artifact
+  data_type: csv
+  media_type: text/csv
+  role: output
+  producer: generate_trade_orders
+  consumers: []
+  sensitivity: confidential
+  persistence: release
+- artifact_id: export_status
+  name: Export status
+  kind: artifact
+  data_type: status
+  media_type: application/json
+  schema_ref: contracts/artifacts/simple_status.schema.json
+  role: status
+  producer: generate_trade_orders
+  consumers: []
+  sensitivity: internal
+  persistence: release
+bindings:
+- intent_id: fetch_brokerage_holdings_1
+  service_id: brokerage_account_holdings_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: brokerage_api_resource
+    artifact_id: brokerage_api_resource
+  output_bindings:
+  - port: holdings_dataset
+    artifact_id: holdings_dataset_1
+  - port: extraction_status
+    artifact_id: extraction_status_1
+  parameter_bindings:
+    brokerage_id: BROKERAGE_001
+    endpoint_template: https://api.brokerage.com/holdings/{brokerage_id}
+  secret_bindings: []
+  rationale: Fetches holdings for BROKERAGE_001.
+  confidence: explicit
+- intent_id: fetch_brokerage_holdings_2
+  service_id: brokerage_account_holdings_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: brokerage_api_resource
+    artifact_id: brokerage_api_resource
+  output_bindings:
+  - port: holdings_dataset
+    artifact_id: holdings_dataset_2
+  - port: extraction_status
+    artifact_id: extraction_status_2
+  parameter_bindings:
+    brokerage_id: BROKERAGE_002
+    endpoint_template: https://api.brokerage.com/holdings/{brokerage_id}
+  secret_bindings: []
+  rationale: Fetches holdings for BROKERAGE_002.
+  confidence: explicit
+- intent_id: fetch_brokerage_holdings_3
+  service_id: brokerage_account_holdings_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: brokerage_api_resource
+    artifact_id: brokerage_api_resource
+  output_bindings:
+  - port: holdings_dataset
+    artifact_id: holdings_dataset_3
+  - port: extraction_status
+    artifact_id: extraction_status_3
+  parameter_bindings:
+    brokerage_id: BROKERAGE_003
+    endpoint_template: https://api.brokerage.com/holdings/{brokerage_id}
+  secret_bindings: []
+  rationale: Fetches holdings for BROKERAGE_003.
+  confidence: explicit
+- intent_id: fetch_brokerage_holdings_4
+  service_id: brokerage_account_holdings_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: brokerage_api_resource
+    artifact_id: brokerage_api_resource
+  output_bindings:
+  - port: holdings_dataset
+    artifact_id: holdings_dataset_4
+  - port: extraction_status
+    artifact_id: extraction_status_4
+  parameter_bindings:
+    brokerage_id: BROKERAGE_004
+    endpoint_template: https://api.brokerage.com/holdings/{brokerage_id}
+  secret_bindings: []
+  rationale: Fetches holdings for BROKERAGE_004.
+  confidence: explicit
+- intent_id: fetch_brokerage_holdings_5
+  service_id: brokerage_account_holdings_extractor
+  service_version: 1.0.0
+  input_bindings:
+  - port: brokerage_api_resource
+    artifact_id: brokerage_api_resource
+  output_bindings:
+  - port: holdings_dataset
+    artifact_id: holdings_dataset_5
+  - port: extraction_status
+    artifact_id: extraction_status_5
+  parameter_bindings:
+    brokerage_id: BROKERAGE_005
+    endpoint_template: https://api.brokerage.com/holdings/{brokerage_id}
+  secret_bindings: []
+  rationale: Fetches holdings for BROKERAGE_005.
+  confidence: explicit
+- intent_id: analyze_portfolio_1
+  service_id: portfolio_holdings_metrics_analyzer
+  service_version: 1.0.0
+  input_bindings:
+  - port: holdings_dataset
+    artifact_id: holdings_dataset_1
+  output_bindings:
+  - port: portfolio_analysis
+    artifact_id: portfolio_analysis_1
+  - port: analysis_status
+    artifact_id: analysis_status_1
+  parameter_bindings:
+    risk_model_profile: standard_v1
+  secret_bindings: []
+  rationale: Analyzes portfolio for BROKERAGE_001.
+  confidence: explicit
+- intent_id: analyze_portfolio_2
+  service_id: portfolio_holdings_metrics_analyzer
+  service_version: 1.0.0
+  input_bindings:
+  - port: holdings_dataset
+    artifact_id: holdings_dataset_2
+  output_bindings:
+  - port: portfolio_analysis
+    artifact_id: portfolio_analysis_2
+  - port: analysis_status
+    artifact_id: analysis_status_2
+  parameter_bindings:
+    risk_model_profile: standard_v1
+  secret_bindings: []
+  rationale: Analyzes portfolio for BROKERAGE_002.
+  confidence: explicit
+- intent_id: analyze_portfolio_3
+  service_id: portfolio_holdings_metrics_analyzer
+  service_version: 1.0.0
+  input_bindings:
+  - port: holdings_dataset
+    artifact_id: holdings_dataset_3
+  output_bindings:
+  - port: portfolio_analysis
+    artifact_id: portfolio_analysis_3
+  - port: analysis_status
+    artifact_id: analysis_status_3
+  parameter_bindings:
+    risk_model_profile: standard_v1
+  secret_bindings: []
+  rationale: Analyzes portfolio for BROKERAGE_003.
+  confidence: explicit
+- intent_id: analyze_portfolio_4
+  service_id: portfolio_holdings_metrics_analyzer
+  service_version: 1.0.0
+  input_bindings:
+  - port: holdings_dataset
+    artifact_id: holdings_dataset_4
+  output_bindings:
+  - port: portfolio_analysis
+    artifact_id: portfolio_analysis_4
+  - port: analysis_status
+    artifact_id: analysis_status_4
+  parameter_bindings:
+    risk_model_profile: standard_v1
+  secret_bindings: []
+  rationale: Analyzes portfolio for BROKERAGE_004.
+  confidence: explicit
+- intent_id: analyze_portfolio_5
+  service_id: portfolio_holdings_metrics_analyzer
+  service_version: 1.0.0
+  input_bindings:
+  - port: holdings_dataset
+    artifact_id: holdings_dataset_5
+  output_bindings:
+  - port: portfolio_analysis
+    artifact_id: portfolio_analysis_5
+  - port: analysis_status
+    artifact_id: analysis_status_5
+  parameter_bindings:
+    risk_model_profile: standard_v1
+  secret_bindings: []
+  rationale: Analyzes portfolio for BROKERAGE_005.
+  confidence: explicit
+- intent_id: aggregate_and_rebalance
+  service_id: portfolio_rebalancing_trade_calculator
+  service_version: 1.0.0
+  input_bindings:
+  - port: portfolio_analyses
+    artifact_id: portfolio_analysis_1
+  output_bindings:
+  - port: rebalancing_trades
+    artifact_id: rebalancing_trades
+  - port: rebalance_status
+    artifact_id: rebalance_status
+  parameter_bindings:
+    target_allocations:
+      stocks: 0.5
+      bonds: 0.3
+      cash: 0.2
+  secret_bindings: []
+  rationale: Aggregates all portfolio analyses into rebalancing trades.
+  confidence: explicit
+- intent_id: generate_trade_orders
+  service_id: trade_order_csv_report_generator
+  service_version: 1.0.0
+  input_bindings:
+  - port: rebalancing_trades
+    artifact_id: rebalancing_trades
+  output_bindings:
+  - port: trade_orders_csv
+    artifact_id: trade_orders_csv
+  - port: export_status
+    artifact_id: export_status
+  parameter_bindings:
+    output_path_template: /workspace/artifacts/trade_orders.csv
+    include_header: true
+  secret_bindings: []
+  rationale: Exports rebalancing trades to CSV.
+  confidence: explicit
+policies:
+  default_retries: 2
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides: []
+  governance:
+    allowed_sensitivities:
+    - internal
+    - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+    - All brokerage holdings are mocked with deterministic data.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: none
+    reference: null
+  execution_profile: mock
+validation_expectations:
+- gate: G0
+  expected_status: pass
+  checks:
+  - Schemas
+  - files
+  - and pinned checksums
+- gate: G1
+  expected_status: pass
+  checks:
+  - All twelve source steps accounted for
+- gate: G2
+  expected_status: pass
+  checks:
+  - Twelve exact catalogue bindings resolve
+- gate: G3
+  expected_status: pass
+  checks:
+  - Ports
+  - parameters
+  - types
+  - and policies close
+- gate: G4
+  expected_status: pass
+  checks:
+  - Fan-out/fan-in Argo DAG compiles
+- gate: G5
+  expected_status: pass
+  checks:
+  - Single scenario executes all twelve steps
+- gate: G6
+  expected_status: pass
+  checks:
+  - Holdings
+  - analysis
+  - rebalancing
+  - and export invariants hold
+source_step_accounting:
+- source_step_ref: fetch_brokerage_holdings_1
+  disposition: service
+  intent_ids:
+  - fetch_brokerage_holdings_1
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: fetch_brokerage_holdings_2
+  disposition: service
+  intent_ids:
+  - fetch_brokerage_holdings_2
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: fetch_brokerage_holdings_3
+  disposition: service
+  intent_ids:
+  - fetch_brokerage_holdings_3
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: fetch_brokerage_holdings_4
+  disposition: service
+  intent_ids:
+  - fetch_brokerage_holdings_4
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: fetch_brokerage_holdings_5
+  disposition: service
+  intent_ids:
+  - fetch_brokerage_holdings_5
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: analyze_portfolio_1
+  disposition: service
+  intent_ids:
+  - analyze_portfolio_1
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: analyze_portfolio_2
+  disposition: service
+  intent_ids:
+  - analyze_portfolio_2
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: analyze_portfolio_3
+  disposition: service
+  intent_ids:
+  - analyze_portfolio_3
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: analyze_portfolio_4
+  disposition: service
+  intent_ids:
+  - analyze_portfolio_4
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: analyze_portfolio_5
+  disposition: service
+  intent_ids:
+  - analyze_portfolio_5
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: aggregate_and_rebalance
+  disposition: service
+  intent_ids:
+  - aggregate_and_rebalance
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.
+- source_step_ref: generate_trade_orders
+  disposition: service
+  intent_ids:
+  - generate_trade_orders
+  rationale: The source step is represented by the reviewed, contract-compatible bound service.

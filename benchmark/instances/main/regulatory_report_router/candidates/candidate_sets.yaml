@@ -1,0 +1,47 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:regulatory_report_router
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_regulatory_report_router_delimited_file_tabular_dataset_loader_candidates
+  source_step_refs:
+  - read_csv
+  service_ids:
+  - delimited_file_tabular_dataset_loader
+  - csv_tabular_schema_validating_loader
+  - csv_artifact_profile_ingestor
+  - customer_segment_csv_loader
+  - csv_to_structured_json_standardizer
+  - legacy_csv_schema_validator
+- candidate_set_id: main_regulatory_report_router_financial_account_type_regulatory_route_decider_candidates
+  source_step_refs:
+  - account_check
+  service_ids:
+  - financial_account_type_regulatory_route_decider
+  - content_toxicity_route_decider
+  - fraud_risk_threshold_route_decider
+  - execution_date_backup_strategy_decider
+  - tabular_quality_score_gate
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_regulatory_report_router_financial_transaction_regulatory_report_generator_candidates
+  source_step_refs:
+  - route_to_fatca
+  - route_to_irs
+  service_ids:
+  - financial_transaction_regulatory_report_generator
+  - csv_chart_pdf_report_generator
+  - tabular_dashboard_report_generator
+  - trade_order_csv_report_generator
+  - inventory_reconciliation_pdf_report_generator
+  - reviewed_domain_adapter
+- candidate_set_id: main_regulatory_report_router_report_artifact_object_storage_archiver_candidates
+  source_step_refs:
+  - archive_reports
+  service_ids:
+  - report_artifact_object_storage_archiver
+  - checksum_manifest_object_storage_file_sync
+  - github_release_asset_object_storage_sync
+  - dataset_quarantine_zone_writer
+  - email_attachment_notification_sender
+  - legacy_database_table_loader

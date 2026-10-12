@@ -1,0 +1,34 @@
+candidate_set_version: 0.1.0
+benchmark_id: main:backup_strategy_selector
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.1.0
+candidate_sets:
+- candidate_set_id: main_backup_strategy_selector_execution_date_backup_strategy_decider_candidates
+  source_step_refs:
+  - date_check_task
+  service_ids:
+  - execution_date_backup_strategy_decider
+  - runtime_parameter_allowed_values_validator
+  - retention_cutoff_config_resolver
+  - fraud_risk_threshold_route_decider
+  - database_backup_artifact_creator
+  - reviewed_python_udf_transformer
+- candidate_set_id: main_backup_strategy_selector_database_backup_artifact_creator_candidates
+  source_step_refs:
+  - full_backup_task
+  - incremental_backup_task
+  service_ids:
+  - database_backup_artifact_creator
+  - database_csv_snapshot_exporter
+  - postgres_parameterized_sql_executor
+  - database_csv_snapshot_importer
+  - backup_artifact_integrity_verifier
+- candidate_set_id: main_backup_strategy_selector_backup_artifact_integrity_verifier_candidates
+  source_step_refs:
+  - verify_backup_task
+  service_ids:
+  - backup_artifact_integrity_verifier
+  - database_backup_artifact_creator
+  - csv_tabular_schema_validating_loader
+  - reviewed_domain_adapter

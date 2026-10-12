@@ -1,0 +1,39 @@
+candidate_label_version: 0.1.0
+benchmark_id: main:supply_chain_shipment_etl
+candidate_sets:
+- candidate_set_id: main_supply_chain_shipment_etl_csv_tabular_schema_validating_loader_candidates
+  required_service_id: csv_tabular_schema_validating_loader
+  labels:
+    csv_tabular_schema_validating_loader: gold
+    csv_artifact_profile_ingestor: missing_required_output
+    delimited_file_tabular_dataset_loader: contract_mismatch
+    customer_segment_csv_loader: target_mismatch
+    csv_to_structured_json_standardizer: format_mismatch
+    legacy_csv_schema_validator: deprecated_or_incompatible
+- candidate_set_id: main_supply_chain_shipment_etl_shipment_data_standardization_enricher_candidates
+  required_service_id: shipment_data_standardization_enricher
+  labels:
+    shipment_data_standardization_enricher: gold
+    tabular_dataset_declarative_transformer: contract_mismatch
+    tabular_null_value_cleanser: semantic_mismatch
+    inventory_sku_csv_normalizer: format_mismatch
+    csv_to_structured_json_standardizer: missing_required_output
+    reviewed_python_udf_transformer: generic_escape_hatch
+- candidate_set_id: main_supply_chain_shipment_etl_tabular_dataset_database_loader_candidates
+  required_service_id: tabular_dataset_database_loader
+  labels:
+    tabular_dataset_database_loader: gold
+    postgres_parameterized_sql_executor: contract_mismatch
+    database_csv_snapshot_importer: format_mismatch
+    postgres_sql_file_executor: format_mismatch
+    multi_table_analytics_warehouse_loader: target_mismatch
+    air_quality_dimensional_postgres_loader: target_mismatch
+- candidate_set_id: main_supply_chain_shipment_etl_status_context_email_summary_notifier_candidates
+  required_service_id: status_context_email_summary_notifier
+  labels:
+    status_context_email_summary_notifier: gold
+    email_notification_sender: missing_required_output
+    email_attachment_notification_sender: contract_mismatch
+    branch_processing_completion_notifier: format_mismatch
+    slack_notification_sender: target_mismatch
+    aqi_threshold_email_alert_notifier: semantic_mismatch

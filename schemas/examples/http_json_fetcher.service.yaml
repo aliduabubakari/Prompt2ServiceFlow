@@ -1,0 +1,106 @@
+schema_version: 0.1.0
+service_id: http_json_fetcher
+version: 1.0.0
+display_name: HTTP JSON Fetcher
+category: Extractor
+capability:
+  summary: Fetch a JSON document from an HTTP endpoint using query parameters and an optional API key.
+  operations:
+    - issue an HTTP GET request
+    - serialize the response as JSON
+  keywords:
+    - http
+    - rest
+    - json
+  limitations:
+    - The mock implementation reads a fixture instead of using the public network.
+lifecycle:
+  status: active
+interface:
+  inputs:
+    - name: request_config
+      description: Optional request configuration artifact used by the pipeline instance.
+      channel: external_resource
+      data_type: object
+      media_type: application/json
+      required: false
+      cardinality: one
+      sensitivity: confidential
+  outputs:
+    - name: raw_json
+      description: Raw JSON response returned by the configured endpoint.
+      channel: artifact
+      data_type: json
+      media_type: application/json
+      schema_ref: contracts/http_json_response.schema.json
+      required: true
+      cardinality: one
+      sensitivity: internal
+  parameters:
+    - name: endpoint
+      description: HTTP endpoint URL.
+      type: string
+      required: true
+      pattern: ^https?://
+    - name: query_params
+      description: Query parameters included in the request.
+      type: object
+      required: false
+      default: {}
+  secrets:
+    - name: api_key
+      description: Optional API credential injected by the runtime.
+      required: false
+      environment_variable: SERVICE_API_KEY
+contracts:
+  - contract_id: raw_json_is_valid_json
+    type: json_schema
+    applies_to: output
+    target: raw_json
+    description: The output must be a JSON document accepted by the bound pipeline contract.
+    schema_ref: contracts/http_json_response.schema.json
+invocation:
+  type: argo_workflow_template
+  template_name: http-json-fetcher-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+    - python
+    - -m
+    - prompt2serviceflow_services.http_json_fetcher
+  implementation_ref: services/implementations/http_json_fetcher
+  mock_supported: true
+policies:
+  network_access: required
+  allowed_network_targets:
+    - configured endpoint only
+  secret_access: optional
+  retry_safe: true
+  idempotency: idempotent
+  idempotency_notes: The service performs a read-only GET request.
+  default_timeout_seconds: 120
+  data_sensitivity:
+    - internal
+  resources:
+    cpu: 250m
+    memory: 128Mi
+    gpu: 0
+  governance_notes:
+    - Credentials must be supplied through a Kubernetes Secret.
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+    - amd64
+    - arm64
+  incompatible_services: []
+provenance:
+  origin: curated
+  owner: Prompt2ServiceFlow
+  created_at: "2026-06-13T00:00:00Z"
+  review_status: candidate
+  source_refs:
+    - plan.md#service-catalog-design
+  notes:
+    - Initial pilot descriptor; image digest will be pinned after the runtime spike.

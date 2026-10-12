@@ -1,0 +1,182 @@
+schema_version: 0.1.0
+service_id: tabular_null_value_cleanser
+version: 1.0.0
+display_name: Tabular Null Value Cleanser
+category: Transformer
+capability:
+  summary: Reads a delimited tabular file or dataset, applies caller-configured null-value
+    handling rules, and emits a cleansed tabular dataset plus loadable data-object
+    metadata and status.
+  operations:
+  - Read and parse a CSV or delimited tabular artifact.
+  - Identify null-like values using configured tokens and column rules.
+  - Apply configured null handling such as drop rows, fill defaults, trim blanks,
+    or preserve typed nulls.
+  - Write a cleansed tabular dataset artifact and metadata suitable for downstream
+    database loading.
+  keywords:
+  - csv
+  - tabular cleansing
+  - null values
+  - data cleaning
+  - inventory data
+  - transformer
+  limitations:
+  - Does not infer business-specific inventory validation rules.
+  - Does not merge data into databases.
+  - Does not download source files.
+  - Null handling behavior must be supplied by parameters or defaults agreed by the
+    workflow binding.
+lifecycle:
+  status: active
+interface:
+  inputs:
+  - name: source_csv
+    description: Downloaded CSV or delimited tabular file to cleanse.
+    channel: artifact
+    data_type: csv
+    media_type: text/csv
+    schema_ref: schema://csv_file_artifact/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  outputs:
+  - name: cleansed_dataset
+    description: Cleansed tabular dataset containing rows, columns, and row count
+      after null handling.
+    channel: artifact
+    data_type: table
+    media_type: application/json
+    schema_ref: schema://tabular_query_result/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: cleansed_data_object
+    description: Dataset reference and metadata suitable for downstream loading into
+      a database.
+    channel: artifact
+    data_type: object
+    media_type: application/json
+    schema_ref: schema://tabular_ingest_metadata/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  - name: cleanse_status
+    description: Observable cleansing status with rows read, rows written, nulls handled,
+      output URI, and diagnostics.
+    channel: artifact
+    data_type: status
+    media_type: application/json
+    schema_ref: schema://tabular_null_cleanse_status/v1
+    required: true
+    cardinality: one
+    sensitivity: internal
+  parameters:
+  - name: null_tokens
+    description: Values interpreted as null-like, for example empty string, NULL,
+      null, N/A, or whitespace.
+    type: array
+    required: false
+  - name: null_handling_rules
+    description: Column-level or dataset-level rules for dropping, filling, trimming,
+      or preserving null values.
+    type: object
+    required: true
+  - name: output_path
+    description: Deterministic artifact path or name for the cleansed dataset.
+    type: string
+    required: true
+  - name: has_header
+    description: Whether the input CSV contains a header row.
+    type: boolean
+    required: false
+  - name: delimiter
+    description: CSV delimiter.
+    type: string
+    required: false
+    enum:
+    - ','
+    - ;
+    - \t
+    - '|'
+  secrets: []
+contracts:
+- contract_id: tabular_null_cleanser_input_readable
+  type: precondition
+  applies_to: input
+  target: source_csv
+  description: Input CSV must be readable and parseable with the configured delimiter/header
+    behavior.
+  expression: readable(source_csv) and csv_parseable(source_csv, delimiter, has_header)
+- contract_id: tabular_null_cleanser_rules_contract
+  type: precondition
+  applies_to: parameter
+  target: null_handling_rules
+  description: Null handling rules must be supplied for deterministic cleansing behavior.
+  expression: null_handling_rules != null and length(keys(null_handling_rules)) >
+    0
+- contract_id: tabular_null_cleanse_status_schema
+  type: json_schema
+  applies_to: output
+  target: cleanse_status
+  description: Status exposes cleansing outcome for downstream validation.
+  schema_ref: schema://tabular_null_cleanse_status/v1
+  expression: '{"type":"object","required":["success","rows_read","rows_written","null_values_detected","null_values_handled","output_uri"],"properties":{"success":{"type":"boolean"},"rows_read":{"type":"integer","minimum":0},"rows_written":{"type":"integer","minimum":0},"null_values_detected":{"type":"integer","minimum":0},"null_values_handled":{"type":"integer","minimum":0},"output_uri":{"type":"string"},"errors":{"type":"array","items":{"type":"string"}}}}'
+- contract_id: tabular_null_cleanser_effect
+  type: effect
+  applies_to: service
+  target: tabular_null_value_cleanser
+  description: On success, a cleansed dataset and loadable metadata object are emitted
+    and status.success is true.
+  expression: cleanse_status.success == true implies exists(cleansed_dataset) and
+    exists(cleansed_data_object)
+invocation:
+  type: argo_workflow_template
+  template_name: tabular-null-value-cleanser-v1
+  template_entrypoint: main
+  image: prompt2serviceflow/runtime:0.1.0
+  command:
+  - python
+  - -m
+  - prompt2serviceflow_services.tabular_null_value_cleanser
+  implementation_ref: services/implementations/tabular_null_value_cleanser
+  mock_supported: true
+policies:
+  network_access: forbidden
+  allowed_network_targets: []
+  secret_access: forbidden
+  retry_safe: true
+  idempotency: idempotent
+  data_sensitivity:
+  - internal
+  resources:
+    cpu: 250m
+    memory: 256Mi
+    gpu: 0
+  governance_notes:
+  - Do not log full inventory row contents; emit counts, columns, and bounded diagnostics
+    only.
+  - Business-specific inventory validation should be modeled separately if required.
+  idempotency_notes: Same input CSV and null handling rules produce the same cleansed
+    dataset.
+  default_timeout_seconds: 300
+compatibility:
+  runtime:
+    target: argo-workflows
+    minimum_version: 3.5.0
+  supported_architectures:
+  - amd64
+  - arm64
+  incompatible_services: []
+provenance:
+  origin: generated
+  owner: Prompt2ServiceFlow
+  created_at: '2026-06-13T17:25:39.645986+00:00'
+  review_status: candidate
+  source_refs:
+  - main:ftp_vendor_inventory_processor#cleanse_vendor_data
+  notes:
+  - Generated by gpt-5.5 during run gpt55-catalog-v001.
+  - 'Rationale: The pipeline has an explicit null-cleansing transformation not covered
+    by existing generic CSV parsing or database loading services.'
+  - 'Evidence status: explicit.'

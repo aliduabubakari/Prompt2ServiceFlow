@@ -1,0 +1,20 @@
+candidate_set_version: 0.1.0
+benchmark_id: validation:val_log_rotation_cleanup
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.2.0
+candidate_sets:
+- candidate_set_id: validation_val_log_rotation_cleanup_file_location_availability_sensor_candidates
+  source_step_refs:
+  - find_expired_logs
+  service_ids:
+  - file_location_availability_sensor
+  - reviewed_domain_adapter
+  - temporary_resource_cleanup
+- candidate_set_id: validation_val_log_rotation_cleanup_filesystem_log_archive_and_delete_candidates
+  source_step_refs:
+  - archive_and_delete_logs
+  service_ids:
+  - filesystem_log_archive_and_delete
+  - temporary_resource_cleanup
+  - csv_to_structured_json_standardizer

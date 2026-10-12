@@ -1,0 +1,134 @@
+runtime_manifest_version: 0.1.0
+pipeline_id: multi_region_ecommerce_analytics
+image: python:3.12-slim
+workflow_parameters: []
+tasks:
+- intent_id: ingest_us_east
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - export
+  - --region
+  - us_east
+  - --database-resource
+  - '{fixtures}/us_east_database.json'
+  - --source-fixture
+  - '{fixtures}/us_east.csv'
+  retries: 2
+- intent_id: ingest_us_west
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - export
+  - --region
+  - us_west
+  - --database-resource
+  - '{fixtures}/us_west_database.json'
+  - --source-fixture
+  - '{fixtures}/us_west.csv'
+  retries: 2
+- intent_id: ingest_eu
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - export
+  - --region
+  - eu
+  - --database-resource
+  - '{fixtures}/eu_database.json'
+  - --source-fixture
+  - '{fixtures}/eu.csv'
+  retries: 2
+- intent_id: ingest_apac
+  script: scripts/01_run.py
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - export
+  - --region
+  - apac
+  - --database-resource
+  - '{fixtures}/apac_database.json'
+  - --source-fixture
+  - '{fixtures}/apac.csv'
+  retries: 2
+- intent_id: convert_currency_us_east
+  script: scripts/01_run.py
+  dependencies:
+  - ingest_us_east
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - convert
+  - --region
+  - us_east
+  - --exchange-rates
+  - '{fixtures}/exchange_rates.json'
+  retries: 2
+- intent_id: convert_currency_us_west
+  script: scripts/01_run.py
+  dependencies:
+  - ingest_us_west
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - convert
+  - --region
+  - us_west
+  - --exchange-rates
+  - '{fixtures}/exchange_rates.json'
+  retries: 2
+- intent_id: convert_currency_eu
+  script: scripts/01_run.py
+  dependencies:
+  - ingest_eu
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - convert
+  - --region
+  - eu
+  - --exchange-rates
+  - '{fixtures}/exchange_rates.json'
+  retries: 2
+- intent_id: convert_currency_apac
+  script: scripts/01_run.py
+  dependencies:
+  - ingest_apac
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - convert
+  - --region
+  - apac
+  - --exchange-rates
+  - '{fixtures}/exchange_rates.json'
+  retries: 2
+- intent_id: aggregate_global_revenue
+  script: scripts/01_run.py
+  dependencies:
+  - convert_currency_us_east
+  - convert_currency_us_west
+  - convert_currency_eu
+  - convert_currency_apac
+  arguments:
+  - --workspace
+  - '{workspace}'
+  - --step
+  - aggregate
+  retries: 2
+scenarios:
+- name: regional_revenue_run
+  parameters: {}
+  fixture_root: fixtures/scenarios/nominal
