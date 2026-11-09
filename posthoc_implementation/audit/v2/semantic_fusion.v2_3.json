@@ -1,0 +1,68 @@
+{
+  "package_version": "2.0.0-relational.3",
+  "audit_protocol_version": "28.2.0",
+  "parent_methods": "audit/outputs/package_v2_methods__20261026T075725Z__5757ac01",
+  "selection_census": "audit/outputs/package_v2_corpus_census__20261025T101943Z__f7745ed7",
+  "selected_family": "562e2de209496bae",
+  "case": "extension/support_profile_context_join",
+  "reviewed_family_cases": [
+    "extension/crm_sales_enrichment_fusion",
+    "extension/supplier_risk_api_table_fusion",
+    "extension/support_profile_context_join"
+  ],
+  "models": [
+    "deepinfra-qwen3-coder-480b-turbo",
+    "deepinfra-deepseek-v4-1-flash"
+  ],
+  "methods": [
+    "m3",
+    "m4",
+    "m5"
+  ],
+  "seeds": [
+    101,
+    202,
+    303
+  ],
+  "pilot_model": "deepinfra-qwen3-coder-480b-turbo",
+  "pilot_seed": 101,
+  "source_dataset_id": "prompt2serviceflow_extension_sources",
+  "source_dataset_version": "extension_v1",
+  "repair_budget": 3,
+  "validator_budget": 4,
+  "m5_token_cap": 750000,
+  "m5_timeout_s": 1800,
+  "m5_step_budget": 12,
+  "m5_idle_continuations": 3,
+  "max_workers": 1,
+  "models_file": "audit/v2/semantic_methods.models.json",
+  "profile_file": "audit/v2/runtime_profiles/relational-routing-1.json",
+  "public_rules": "audit/v2/RELATIONAL_PUBLIC_CONTRACT_V2_3.md",
+  "positive_scenarios": [
+    "nominal",
+    "source_reordering",
+    "changed_priority",
+    "changed_policy",
+    "threshold_boundary",
+    "extra_record"
+  ],
+  "rejection_scenarios": [
+    "duplicate_lookup",
+    "missing_join_key",
+    "unknown_priority"
+  ],
+  "rejection_reasons": {
+    "duplicate_lookup": "Duplicate lookup key",
+    "missing_join_key": "Missing identity/join key",
+    "unknown_priority": "Unknown priority"
+  },
+  "negative_controls": [
+    "empty_records",
+    "wrong_join",
+    "wrong_score",
+    "wrong_escalation"
+  ],
+  "scope": "Second-family development experiment: exact registered API/table fan-in services under a clarified public join/routing contract. Selection uses the highest-ranked reference-only service roster and public input completeness, never model outcomes. One executable task; two other family tasks remain blocked for missing reference-source roles. Not original v1 task equivalence, corpus generalization or paper-score replacement. Existing M3/M4/Pi-M5 controllers and budgets are retained. V2.2 normalizes the publisher workspace root for symlinked directories and exposes stage errors on stderr. All business rules, data variants, predicates and method budgets remain unchanged. V2.3 refines the public catalog to match existing runtime input requirements, localizes input-binding diagnostics while retaining gate precedence, and bundles existing public information for bounded reading. These declared public-input changes define a new development condition; they do not replace earlier results.",
+  "failed_controls": "audit/outputs/package_v2_fusion__20261026T112242Z__df0205bc",
+  "diagnosed_run": "audit/outputs/package_v2_fusion_v2_2__20261026T120856Z__00170920"
+}

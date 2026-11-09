@@ -1,0 +1,18 @@
+{
+  "protocol_version": "32.0.0",
+  "adapter_version": "p2sf.csv-ir-projection/1",
+  "eligibility_run": "audit/outputs/package_v2_csv_replay_eligibility__20261026T202329Z__9df70e43",
+  "public_baseline": "audit/outputs/controls__20261024T114039Z__9378fab4/cases",
+  "output_contract_case": "main/file_arrival_watcher",
+  "postgres_image": "postgres:16",
+  "expected_cells_in_prior_audit": 108,
+  "positives": ["nominal", "absolute_output", "renamed_ids", "renamed_columns", "other_schema", "changed_values", "quoted_multiline", "repeat_append", "repeat_replace"],
+  "gates": ["missing_file", "nonmatching_glob"],
+  "refusals": ["missing_binding", "upsert_without_keys", "missing_columns", "nonidentity_columns", "template", "wrong_port_type", "missing_dependency", "wrong_gate", "output_schema", "fixture_tamper", "transactional_rollback"],
+  "mutants": ["fake_success_empty_target", "corrupt_value", "drop_row", "wrong_schema", "wrong_status", "gate_bypass"],
+  "cases": [
+    {"case": "main/file_arrival_watcher", "source_csv": "fixtures/scenarios/nominal/transactions_20240115.csv", "loader_service": "database_csv_snapshot_importer"},
+    {"case": "validation/val_csv_to_warehouse_daily", "source_csv": "fixtures/scenarios/nominal/data.csv", "loader_service": "tabular_dataset_database_loader"}
+  ],
+  "scope": "Authored public business-operation projection controls only. No saved model workflow is executed and no M0-M5/G0-G6 score is produced. Both CSV sources use the declared common public output contracts from file_arrival_watcher; this is not an assertion that Validation originally supplied those contracts. Columns are explicitly declared from each control fixture's header, never filled into a saved IR. Logical filesystem mounting, mock-to-real database resource rebinding and a single attempt are explicit new interventions. Scheduling, retries, policy enforcement, full Argo execution and the M5 agent/tool route are not implemented by this host adapter. No LLM calls, repair, template resolution, upsert key inference or v1 replacement."
+}

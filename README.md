@@ -1,88 +1,112 @@
-# Prompt2ServiceFlow reproducibility package
+# Prompt2ServiceFlow: implementation and paper reproduction
 
-This repository contains the benchmark, method implementations, frozen experiment designs, evaluation code, and paper-result records for **Prompt2ServiceFlow**. It is organized so that reviewers can inspect the reported observations, regenerate the paper tables, rerun the published experiment, or evaluate another OpenAI-compatible language model without changing the method logic.
+Release 1.1.0 reproduces the framework results and the paired assertion audit.
+The reviewed 14-page PDF is pinned by SHA-256 in
+`replication/RELEASE_MANIFEST.json`. This snapshot contains the current working
+implementation; it does not assert that this exact source revision generated
+all historical outputs.
 
-## What is included
+## Start here
 
-- The 110-instance corpus, with the original `main` (40), `validation` (20), and `extension` (50) labels.
-- Implementations of M0--M5 and the G0--G6 evaluation pipeline.
-- Frozen configurations for the three reported model runs and the Qwen ablation.
-- All 5,940 primary observations: 110 instances × 3 models × 6 methods × 3 repetitions.
-- All 1,650 confirmatory ablation observations: 110 instances × 5 conditions × 3 repetitions.
-- Per-cell manifests and scores, immutable batch summaries, analysis tables, and checksums.
+Python 3.11+ is required. From this repository root:
 
-The published batches are complete and contain no invalid recorded observations. Twenty-four temporary ablation infrastructure attempts are retained in their batch audit trail; each affected cell was successfully rerun before analysis.
-
-## Repository map
-
-| Path | Purpose |
-|---|---|
-| `src/prompt2serviceflow/experiments/` | M0--M5, prompts, model adapter, compiler, validators, scoring, and harness |
-| `benchmark/instances/` | 110 benchmark instances and hidden evaluation material |
-| `experiments/config/` | Immutable publication model and freeze configurations |
-| `experiments/m5/` | M5 agent/proxy source and frozen v2.1.8 container contexts |
-| `scripts/` | Readiness, execution, scoring, analysis, and export entry points |
-| `results/paper/analysis/` | Paper-ready tables and statistical summaries |
-| `results/paper/batch_summaries/` | Six immutable publication batch summaries |
-| `results/paper/runs/` | Per-cell manifests and scores used to regenerate the paper tables |
-| `docs/` | Reproduction and extension guides |
-| `tests/` | Unit, integration, schema, compiler, and golden tests |
-
-## Quick start
-
-Requirements: Python 3.11 or newer. Docker is additionally required for M5; the Argo CLI is required for direct-Argo G5 checks.
-
-```bash
+```sh
 python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e '.[dev,analysis]'
-pytest -q
+. .venv/bin/activate
+python -m pip install -e '.[analysis]'
+python scripts/reproduce_submission_results.py --mode original
 ```
 
-Verify the packaged result files:
+This reproduces and checks the original published statistical bundle from all
+5,940 primary and 1,650 ablation records. It needs no credentials and does not
+execute generated workflows. The three Table 6 outcome columns and paired transitions are reproduced below.
 
-```bash
-shasum -a 256 -c results/paper/SHA256SUMS
+For updated accounting, fetch and verify the pinned detailed archive (or use
+`--archive /path/to/Prompt2ServiceFlow-paper-runs-v1.tar.gz` for an offline copy):
+
+```sh
+python scripts/fetch_replication_evidence.py --output ../evidence
 ```
 
-Regenerate the paper tables from the packaged run records:
+Then run:
 
-```bash
-make paper-analysis
+```sh
+python scripts/reproduce_submission_results.py --mode accounting --evidence-root ../evidence
 ```
 
-See [Quick start](docs/QUICKSTART.md), [experiment protocol](docs/EXPERIMENT_PROTOCOL.md), and [paper-results reproduction](docs/REPRODUCING_PAPER_RESULTS.md) for the complete workflow.
+This audits successful responses, API attempts, standardized prices, missing
+logs and step-12 sensitivity, and writes `results/regenerated/submission/`.
+It produces Table 10 CSV and a TeX fragment, including the Qwen-27B lower-bound
+annotation. Failed requests remain operational overhead; original provider cost
+estimates are preserved separately.
 
-## Running another model
+Download the [profile 38.1 evidence archive](https://github.com/aliduabubakari/Prompt2ServiceFlow/releases/download/v1.1.0/Prompt2ServiceFlow-posthoc-38.1-evidence.tar.gz)
+from the versioned GitHub release. Verify and extract it:
 
-Copy `experiments/config/models.example.json`, set the model identifier, endpoint, and name of the environment variable that holds the API token, and create a new freeze file rather than editing a published freeze. Never put a token in JSON or on the command line.
-
-```bash
-export P2SF_API_TOKEN='...'
-python3 scripts/check_experiment_readiness.py \
-  --config experiments/config/models.custom.json \
-  --freeze-config experiments/config/freeze.custom.json \
-  --models custom-model --scope corpus --allow-unfrozen --probe-completion
+```sh
+python scripts/extract_posthoc_evidence.py --archive /path/to/Prompt2ServiceFlow-posthoc-38.1-evidence.tar.gz --output ../posthoc-evidence
 ```
 
-Start with one pipeline and one repetition before freezing a full run. Detailed instructions are in [Adding a model or provider](docs/ADDING_MODELS.md).
+Then run:
 
-## Evidence packaging
+```sh
+python scripts/reproduce_submission_results.py --mode posthoc --posthoc-root ../posthoc-evidence
+```
 
-Rendered prompts are not duplicated for all 7,590 publication cells because they account for most of the raw 3 GB run tree. They are deterministically regenerated from the included source, benchmark workspace, freeze, method, and seed. This Git repository retains every manifest and score record needed to regenerate and audit the reported statistics.
+This verifies 117,589 recorded input pins, the sealed outputs and all 2,970
+checkpoints, then regenerates `posthoc/table6.csv`, `posthoc/table6.tex`,
+and `posthoc/paired_assertions.csv`. Table 6 separates original executable
+validity, original G6-Assert, and the revised G6-Assert profile. The paired
+audit reports gains, reversals, original missing outputs and the literal-path
+sensitivity under the revised runtime.
+The revised compiler/evaluator source is under `posthoc_implementation/`.
+It is a public file-backed mock-execution profile, not a retroactive original
+model score or real domain-service execution. No generated program runs during
+saved-results verification. Table 4's corpus classifications are maintained in
+a separate corpus repository and are outside this framework package's scope.
 
-Model responses, generated submissions, validator reports, and M5 transcripts are preserved separately for a versioned GitHub Release or Zenodo deposit. The untouched raw run tree will be deposited separately, with its DOI or release URL and checksum added here before publication.
+To regenerate all saved results after both evidence archives are extracted:
 
-## Important interpretation rules
+```sh
+python scripts/reproduce_submission_results.py --mode all --evidence-root ../evidence --posthoc-root ../posthoc-evidence
+```
 
-- M0--M2 produce direct Argo outputs and do not define G3, G4, G6-Exec, G6-Assert, or an end-to-end pass. Those outcomes are **not applicable**, not failures.
-- The 110-instance pooled estimate is the headline result; split labels remain available for sensitivity analysis.
-- The SINTEF M5 run used an older M5 image/prompt version than the two DeepInfra runs, so cross-provider M5 comparisons are descriptive.
-- Provider-billed SINTEF cost was unavailable and is represented as missing, not zero.
-- The M2-versus-M4 comparison is a bundled method-level sensitivity analysis, not an isolated causal estimate of the IR stage.
+## Three reproduction routes
 
-## License and citation
+1. **Saved-results analysis:** the commands above; no model calls or generated-code execution.
+2. **Deterministic re-execution:** public validation and held-out assertion checks
+   on retained submissions, requiring reconstructed public workspaces and the
+   supported sandbox. Both the original Main-40 audit and the revised profile are preserved separately;
+   a fresh relocated runtime replay remains a separate qualification. See
+   [execution profiles](replication/EXECUTION_PROFILE.md).
+3. **New stochastic generation:** use the existing readiness, pilot and corpus
+   instructions in `docs/`. Provider access, Docker and the relevant runtime
+   tools are needed. New output identity is not guaranteed. Create new configs
+   and output directories; never overwrite publication records.
 
-Code is released under the [MIT License](LICENSE). Benchmark source material retains its documented source license and attribution; see [data licensing](DATA_LICENSE.md) and `benchmark/source/`. Citation metadata is in [CITATION.cff](CITATION.cff).
+## Code and evidence
 
+GitHub contains implementation, benchmark references, prompts, schemas, tests,
+analysis code and compact result records. Zenodo preserves versioned detailed
+model outputs, final submissions, validation reports, transcripts and proxy
+records. Code snapshots and reproduction tools accompany archival releases.
+The [original Zenodo deposit](https://doi.org/10.5281/zenodo.23346818)
+contains the original detailed run records. This release adds the accounting
+audit and revised-profile evidence, with the replay archive linked above.
+The [ServiceComposeBench-ETL v1.0.0 release](https://github.com/aliduabubakari/ServiceComposeBench-ETL/releases/tag/v1.0.0)
+provides the standalone benchmark. This repository preserves the frozen
+experiment inputs and configurations.
+
+- [Results map](replication/RESULTS_MAP.md)
+- [Protocol and accounting](replication/EXPERIMENT_PROTOCOL.md)
+- [Data dictionary](replication/DATA_DICTIONARY.md)
+- [Release readiness and missing inputs](replication/RELEASE_READINESS.md)
+
+The benchmark has 110 instances (40 Main, 20 Validation, 50 Extension). M0--M2
+lack the runtime contract for full end-to-end validation; N/A is not zero.
+M4 uses explicit Python-client decoding settings; M5's Pi requests omit
+configured temperature, top-p and seed. M4--M5 comparisons concern complete
+implemented configurations. SINTEF monetary cost is unavailable, not zero.
+
+Code is MIT licensed; preserve third-party benchmark attribution under
+`DATA_LICENSE.md`. No secrets should be stored in configs or command arguments.

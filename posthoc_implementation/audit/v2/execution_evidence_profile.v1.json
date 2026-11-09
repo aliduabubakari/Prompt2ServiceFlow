@@ -1,0 +1,106 @@
+{
+  "profile_version": "fixture-execution-evidence/1",
+  "output_data_types": [
+    "status",
+    "notification",
+    "any"
+  ],
+  "scope": "Controlled mock execution evidence derived from actual public input files and declared upstream producer receipts. Existing domain/example values are preserved. This profile does not compute missing business operations or infer held-out values.",
+  "observation_schema": {
+    "type": "object",
+    "required": [
+      "profile_version",
+      "success",
+      "errors",
+      "task",
+      "fixture",
+      "upstream_artifact_count",
+      "upstream_artifacts"
+    ],
+    "properties": {
+      "profile_version": {
+        "const": "fixture-execution-evidence/1"
+      },
+      "success": {
+        "type": "boolean"
+      },
+      "errors": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "task": {
+        "type": "string"
+      },
+      "fixture": {
+        "type": "object",
+        "required": [
+          "file_count",
+          "record_count",
+          "files",
+          "configuration_files"
+        ],
+        "properties": {
+          "file_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "record_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "sha256",
+                "record_count",
+                "size_bytes"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "record_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "size_bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "configuration_files": {
+            "type": "array"
+          }
+        }
+      },
+      "upstream_artifact_count": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "upstream_artifacts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "intent_id",
+            "artifact_id",
+            "path",
+            "sha256",
+            "via"
+          ]
+        }
+      }
+    }
+  }
+}

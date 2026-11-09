@@ -428,11 +428,7 @@ def parse_args() -> argparse.Namespace:
         "--spec-source",
         type=Path,
         default=(
-            Path(
-                os.environ.get(
-                    "P2SF_SPEC_MATTERS_ROOT", project_root / "external" / "spec-matters"
-                )
-            )
+            Path("/Users/abubakarialidu/spec-matters")
             / "repeat_frontier_analysis"
             / "zenodo_pipeline_descriptions"
         ),

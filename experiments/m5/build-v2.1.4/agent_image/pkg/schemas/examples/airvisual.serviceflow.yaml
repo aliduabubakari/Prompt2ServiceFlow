@@ -1,0 +1,446 @@
+ir_version: 0.1.0
+composition_id: airvisual_pipeline_lat_long_v1
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.0.1
+  sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:airvisual_pipeline_lat_long_v1
+  split: main
+  pipeline_id: airvisual_pipeline_lat_long_v1
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/09_airvisual_pipeline_lat_long_v1.txt
+  description_sha256: 4d498891e53cc74d060dcdc37dce84ac59e67c33923c926a4fcef0906abb3a6d
+  internal_spec_path: source/internal_specs/main_40/09_airvisual_pipeline_lat_long_v1.json
+  internal_spec_sha256: de872c7cf3fd3c1e0a6aceb0045aa8c1947b1af50a088b36430ed108d772388c
+requirement:
+  name: AirVisual pipeline by latitude and longitude
+  purpose: Fetch AirVisual data, validate and normalize the response, and load air-quality records into PostgreSQL.
+  domain: environmental_monitoring
+  execution_model: batch
+  topology: linear
+  information_sufficiency: high
+  notes:
+    - The source transform-and-load step is split into two reusable service intents.
+schedule:
+  type: manual
+  expression: null
+  timezone: null
+  start_date: "2025-03-20"
+  catchup: false
+external_systems:
+  - system_id: airvisual_api
+    type: http_api
+    name: AirVisual API
+    identifier: http://api.airvisual.com/v2/nearest_city
+    access_mode: read
+    authentication: secret
+    mock_strategy: fixture
+  - system_id: postgres_database
+    type: database
+    name: PostgreSQL
+    identifier: postgres_conn
+    access_mode: write
+    authentication: secret
+    mock_strategy: local_service
+  - system_id: local_filesystem
+    type: filesystem
+    name: Local filesystem
+    identifier: null
+    access_mode: read_write
+    authentication: none
+    mock_strategy: fixture
+service_intents:
+  - intent_id: fetch_airvisual_data
+    name: Fetch AirVisual data
+    category: Extractor
+    capability: Fetch nearest-city air-quality JSON from the AirVisual HTTP API.
+    source_step_refs:
+      - get_airvisual_data_hourly
+    evidence:
+      - source: description
+        text: Fetch air quality data from AirVisual API and save to temporary JSON file.
+    inputs:
+      - api_config
+    outputs:
+      - raw_airvisual_response
+    external_system_refs:
+      - airvisual_api
+      - local_filesystem
+    preconditions:
+      - API configuration is available.
+    effects:
+      - A raw AirVisual JSON response is available for validation.
+    required_policy_properties:
+      network_access: required
+      secret_access: required
+      idempotency: required
+      data_sensitivity:
+        - internal
+    decomposition_rationale: The source step already represents one independently invokable extraction capability.
+    confidence: explicit
+    ambiguity:
+      status: none
+      notes: []
+  - intent_id: validate_airvisual_response
+    name: Validate AirVisual response
+    category: QualityCheck
+    capability: Validate the AirVisual JSON structure before downstream transformation.
+    source_step_refs:
+      - read_data_airvisual
+    evidence:
+      - source: description
+        text: Read and validate the JSON data file.
+    inputs:
+      - raw_airvisual_response
+    outputs:
+      - validated_airvisual_response
+      - validation_report
+    external_system_refs: []
+    preconditions:
+      - The raw response is valid JSON.
+    effects:
+      - A validated response and validation report are emitted.
+    required_policy_properties:
+      network_access: forbidden
+      secret_access: forbidden
+      idempotency: required
+      data_sensitivity:
+        - internal
+    decomposition_rationale: Validation is explicitly named as a separate source step.
+    confidence: explicit
+    ambiguity:
+      status: none
+      notes: []
+  - intent_id: normalize_airvisual_records
+    name: Normalize AirVisual records
+    category: Transformer
+    capability: Map pollution and weather codes and normalize the response into load-ready records.
+    source_step_refs:
+      - load_data_airvisual_to_postgresql
+    evidence:
+      - source: description
+        text: Transform and load air quality data into PostgreSQL database using ETL operations.
+      - source: internal_spec
+        text: The step consumes pollution and weather mapping configuration files.
+    inputs:
+      - validated_airvisual_response
+      - pollution_mapping
+      - weather_mapping
+    outputs:
+      - normalized_airvisual_records
+      - transform_report
+    external_system_refs:
+      - local_filesystem
+    preconditions:
+      - The AirVisual response passed validation.
+    effects:
+      - Load-ready normalized records are produced.
+    required_policy_properties:
+      network_access: forbidden
+      secret_access: forbidden
+      idempotency: required
+      data_sensitivity:
+        - internal
+    decomposition_rationale: Transformation has a distinct contract and effect from database loading.
+    confidence: strongly_inferred
+    ambiguity:
+      status: resolved
+      notes:
+        - The source combines transformation and loading; the mapping files support this split.
+  - intent_id: load_airvisual_postgres
+    name: Load AirVisual records into PostgreSQL
+    category: Loader
+    capability: Load normalized fact and dimension records into the PostgreSQL star schema without duplicates.
+    source_step_refs:
+      - load_data_airvisual_to_postgresql
+    evidence:
+      - source: description
+        text: Load air quality data into PostgreSQL database.
+      - source: internal_spec
+        text: Existing records are checked and inserts use conflict-safe behavior.
+    inputs:
+      - normalized_airvisual_records
+    outputs:
+      - postgres_load_report
+    external_system_refs:
+      - postgres_database
+    preconditions:
+      - Normalized records satisfy the load contract.
+    effects:
+      - Air-quality fact and dimension tables are updated.
+    required_policy_properties:
+      network_access: required
+      secret_access: required
+      idempotency: required
+      data_sensitivity:
+        - internal
+    decomposition_rationale: Database loading is an independently invokable capability with side effects.
+    confidence: strongly_inferred
+    ambiguity:
+      status: resolved
+      notes:
+        - The exact upsert key will be finalized with the fixture contract.
+control_flow:
+  edges:
+    - from: fetch_airvisual_data
+      to: validate_airvisual_response
+    - from: validate_airvisual_response
+      to: normalize_airvisual_records
+    - from: normalize_airvisual_records
+      to: load_airvisual_postgres
+  parallel_groups: []
+  branches: []
+  gates: []
+artifacts:
+  - artifact_id: api_config
+    name: AirVisual API configuration
+    kind: external_resource
+    data_type: object
+    media_type: application/json
+    role: config
+    producer: null
+    consumers:
+      - fetch_airvisual_data
+    sensitivity: confidential
+    persistence: external
+    fixture_ref: fixtures/inputs/api_config.json
+    external_system_ref: local_filesystem
+  - artifact_id: raw_airvisual_response
+    name: Raw AirVisual response
+    kind: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: contracts/artifacts/raw_airvisual_response.schema.json
+    role: intermediate
+    producer: fetch_airvisual_data
+    consumers:
+      - validate_airvisual_response
+    sensitivity: internal
+    persistence: workflow
+    fixture_ref: fixtures/inputs/sample_airvisual_response.json
+  - artifact_id: validated_airvisual_response
+    name: Validated AirVisual response
+    kind: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: contracts/artifacts/validated_airvisual_response.schema.json
+    role: intermediate
+    producer: validate_airvisual_response
+    consumers:
+      - normalize_airvisual_records
+    sensitivity: internal
+    persistence: workflow
+  - artifact_id: validation_report
+    name: Validation report
+    kind: artifact
+    data_type: json
+    media_type: application/json
+    role: report
+    producer: validate_airvisual_response
+    consumers: []
+    sensitivity: internal
+    persistence: workflow
+  - artifact_id: pollution_mapping
+    name: Pollution code mapping
+    kind: external_resource
+    data_type: json
+    media_type: application/json
+    role: config
+    producer: null
+    consumers:
+      - normalize_airvisual_records
+    sensitivity: internal
+    persistence: external
+    fixture_ref: fixtures/inputs/mapping_main_pollution.json
+    external_system_ref: local_filesystem
+  - artifact_id: weather_mapping
+    name: Weather code mapping
+    kind: external_resource
+    data_type: json
+    media_type: application/json
+    role: config
+    producer: null
+    consumers:
+      - normalize_airvisual_records
+    sensitivity: internal
+    persistence: external
+    fixture_ref: fixtures/inputs/mapping_weather_code.json
+    external_system_ref: local_filesystem
+  - artifact_id: normalized_airvisual_records
+    name: Normalized AirVisual records
+    kind: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: contracts/artifacts/normalized_airvisual_records.schema.json
+    role: intermediate
+    producer: normalize_airvisual_records
+    consumers:
+      - load_airvisual_postgres
+    sensitivity: internal
+    persistence: workflow
+  - artifact_id: transform_report
+    name: Transformation report
+    kind: artifact
+    data_type: json
+    media_type: application/json
+    role: report
+    producer: normalize_airvisual_records
+    consumers: []
+    sensitivity: internal
+    persistence: workflow
+  - artifact_id: postgres_load_report
+    name: PostgreSQL load report
+    kind: artifact
+    data_type: json
+    media_type: application/json
+    schema_ref: contracts/artifacts/postgres_load_report.schema.json
+    role: output
+    producer: load_airvisual_postgres
+    consumers: []
+    sensitivity: internal
+    persistence: release
+bindings:
+  - intent_id: fetch_airvisual_data
+    service_id: http_json_fetcher
+    service_version: 1.0.0
+    input_bindings:
+      - port: request_config
+        artifact_id: api_config
+    output_bindings:
+      - port: raw_json
+        artifact_id: raw_airvisual_response
+    parameter_bindings:
+      endpoint: http://api.airvisual.com/v2/nearest_city
+      query_params:
+        city: Salaya
+        state: Nakhon Pathom
+        country: Thailand
+        lat: 13.79059242
+        lon: 100.32622308
+    secret_bindings:
+      - secret: api_key
+        kubernetes_secret: airvisual-api
+        key: api-key
+    rationale: The requirement calls for a read-only HTTP JSON request with an API credential.
+    confidence: explicit
+  - intent_id: validate_airvisual_response
+    service_id: json_schema_validator
+    service_version: 1.0.0
+    input_bindings:
+      - port: input_json
+        artifact_id: raw_airvisual_response
+    output_bindings:
+      - port: validated_json
+        artifact_id: validated_airvisual_response
+      - port: validation_report
+        artifact_id: validation_report
+    parameter_bindings:
+      fail_on_error: true
+    secret_bindings: []
+    rationale: The source explicitly requires JSON validation before transformation.
+    confidence: explicit
+  - intent_id: normalize_airvisual_records
+    service_id: json_config_mapping_transformer
+    service_version: 1.0.0
+    input_bindings:
+      - port: input_json
+        artifact_id: validated_airvisual_response
+      - port: pollution_mapping
+        artifact_id: pollution_mapping
+      - port: weather_mapping
+        artifact_id: weather_mapping
+    output_bindings:
+      - port: normalized_records
+        artifact_id: normalized_airvisual_records
+      - port: transform_report
+        artifact_id: transform_report
+    parameter_bindings:
+      mapping_strategy: configured_code_lookup
+    secret_bindings: []
+    rationale: The mapping files imply a configuration-driven normalization service.
+    confidence: strongly_inferred
+  - intent_id: load_airvisual_postgres
+    service_id: postgres_star_schema_loader
+    service_version: 1.0.0
+    input_bindings:
+      - port: normalized_records
+        artifact_id: normalized_airvisual_records
+    output_bindings:
+      - port: load_report
+        artifact_id: postgres_load_report
+    parameter_bindings:
+      target_tables:
+        - factairvisualtable
+        - dimDateTimeTable
+        - dimLocationTable
+        - dimMainPollutionTable
+    secret_bindings:
+      - secret: database_connection
+        kubernetes_secret: postgres-connection
+        key: connection-uri
+    rationale: The source writes fact and dimension records to PostgreSQL with duplicate protection.
+    confidence: strongly_inferred
+policies:
+  default_retries: 0
+  default_retry_delay_seconds: 0
+  fail_fast: true
+  service_overrides:
+    - intent_id: fetch_airvisual_data
+      retries: 2
+      retry_delay_seconds: 300
+      timeout_seconds: 120
+      network_access: required
+    - intent_id: load_airvisual_postgres
+      retries: 1
+      retry_delay_seconds: 30
+      timeout_seconds: 180
+      network_access: required
+      idempotency_strategy: Upsert by location and measurement timestamp.
+  governance:
+    allowed_sensitivities:
+      - internal
+      - confidential
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+      - Reference execution substitutes fixtures and a local mock database.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: minio
+    reference: artifact-repositories:default-v1
+  execution_profile: mock
+validation_expectations:
+  - gate: G0
+    expected_status: pass
+    checks:
+      - JSON Schema validation
+  - gate: G1
+    expected_status: pass
+    checks:
+      - Source-step accounting and reference integrity
+  - gate: G2
+    expected_status: pass
+    checks:
+      - Catalog service and version resolution
+  - gate: G3
+    expected_status: pass
+    checks:
+      - Interface, artifact, secret, and policy closure
+  - gate: G4
+    expected_status: pass
+    checks:
+      - Deterministic Argo compilation and offline lint
+  - gate: G5
+    expected_status: requires_runtime
+    checks:
+      - Mock workflow execution in the pinned cluster
+  - gate: G6
+    expected_status: requires_runtime
+    checks:
+      - Load-report and normalized-record semantic assertions

@@ -1,0 +1,32 @@
+{
+  "version": "1",
+  "note": "Documents already declared development scope; these are not new pipeline-specific runtime or model corrections. No unreviewed task is certified by service-roster matching.",
+  "tasks": {
+    "extension/building_energy_window_aggregation": {
+      "backend": "window",
+      "profile_file": "audit/v2/bounded_window_profile.json",
+      "existing_development_case": true,
+      "full_original_task_intent_certified": false,
+      "scope": "Existing explicit bounded-window development semantics, not unchanged original-task equivalence.",
+      "open_requirements": [
+        "Task states hourly and daily aggregation; the supplied nominal manifest and existing profile use 30-minute windows over one hour.",
+        "Task names meter-reading CSV while the public manifest points to energy_readings.jsonl.",
+        "Do not infer full task coverage from successful real-profile controls."
+      ],
+      "evidence": ["audit/v2/SEMANTIC_METHOD_EXPERIMENT.md", "audit/v2/SEMANTIC_METHOD_CONTRACT.md"]
+    },
+    "extension/support_profile_context_join": {
+      "backend": "relational",
+      "profile_file": "audit/v2/runtime_profiles/relational-routing-1.json",
+      "existing_development_case": true,
+      "full_original_task_intent_certified": false,
+      "scope": "Existing clarified routing-policy join/routing development task, not unchanged original-task equivalence.",
+      "open_requirements": [
+        "The task mentions a subscription-plan lookup; the implemented reference source is the supplied routing policy.",
+        "Freshness has no declared logical clock or acceptance rule and is not evaluated.",
+        "The scope supplement does not establish complete original-task coverage."
+      ],
+      "evidence": ["audit/v2/SEMANTIC_FUSION_EXPERIMENT.md", "audit/v2/RELATIONAL_PUBLIC_CONTRACT_V2_3.md"]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "package_version": "2.0.0-candidate.2",
+  "audit_protocol_version": "5.0.0",
+  "parent_replay": "audit/outputs/package_v2_model_replay__20261024T170924Z__018604e1",
+  "family": "local file availability -> CSV schema validation -> CSV export",
+  "selection_rationale": "Local deterministic tabular operations, no external database/network substitute; fixture sources cover the existing successful CSV-loader inputs, not newly selected model scores.",
+  "fixture_sources": [
+    {"case": "main/file_arrival_watcher", "path": "fixtures/inputs/transactions_20240115.csv"},
+    {"case": "main/executive_sales_dashboard", "path": "fixtures/inputs/sales.csv"},
+    {"case": "main/supply_chain_shipment_etl", "path": "fixtures/inputs/vendor_a_shipments.csv"},
+    {"case": "main/supply_chain_shipment_etl", "path": "fixtures/inputs/vendor_b_shipments.csv"},
+    {"case": "main/supply_chain_shipment_etl", "path": "fixtures/inputs/vendor_c_shipments.csv"}
+  ],
+  "scenarios": ["nominal", "extra_row", "changed_value", "missing_file", "missing_column"],
+  "negative_controls": ["constant_export", "corrupt_export_value", "gate_bypass"],
+  "scope": "New complete v2 mechanism-control compositions, not unchanged reference workflows from the original corpus. No original G6-Assert scoring, model calls, or full benchmark rerun."
+}

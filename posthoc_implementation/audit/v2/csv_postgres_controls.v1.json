@@ -1,0 +1,21 @@
+{
+  "protocol_version": "30.0.0",
+  "backend_version": "p2sf.csv-postgresql/1",
+  "coverage_run": "audit/outputs/package_v2_task_coverage__20261026T174920Z__428e0ad2",
+  "postgres_image": "postgres:16",
+  "resource": {"driver": "p2sf.csv-postgresql/1", "engine": "postgresql", "database": "p2sf_controls", "schema": "p2sf_control"},
+  "target_table": "records",
+  "schema_policy": "All named CSV columns become ordered, non-null PostgreSQL TEXT columns. Preserve strings, Unicode, empty strings, duplicate rows and value multiplicities. No numeric coercion, status filtering or inferred business rules.",
+  "required_columns_policy": "Explicit control schema consists of every header in the unchanged nominal public CSV. This is a new declared development contract, not recovery of an undocumented original business schema.",
+  "allowed_write_modes": ["append", "replace"],
+  "positive_cases": ["nominal", "extra_row", "changed_value", "reordered_rows", "quoted_multiline", "empty_allowed", "repeat_append", "repeat_replace"],
+  "gate_cases": ["missing_file"],
+  "refusal_cases": ["missing_column", "ragged_row", "empty_rejected", "unsupported_mode", "existing_schema_mismatch", "transactional_rollback"],
+  "tabular_only_refusals": ["metadata_hash_mismatch"],
+  "mutants": ["fake_success_empty_target", "corrupt_value", "drop_row", "schema_corruption", "gate_bypass"],
+  "cases": [
+    {"case": "main/file_arrival_watcher", "source_csv": "fixtures/scenarios/nominal/transactions_20240115.csv", "loader_service": "database_csv_snapshot_importer"},
+    {"case": "validation/val_csv_to_warehouse_daily", "source_csv": "fixtures/scenarios/nominal/data.csv", "loader_service": "tabular_dataset_database_loader"}
+  ],
+  "scope": "New bounded local-file to real PostgreSQL mechanism controls, no LLM and no model/source workflow execution. Original PostgreSQL mock binding is not silently reused. Public resource, schema/write semantics, and dataset-reference receipt are explicit v2 additions. SFTP, scheduling, production connections, non-TEXT typing, filtering, upsert, restore and full original-task equivalence are not claimed. No M0-M5 or original G6-Assert scores are replaced."
+}

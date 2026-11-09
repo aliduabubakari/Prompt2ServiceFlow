@@ -1,0 +1,16 @@
+{
+  "package_version": "2.0.0-candidate.1",
+  "audit_protocol_version": "4.0.0",
+  "status": "candidate_not_published",
+  "control_directory": "audit/outputs/controls__20261024T114039Z__9378fab4",
+  "cases": {
+    "main/file_arrival_watcher": ["validate_schema"],
+    "main/supply_chain_shipment_etl": ["ingest_vendor_a", "ingest_vendor_b", "ingest_vendor_c"],
+    "main/executive_sales_dashboard": ["load_sales_csv"],
+    "main/airflow_db_cleanup": ["print_configuration"]
+  },
+  "selection_rationale": "Four reference invocations that failed v3 path handling, plus the two previously passing positive controls; fixed before v2 execution.",
+  "scope": "Isolated service execution, public output schemas, output-location integrity, and changed-input checks. Not G6-Assert or whole-pipeline evaluation.",
+  "input_changes": "None: existing public fixtures and explicit reference-IR input bindings only.",
+  "output_changes": "Requested service output locations use a separate intent/port namespace; canonical bound artifacts are never replaced by another port's payload."
+}

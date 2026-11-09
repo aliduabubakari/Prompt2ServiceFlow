@@ -1,0 +1,26 @@
+{
+  "protocol_version": "33.0.0",
+  "freeze_lock": "audit/v2/csv_saved_replay.freeze.v1.json",
+  "adapter_version": "p2sf.csv-ir-projection/1",
+  "controls_run": "audit/outputs/package_v2_csv_ir_adapter_controls__20261026T214605Z__3e3464a8",
+  "controls_output_fingerprint": "b44a395f77265336a70932d206fe7c071cff3563bcba4907ad0a92d13aef6fb7",
+  "controls_review": "audit/reviews/csv_ir_adapter_3e3464a8_evidence.json",
+  "models": ["deepinfra-qwen3-coder-480b-turbo", "deepinfra-deepseek-v4-1-flash", "sintef-qwen3-8-27b-nvfp4"],
+  "methods": ["m3", "m4", "m5"],
+  "samples": [0, 1, 2],
+  "expected_ir_cells": 54,
+  "expected_direct_argo_backlog": 54,
+  "cases": [
+    {"case": "main/file_arrival_watcher", "source_csv": "fixtures/scenarios/nominal/transactions_20240115.csv"},
+    {"case": "validation/val_csv_to_warehouse_daily", "source_csv": "fixtures/scenarios/nominal/data.csv"}
+  ],
+  "max_document_bytes": 2097152,
+  "max_document_nodes": 100000,
+  "accepted_source_profiles": ["mock"],
+  "database_default_schema": "public",
+  "database_default_schema_policy": "Use an explicit schema in the public resource when present; otherwise the declared isolated PostgreSQL default is public. Preserve an explicitly qualified model target. Never infer or replace a missing table name. Provision the preserved non-system schema in the isolated container only.",
+  "positive_trials": ["nominal", "changed_value", "extra_row"],
+  "negative_trials": ["missing_file", "missing_required_column"],
+  "intervention_scope": "Explicit public fixture resources are rebound to a bounded local filesystem and an isolated real PostgreSQL database, using the verified adapter and a single attempt. Source CSV links, parameters, output schemas and paths, table/mode choices and graph are preserved. Fixtures are copied byte-for-byte for nominal execution; declared probes alter only copied CSV bytes. Scheduling, retry/policy enforcement, full Argo and the public M5 tool route are not executed.",
+  "scope": "Post-hoc bounded business-operation replay over two previously inspected development tasks. Retain all 54 original M3-M5 identities, including missing and ineligible outputs. Validate full IR and its actual available public output schemas; do not borrow other tasks' schemas or fill bindings, columns, keys, dates or control edges. No LLM, model-generated program/SQL execution or v1 score replacement. The 54 M0-M2 direct-Argo cells retain a separate route. This is not a corpus-wide semantic-success estimate or an unchanged G6-Assert/M0-M5 comparison."
+}

@@ -1,0 +1,331 @@
+{
+  "contract": {
+    "assembly_policy": {
+      "canonical_relationships": "Existing model-authored service port bindings, not a reference composition.",
+      "intent_lists": "Project each intent's inputs/outputs from its corresponding existing input/output bindings, keeping first-occurrence order and unique artifact ids.",
+      "metadata_note": "These are declared v2 metadata choices for new diagnostic artifact declarations, not values inferred uniquely from the catalog. No report contents or business outputs are generated.",
+      "missing_artifacts": "Only declare already-bound, uniquely written, unused required artifact-channel status outputs on cardinality-one public ports. Never choose a new id or port binding.",
+      "policy_version": "v2-explicit-binding-assembly/1",
+      "prohibited_changes": "Do not change any port binding, service choice/version, parameter, fixture choice, business artifact declaration, control edge, policy, runtime setting, or existing artifact metadata. Do not invent source data or missing business artifacts.",
+      "status_declaration_metadata": {
+        "data_type": "status",
+        "kind": "artifact",
+        "media_type": "application/json",
+        "persistence": "workflow",
+        "role": "status",
+        "sensitivity": "internal"
+      }
+    },
+    "catalog_overlay": {
+      "catalog/catalog.yaml": "a6fe70578afdc587f4098aee633de6fca52bbf39383d5f6be15dcf63bdfebcd1",
+      "catalog/services/api_table_multi_source_contract_validator.yaml": "0570a18bdd8b9312553b6d8466c9d3bd098255a8a61f06106b7931782e260acf",
+      "catalog/services/api_table_multi_source_normalizer.yaml": "1509fc8598c328950c5b6806bb536a0f5cf12dd2094ffa7406d698e3a1024a51",
+      "catalog/services/api_table_output_bundle_publisher.yaml": "d995ee57e60249d68c892a116fcd1c387d01f6e90cda8b252a9bcc4b24ef2747",
+      "catalog/services/api_table_primary_source_ingestor.yaml": "c786d2ea1329fb4c3ad28d3b9cb9378bd0665d994aad5f4b041cea0c78fabaec",
+      "catalog/services/api_table_reference_source_ingestor.yaml": "9f7c0b75eb0d58c3631b297842b57fb354fbfc73d9d57e313ed8ec48785f2f9d",
+      "catalog/services/api_table_secondary_source_ingestor.yaml": "726b871622cee28f220dd724f915d4435731563fd7ae9839ace03237d2bf8b78",
+      "catalog/services/api_table_source_fusion_reconciler.yaml": "7b125defca3328290538025c3111226043aa943f7e5704047c57a1cbdbd5743f"
+    },
+    "execution_input_constraints": {
+      "api_table_multi_source_contract_validator": {
+        "distinct_artifacts": true,
+        "maximum": 3,
+        "minimum": 3,
+        "port": "input_artifacts",
+        "required": true,
+        "source": "upstream_bundle"
+      },
+      "api_table_multi_source_normalizer": {
+        "distinct_artifacts": true,
+        "maximum": 1,
+        "minimum": 1,
+        "port": "input_artifacts",
+        "required": true,
+        "source": "upstream_bundle"
+      },
+      "api_table_output_bundle_publisher": {
+        "distinct_artifacts": true,
+        "maximum": 1,
+        "minimum": 1,
+        "port": "input_artifacts",
+        "required": true,
+        "source": "upstream_bundle"
+      },
+      "api_table_primary_source_ingestor": {
+        "distinct_artifacts": true,
+        "maximum": 1,
+        "minimum": 1,
+        "port": "input_artifacts",
+        "required": true,
+        "source": "public_manifest"
+      },
+      "api_table_reference_source_ingestor": {
+        "distinct_artifacts": true,
+        "maximum": 1,
+        "minimum": 1,
+        "port": "input_artifacts",
+        "required": true,
+        "source": "public_manifest"
+      },
+      "api_table_secondary_source_ingestor": {
+        "distinct_artifacts": true,
+        "maximum": 1,
+        "minimum": 1,
+        "port": "input_artifacts",
+        "required": true,
+        "source": "public_manifest"
+      },
+      "api_table_source_fusion_reconciler": {
+        "distinct_artifacts": true,
+        "maximum": 1,
+        "minimum": 1,
+        "port": "input_artifacts",
+        "required": true,
+        "source": "upstream_bundle"
+      }
+    },
+    "input_role": {
+      "fixture_ref": "fixtures/inputs/fixture.json"
+    },
+    "metadata": {
+      "catalog_snapshot": {
+        "catalog_id": "serviceflow_catalog",
+        "sha256": "a6fe70578afdc587f4098aee633de6fca52bbf39383d5f6be15dcf63bdfebcd1",
+        "version": "0.3.3-semantic-v2.3"
+      },
+      "composition_id": "v2_extension_support_profile_context_join",
+      "ir_version": "0.1.0",
+      "source": {
+        "benchmark_id": "extension:support_profile_context_join",
+        "dataset_id": "prompt2serviceflow_extension_sources",
+        "dataset_version": "extension_v1",
+        "description_path": "task.md",
+        "description_sha256": "043c34821f8e711fa47c383144390baa7a3db7ebce4139d5ffaae13a28a22af0",
+        "pipeline_id": "support_profile_context_join",
+        "split": "extension"
+      }
+    },
+    "profile": {
+      "fields": {
+        "category": "category",
+        "churn": "churn_risk",
+        "join_key": "customer_id",
+        "numeric_lookup_fields": [
+          "monthly_spend"
+        ],
+        "priority": "priority",
+        "record_id": "ticket_id",
+        "tier": "account_tier"
+      },
+      "inputs": {
+        "primary": "tickets",
+        "reference": "policy",
+        "secondary": "profiles"
+      },
+      "profile_version": "relational-routing-1",
+      "rules": {
+        "duplicate_record_or_lookup_key": "reject",
+        "escalation": "immediate_category_or_score_boundary_or_high_churn_with_priority_weight_at_least_policy_threshold",
+        "freshness": "not_claimed_no_logical_clock_contract",
+        "identity_normalization": "none",
+        "join": "many_primary_to_unique_lookup_exact_key",
+        "label_normalization": "strip_casefold",
+        "lookup_prefix": "profile_",
+        "missing_lookup": "reject",
+        "output_order": "record_id_lexicographic",
+        "routing_score": "priority_weight_times_tier_multiplier",
+        "score_boundary": "greater_than_or_equal"
+      }
+    },
+    "projection": {
+      "profile_version": "relational-routing-1",
+      "projection_contract_version": "p2sf.public-relational-projections/1",
+      "rules": [
+        {
+          "artifact_data_types": [
+            "json",
+            "object"
+          ],
+          "artifact_role": "report",
+          "maximum_auxiliary_reports": 1,
+          "operation_profile": "publish_outputs",
+          "port": "output_artifacts",
+          "projection": "publication_audit_manifest",
+          "require_declared_intent_output": true,
+          "require_no_consumers": true,
+          "service_id": "api_table_output_bundle_publisher",
+          "service_version": "1.0.0"
+        }
+      ]
+    },
+    "public_fixture_previews": "### fixtures/inputs/fixture.json\n{\n  \"pipeline_id\": \"support_profile_context_join\",\n  \"inputs\": [\n    \"json\",\n    \"table\",\n    \"text\"\n  ],\n  \"systems\": [\n    \"support API fixture\",\n    \"customer analytics bucket\"\n  ]\n}\n\n\n### fixtures/scenarios/nominal/customer_profiles.csv\ncustomer_id,customer_name,account_tier,monthly_spend,contract_start,industry,region,churn_risk\nCUST-A100,Acme Corp,enterprise,25000.00,2024-01-15,Manufacturing,EMEA,low\nCUST-B200,BetaStartup,starter,500.00,2025-06-01,Technology,AMER,medium\nCUST-C300,Gamma LLC,professional,5000.00,2024-09-01,Healthcare,EMEA,low\nCUST-D400,Delta Industries,enterprise,45000.00,2023-03-01,Manufacturing,APAC,high\n\n\n### fixtures/scenarios/nominal/fixture.json\n{\n  \"pipeline_id\": \"support_profile_context_join\",\n  \"inputs\": {\n    \"tickets\": \"support_tickets.json\",\n    \"profiles\": \"customer_profiles.csv\",\n    \"policy\": \"routing_policy.json\"\n  },\n  \"input_modalities\": [\"json\", \"table\", \"text\"],\n  \"systems\": [\"ticketing system\", \"CRM\", \"routing engine\"]\n}\n\n\n### fixtures/scenarios/nominal/routing_policy.json\n{\n  \"policy_id\": \"support-routing-v2\",\n  \"description\": \"Support ticket routing and escalation policy\",\n  \"priority_weights\": {\"critical\": 10, \"high\": 5, \"medium\": 2, \"low\": 1},\n  \"tier_multipliers\": {\"enterprise\": 2.0, \"professional\": 1.5, \"starter\": 1.0},\n  \"escalation_threshold\": 10,\n  \"churn_high_priority_threshold\": \"medium\",\n  \"categories_requiring_immediate\": [\"outage\", \"security\"]\n}\n\n\n### fixtures/scenarios/nominal/support_tickets.json\n[\n  {\"ticket_id\": \"TKT-5001\", \"customer_id\": \"CUST-A100\", \"priority\": \"high\", \"category\": \"billing\", \"subject\": \"Duplicate charge on invoice\", \"status\": \"open\", \"created_date\": \"2026-07-19\", \"agent_notes\": \"Customer reports double billing on July statement\"},\n  {\"ticket_id\": \"TKT-5002\", \"customer_id\": \"CUST-B200\", \"priority\": \"medium\", \"category\": \"technical\", \"subject\": \"API integration failing\", \"status\": \"open\", \"created_date\": \"2026-07-18\", \"agent_notes\": \"Timeout errors on v2 endpoint\"},\n  {\"ticket_id\": \"TKT-5003\", \"customer_id\": \"CUST-C300\", \"priority\": \"low\", \"category\": \"general\", \"subject\": \"Password reset request\", \"status\": \"open\", \"created_date\": \"2026-07-20\", \"agent_notes\": \"Standard reset procedure\"},\n  {\"ticket_id\": \"TKT-5004\", \"customer_id\": \"CUST-D400\", \"priority\": \"critical\", \"category\": \"outage\", \"subject\": \"Production system down\", \"status\": \"open\", \"created_date\": \"2026-07-20\", \"agent_notes\": \"All services unavailable since 08:00 UTC\"},\n  {\"ticket_id\": \"TKT-5005\", \"customer_id\": \"CUST-A100\", \"priority\": \"medium\", \"category\": \"billing\", \"subject\": \"Refund not processed\", \"status\": \"open\", \"created_date\": \"2026-07-15\", \"agent_notes\": \"Refund requested 5 days ago, still pending\"}\n]\n",
+    "public_information_files": [
+      "public_context.json",
+      "public_interfaces.json"
+    ],
+    "registered_operations": [
+      {
+        "operation_profile": "ingest_primary_source",
+        "service_id": "api_table_primary_source_ingestor",
+        "service_version": "1.0.0"
+      },
+      {
+        "operation_profile": "ingest_secondary_source",
+        "service_id": "api_table_secondary_source_ingestor",
+        "service_version": "1.0.0"
+      },
+      {
+        "operation_profile": "ingest_reference_source",
+        "service_id": "api_table_reference_source_ingestor",
+        "service_version": "1.0.0"
+      },
+      {
+        "operation_profile": "validate_source_contracts",
+        "service_id": "api_table_multi_source_contract_validator",
+        "service_version": "1.0.0"
+      },
+      {
+        "operation_profile": "normalize_sources",
+        "service_id": "api_table_multi_source_normalizer",
+        "service_version": "1.0.0"
+      },
+      {
+        "operation_profile": "fuse_sources",
+        "service_id": "api_table_source_fusion_reconciler",
+        "service_version": "1.0.0"
+      },
+      {
+        "operation_profile": "publish_outputs",
+        "service_id": "api_table_output_bundle_publisher",
+        "service_version": "1.0.0"
+      }
+    ],
+    "rules": "# Public v2 API/table join and routing contract\n\nUse the public task, candidates, catalog, schema and supplied source metadata.\nChoose the ServiceFlowIR, service bindings, artifacts, source links, policies\nand control flow yourself. Only the registered service/version/operation\nlabels are implemented. Select the reference runtime for real bounded local\ncalculation. No production APIs, secrets, streaming or conditional branches are\nsupported. Use complete JSON for generation/repair; the agent writes it to\nsubmission/serviceflow.yaml. Follow the IR enum vocabulary.\n\nThis is a clarified development contract, not an assertion that the original\nv1 task specified every rule below. The supplied manifest identifies the three\nreal public inputs. Its policy object is the reference source for this run.\nThe task's subscription-plan lookup is not provided and is not performed.\nFreshness is not measured because no logical clock or acceptance rule is\nspecified. No absent source, policy, timestamp or expected output is invented.\n\n## Inputs and operations\n\nThree ingestion services independently read the supplied scenario-neutral JSON\nmanifest under fixtures/inputs/. Each ingestion binds one input-manifest JSON\nartifact and emits its own JSON source bundle and distinct execution report.\nThe primary source is an array of flat scalar records, the secondary source a\nCSV lookup table, and the reference source the actual JSON routing policy.\nThe supplied profile maps manifest keys and field roles; do not infer a source\nfrom a private filename or create example data.\n\nThe source-contract validator binds all three distinct ingestion bundles to\nits many-valued input_artifacts port. It checks source roles, shapes, identity\nand join keys, unique primary record identities, unique lookup keys, finite\nnumeric lookup fields, and valid priority/tier policy labels. Missing join keys,\nunknown priorities, duplicate lookup keys and unmatched customer identities\nare rejected. Multiple primary records may share one valid lookup key.\n\nThe normalizer binds the validated bundle. It strips and case-folds the label\nfields named in the profile, preserving record and join identities exactly.\nNamed numeric lookup fields become finite JSON numbers. Nested records and\nunregistered numerical/output semantics are unsupported in this version.\n\nThe fusion service binds the normalized bundle. For each primary record, join\nthe unique secondary row on exact key equality. Preserve all primary fields;\nprefix secondary fields with profile_, omitting the repeated join key. Reject\ncolumn collisions. Derive these additional fields from the actual policy:\n\n- priority_weight = policy.priority_weights[normalized priority].\n- tier_multiplier = policy.tier_multipliers[normalized account tier].\n- routing_score = priority_weight \u00d7 tier_multiplier.\n- immediate_category = category is in categories_requiring_immediate.\n- score_threshold_reached = routing_score >= escalation_threshold.\n- churn_priority_trigger = churn label is high and priority_weight is at least\n  the weight of policy.churn_high_priority_threshold.\n- escalation_required = any of those three Boolean conditions is true.\n\nThe publisher binds the fused bundle and writes rows sorted lexicographically\nby the mapped primary record ID, one CSV and an audit with actual source,\nmanifest, profile and CSV hashes plus record/escalation counts. The primary\nbound artifact is the JSON publication bundle, not the CSV file. An optional\nseparate JSON report may project the actual publisher audit.\n\n## Common compiler and validation rules\n\nUse one primary JSON computation bundle and one status-typed execution report\nper service. The validator takes three bundles; all other operations take one.\nJSON computation types are any/json/object. Execution reports have data type\nstatus and role status/report. A separate optional publisher audit has role\nreport and type json/object. Bindings, producers, consumers and intent lists\nmust agree. Declare data dependencies explicitly in control_flow; the compiler\ndoes not add hidden edges. Independent source ingestion may form a parallel\ngroup. Dependent stages cannot be labeled parallel.\n\nThe same conservative completion rules apply to M3, M4 and M5: project\nredundant intent lists from existing bindings, declare already-bound unused\nrequired status artifacts, and bind a uniquely declared unused publisher audit\nprojection. Raw IR and edits are retained. The compiler cannot choose missing\nstatus IDs/port bindings, service choices, data sources, business parameters,\njoin keys or numerical results. No mock-to-reference or operation-label\ntranslation is allowed. JSON/object bundles are compatible with any ports;\nall other public port, cardinality, policy and schema checks remain enforced.\n\nM3 generates once. M4 uses the existing bounded public-diagnostic repair loop.\nPi M5 uses its existing tool agent and the same four-call validator cap. Their\nother registered budgets are unchanged. Public feedback contains nominal\nexecution/schema outcomes only. Independent business checks and evaluation\nvariants run after method termination and never enter prompts or repair tools.\n\n## Public input constraints and reading bundles (v2.3)\n\nThe specialized reference-profile catalog declares input_artifacts required.\nThe source-contract validator takes exactly three distinct JSON bundle\nartifacts; every other operation takes exactly one. The ingestion services\nread the manifest through an explicit input artifact with role input, no\nproducer, and fixture_ref from input_role. Declare that artifact and its\nconsumer links yourself. A service name or external_system_ref does not\nreplace an input artifact binding. The compiler does not create those bindings.\n\nThe same public information is available in public_context.json (task,\ncandidates and execution contract) and public_interfaces.json (candidate\ndescriptors, source IR schema and artifact contracts). The original files\nremain available. M3/M4 receive these facts in their existing inline prompts;\nM5 can read the two bundles before choosing further inspections. There is no\nreference graph, expected answer or evaluation variant in either bundle.\n\nWhen compilation fails, correct the reported source IR binding and compile\nagain. A missing derived runtime manifest can be a consequence of that\nfailure. Never write the compiler's runtime or Argo files manually. The G0--G6\ngate order and method budgets are unchanged.\n",
+    "version": "p2sf.public-relational-methods/3"
+  },
+  "controller_sources": {
+    "methods": "09a654513420c6705527bd5dc32c92be00ebca35f2a3b4f8c6bf385bbb192da1",
+    "pi_wrapper": "81868f1b6a3590db0cf492293005e3511b857a224f14d856f6a55cbf0fdb50ae",
+    "prompts": "77d8af4f75598cc18b5a9721d111fe34a8f248f8a00c9273e385386c7f56ba15"
+  },
+  "correction": "Required public input cardinalities, binding-local public diagnostics and bounded public reading bundles. No business rules, assertion predicates, completion rules or budgets changed. Gate precedence retained.",
+  "created_at": "2026-10-26T12:38:28.971682+00:00",
+  "design": {
+    "audit_protocol_version": "28.2.0",
+    "case": "extension/support_profile_context_join",
+    "diagnosed_run": "audit/outputs/package_v2_fusion_v2_2__20261026T120856Z__00170920",
+    "failed_controls": "audit/outputs/package_v2_fusion__20261026T112242Z__df0205bc",
+    "m5_idle_continuations": 3,
+    "m5_step_budget": 12,
+    "m5_timeout_s": 1800,
+    "m5_token_cap": 750000,
+    "max_workers": 1,
+    "methods": [
+      "m3",
+      "m4",
+      "m5"
+    ],
+    "models": [
+      "deepinfra-qwen3-coder-480b-turbo",
+      "deepinfra-deepseek-v4-1-flash"
+    ],
+    "models_file": "audit/v2/semantic_methods.models.json",
+    "negative_controls": [
+      "empty_records",
+      "wrong_join",
+      "wrong_score",
+      "wrong_escalation"
+    ],
+    "package_version": "2.0.0-relational.3",
+    "parent_methods": "audit/outputs/package_v2_methods__20261026T075725Z__5757ac01",
+    "pilot_model": "deepinfra-qwen3-coder-480b-turbo",
+    "pilot_seed": 101,
+    "positive_scenarios": [
+      "nominal",
+      "source_reordering",
+      "changed_priority",
+      "changed_policy",
+      "threshold_boundary",
+      "extra_record"
+    ],
+    "profile_file": "audit/v2/runtime_profiles/relational-routing-1.json",
+    "public_rules": "audit/v2/RELATIONAL_PUBLIC_CONTRACT_V2_3.md",
+    "rejection_reasons": {
+      "duplicate_lookup": "Duplicate lookup key",
+      "missing_join_key": "Missing identity/join key",
+      "unknown_priority": "Unknown priority"
+    },
+    "rejection_scenarios": [
+      "duplicate_lookup",
+      "missing_join_key",
+      "unknown_priority"
+    ],
+    "repair_budget": 3,
+    "reviewed_family_cases": [
+      "extension/crm_sales_enrichment_fusion",
+      "extension/supplier_risk_api_table_fusion",
+      "extension/support_profile_context_join"
+    ],
+    "scope": "Second-family development experiment: exact registered API/table fan-in services under a clarified public join/routing contract. Selection uses the highest-ranked reference-only service roster and public input completeness, never model outcomes. One executable task; two other family tasks remain blocked for missing reference-source roles. Not original v1 task equivalence, corpus generalization or paper-score replacement. Existing M3/M4/Pi-M5 controllers and budgets are retained. V2.2 normalizes the publisher workspace root for symlinked directories and exposes stage errors on stderr. All business rules, data variants, predicates and method budgets remain unchanged. V2.3 refines the public catalog to match existing runtime input requirements, localizes input-binding diagnostics while retaining gate precedence, and bundles existing public information for bounded reading. These declared public-input changes define a new development condition; they do not replace earlier results.",
+    "seeds": [
+      101,
+      202,
+      303
+    ],
+    "selected_family": "562e2de209496bae",
+    "selection_census": "audit/outputs/package_v2_corpus_census__20261025T101943Z__f7745ed7",
+    "source_dataset_id": "prompt2serviceflow_extension_sources",
+    "source_dataset_version": "extension_v1",
+    "validator_budget": 4
+  },
+  "environment": {
+    "executable": "/Users/abubakarialidu/Documents/Prompt2ServiceFlow-semantic-audit/.venv/bin/python",
+    "packages": {
+      "PyYAML": "6.0.2",
+      "jsonschema": "4.24.0",
+      "openai": "3.24.0",
+      "pydantic": "2.11.7"
+    },
+    "platform": "macOS-15.6.1-arm64-arm-64bit",
+    "python": "3.12.3 (main, Jun 22 2025, 18:40:59) [Clang 17.0.0 (clang-1700.0.13.5)]",
+    "runtime_compiler_version": "1.0.0",
+    "sandbox": "macOS Seatbelt",
+    "scorer_version": "1.2.1"
+  },
+  "family_review": [
+    {
+      "case": "extension/crm_sales_enrichment_fusion",
+      "manifest_roles": [
+        "accounts",
+        "sales"
+      ],
+      "public_sources_complete": false,
+      "state": "reference_source_role_requires_clarification",
+      "task_sha256": "2e38afb7b4bb446382008a70c88ac95b79e707aa53c618037059b7aa1a5ea432"
+    },
+    {
+      "case": "extension/supplier_risk_api_table_fusion",
+      "manifest_roles": [
+        "procurement",
+        "risk_api"
+      ],
+      "public_sources_complete": false,
+      "state": "reference_source_role_requires_clarification",
+      "task_sha256": "6bdc67a9f529b3b86b9df09dd039081518ce624c34eef5bbf28cbeb3493bc04c"
+    },
+    {
+      "case": "extension/support_profile_context_join",
+      "manifest_roles": [
+        "policy",
+        "profiles",
+        "tickets"
+      ],
+      "public_sources_complete": true,
+      "state": "eligible_for_clarified_contract",
+      "task_sha256": "043c34821f8e711fa47c383144390baa7a3db7ebce4139d5ffaae13a28a22af0"
+    }
+  ],
+  "freeze_id": "p2sf-semantic-relational-v2.3",
+  "input_fingerprint": "c3c133a98ffdc9eede0d12514f06da679b51ac66ccf156d962abf5ade52f3221",
+  "status": "frozen"
+}

@@ -1,0 +1,395 @@
+ir_version: 0.1.0
+composition_id: data_quality_gate
+catalog_snapshot:
+  catalog_id: serviceflow_catalog
+  version: 0.0.1
+  sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+source:
+  dataset_id: zenodo_pipeline_descriptions
+  dataset_version: v1.0.0
+  benchmark_id: main:data_quality_gate
+  split: main
+  pipeline_id: data_quality_gate
+  description_path: source/zenodo_v1_0_0/descriptions/main_40/29_data_quality_gate.txt
+  description_sha256: 00eeb28e3528666662b0779558b6f24c341e6e675fa7233dedcde7a753a1262d
+  internal_spec_path: source/internal_specs/main_40/29_data_quality_gate.json
+  internal_spec_sha256: f55ca7ad988be9c87d33f25f2d5289a0c297eb08fdd0dc69d7c1de89f0213a92
+requirement:
+  name: Data Quality Gate
+  purpose: Score customer CSV quality, route acceptable data to production, quarantine low-quality data, and notify stewards.
+  domain: data_quality
+  execution_model: batch
+  topology: branch_merge
+  information_sufficiency: high
+  notes: []
+schedule:
+  type: cron
+  expression: '@daily'
+  timezone: UTC
+  start_date: "2024-01-01"
+  catchup: false
+external_systems:
+  - system_id: source_filesystem
+    type: filesystem
+    name: Source filesystem
+    identifier: /data/raw/customers_20240101.csv
+    access_mode: read
+    authentication: none
+    mock_strategy: fixture
+  - system_id: production_database
+    type: database
+    name: Production database
+    identifier: production_db
+    access_mode: write
+    authentication: secret
+    mock_strategy: local_service
+  - system_id: quarantine_store
+    type: object_storage
+    name: Quarantine storage
+    identifier: quarantine
+    access_mode: write
+    authentication: secret
+    mock_strategy: local_service
+  - system_id: email_service
+    type: email
+    name: Email service
+    identifier: null
+    access_mode: invoke
+    authentication: secret
+    mock_strategy: local_service
+service_intents:
+  - intent_id: ingest_customer_csv
+    name: Ingest customer CSV
+    category: Extractor
+    capability: Read the raw customer CSV and emit records with ingestion metadata.
+    source_step_refs: [ingest_csv]
+    evidence:
+      - source: description
+        text: Load raw customer CSV data from source location.
+    inputs: [raw_customer_csv]
+    outputs: [ingested_customer_records]
+    external_system_refs: [source_filesystem]
+    preconditions: [The source CSV exists.]
+    effects: [Customer records and ingestion metadata are available.]
+    required_policy_properties:
+      network_access: forbidden
+      secret_access: forbidden
+      idempotency: required
+      data_sensitivity: [pii]
+    decomposition_rationale: The source step is one reusable file-ingestion capability.
+    confidence: explicit
+    ambiguity:
+      status: none
+      notes: []
+  - intent_id: assess_customer_quality
+    name: Assess customer data quality
+    category: QualityCheck
+    capability: Calculate completeness and validity metrics and emit a routing decision.
+    source_step_refs: [quality_check]
+    evidence:
+      - source: description
+        text: Calculate data quality score based on completeness and validity metrics.
+    inputs: [ingested_customer_records]
+    outputs: [quality_decision]
+    external_system_refs: []
+    preconditions: [Customer records are available.]
+    effects: [A quality score and routing decision are produced.]
+    required_policy_properties:
+      network_access: forbidden
+      secret_access: forbidden
+      idempotency: required
+      data_sensitivity: [pii]
+    decomposition_rationale: The decision is produced by a reusable quality-evaluation service.
+    confidence: explicit
+    ambiguity:
+      status: none
+      notes: []
+  - intent_id: load_production_data
+    name: Load production data
+    category: Loader
+    capability: Load customer records that satisfy the quality threshold into production.
+    source_step_refs: [production_load]
+    evidence:
+      - source: description
+        text: Load high-quality data to production database.
+    inputs: [ingested_customer_records, quality_decision]
+    outputs: [production_load_status]
+    external_system_refs: [production_database]
+    preconditions: [The quality score is at least 95.]
+    effects: [Accepted customer records are written to production.]
+    required_policy_properties:
+      network_access: required
+      secret_access: required
+      idempotency: preferred
+      data_sensitivity: [pii]
+    decomposition_rationale: The production write is a distinct side-effecting service.
+    confidence: explicit
+    ambiguity:
+      status: none
+      notes: []
+  - intent_id: quarantine_customer_data
+    name: Quarantine customer data
+    category: Publisher
+    capability: Write low-quality customer records to an isolated quarantine location.
+    source_step_refs: [quarantine_and_alert]
+    evidence:
+      - source: description
+        text: Move low-quality data to quarantine zone.
+    inputs: [ingested_customer_records, quality_decision]
+    outputs: [quarantine_status]
+    external_system_refs: [quarantine_store]
+    preconditions: [The quality score is below 95.]
+    effects: [Rejected customer records are written to quarantine.]
+    required_policy_properties:
+      network_access: required
+      secret_access: required
+      idempotency: preferred
+      data_sensitivity: [pii]
+    decomposition_rationale: Quarantine is the data-movement capability represented by the source step.
+    confidence: explicit
+    ambiguity:
+      status: none
+      notes: []
+  - intent_id: notify_data_stewards
+    name: Notify data stewards
+    category: Notifier
+    capability: Send an email alert after low-quality records are quarantined.
+    source_step_refs: [send_alert_email]
+    evidence:
+      - source: description
+        text: Send data quality alert to data stewards.
+    inputs: [quality_decision, quarantine_status]
+    outputs: [notification_status]
+    external_system_refs: [email_service]
+    preconditions: [Quarantine completed successfully.]
+    effects: [Data stewards receive a quality alert.]
+    required_policy_properties:
+      network_access: required
+      secret_access: required
+      idempotency: not_required
+      data_sensitivity: [internal]
+    decomposition_rationale: Notification is explicitly represented as a separate source step.
+    confidence: explicit
+    ambiguity:
+      status: none
+      notes: []
+  - intent_id: cleanup_temporary_resources
+    name: Cleanup temporary resources
+    category: Maintenance
+    capability: Remove temporary files and resources after either branch completes.
+    source_step_refs: [cleanup]
+    evidence:
+      - source: description
+        text: Perform cleanup operations on temporary files and resources.
+    inputs: [production_load_status, notification_status]
+    outputs: [cleanup_status]
+    external_system_refs: []
+    preconditions: [A terminal branch completed.]
+    effects: [Temporary workflow resources are removed.]
+    required_policy_properties:
+      network_access: forbidden
+      secret_access: forbidden
+      idempotency: required
+      data_sensitivity: [internal]
+    decomposition_rationale: Cleanup is an independently invokable maintenance capability.
+    confidence: explicit
+    ambiguity:
+      status: resolved
+      notes:
+        - Only one branch status is expected at runtime.
+control_flow:
+  edges:
+    - {from: ingest_customer_csv, to: assess_customer_quality}
+    - {from: assess_customer_quality, to: load_production_data, condition: quality_decision.overall_score >= 95}
+    - {from: assess_customer_quality, to: quarantine_customer_data, condition: quality_decision.overall_score < 95}
+    - {from: quarantine_customer_data, to: notify_data_stewards}
+    - {from: load_production_data, to: cleanup_temporary_resources}
+    - {from: notify_data_stewards, to: cleanup_temporary_resources}
+  parallel_groups: []
+  branches:
+    - branch_id: quality_route
+      decision_intent: assess_customer_quality
+      decision_artifact: quality_decision
+      cases:
+        - case_id: production
+          condition: quality_decision.overall_score >= 95
+          next_intents: [load_production_data]
+        - case_id: quarantine
+          condition: quality_decision.overall_score < 95
+          next_intents: [quarantine_customer_data]
+      merge_intent: cleanup_temporary_resources
+  gates: []
+artifacts:
+  - artifact_id: raw_customer_csv
+    name: Raw customer CSV
+    kind: external_resource
+    data_type: csv
+    media_type: text/csv
+    schema_ref: contracts/artifacts/raw_customer_csv.schema.json
+    role: input
+    producer: null
+    consumers: [ingest_customer_csv]
+    sensitivity: pii
+    persistence: external
+    fixture_ref: fixtures/inputs/customers.csv
+    external_system_ref: source_filesystem
+  - artifact_id: ingested_customer_records
+    name: Ingested customer records
+    kind: artifact
+    data_type: csv
+    media_type: text/csv
+    role: intermediate
+    producer: ingest_customer_csv
+    consumers: [assess_customer_quality, load_production_data, quarantine_customer_data]
+    sensitivity: pii
+    persistence: workflow
+  - artifact_id: quality_decision
+    name: Quality decision
+    kind: parameter
+    data_type: decision
+    media_type: application/json
+    schema_ref: contracts/artifacts/quality_decision.schema.json
+    role: decision
+    producer: assess_customer_quality
+    consumers: [load_production_data, quarantine_customer_data, notify_data_stewards]
+    sensitivity: internal
+    persistence: workflow
+  - artifact_id: production_load_status
+    name: Production load status
+    kind: parameter
+    data_type: status
+    role: status
+    producer: load_production_data
+    consumers: [cleanup_temporary_resources]
+    sensitivity: internal
+    persistence: workflow
+  - artifact_id: quarantine_status
+    name: Quarantine status
+    kind: parameter
+    data_type: status
+    role: status
+    producer: quarantine_customer_data
+    consumers: [notify_data_stewards]
+    sensitivity: internal
+    persistence: workflow
+  - artifact_id: notification_status
+    name: Notification status
+    kind: parameter
+    data_type: notification
+    role: status
+    producer: notify_data_stewards
+    consumers: [cleanup_temporary_resources]
+    sensitivity: internal
+    persistence: workflow
+  - artifact_id: cleanup_status
+    name: Cleanup status
+    kind: parameter
+    data_type: status
+    role: output
+    producer: cleanup_temporary_resources
+    consumers: []
+    sensitivity: internal
+    persistence: release
+bindings:
+  - intent_id: ingest_customer_csv
+    service_id: csv_file_reader
+    service_version: 1.0.0
+    input_bindings: [{port: input_csv, artifact_id: raw_customer_csv}]
+    output_bindings: [{port: table, artifact_id: ingested_customer_records}]
+    parameter_bindings: {}
+    secret_bindings: []
+    rationale: The source operation reads one CSV file and emits structured records.
+    confidence: explicit
+  - intent_id: assess_customer_quality
+    service_id: data_quality_gate
+    service_version: 1.0.0
+    input_bindings: [{port: input_table, artifact_id: ingested_customer_records}]
+    output_bindings: [{port: gate_decision, artifact_id: quality_decision}]
+    parameter_bindings: {minimum_score: 95}
+    secret_bindings: []
+    rationale: The service computes quality metrics and emits the branch decision required by the workflow.
+    confidence: explicit
+  - intent_id: load_production_data
+    service_id: postgres_table_loader
+    service_version: 1.0.0
+    input_bindings:
+      - {port: input_table, artifact_id: ingested_customer_records}
+      - {port: decision, artifact_id: quality_decision}
+    output_bindings: [{port: load_status, artifact_id: production_load_status}]
+    parameter_bindings: {table_name: customers, write_mode: upsert}
+    secret_bindings:
+      - {secret: database_connection, kubernetes_secret: production-db, key: connection-uri}
+    rationale: Accepted records are written to a production database.
+    confidence: strongly_inferred
+  - intent_id: quarantine_customer_data
+    service_id: object_store_writer
+    service_version: 1.0.0
+    input_bindings:
+      - {port: input_table, artifact_id: ingested_customer_records}
+      - {port: decision, artifact_id: quality_decision}
+    output_bindings: [{port: write_status, artifact_id: quarantine_status}]
+    parameter_bindings: {target_prefix: quarantined/customer-data}
+    secret_bindings:
+      - {secret: storage_connection, kubernetes_secret: quarantine-store, key: connection}
+    rationale: Rejected records must be isolated in a quarantine location.
+    confidence: strongly_inferred
+  - intent_id: notify_data_stewards
+    service_id: email_notifier
+    service_version: 1.0.0
+    input_bindings:
+      - {port: decision, artifact_id: quality_decision}
+      - {port: quarantine_status, artifact_id: quarantine_status}
+    output_bindings: [{port: notification_status, artifact_id: notification_status}]
+    parameter_bindings:
+      recipients: [data-stewards@company.com]
+      subject: Data Quality Alert - Customer Data
+    secret_bindings:
+      - {secret: email_credentials, kubernetes_secret: email-service, key: credentials}
+    rationale: The source explicitly requires an email to data stewards on the quarantine branch.
+    confidence: explicit
+  - intent_id: cleanup_temporary_resources
+    service_id: temporary_resource_cleanup
+    service_version: 1.0.0
+    input_bindings:
+      - {port: production_status, artifact_id: production_load_status}
+      - {port: notification_status, artifact_id: notification_status}
+    output_bindings: [{port: cleanup_status, artifact_id: cleanup_status}]
+    parameter_bindings: {ignore_missing_branch_inputs: true}
+    secret_bindings: []
+    rationale: Cleanup runs after either terminal branch and removes temporary resources.
+    confidence: explicit
+policies:
+  default_retries: 1
+  default_retry_delay_seconds: 300
+  fail_fast: true
+  service_overrides:
+    - intent_id: notify_data_stewards
+      retries: 0
+      network_access: required
+    - intent_id: cleanup_temporary_resources
+      retries: 1
+      timeout_seconds: 60
+      network_access: forbidden
+  governance:
+    allowed_sensitivities: [internal, confidential, pii]
+    network_default: forbidden
+    secret_placeholders_only: true
+    notes:
+      - PII must not be included in notification payloads.
+runtime:
+  target: argo-workflows
+  version: 4.0.6
+  namespace: prompt2serviceflow
+  service_account: prompt2serviceflow-runner
+  artifact_repository:
+    type: minio
+    reference: artifact-repositories:default-v1
+  execution_profile: mock
+validation_expectations:
+  - {gate: G0, expected_status: pass, checks: [JSON Schema validation]}
+  - {gate: G1, expected_status: pass, checks: [Reference integrity and branch consistency]}
+  - {gate: G2, expected_status: pass, checks: [Catalog service and version resolution]}
+  - {gate: G3, expected_status: pass, checks: [Interface and PII policy closure]}
+  - {gate: G4, expected_status: pass, checks: [Argo branch compilation and offline lint]}
+  - {gate: G5, expected_status: requires_runtime, checks: [Execute both branch fixtures]}
+  - {gate: G6, expected_status: requires_runtime, checks: [Verify production and quarantine outcomes]}

@@ -1,0 +1,210 @@
+{
+  "contract": {
+    "assembly_policy": {
+      "canonical_relationships": "Existing model-authored service port bindings, not a reference composition.",
+      "intent_lists": "Project each intent's inputs/outputs from its corresponding existing input/output bindings, keeping first-occurrence order and unique artifact ids.",
+      "metadata_note": "These are declared v2 metadata choices for new diagnostic artifact declarations, not values inferred uniquely from the catalog. No report contents or business outputs are generated.",
+      "missing_artifacts": "Only declare already-bound, uniquely written, unused required artifact-channel status outputs on cardinality-one public ports. Never choose a new id or port binding.",
+      "policy_version": "v2-explicit-binding-assembly/1",
+      "prohibited_changes": "Do not change any port binding, service choice/version, parameter, fixture choice, business artifact declaration, control edge, policy, runtime setting, or existing artifact metadata. Do not invent source data or missing business artifacts.",
+      "status_declaration_metadata": {
+        "data_type": "status",
+        "kind": "artifact",
+        "media_type": "application/json",
+        "persistence": "workflow",
+        "role": "status",
+        "sensitivity": "internal"
+      }
+    },
+    "input_role": {
+      "fixture_ref": "fixtures/inputs/fixture.json"
+    },
+    "metadata": {
+      "catalog_snapshot": {
+        "catalog_id": "serviceflow_catalog",
+        "sha256": "1ed4d0fa47adb9357cae9dc9b135a2a388cb5554130058b898b0a83e49a734ff",
+        "version": "0.3.3"
+      },
+      "composition_id": "v2_extension_building_energy_window_aggregation",
+      "ir_version": "0.1.0",
+      "source": {
+        "benchmark_id": "extension:building_energy_window_aggregation",
+        "dataset_id": "prompt2serviceflow_extension_sources",
+        "dataset_version": "extension_v1",
+        "description_path": "task.md",
+        "description_sha256": "901217dc434ee5e8c47ff4b7415df87997e764c594e3002e77d45a47f5eedfb9",
+        "pipeline_id": "building_energy_window_aggregation",
+        "split": "extension"
+      }
+    },
+    "profile": {
+      "fields": {
+        "capacity": "demand_limit_kw",
+        "demand": "demand_kw",
+        "energy": "energy_kwh",
+        "entity": "meter_id",
+        "group": "building_id",
+        "quality": "power_factor",
+        "time": "timestamp"
+      },
+      "input_keys": {
+        "records": "readings",
+        "registry": "buildings"
+      },
+      "profile_version": "bounded-window-1",
+      "rules": {
+        "bounds": "start_inclusive_end_exclusive",
+        "demand_alert": "greater_than_or_equal",
+        "duplicate_key": [
+          "entity",
+          "time"
+        ],
+        "duplicates": "collapse_identical_reject_conflicts",
+        "empty_windows": "omit",
+        "energy": "sum_interval_energy_not_cumulative",
+        "grouping": "group_and_window",
+        "peak_demand": "max_of_sum_per_timestamp",
+        "quality": "arithmetic_mean",
+        "quality_alert": "strictly_less",
+        "unknown_registry_group": "reject",
+        "window_precedence": "fixture_window_size_minutes"
+      }
+    },
+    "projection": {
+      "profile_version": "bounded-window-1",
+      "projection_contract_version": "p2sf.public-output-projections/1",
+      "rules": [
+        {
+          "artifact_data_types": [
+            "json",
+            "object"
+          ],
+          "artifact_role": "report",
+          "maximum_auxiliary_reports": 1,
+          "operation_profile": "publish_outputs",
+          "port": "output_artifacts",
+          "projection": "publication_audit_manifest",
+          "require_declared_intent_output": true,
+          "require_no_consumers": true,
+          "service_id": "timeseries_output_bundle_publisher",
+          "service_version": "1.0.0"
+        }
+      ],
+      "scope": "Explicit v2 compiler elaboration for an already-declared model artifact and producer. Never invent an artifact id, service, input, business transformation, private filename, or expected value. The registered implementation computes the publication audit from actual execution."
+    },
+    "public_fixture_previews": "### fixtures/inputs/fixture.json\n{\n  \"pipeline_id\": \"building_energy_window_aggregation\",\n  \"inputs\": [\n    \"time_series\",\n    \"table\"\n  ],\n  \"systems\": [\n    \"meter data bucket\",\n    \"energy analytics staging area\"\n  ]\n}\n\n\n### fixtures/scenarios/nominal/building_registry.csv\nbuilding_id,building_name,building_type,area_sqm,demand_limit_kw,owner\nBLD-A,Headquarters,office,5000,80,Corporate\nBLD-B,Data Center,data_center,2000,150,IT Operations\nBLD-C,Warehouse,storage,8000,30,Logistics\n\n\n### fixtures/scenarios/nominal/energy_readings.jsonl\n{\"meter_id\": \"MTR-01\", \"building_id\": \"BLD-A\", \"timestamp\": \"2026-07-20T08:00:00Z\", \"energy_kwh\": 12.5, \"demand_kw\": 45.0, \"power_factor\": 0.92}\n{\"meter_id\": \"MTR-01\", \"building_id\": \"BLD-A\", \"timestamp\": \"2026-07-20T08:15:00Z\", \"energy_kwh\": 14.2, \"demand_kw\": 52.0, \"power_factor\": 0.90}\n{\"meter_id\": \"MTR-01\", \"building_id\": \"BLD-A\", \"timestamp\": \"2026-07-20T08:30:00Z\", \"energy_kwh\": 15.8, \"demand_kw\": 58.0, \"power_factor\": 0.88}\n{\"meter_id\": \"MTR-01\", \"building_id\": \"BLD-A\", \"timestamp\": \"2026-07-20T08:45:00Z\", \"energy_kwh\": 16.0, \"demand_kw\": 60.0, \"power_factor\": 0.87}\n{\"meter_id\": \"MTR-02\", \"building_id\": \"BLD-B\", \"timestamp\": \"2026-07-20T08:00:00Z\", \"energy_kwh\": 35.0, \"demand_kw\": 120.0, \"power_factor\": 0.95}\n{\"meter_id\": \"MTR-02\", \"building_id\": \"BLD-B\", \"timestamp\": \"2026-07-20T08:15:00Z\", \"energy_kwh\": 38.5, \"demand_kw\": 135.0, \"power_factor\": 0.93}\n{\"meter_id\": \"MTR-02\", \"building_id\": \"BLD-B\", \"timestamp\": \"2026-07-20T08:30:00Z\", \"energy_kwh\": 36.2, \"demand_kw\": 128.0, \"power_factor\": 0.94}\n{\"meter_id\": \"MTR-03\", \"building_id\": \"BLD-C\", \"timestamp\": \"2026-07-20T08:00:00Z\", \"energy_kwh\": 5.0, \"demand_kw\": 18.0, \"power_factor\": 0.98}\n{\"meter_id\": \"MTR-03\", \"building_id\": \"BLD-C\", \"timestamp\": \"2026-07-20T08:15:00Z\", \"energy_kwh\": 5.2, \"demand_kw\": 19.0, \"power_factor\": 0.97}\n\n\n### fixtures/scenarios/nominal/fixture.json\n{\n  \"pipeline_id\": \"building_energy_window_aggregation\",\n  \"inputs\": {\"readings\": \"energy_readings.jsonl\", \"buildings\": \"building_registry.csv\"},\n  \"input_modalities\": [\"time_series\", \"table\"],\n  \"systems\": [\"building management system\", \"energy analytics dashboard\"],\n  \"batch_window_start\": \"2026-07-20T08:00:00Z\",\n  \"batch_window_end\": \"2026-07-20T09:00:00Z\",\n  \"window_size_minutes\": 30,\n  \"demand_threshold_pct\": 85,\n  \"power_factor_min\": 0.85\n}\n",
+    "registered_operations": [
+      {
+        "operation_profile": "build_analysis_windows",
+        "service_id": "bounded_analysis_window_builder",
+        "service_version": "1.0.0"
+      },
+      {
+        "operation_profile": "ingest_bounded_events",
+        "service_id": "bounded_timeseries_event_ingestor",
+        "service_version": "1.0.0"
+      },
+      {
+        "operation_profile": "validate_checkpoint_inputs",
+        "service_id": "bounded_window_checkpoint_validator",
+        "service_version": "1.0.0"
+      },
+      {
+        "operation_profile": "publish_outputs",
+        "service_id": "timeseries_output_bundle_publisher",
+        "service_version": "1.0.0"
+      },
+      {
+        "operation_profile": "sort_and_deduplicate_records",
+        "service_id": "timeseries_record_sort_deduplicator",
+        "service_version": "1.0.0"
+      },
+      {
+        "operation_profile": "compute_window_metrics",
+        "service_id": "window_metric_aggregator",
+        "service_version": "1.0.0"
+      }
+    ],
+    "rules": "# Shared public execution contract for v2 M3, M4 and M5\n\nProduce ServiceFlowIR using the public task, candidate sets, catalog and schemas.\nChoose services, artifacts, parameters, input links, policies, source-step\naccounting and control edges yourself. Use the supplied public metadata exactly.\nReturn a complete JSON object for generation and repair; the Pi agent writes\nthat object as submission/serviceflow.yaml using its tools.\n\nThe supplied numerical profile defines the behavior of the registered real\nservice implementations. Use the exact registered service/version/operation\nlabels. Other labels are unsupported. Select runtime.execution_profile as\nreference: real local calculations over fixture files, without contacting\nproduction services. Mock and production selections are not reinterpreted.\nOnly the declared bounded-batch family is implemented. Unknown parameters,\nbranching, streaming, credentials and unsupported service versions are rejected.\n\nBind the supplied scenario-neutral input-manifest role under fixtures/inputs/.\nEach stage takes one JSON input bundle and emits one JSON computation bundle\nplus one distinct execution-report artifact. Computation bundle data types are\nany, json or object; roles are intermediate or output. Execution reports have\ndata type status and role status or report. An optional publisher audit is a\nseparate json/object artifact with role report. Its producer and output\nintention must already be declared. The publisher computes its actual contents.\nJSON/object bundles are compatible with public any ports in this v2 validator;\nother port, schema, cardinality and policy checks still apply.\n\nKeep producers, consumers, port bindings and redundant intent lists consistent.\nNever use a status artifact as a business payload or share an artifact between\nunrelated writers. Use exact public schema paths or omit an optional schema_ref\nwhen none matches. Follow the IR enum vocabulary, including required/preferred/\nnot_required/unknown for idempotency requirements.\n\nThe same compiler-completion rules apply to all three methods. It may project\nredundant intent lists from existing bindings, declare already-bound unused\nrequired status artifacts, and bind one unambiguous already-declared publisher\naudit report according to the supplied projection contract. Raw model responses,\nraw IR and all compiler edits are retained. The canonical IR replaces the\nsubmission source for subsequent validation and repair. The compiler does not\nchoose services, inputs, numerical parameters or business transformations.\n\nM3 generates once without validator feedback. M4 uses its existing bounded\npublic-diagnostic repair controller. Pi M5 uses its existing file/tool agent and\nmatched validator budget. M4 and M5 receive only public gate diagnostics and\nnominal execution/schema outcomes. Business assertions, expected results and\nevaluation-only input variants are unavailable to all methods. Those checks\nare applied only after the method has finished and its submission is fixed.\n",
+    "version": "p2sf.public-real-methods/1"
+  },
+  "controller_sources": {
+    "methods": "09a654513420c6705527bd5dc32c92be00ebca35f2a3b4f8c6bf385bbb192da1",
+    "pi_wrapper": "81868f1b6a3590db0cf492293005e3511b857a224f14d856f6a55cbf0fdb50ae",
+    "prompts": "77d8af4f75598cc18b5a9721d111fe34a8f248f8a00c9273e385386c7f56ba15"
+  },
+  "created_at": "2026-10-26T07:35:12.380453+00:00",
+  "design": {
+    "audit_protocol_version": "27.0.0",
+    "case": "extension/building_energy_window_aggregation",
+    "m5_idle_continuations": 3,
+    "m5_step_budget": 12,
+    "m5_timeout_s": 1800,
+    "m5_token_cap": 750000,
+    "max_workers": 1,
+    "methods": [
+      "m3",
+      "m4",
+      "m5"
+    ],
+    "models": [
+      "deepinfra-qwen3-coder-480b-turbo",
+      "deepinfra-deepseek-v4-1-flash"
+    ],
+    "models_file": "audit/v2/semantic_methods.models.json",
+    "negative_controls": [
+      "constant_summary",
+      "wrong_energy",
+      "wrong_alert",
+      "missing_publication"
+    ],
+    "package_version": "2.0.0-methods.1",
+    "parent_replay": "audit/outputs/package_v2_frozen_replay__20261026T055128Z__636fe5d3",
+    "pilot_model": "deepinfra-qwen3-coder-480b-turbo",
+    "pilot_seed": 101,
+    "positive_scenarios": [
+      "nominal",
+      "shuffled",
+      "duplicate",
+      "extra_record",
+      "changed_energy",
+      "boundary_records"
+    ],
+    "public_rules": "audit/v2/SEMANTIC_METHOD_CONTRACT.md",
+    "rejection_scenarios": [
+      "conflicting_duplicate",
+      "unknown_building",
+      "missing_energy"
+    ],
+    "repair_budget": 3,
+    "scope": "Development integration experiment using actual M3/M4/Pi-M5 controllers with a shared v2 public execution contract and real service runtime. One supported task, not corpus generalization or replacement v1 scores. Primary and repair prompts, source bookkeeping, compiler elaboration, JSON/any compatibility and M5 runtime tools are versioned v2 changes. Private business checks run only after the method finishes.",
+    "seeds": [
+      101,
+      202,
+      303
+    ],
+    "source_dataset_id": "prompt2serviceflow_extension_sources",
+    "source_dataset_version": "extension_v1",
+    "validated_resolution": "audit/outputs/package_v2_semantic_resolution__20261025T231650Z__ae179ff4",
+    "validator_budget": 4
+  },
+  "environment": {
+    "executable": "/Users/abubakarialidu/Documents/Prompt2ServiceFlow-semantic-audit/.venv/bin/python",
+    "packages": {
+      "PyYAML": "6.0.2",
+      "jsonschema": "4.24.0",
+      "openai": "3.24.0",
+      "pydantic": "2.11.7"
+    },
+    "platform": "macOS-15.6.1-arm64-arm-64bit",
+    "python": "3.12.3 (main, Jun 22 2025, 18:40:59) [Clang 17.0.0 (clang-1700.0.13.5)]",
+    "runtime_compiler_version": "1.0.0",
+    "sandbox": "macOS Seatbelt",
+    "scorer_version": "1.2.1"
+  },
+  "freeze_id": "p2sf-semantic-methods-v2.1",
+  "input_fingerprint": "4dcb54f453116b114adce281c68cc658f86e7a6538c578b910210875f9527218",
+  "public_runtime_tool_version": "p2sf.public-real-methods/1",
+  "scope": "Development integration experiment using actual M3/M4/Pi-M5 controllers with a shared v2 public execution contract and real service runtime. One supported task, not corpus generalization or replacement v1 scores. Primary and repair prompts, source bookkeeping, compiler elaboration, JSON/any compatibility and M5 runtime tools are versioned v2 changes. Private business checks run only after the method finishes.",
+  "status": "frozen"
+}

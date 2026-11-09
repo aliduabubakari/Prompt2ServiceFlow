@@ -1,0 +1,102 @@
+"""Correct scenario coverage for saved v1 runtimes; never claim mock semantics.
+
+All model code must match the previously audited frozen compiler template.
+Use the original sandbox and unchanged predicate definitions. No compilation,
+model inference, artifact renaming or generated-output reconstruction occurs.
+"""
+from __future__ import annotations
+
+import copy
+import json
+from pathlib import Path
+import shutil
+import tempfile
+
+import scenario_alignment_v2 as metadata
+from prompt2serviceflow.validators.instance_validation import _execute_scenarios, _evaluate_assertion
+
+VERSION = 'p2sf.corpus-assertion-replay/1'
+
+
+def write(path, value):
+    path = Path(path); path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
+
+
+def files(root): return {p.relative_to(root).as_posix(): metadata.sha(p) for p in sorted(Path(root).rglob('*')) if p.is_file()}
+
+
+def scenario_roster(runtime, assertions):
+    names = [s['name'] for s in runtime['scenarios']]; reviewed = [s['scenario'] for s in assertions['scenarios']]
+    if not names or len(set(names)) != len(names) or len(set(reviewed)) != len(reviewed) or set(names) != set(reviewed):
+        raise ValueError('Nonempty identical unique runtime/assertion scenario rosters required')
+    for s in runtime['scenarios']:
+        if not isinstance(s.get('parameters'), dict): raise ValueError('Explicit reviewed parameter maps required')
+    for s in assertions['scenarios']:
+        checks = s.get('assertions'); ids = [a['assertion_id'] for a in checks or []]
+        if not checks or len(ids) != len(set(ids)): raise ValueError('Nonempty unique assertion sets required')
+        for assertion in checks: metadata.bounded.safe(Path('/snapshot-placeholder'), assertion['path'])
+    return names
+
+
+def score(snapshot_root, execution, definitions):
+    checks = []
+    for assertion in definitions:
+        metadata.bounded.safe(snapshot_root, assertion['path'])
+        if execution['_errors']:
+            status, message = 'unscored_execution_error', 'Recorded task execution did not complete'
+        else:
+            try:
+                ok, message = _evaluate_assertion(assertion, snapshot_root); status = 'pass' if ok else 'fail'
+            except Exception as exc: status, message = 'evaluation_error', type(exc).__name__ + ': ' + str(exc)[:500]
+        checks.append({'assertion_id': assertion['assertion_id'], 'status': status, 'message': message})
+    return {'scenario': execution['scenario'], 'execution_errors': execution['_errors'], 'assertions': checks,
+            'reviewed_assertion_pass': bool(checks) and not execution['_errors'] and all(c['status'] == 'pass' for c in checks)}
+
+
+def complete(names, reports):
+    observed = [r['scenario'] for r in reports]
+    return bool(names) and len(names) == len(set(names)) and len(observed) == len(set(observed)) and set(names) == set(observed)
+
+
+def replay(submission, instance, output, identity, *, timeout=30):
+    output = Path(output); output.mkdir(parents=True, exist_ok=False)
+    source_runtime = metadata.document(Path(submission) / 'runtime/manifest.yaml')
+    reviewed = metadata.document(Path(instance) / 'runtime/manifest.yaml'); assertions = metadata.document(Path(instance) / 'gold/assertions.yaml')
+    names = scenario_roster(reviewed, assertions); definitions = {s['scenario']: s['assertions'] for s in assertions['scenarios']}
+    overridden = copy.deepcopy(source_runtime); overridden['scenarios'] = copy.deepcopy(reviewed['scenarios'])
+    # Supply complete reviewed inputs to the evaluator only. Retain source task
+    # invocations verbatim: a program ignoring parameters must not be repaired.
+    write(output / 'original_runtime.json', source_runtime); write(output / 'evaluation_runtime.json', overridden)
+    write(output / 'unchanged_assertions.json', assertions)
+    contexts = metadata.scenario_contexts(instance, reviewed)
+    write(output / 'reviewed_input_provenance.json', contexts)
+    with tempfile.TemporaryDirectory(prefix='p2sf-corpus-replay-') as temporary:
+        virtual = Path(temporary) / 'instance'; virtual.mkdir()
+        shutil.copytree(Path(submission) / 'runtime', virtual / 'runtime')
+        shutil.copytree(Path(instance) / 'fixtures', virtual / 'fixtures')
+        executions = _execute_scenarios(virtual, overridden, sandbox_generated=True, task_timeout_seconds=timeout)
+    reports = []
+    for index, execution in enumerate(executions):
+        directory = output / 'scenarios' / execution['scenario']; snapshot = directory / 'snapshot'; snapshot.mkdir(parents=True)
+        payload = execution['_snapshot']
+        if len(payload) > 10000 or sum(len(v) for v in payload.values()) > 67108864: raise ValueError('Snapshot retention limit exceeded')
+        for relative, data in payload.items():
+            path = metadata.bounded.safe(snapshot, relative); path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(data)
+        provenance = {'cell_id': identity, 'scenario': execution['scenario'], 'parameters': contexts[execution['scenario']]['parameters'],
+            'fixture_context': contexts[execution['scenario']], 'executed_tasks': execution['executed_tasks'],
+            'skipped_tasks': execution['skipped_tasks'], 'execution_errors': execution['_errors'],
+            'source_runtime_sha256': metadata.sha(Path(submission) / 'runtime/manifest.yaml'),
+            'runtime_kind': 'recognized_frozen_mock', 'business_semantics_verified': False}
+        write(directory / 'execution_provenance.json', provenance)
+        manifest = files(snapshot); write(directory / 'snapshot_manifest.json', {'files': manifest, 'snapshot_role': 'actual saved-runtime outputs before predicate evaluation'})
+        # Only now may the unchanged reviewed predicates inspect saved bytes.
+        checked = score(snapshot, execution, definitions[execution['scenario']]); write(directory / 'score.json', checked)
+        if files(snapshot) != manifest: raise ValueError('Scoring modified the output snapshot')
+        reports.append(checked)
+    coverage = complete(names, reports)
+    return {'state': 'replayed', 'runtime_kind': 'recognized_frozen_mock', 'business_semantics_verified': False,
+        'required_scenarios': names, 'complete_scenario_coverage': coverage, 'scenarios': reports,
+        'execution_errors': sum(bool(r['execution_errors']) for r in reports),
+        'reviewed_assertion_pass': coverage and all(r['reviewed_assertion_pass'] for r in reports),
+        'scope': 'Corrected reviewed-scenario execution and unchanged literal predicate paths over retained mock scripts. This is not a verified real-business semantic score or an unchanged v1 end-to-end result.'}

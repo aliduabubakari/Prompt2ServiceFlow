@@ -1,0 +1,16 @@
+{
+  "package_version": "2.0.0-candidate.3",
+  "audit_protocol_version": "7.0.0",
+  "profile_version": "bounded-window-1",
+  "case": "extension/building_energy_window_aggregation",
+  "parent_coverage": "audit/outputs/package_v2_coverage__20261024T210210Z__2c723644",
+  "parent_family": "audit/outputs/package_v2_family__20261024T202215Z__d01cbe02",
+  "allowed_parent_inspection_errors": ["deepinfra-deepseek-v4-1-flash/m5/extension/satellite_change_report_assembler/2"],
+  "interpretation": "New explicit public semantics; not a reconstruction of private expected answers or unchanged original G6-Assert scores.",
+  "input_keys": {"records": "readings", "registry": "buildings"},
+  "fields": {"entity": "meter_id", "group": "building_id", "time": "timestamp", "energy": "energy_kwh", "demand": "demand_kw", "quality": "power_factor", "capacity": "demand_limit_kw"},
+  "rules": {"window_precedence": "fixture_window_size_minutes", "bounds": "start_inclusive_end_exclusive", "energy": "sum_interval_energy_not_cumulative", "duplicate_key": ["entity", "time"], "duplicates": "collapse_identical_reject_conflicts", "grouping": "group_and_window", "peak_demand": "max_of_sum_per_timestamp", "quality": "arithmetic_mean", "empty_windows": "omit", "demand_alert": "greater_than_or_equal", "quality_alert": "strictly_less", "unknown_registry_group": "reject"},
+  "scenarios": ["nominal", "shuffled", "duplicate", "extra_record", "changed_energy", "boundary_records", "conflicting_duplicate", "unknown_building", "missing_energy"],
+  "negative_controls": ["constant_summary", "wrong_energy", "wrong_alert", "missing_publication"],
+  "model_replay": "All 27 original M3-M5 cells for this case, after reference controls pass; M0-M2 retained as a separate unexecuted direct-Argo route. No binding repair."
+}

@@ -49,3 +49,11 @@ corpus:
 		--freeze-config $(FREEZE) --models $(MODEL) --methods $(METHODS) \
 		--split corpus --samples 3 --max-workers $(WORKERS) \
 		--runs-root $(RUNS_ROOT) --skip-image-build
+
+.PHONY: reproduce-original reproduce-accounting reproduce-all
+reproduce-original:
+	$(PYTHON) scripts/reproduce_submission_results.py --mode original
+reproduce-accounting:
+	$(PYTHON) scripts/reproduce_submission_results.py --mode accounting --evidence-root "$(EVIDENCE_ROOT)"
+reproduce-all:
+	$(PYTHON) scripts/reproduce_submission_results.py --mode all --evidence-root "$(EVIDENCE_ROOT)"

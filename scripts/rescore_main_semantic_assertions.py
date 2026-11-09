@@ -67,7 +67,8 @@ def _submission_dir(manifest_path: Path, method: str) -> Path:
     if score_path.is_file():
         submission = (_read(score_path).get("submission") or "").strip()
         if submission:
-            return Path(submission)
+            path = Path(submission)
+            return path if path.is_absolute() else ROOT / path
     if method in {"m3", "m4"}:
         return run_dir / "submission"
     return run_dir / "agent_workspace" / "submission"
@@ -126,7 +127,9 @@ def main() -> int:
                 continue
             manifest_path = Path(item["manifest_path"])
             if not manifest_path.is_absolute():
-                manifest_path = (batch_path.parent / manifest_path).resolve()
+                repository_path = ROOT / manifest_path
+                manifest_path = (repository_path if repository_path.is_file()
+                                 else batch_path.parent / manifest_path).resolve()
             manifest = _read(manifest_path)
             workspace_manifest = Path(manifest["visible_input_policy"]["workspace_manifest"])
             if not workspace_manifest.is_absolute():

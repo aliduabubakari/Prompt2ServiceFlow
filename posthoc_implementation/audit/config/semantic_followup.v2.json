@@ -1,0 +1,27 @@
+{
+  "protocol_version": "2.0.0",
+  "baseline_commit": "d10a8be24a34f533c82d3f2c1e2ed7959f89a4b7",
+  "reviewed_fixture_keys": {
+    "expected_interval_min": "retain_public_input",
+    "expected_event_count": "remove_private_expectation"
+  },
+  "fixture_restorations": {
+    "extension/clickstream_session_window_batch": [
+      "fixtures/inputs/checkpoint_manifest.json",
+      "fixtures/scenarios/nominal/checkpoint_manifest.json",
+      "fixtures/scenarios/boundary/checkpoint_manifest.json"
+    ],
+    "extension/climate_station_gap_fill_alignment": [
+      "fixtures/scenarios/nominal/fixture.json"
+    ]
+  },
+  "conditions": [
+    "f1_reviewed_fixture_replay",
+    "s1_reference_scenario_counterfactual",
+    "a1_assertion_mutations",
+    "r1_retention_service_execution"
+  ],
+  "scenario_condition_role": "Evaluation-side counterfactual using reference execution scenarios; not a deployable public scenario correction and never a model-performance result.",
+  "retention_condition_role": "Only retention_cutoff_config_resolver version 1.0.0 is supported; remaining tasks stay frozen mocks. This is a partial executor intervention, not faithful whole-pipeline execution.",
+  "mutation_modes": ["delete_artifacts", "successful_status_only", "corrupt_data_keep_status", "flip_success"]
+}
